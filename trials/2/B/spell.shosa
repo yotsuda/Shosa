@@ -1,0 +1,10 @@
+title "Spell"
+tempo 60
+
+dancer mage humanoid free
+
+// rise 1.5s, hang 1s (drawing the hands in at the end), thrust 0.15s, hang 0.4s, sink 1s
+section Cast {
+  steps { lift(0.5):1.5s hold:1s hold:0.15s hold:0.4s land:1s }
+  arms  { side:1.5s hold:0.7s shoulder:0.3s fwd:0.15s!cast hold:0.4s down:1s }
+}

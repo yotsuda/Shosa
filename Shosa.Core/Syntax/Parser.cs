@@ -205,15 +205,31 @@ internal sealed class Parser
             {
                 children.Add(new GreenInner(SyntaxKind.BarLine, [Next()]));
             }
+            else if (Kind == SyntaxKind.Percent)
+            {
+                // % or %2: the number is written against the sign.
+                var repeat = new List<GreenNode> { Next() };
+                if (_prevTight && Kind == SyntaxKind.Number && Current.Leading.Length == 0)
+                    repeat.Add(Next());
+                children.Add(new GreenInner(SyntaxKind.BarRepeat, repeat));
+            }
             else if (Kind == SyntaxKind.OpenBrace)
             {
                 children.Add(ParseOverlay());
+            }
+            else if (Kind == SyntaxKind.Colon)
+            {
+                children.Add(ParseEvent());   // a length alone: the rest of a tied event
             }
             else if (Kind == SyntaxKind.Identifier)
             {
                 if (Current.Text == "repeat" && Peek(1).Kind == SyntaxKind.Number)
                 {
-                    children.Add(ParseRepeat());
+                    // The spelling this language had before: say what took its place, and read the braces as a group.
+                    var token = Current;
+                    Diagnostics.Add(new Diagnostic("SH0012", DiagnosticSeverity.Error, new TextSpan(_offset + token.Leading.Length, token.Text.Length),
+                        "There is no 'repeat'. Write the unit in braces and 'q' for each further time ({ a b } q q), '%' for a whole bar again (a b | % | % |), or repeat sections in the form (|: A :|*4)."));
+                    children.Add(new GreenInner(SyntaxKind.Error, [Next(), Next()]));
                 }
                 else if (Peek(1).Kind == SyntaxKind.OpenBrace)
                 {
@@ -231,14 +247,6 @@ internal sealed class Parser
                 children.Add(SkipUnexpected());
             }
         }
-    }
-
-    private GreenNode ParseRepeat()
-    {
-        var children = new List<GreenNode> { Next(), Next(), Expect(SyntaxKind.OpenBrace, "'{'") };
-        ParseTrackItems(children);
-        children.Add(Expect(SyntaxKind.CloseBrace, "'}'"));
-        return new GreenInner(SyntaxKind.Repeat, children);
     }
 
     /// <summary>{ ... } & { ... }: rows that start together.</summary>
@@ -271,7 +279,9 @@ internal sealed class Parser
 
     private GreenNode ParseEvent()
     {
-        var children = new List<GreenNode> { ParseTarget(arguments: true) };
+        var children = new List<GreenNode>();
+        if (Kind != SyntaxKind.Colon)
+            children.Add(ParseTarget(arguments: true));
         bool hasDuration = false;
 
         while (true)
@@ -306,6 +316,8 @@ internal sealed class Parser
                 break;
             }
         }
+        if (Kind == SyntaxKind.Tilde)
+            children.Add(Next());   // tied to the length that follows: kick:1~ | :2
 
         return new GreenInner(SyntaxKind.Event, children);
     }
@@ -355,13 +367,39 @@ internal sealed class Parser
         {
             if (Kind == SyntaxKind.Identifier)
             {
-                var item = new List<GreenNode> { Next() };
-                if (Kind == SyntaxKind.Star)
+                children.Add(ParseFormItem());
+            }
+            else if (Kind == SyntaxKind.Bar && Peek(1).Kind == SyntaxKind.Colon)
+            {
+                children.Add(new GreenInner(SyntaxKind.FormSign, [Next(), Next()]));   // |:
+            }
+            else if (Kind == SyntaxKind.Colon && Peek(1).Kind == SyntaxKind.Bar)
+            {
+                var sign = new List<GreenNode> { Next(), Next() };                     // :|
+                if (_prevTight && Kind == SyntaxKind.Colon && Current.Leading.Length == 0)
                 {
-                    item.Add(Next());
-                    item.Add(Expect(SyntaxKind.Number, "A repeat count"));
+                    sign.Add(Next());                                                  // :|:
                 }
-                children.Add(new GreenInner(SyntaxKind.FormItem, item));
+                else if (Kind == SyntaxKind.Star)
+                {
+                    sign.Add(Next());
+                    sign.Add(Expect(SyntaxKind.Number, "How many times"));             // :|*4
+                }
+                children.Add(new GreenInner(SyntaxKind.FormSign, sign));
+            }
+            else if (Kind == SyntaxKind.OpenBracket)
+            {
+                // [1. B]  [1-2. B C]: what is played at the end of those passes of the repeat.
+                var ending = new List<GreenNode> { Next(), Expect(SyntaxKind.Number, "The pass this ending is for (1, 2 ...)") };
+                if (Kind == SyntaxKind.Number)
+                    ending.Add(Next());   // the lexer reads 1-2 as 1 and -2
+                ending.Add(Expect(SyntaxKind.Dot, "'.'"));
+                while (AtName)
+                    ending.Add(ParseFormItem());
+                // The ']' may be left off right before the ':|' that closes it.
+                if (!(Kind == SyntaxKind.Colon && Peek(1).Kind == SyntaxKind.Bar))
+                    ending.Add(Expect(SyntaxKind.CloseBracket, "']'"));
+                children.Add(new GreenInner(SyntaxKind.FormEnding, ending));
             }
             else
             {
@@ -370,6 +408,18 @@ internal sealed class Parser
         }
         children.Add(Expect(SyntaxKind.CloseBrace, "'}'"));
         return new GreenInner(SyntaxKind.FormDecl, children);
+    }
+
+    private GreenNode ParseFormItem()
+    {
+        var item = new List<GreenNode> { Next() };
+        if (Kind == SyntaxKind.Star)
+        {
+            // Not a spelling any more; kept in the tree so the binder can say what to write instead.
+            item.Add(Next());
+            item.Add(Expect(SyntaxKind.Number, "A number"));
+        }
+        return new GreenInner(SyntaxKind.FormItem, item);
     }
 
     /// <summary>score NAME? { form F  tempo 80  dancer alice  music "x.lys" score k  title "..." }</summary>

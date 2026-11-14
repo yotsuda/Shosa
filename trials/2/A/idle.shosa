@@ -1,0 +1,16 @@
+title "Idle"
+tempo 120
+time 4/4
+
+pose stance {
+  steps { left.fwd.low@small }
+  arms  { fwd.high@bent }
+}
+
+section Idle loop {
+  body  { | stance:4 | hold:4 | hold:4 | hold:4 | }
+  // the bounce: up and down again on every pair of beats; the last event is the stance,
+  // so the loop starts with the feet of the stance
+  steps { repeat 3 { | both.mid both.low both.mid both.low | } | both.mid both.low both.mid stance:1 | }
+  head  { | fwd:4 | fwd.left:1 hold:1 fwd:2 | fwd:4 | fwd.right:1 hold:1 fwd:2 | }
+}

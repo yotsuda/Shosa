@@ -153,10 +153,26 @@ public class LanguageServerTests
         Assert.Contains("stageLeft", session.Complete("facing "));
         Assert.Contains("inplace", session.Complete("section Greet "));
         Assert.Equal(new[] { "a", "b" }, session.Complete("section Greet loop {\n"));
-        Assert.Equal(new[] { "guard", "jab", "hold", "skip", "repeat" }, session.Complete("a { body { "));
+        Assert.Equal(new[] { "guard", "jab", "hold", "skip", "q" }, session.Complete("a { body { "));
         Assert.Contains("hand", session.Complete("rightArm { b."));
         Assert.Contains("pose", session.Complete("\n\n"));
         Assert.Contains("Move of this file", session.Hover("jab }"));
+    }
+
+    [Fact]
+    public void Hover_on_a_move_says_how_long_it_is()
+    {
+        var session = new Session("""
+            pose guard { arms { fwd.high@bent } }
+            move combo { leftArm { fwd:1/2 guard:1/2 fwd guard } rightArm { skip:2 fwd } }
+            section Fight { body { combo combo:6 } }
+
+            """);
+
+        // Its longest track: 1/2 + 1/2 + 1 + 1. Said where it is used and where it is defined.
+        Assert.Contains("it takes 3 beats", session.Hover("combo combo:6"));
+        Assert.Contains("it takes 3 beats", session.Hover("combo {"));
+        Assert.Contains("reached in 1 beat", session.Hover("guard {"));
     }
 
     [Fact]

@@ -1,0 +1,25 @@
+title "High five"
+tempo 100
+time 4/4
+
+figure a
+figure b
+dancer ann humanoid on a at -1.5 0 facing stageLeft
+dancer ben humanoid on b at 1.5 0 facing stageRight
+
+// walk in (3 beats), wait for the slap, wait, turn round, two steps away, close
+move route {
+  steps { left.fwd right.fwd left.fwd@small hold | hold turn.left.half right.fwd left.fwd | together hold:3 | }
+}
+
+// b's hand goes high by itself; a's hand goes to b's hand, wherever that is.
+section HighFive {
+  a {
+    body     { route:12 }
+    rightArm { skip:2 fwd.high:1@bent b.hand:1@sharp!slap | down:1 skip:3 | }
+  }
+  b {
+    body     { route:12 }
+    rightArm { skip:2 fwd.high:1@bent fwd.high:1@sharp | down:1 skip:3 | }
+  }
+}

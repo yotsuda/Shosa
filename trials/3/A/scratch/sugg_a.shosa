@@ -1,0 +1,3 @@
+time 3/4
+move kick { rightLeg { fwd.low:1@bent fwd:1@sharp!kick fwd.low:1@bent down:1 } }
+section T { body { hold:1 kick | hold:3 | } }

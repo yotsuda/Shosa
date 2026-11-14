@@ -32,6 +32,12 @@ public sealed class Canvas
         _rgb[i + 2] = (byte)color;
     }
 
+    public uint ColorAt(int x, int y)
+    {
+        int i = (y * Width + x) * 3;
+        return (uint)(_rgb[i] << 16 | _rgb[i + 1] << 8 | _rgb[i + 2]);
+    }
+
     public void Rect(int x, int y, int width, int height, uint color)
     {
         for (int yy = y; yy < y + height; yy++)
@@ -75,32 +81,47 @@ public sealed class Canvas
         }
     }
 
-    // 3x5 glyphs, one bit per pixel, rows top to bottom.
-    private static readonly Dictionary<char, string> Glyphs = new()
-    {
-        ['0'] = "111101101101111", ['1'] = "010110010010111", ['2'] = "111001111100111", ['3'] = "111001111001111",
-        ['4'] = "101101111001001", ['5'] = "111100111001111", ['6'] = "111100111101111", ['7'] = "111001001001001",
-        ['8'] = "111101111101111", ['9'] = "111101111001111", ['.'] = "000000000000010", ['-'] = "000000111000000",
-        [' '] = "000000000000000",
-    };
+    /// <summary>A character is this many dots from the start of one to the start of the next, and a line this many high (7, and 1 for a tail: g j p q y).</summary>
+    public const int GlyphAdvance = 6, GlyphHeight = 8;
 
-    /// <summary>Digits, '.', '-' and space, enough for beat labels.</summary>
+    // The printable ASCII characters, ' ' to '~', as the classic 5x7 dot matrix: five columns
+    // each, a byte per column in hex, the lowest bit the top row. Capitals and small letters are
+    // different shapes, so a name reads as it was written (3x5 could not tell N from H, M or W).
+    private const string Glyphs =
+        "0000000000" + "00005F0000" + "0007000700" + "147F147F14" + "242A7F2A12" + "2313086462" + "3649562050" + "0008070300" +   //   ! " # $ % & '
+        "001C224100" + "0041221C00" + "2A1C7F1C2A" + "08083E0808" + "0080703000" + "0808080808" + "0000606000" + "2010080402" +   // ( ) * + , - . /
+        "3E5149453E" + "00427F4000" + "7249494946" + "2141494D33" + "1814127F10" + "2745454539" + "3C4A494931" + "4121110907" +   // 0 1 2 3 4 5 6 7
+        "3649494936" + "464949291E" + "0000140000" + "0040340000" + "0008142241" + "1414141414" + "0041221408" + "0201590906" +   // 8 9 : ; < = > ?
+        "3E415D594E" + "7C1211127C" + "7F49494936" + "3E41414122" + "7F4141413E" + "7F49494941" + "7F09090901" + "3E41415173" +   // @ A B C D E F G
+        "7F0808087F" + "00417F4100" + "2040413F01" + "7F08142241" + "7F40404040" + "7F021C027F" + "7F0408107F" + "3E4141413E" +   // H I J K L M N O
+        "7F09090906" + "3E4151215E" + "7F09192946" + "2649494932" + "03017F0103" + "3F4040403F" + "1F2040201F" + "3F4038403F" +   // P Q R S T U V W
+        "6314081463" + "0304780403" + "6159494D43" + "007F414141" + "0204081020" + "004141417F" + "0402010204" + "4040404040" +   // X Y Z [ \ ] ^ _
+        "0003070800" + "2054547840" + "7F28444438" + "3844444428" + "384444287F" + "3854545418" + "00087E0902" + "18A4A49C78" +   // ` a b c d e f g
+        "7F08040478" + "00447D4000" + "2040403D00" + "7F10284400" + "00417F4000" + "7C04780478" + "7C08040478" + "3844444438" +   // h i j k l m n o
+        "FC18242418" + "18242418FC" + "7C08040408" + "4854545424" + "04043F4424" + "3C4040207C" + "1C2040201C" + "3C4030403C" +   // p q r s t u v w
+        "4428102844" + "4C9090907C" + "4464544C44" + "0008364100" + "0000770000" + "0041360800" + "0201020402";                    // x y z { | } ~
+
+    /// <summary>How wide a text is drawn at a scale, without the gap after its last character.</summary>
+    public static int TextWidth(string text, int scale) => Math.Max(0, text.Length * GlyphAdvance - 1) * scale;
+
+    /// <summary>ASCII text; any other character is a gap. (x, y) is the top left of the first character.</summary>
     public void Text(int x, int y, string text, int scale, uint color)
     {
         foreach (char ch in text)
         {
-            if (Glyphs.TryGetValue(ch, out var glyph))
+            if (ch is > ' ' and <= '~')
             {
-                for (int row = 0; row < 5; row++)
+                for (int col = 0; col < 5; col++)
                 {
-                    for (int col = 0; col < 3; col++)
+                    int bits = Convert.ToInt32(Glyphs.Substring((ch - ' ') * 10 + col * 2, 2), 16);
+                    for (int row = 0; row < GlyphHeight; row++)
                     {
-                        if (glyph[row * 3 + col] == '1')
+                        if ((bits >> row & 1) != 0)
                             Rect(x + col * scale, y + row * scale, scale, scale, color);
                     }
                 }
             }
-            x += 4 * scale;
+            x += GlyphAdvance * scale;
         }
     }
 

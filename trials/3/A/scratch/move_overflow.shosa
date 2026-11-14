@@ -1,0 +1,6 @@
+time 3/4
+move kick { rightLeg { fwd.low:1@bent fwd:1@sharp!kick fwd.low:1@bent down:1 } }
+section T {
+  // a 4-beat move with no length, written across a bar line with no tie: what does the compiler say?
+  body { hold:2 kick | hold:3 | }
+}

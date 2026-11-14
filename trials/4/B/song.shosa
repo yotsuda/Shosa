@@ -1,0 +1,41 @@
+// Three dancers to "Song": a lead in front, two behind. Played Chorus, Verse, Chorus.
+title "Song for three"
+music "song.lys"
+form { Chorus Verse Chorus }
+
+figure lead "lead"
+figure back "the two behind"
+dancer ann humanoid on lead at 0 0.6
+dancer bea humanoid on back at 1.8 -0.6
+dancer cal humanoid on back at -1.8 -0.6 mirror
+
+score solo { dancer ann }   // the lead alone, to look at: shosa sheet … --score solo
+
+// The Chorus is ONE text, danced both times. The lead's LEFT arm is not written in it on
+// purpose: it hangs the first time (the clip starts from neutral) and is still raised the
+// second time, because the Verse leaves it up. The lead is also further forward by then.
+section Chorus {
+  lead {
+    steps    { left.side right.back.across left.side together | right.side left.back.across right.side together | %2 | }
+    rightArm { side.high:1 fwd.high:1 side.high:1 hip:1 | % | % | side.high:1 fwd.high:1 up:1@bent hip:1 | }
+    head     { fwd.left:2 fwd:2 | fwd.right:2 fwd:2 | %2 | }
+  }
+  back {
+    steps { left.side together right.side together | % | % | % | }
+    arms  { side.high:2 clap:1!clap side.low:1 | % | % | side.high:2 clap:1!clap down:1 | }
+  }
+}
+
+section Verse {
+  lead {
+    steps    { left.fwd@small right.fwd@small left.fwd@small together | both.low:2 both.mid:2 | turn.left.full:4 | both.high:2 both.mid:2 | }
+    arms     { fwd:2 side:2 | side.low:2 side:2 | hold:4 | skip:4 | }
+    leftArm  { skip:4 | skip:4 | skip:4 | side.high:2 up:2 | }
+    rightArm { skip:4 | skip:4 | skip:4 | side.low:2 hip:2 | }
+  }
+  back {
+    steps { shift.left:2 shift.right:2 | % | % | shift.left:2 shift.center:2 | }
+    torso { left.75:2 right.75:2 | % | % | left.75:2 up:2 | }
+    arms  { side.low:4 | side:4 | side.high:4 | side:2 down:2 | }
+  }
+}

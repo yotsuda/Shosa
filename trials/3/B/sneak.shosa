@@ -1,0 +1,11 @@
+title "Sneak"
+tempo 80
+time 4/4
+
+// A looping sneak on the spot: one careful step every two beats, knees bent throughout.
+section Sneak loop inplace {
+  steps { left.fwd.low:2 right.fwd.low:2 | % | }
+  torso { fwd.70:4 | hold:4 | }
+  head  { fwd.left:2 fwd.right:2 | % | }
+  arms  { fwd.low@bent:4 | hold:4 | }
+}

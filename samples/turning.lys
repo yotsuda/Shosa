@@ -1,0 +1,26 @@
+// Turning — a song that changes on the way, for samples/turning.shosa.
+// Written in Lily# (https://github.com/yotsuda/LilySharp).
+// The March is four bars of 4/4 at 120 and slows to 90 in its last bar; the Waltz is four bars
+// of 3/4, at 120 again (a new section starts from the tempo at the top of the file).
+title "Turning"
+tempo 120
+time 4/4
+key g major
+
+part melody "Melody" { clef treble }
+
+section March {
+  melody {
+    g'4 b d b | a4 c e c | b4 d g d | tempo 90 c4 a g2 |
+  }
+}
+
+section Waltz {
+  melody {
+    time 3/4 b'4 d d | c4 e e | d4 b g | a2. |
+  }
+}
+
+form { March Waltz }
+
+score { staff melody }

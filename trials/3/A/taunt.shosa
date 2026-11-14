@@ -1,0 +1,12 @@
+title "Boss taunt"
+tempo 100
+time 4/4
+
+section Taunt {
+  // left hand on the hip through the beckoning, then given back to `arms`
+  leftArm  { hip:2 hold:2 | hold:2 skip:2 | skip:4 | }
+  // reach out (2 beats), then fold in / out four times, half a beat each part
+  rightArm { fwd:2 { fwd@bent:1/2 fwd:1/2 } q | q q skip:2 | skip:4 | }
+  // the shrug: 5 beats from beat 3 of bar 2, tied over the bar line; then down
+  arms     { skip:4 | skip:2 side.30@bent:2~ | :3 down:1 | }
+}

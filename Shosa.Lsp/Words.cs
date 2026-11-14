@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text.RegularExpressions;
 using Shosa.Core.Semantics;
 using Shosa.Core.Syntax;
 
@@ -12,7 +14,7 @@ internal static class Words
 {
     private static readonly Vocabulary.Word Hold = new("hold", "Stay as you are.");
     private static readonly Vocabulary.Word Skip = new("skip", "This track says nothing for this long: a wider track (body, arms) has the part meanwhile.");
-    private static readonly Vocabulary.Word Repeat = new("repeat", "repeat N { … } performs the events inside N times.");
+    private static readonly Vocabulary.Word Again = new("q", "The group in braces before it, again: { a b } q q. With a length the group is stretched to it; q@mirror swaps left and right.");
 
     private static readonly Vocabulary.Word[] TurnSides =
     [
@@ -51,7 +53,7 @@ internal static class Words
         new("tempo", "tempo N — this score's own tempo."),
         new("title", "title \"…\""),
         new("dancer", "dancer NAME — only these dancers appear."),
-        new("music", "music \"song.lys\" score NAME"),
+        new("music", "music \"song.lys\" score NAME — this score is danced to another song, or to another of the song's scores."),
     ];
 
     public static readonly Vocabulary.Word[] TopLevel =
@@ -60,7 +62,7 @@ internal static class Words
         new("tempo", "tempo N — beats per minute."),
         new("time", "time N/N — beats per bar / beat unit."),
         new("fps", "fps N — frames per second of the output, and what `:12f` counts (30 if not written)."),
-        new("music", "music \"song.lys\" — the song this is danced to."),
+        new("music", "music \"song.lys\" score NAME — the Lily# song this is danced to: tempo, time and the order of the sections come from it."),
         new("figure", "figure NAME \"label\" — an owner of choreography. A file for one body needs none."),
         new("dancer", "dancer NAME humanoid on FIGURE at X Z facing … — a body that dances a figure."),
         new("pose", "pose NAME { TRACK { target } } — a named way of standing or holding the body."),
@@ -74,12 +76,59 @@ internal static class Words
     private static bool IsArm(string track) => track is "arms" or "leftArm" or "rightArm";
 
     /// <summary>The poses and moves a file defines, as words: they can be written in any track that shares a part with them.</summary>
-    public static List<Vocabulary.Word> Definitions(SyntaxTree tree) =>
+    /// <param name="lengths">The beats each move takes when written without a length (<see cref="ScoreIr.MoveLengths"/>), to say them.</param>
+    public static List<Vocabulary.Word> Definitions(SyntaxTree tree, IReadOnlyDictionary<string, double>? lengths = null) =>
         tree.Root.ChildNodes().Where(n => n.Kind is SyntaxKind.PoseDecl or SyntaxKind.MoveDecl)
             .Select(n => (Node: n, Name: n.Token(SyntaxKind.Identifier, 1)?.Text)).Where(d => d.Name is not null)
             .Select(d => new Vocabulary.Word(d.Name!, (d.Node.Kind == SyntaxKind.PoseDecl ? "Pose" : "Move") + " of this file: "
-                + string.Join(", ", d.Node.ChildNodes(SyntaxKind.Track).Select(t => t.Token(SyntaxKind.Identifier)?.Text)) + "."))
+                + string.Join(", ", d.Node.ChildNodes(SyntaxKind.Track).Select(t => t.Token(SyntaxKind.Identifier)?.Text)) + "."
+                + (d.Node.Kind == SyntaxKind.MoveDecl && lengths is not null && lengths.TryGetValue(d.Name!, out double beats)
+                    ? $" Written without a length it takes {Beats(beats)}; with one ({d.Name}:{Math.Max(1, Math.Round(beats * 2)).ToString(CultureInfo.InvariantCulture)}) it is stretched to it."
+                    : d.Node.Kind == SyntaxKind.PoseDecl ? " Written without a length it is reached in 1 beat." : "")))
             .ToList();
+
+    private static string Beats(double beats) => beats.ToString("0.###", CultureInfo.InvariantCulture) + (beats == 1 ? " beat" : " beats");
+
+    /// <summary>What a `music` line can be completed from: the song files beside the dance, and the scores a song has.</summary>
+    public sealed record Songs(Func<IReadOnlyList<string>> Files, Func<string, IReadOnlyList<string>> ScoresOf);
+
+    private static readonly Regex MusicFile = new("""\bmusic\s+"([^"]*)$""", RegexOptions.Compiled);
+    private static readonly Regex MusicScore = new("""\bmusic\s+"([^"]*)"\s+score\s+\w*$""", RegexOptions.Compiled);
+    private static readonly Regex MusicTail = new("""\bmusic\s+"[^"]*"\s+\w*$""", RegexOptions.Compiled);
+
+    /// <summary>
+    /// What can be typed on a `music` line (at the top of the file or in a score): the file's
+    /// name inside the quotes, `score` after it, a score of that song after `score`. Null
+    /// anywhere else. <c>From</c> is where the text that a file name replaces begins: a name has
+    /// dots and dashes in it, which an editor would not take for one word.
+    /// </summary>
+    public static (IEnumerable<Vocabulary.Word> Words, string Kind, int? From)? AtMusic(SyntaxTree tree, int offset, Songs? songs)
+    {
+        string text = tree.Text;
+        int lineStart = text.LastIndexOf('\n', Math.Max(0, offset - 1)) + 1;
+        if (lineStart > offset)
+            return null;
+        string line = text[lineStart..offset];
+        if (line.Contains("//", StringComparison.Ordinal))
+            return null;   // a comment
+
+        if (MusicFile.Match(line) is { Success: true } file)
+        {
+            var files = songs?.Files() ?? [];
+            return (files.Select(f => new Vocabulary.Word(f, "A Lily# song beside this file.")), "file", offset - file.Groups[1].Length);
+        }
+        if (MusicScore.Match(line) is { Success: true } score)
+        {
+            var scores = songs?.ScoresOf(score.Groups[1].Value) ?? [];
+            return (scores.Select(s => new Vocabulary.Word(s, $"A score of {score.Groups[1].Value}.")), "value", null);
+        }
+        if (MusicTail.IsMatch(line))
+        {
+            var of = new Vocabulary.Word("score", "score NAME — one of the song's scores, instead of its default.");
+            return (Enclosing(tree, SyntaxKind.ScoreDecl, offset) is null ? [of] : [of, .. ScoreItems], "property", null);
+        }
+        return null;
+    }
 
     /// <summary>
     /// The words that can come next in a target of this track, given the words already
@@ -94,12 +143,12 @@ internal static class Words
             return before.Count == 1 ? Vocabulary.Parts : [];
 
         if (track == "body")
-            return before.Count == 0 ? [.. definitions, Hold, Skip, Repeat] : [];
+            return before.Count == 0 ? [.. definitions, Hold, Skip, Again] : [];
 
         if (track == "steps")
         {
             if (before.Count == 0)
-                return [.. Vocabulary.Feet, .. Vocabulary.SupportActions, .. definitions, Hold, Skip, Repeat];
+                return [.. Vocabulary.Feet, .. Vocabulary.SupportActions, .. definitions, Hold, Skip, Again];
             return before[0] switch
             {
                 "left" or "right" => Except([.. Vocabulary.StepDirections, .. Vocabulary.Levels], before.Skip(1)),
@@ -121,7 +170,7 @@ internal static class Words
                 first = first.Concat(Vocabulary.Anchors.Where(a => !a.Name.Contains('.')));
             if (IsArm(track) || track == "head")
                 first = first.Concat(figures);
-            return [.. first, .. definitions, Hold, Skip, Repeat];
+            return [.. first, .. definitions, Hold, Skip, Again];
         }
         if (IsArm(track) && before is ["across"])
             return [.. Except([.. directions, .. Vocabulary.Levels], before), new("shoulder", "across.shoulder: the hand on the opposite shoulder.")];
@@ -260,7 +309,7 @@ internal static class Words
     }
 
     /// <summary>The documentation of the word at a position, or null.</summary>
-    public static (Vocabulary.Word Word, TextSpan Span)? Describe(SyntaxTree tree, int offset)
+    public static (Vocabulary.Word Word, TextSpan Span)? Describe(SyntaxTree tree, int offset, IReadOnlyDictionary<string, double>? lengths = null)
     {
         var token = tree.Root.DescendantTokens()
             .FirstOrDefault(t => t.Kind == SyntaxKind.Identifier && !t.IsMissing && offset >= t.Span.Start && offset <= t.Span.End);
@@ -281,7 +330,12 @@ internal static class Words
             var before = parent.ChildTokens().Where(t => t.Kind is SyntaxKind.Identifier or SyntaxKind.Number && !t.IsMissing && t.Span.Start < token.Span.Start)
                 .Select(t => t.Text).ToList();
             var figures = FigureNames(tree).Select(n => new Vocabulary.Word(n.Id, $"Figure {n.Label}")).ToList();
-            word = ForTarget(track, before, Definitions(tree), figures).FirstOrDefault(w => w.Name == token.Text);
+            word = ForTarget(track, before, Definitions(tree, lengths), figures).FirstOrDefault(w => w.Name == token.Text);
+        }
+        else if (parent.Kind is SyntaxKind.PoseDecl or SyntaxKind.MoveDecl && token == parent.Token(SyntaxKind.Identifier, 1))
+        {
+            // The name where it is defined says the same as where it is used.
+            word = Definitions(tree, lengths).FirstOrDefault(w => w.Name == token.Text);
         }
         else if (parent.Kind == SyntaxKind.Annotation)
         {
@@ -294,10 +348,6 @@ internal static class Words
         else if (parent.Kind == SyntaxKind.Track && first)
         {
             word = Vocabulary.Tracks.FirstOrDefault(w => w.Name == token.Text);
-        }
-        else if (parent.Kind == SyntaxKind.Repeat)
-        {
-            word = Repeat;
         }
         else if (parent.Kind == SyntaxKind.Clause && first)
         {

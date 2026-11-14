@@ -22,6 +22,10 @@ public enum SyntaxKind
     CloseParen,
     Amp,
     Bang,
+    Percent,
+    Tilde,
+    OpenBracket,
+    CloseBracket,
 
     // Nodes
     CompilationUnit,
@@ -35,17 +39,19 @@ public enum SyntaxKind
     FigureBlock,   // FIGURE { track* }
     Track,         // TRACK { item* }
     BarLine,       // |
-    Repeat,        // repeat N { item* }
-    Overlay,       // sequence (& sequence)*
+    BarRepeat,     // % N?                             (the bar, or the N bars, before it again)
+    Overlay,       // sequence (& sequence)*           (one sequence alone: a group, which `q` performs again)
     Sequence,      // { item* }
-    Event,         // target (duration | annotation | mark)*
+    Event,         // target (duration | annotation | mark)* ~?    or, after a tie:  duration ~?
     Target,        // word (. (word | N))* arguments?
     Duration,      // : N (/ N)? unit?                 (unit: s or f, written against the number)
     Annotation,    // @ word arguments?
     Arguments,     // ( (target | N)* )
     Mark,          // ! NAME
     FormDecl,      // form NAME? { formItem* }
-    FormItem,      // NAME (* N)?
+    FormItem,      // NAME
+    FormSign,      // |:   or   :| (* N)?   or   :|:
+    FormEnding,    // [ N (N)? . formItem* ]            ([1. B]  [1-2. B C])
     ScoreDecl,     // score NAME? { scoreItem* }
     ScoreItem,     // form NAME | tempo N | title "..." | music "..." (score NAME)? | dancer NAME
     Error,         // tokens the parser could not place

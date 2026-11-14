@@ -1,0 +1,2 @@
+time 4/4
+section T { arms { side:3 up:3 | down:4 | } }

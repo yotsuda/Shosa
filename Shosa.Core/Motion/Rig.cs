@@ -65,8 +65,14 @@ public sealed class MotionClip
     /// <summary>The even travel over the floor is taken out; each figure says what it was (<see cref="ClipFigure.Velocity"/>).</summary>
     public bool Inplace { get; set; }
     public int Fps { get; set; }
+    /// <summary>Beats per minute at the start; <see cref="Tempos"/> has every one.</summary>
     public double Tempo { get; set; }
+    /// <summary>Beats to the bar at the start; <see cref="Meters"/> has every time.</summary>
     public int BeatsPerBar { get; set; }
+    /// <summary>Every tempo, the first at beat 0: a clip danced to a song that changes tempo has several.</summary>
+    public List<TempoIr> Tempos { get; set; } = [];
+    /// <summary>Every time, the first at beat 0.</summary>
+    public List<MeterIr> Meters { get; set; } = [];
     public double TotalBeats { get; set; }
     public string[] Joints { get; set; } = Rig.Joints;
     public int[][] Bones { get; set; } = Rig.Bones.Select(b => new[] { b.A, b.B }).ToArray();
@@ -75,13 +81,19 @@ public sealed class MotionClip
     /// <summary>Which source span is being performed when: the link between text and movement.</summary>
     public List<ClipSpan> Spans { get; } = [];
     public List<SectionIr> Sections { get; set; } = [];
+    /// <summary>The song this is danced to; null for a dance of its own.</summary>
+    public MusicIr? Music { get; set; }
     /// <summary>The moments the author named (`!hit`), in time order.</summary>
     public List<ClipMark> Marks { get; } = [];
 
-    public double BeatOfFrame(int frame) => Math.Min(TotalBeats, frame * Tempo / (60.0 * Fps));
-    public int FrameOfBeat(double beat) => (int)Math.Round(Math.Clamp(beat, 0, TotalBeats) * 60.0 * Fps / Tempo);
+    private IReadOnlyList<TempoIr> Map => TempoMap.Of(Tempos, Tempo);
+
+    /// <summary>The second a beat falls on. Frames are even in seconds; beats are not, where the tempo changes.</summary>
+    public double SecondsAt(double beat) => TempoMap.Seconds(Map, beat);
+    public double BeatOfFrame(int frame) => Math.Min(TotalBeats, TempoMap.Beat(Map, (double)frame / Fps));
+    public int FrameOfBeat(double beat) => (int)Math.Round(FrameAt(beat));
     /// <summary>A beat as a position between frames: a beat seldom falls exactly on one.</summary>
-    public double FrameAt(double beat) => Math.Clamp(beat, 0, TotalBeats) * 60.0 * Fps / Tempo;
+    public double FrameAt(double beat) => SecondsAt(Math.Clamp(beat, 0, TotalBeats)) * Fps;
 }
 
 public sealed class ClipFigure

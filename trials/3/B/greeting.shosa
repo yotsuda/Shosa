@@ -1,0 +1,22 @@
+title "Greeting"
+tempo 100
+time 4/4
+
+figure a
+figure b
+dancer ann humanoid on a at -0.55 0 facing stageLeft
+dancer ben humanoid on b at 0.55 0 facing stageRight
+
+section Greet {
+  a {
+    torso    { fwd.60:2 hold:2 | up:2 hold:2 | skip:4 | skip:4 | }
+    rightArm { skip:4 | skip:4 | b.hand.high:2!slap down:2 | skip:4 | }
+    steps    { hold:4 | hold:4 | hold:4 | left.fwd:1 hold:3 | }
+    leftArm  { skip:4 | skip:4 | skip:4 | skip:1 b.shoulder:2 hold:1 | }
+  }
+  b {
+    torso    { fwd.60:2 hold:2 | up:2 hold:2 | skip:4 | skip:4 | }
+    rightArm { skip:4 | skip:4 | a.hand.high:2 down:2 | skip:4 | }
+    head     { skip:4 | skip:4 | skip:4 | skip:2 fwd.-35:1/2 fwd:1/2 fwd.-35:1/2 fwd:1/2 | }
+  }
+}

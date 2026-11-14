@@ -1,0 +1,19 @@
+title "Boss combo in three"
+tempo 140
+time 3/4
+
+pose guard {
+  steps { left.fwd.low@small }
+  arms  { fwd.high@bent }
+}
+
+// one beat: out in the first half (sharp, so the hit is at a quarter beat), back in the second
+move jab  { leftArm { fwd:1/2@sharp!jab guard:1/2 } }
+
+// 4 beats by definition: chamber, strike, re-chamber, down
+move kick { rightLeg { fwd.low:1@bent fwd:1@sharp!kick fwd.low:1@bent down:1 } }
+
+section Combo {
+  // kick at its defined length (4 beats), starting on beat 3 of bar 1: 1 + 3 over the bar line
+  body { guard:0 jab:1 jab:1 kick:1~ | :3 | guard:3 | }
+}

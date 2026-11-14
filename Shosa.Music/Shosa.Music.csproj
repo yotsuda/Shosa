@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The one place Shosa touches Lily#. It is a program of its own, talked to over a command
+       line and JSON (Shosa.Core/Music/SongReader.cs), for two reasons: Lily# is under the
+       GPL (v3 or later), so what links it is too — this program is, the rest of Shosa is not
+       bound by that — and Lily# brings its engraver along (Skia, HarfBuzz, fonts), which a
+       compiler of movement has no use for. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>shosa-music</AssemblyName>
+    <RootNamespace>Shosa.Music</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\LilySharp\LilySharp.Core\LilySharp.Core.csproj" />
+  </ItemGroup>
+
+  <!-- SixLabors.ImageSharp: in the graph, not in the output — Lily#'s own decision
+       (Directory.Build.props of its repository, 2026-10-09), which does not reach a project
+       outside that repository, so it is made again here. PdfSharpCore, which LilySharp.Core uses
+       to write PDFs, depends on ImageSharp to embed raster images; Lily# never does, and
+       shosa-music writes no PDF at all. So the DLL is kept out of what is built and packed
+       (ExcludeAssets="runtime"), the version stays on 2.1.11 — the last under Apache-2.0; 3.0 and
+       later have a licence that cannot travel inside a GPL program — and the five advisories
+       against that version are suppressed by id: the code they are about is not distributed.
+       Any other advisory on any package still warns. -->
+  <ItemGroup>
+    <PackageReference Include="SixLabors.ImageSharp" Version="2.1.11" ExcludeAssets="runtime" />
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-gwg2-r3hj-4w44" />
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-j3p4-wp97-rph4" />
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-j9gm-c75j-xc9q" />
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-jjfr-hcj7-qf5w" />
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-wmxv-xphr-5c9g" />
+  </ItemGroup>
+
+</Project>

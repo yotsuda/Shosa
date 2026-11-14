@@ -1,0 +1,3 @@
+tempo 120
+pose win { leftArm { hip } }
+section V { arms { side:1 skip:1 } body { skip:1 win:1 hold:2 } }

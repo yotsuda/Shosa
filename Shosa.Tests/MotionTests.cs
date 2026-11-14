@@ -22,6 +22,112 @@ public class MotionTests
     }
 
     [Fact]
+    public void A_bar_line_closes_exactly_one_bar_and_an_event_across_it_is_tied()
+    {
+        // 2 + 3 + 3 is two bars, but the line after them closes a bar of eight beats.
+        string loose = Body("    arms { side:2 fwd:3 side:3 | }");
+        var diagnostic = Assert.Single(Compile(loose).Diagnostics);
+        Assert.Equal("SH1002", diagnostic.Code);
+        Assert.Contains("fwd:2~ | :1", diagnostic.Message);   // where the tie goes, worked out from the event
+
+        // Tied over the line it is one event of three beats: the same movement as without bar lines.
+        var tied = Compile(Body("    arms { side:2 fwd:2~ | :1 side:3 | }"));
+        Assert.Empty(tied.Diagnostics);
+        Same(Compile(Body("    arms { side:2 fwd:3 side:3 }")), tied);
+    }
+
+    [Fact]
+    public void A_tie_with_no_length_after_it_and_a_length_with_no_tie_before_it_are_errors()
+    {
+        Assert.Equal("SH1028", Assert.Single(Compile(Body("    arms { side:2~ fwd:2 }")).Diagnostics).Code);
+        Assert.Equal("SH1028", Assert.Single(Compile(Body("    arms { side:2 :2 }")).Diagnostics).Code);
+    }
+
+    [Fact]
+    public void A_row_with_bar_lines_that_ends_inside_a_bar_is_warned_about()
+    {
+        var diagnostic = Assert.Single(Compile(Body("    arms { side:4 | fwd:2 }")).Diagnostics);
+
+        Assert.Equal("SH1002", diagnostic.Code);
+        Assert.Contains("2 beats", diagnostic.Message);
+    }
+
+    [Fact]
+    public void A_percent_sign_is_the_bar_before_it_again()
+    {
+        var written = Compile(Body("    steps { left.side together right.side together | left.side together right.side together | left.side together right.side together }\n    arms { side:2 up:2 | fwd:2 down:2 | side:2 up:2 | fwd:2 down:2 }"));
+        var signs = Compile(Body("    steps { left.side together right.side together | % | % | }\n    arms { side:2 up:2 | fwd:2 down:2 | %2 | }"));
+
+        Assert.Empty(signs.Diagnostics);
+        Same(written, signs);
+    }
+
+    [Fact]
+    public void A_percent_sign_needs_a_whole_bar_before_it_and_a_bar_to_itself()
+    {
+        Assert.Equal("SH1027", Assert.Single(Compile(Body("    arms { % | side:4 | }")).Diagnostics).Code);
+        Assert.Equal("SH1027", Assert.Single(Compile(Body("    arms { side:2 fwd:2~ | :2 side:2 | % | }")).Diagnostics).Code);
+        Assert.Contains(Compile(Body("    arms { side:4 | fwd:2 % | }")).Diagnostics, d => d.Code == "SH1027");
+    }
+
+    [Fact]
+    public void Q_is_the_group_in_braces_before_it_again()
+    {
+        var written = Compile(Body("    rightArm { fwd:1 up:1/2 side:1/2 up:1/2 side:1/2 hold:1 up:1 side:1 }"));
+        var again = Compile(Body("    rightArm { fwd:1 { up:1/2 side:1/2 } q hold:1 q:2 }"));
+
+        Assert.Empty(again.Diagnostics);
+        Same(written, again);
+    }
+
+    [Fact]
+    public void Q_mirrored_steps_to_the_other_side_and_q_without_a_group_is_an_error()
+    {
+        Same(Compile(Body("    steps { left.side together right.side together }")), Compile(Body("    steps { { left.side together } q@mirror }")));
+
+        Assert.Equal("SH1026", Assert.Single(Compile(Body("    arms { side q }")).Diagnostics).Code);
+    }
+
+    [Fact]
+    public void The_old_repeat_is_refused_with_what_to_write_instead()
+    {
+        var diagnostic = Assert.Single(Compile(Body("    arms { repeat 2 { side up } }")).Diagnostics);
+
+        Assert.Equal("SH0012", diagnostic.Code);
+        Assert.Contains("q", diagnostic.Message);
+    }
+
+    [Fact]
+    public void A_form_repeats_sections_with_repeat_signs_and_numbered_endings()
+    {
+        const string sections = "section A { arms { side } }\nsection B { arms { fwd } }\nsection C { arms { up } }\n";
+        string[] Order(string form) => Compile(sections + form).Clip.Sections.Select(s => s.Name).ToArray();
+
+        Assert.Equal(new[] { "A", "A", "B" }, Order("form { |: A :| B }"));
+        Assert.Equal(new[] { "A", "A", "A" }, Order("form { |: A :|*3 }"));
+        Assert.Equal(new[] { "A", "B", "A", "C" }, Order("form { |: A [1. B] :| [2. C] }"));
+        Assert.Equal(new[] { "A", "B", "A", "B", "A", "C", "B" }, Order("form { |: A [1-2. B] :| [3. C] B }"));
+        Assert.Equal(new[] { "A", "A", "B", "B" }, Order("form { |: A :|: B :| }"));
+
+        Assert.Contains(Compile(sections + "form { A*2 }").Diagnostics, d => d.Code == "SH1025");
+        Assert.Contains(Compile(sections + "form { A :| B }").Diagnostics, d => d.Code == "SH1025");
+        Assert.Contains(Compile(sections + "form { |: A :| [2. C] }").Diagnostics, d => d.Code == "SH1025");
+    }
+
+    /// <summary>Two texts are the same movement: every joint at every frame.</summary>
+    private static void Same(ShosaCompilation expected, ShosaCompilation actual)
+    {
+        var a = expected.Clip.Figures[0].Frames;
+        var b = actual.Clip.Figures[0].Frames;
+        Assert.Equal(a.Count, b.Count);
+        for (int frame = 0; frame < a.Count; frame++)
+        {
+            for (int i = 0; i < a[frame].Length; i++)
+                Assert.True(Math.Abs(a[frame][i] - b[frame][i]) < 1e-4, $"frame {frame}, value {i}: {a[frame][i]} and {b[frame][i]}");
+        }
+    }
+
+    [Fact]
     public void Left_on_a_limb_is_refused_with_the_word_to_write_instead()
     {
         var diagnostic = Assert.Single(Compile(Body("    rightArm { left }")).Diagnostics);
@@ -211,6 +317,45 @@ public class MotionTests
 
         Assert.True(Arm(room).Dot(Vec3.Up) > 0.999, "measured against the room, the arm stays vertical");
         Assert.True(Arm(body).Dot(Spine(body)) > 0.999, "with @body it is in line with the spine");
+    }
+
+    private static string Two(double apart, string a, string b = "head { hold:2 }") => FormattableString.Invariant(
+        $"tempo 100\ntime 4/4\nfigure a\nfigure b\ndancer ann humanoid on a at {-apart / 2} 0 facing stageLeft\ndancer ben humanoid on b at {apart / 2} 0 facing stageRight\nsection P {{\n  a {{ {a} }}\n  b {{ {b} }}\n}}\n");
+
+    [Fact]
+    public void A_hand_sent_to_a_place_it_cannot_reach_is_warned_about_with_the_distance()
+    {
+        Assert.Empty(Compile(Two(0.5, "rightArm { b.chest:2 }")).Diagnostics);
+
+        string text = Two(2, "rightArm { b.chest:2 }");
+        var diagnostic = Assert.Single(Compile(text).Diagnostics);
+        Assert.Equal("SH2006", diagnostic.Code);
+        Assert.Equal("b.chest:2", text.Substring(diagnostic.Span.Start, diagnostic.Span.Length));
+        Assert.Contains("ben's chest", diagnostic.Message);
+
+        // Two hands that reach for each other from too far: each is told.
+        Assert.Equal(2, Compile(Two(2, "rightArm { b.hand:2 }", "rightArm { a.hand:2 }")).Diagnostics.Count(d => d.Code == "SH2006"));
+        // A step toward it is enough.
+        Assert.Empty(Compile(Two(1.0, "steps { left.fwd hold }\n rightArm { hold b.chest }")).Diagnostics);
+    }
+
+    [Fact]
+    public void Two_dancers_in_the_same_place_are_warned_about_once()
+    {
+        Assert.Empty(Compile(Two(1, "torso { fwd.high:2 }", "torso { hold:2 }")).Diagnostics);
+
+        // A metre apart and both bow to horizontal: the heads meet.
+        string text = Two(1, "torso { hold fwd }", "torso { hold fwd }");
+        var diagnostic = Assert.Single(Compile(text).Diagnostics);
+        Assert.Equal("SH2007", diagnostic.Code);
+        Assert.Equal("fwd", text.Substring(diagnostic.Span.Start, diagnostic.Span.Length));
+        Assert.Contains("ann and ben", diagnostic.Message);
+
+        // Standing in one spot from the start: nothing is moving, so the section is pointed at.
+        string same = Two(0.1, "head { hold:2 }");
+        diagnostic = Assert.Single(Compile(same).Diagnostics);
+        Assert.Equal("SH2007", diagnostic.Code);
+        Assert.Equal("section", same.Substring(diagnostic.Span.Start, diagnostic.Span.Length));
     }
 
     [Fact]

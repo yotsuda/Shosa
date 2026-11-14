@@ -61,7 +61,7 @@ public static class Vocabulary
     /// <summary>Places on another figure: `b.hand`. For an arm (reach it) or the head (look at it).</summary>
     public static readonly Word[] Parts =
     [
-        new("hand", "The other figure's hand of the same side. If it reaches back, the two hands meet half-way."),
+        new("hand", "The other figure's hand of the same side. If it reaches back, the two hands meet half-way, at the height of a handshake."),
         new("shoulder", "The other figure's shoulder of the same side."),
         new("head", "The other figure's head."),
         new("chest", "The other figure's chest."),
@@ -71,7 +71,7 @@ public static class Vocabulary
     [
         new("left", "The left foot steps and takes the weight."),
         new("right", "The right foot steps and takes the weight."),
-        new("both", "Both feet stay: only the height changes (`both.low`, `both.high`)."),
+        new("both", "No foot moves: only the height changes (`both.low`, `both.high`)."),
     ];
 
     public static readonly Word[] StepDirections =
@@ -124,8 +124,8 @@ public static class Vocabulary
         new("linear", "Constant speed."),
         new("bent", "Fold the elbow or the knee: the hand or foot stays in direction but comes closer."),
         new("body", "For an arm: measure the direction against the torso instead of the room, so the arm leans when the torso leans."),
-        new("small", "A shorter step or jump."),
-        new("large", "A longer step or jump."),
+        new("small", "A shorter step or jump. On `both.low` / `together.low`: a slighter knee bend."),
+        new("large", "A longer step or jump. On `both.low` / `together.low`: a deeper crouch."),
         new("mirror", "Left and right swapped: `kick@mirror` kicks with the other leg."),
         new("free", "The rules of weight, gravity and speed do not apply to this event. Bones still keep their length."),
         new("turn", "For a step or a jump: turn while doing it, `left.fwd@turn(left.quarter)`, `jump@turn(right.half)`. The step lands where it would after the turn."),
@@ -133,11 +133,13 @@ public static class Vocabulary
 
     public const string Hold = "hold";
     public const string Skip = "skip";
+    /// <summary>`q`: the group in braces before it, again.</summary>
+    public const string Again = "q";
 
     /// <summary>Every word that means something on its own, so that a definition cannot take its name.</summary>
     public static IEnumerable<string> Reserved =>
         new[] { Tracks, Directions, Levels, Poles, Anchors, Feet, StepDirections, SupportActions, JumpWords, TurnAmounts }
-            .SelectMany(words => words).Select(w => w.Name).Append(Hold).Append(Skip).Append("repeat");
+            .SelectMany(words => words).Select(w => w.Name).Append(Hold).Append(Skip).Append(Again);
 
     public static double TurnDegrees(string amount) => amount switch
     {

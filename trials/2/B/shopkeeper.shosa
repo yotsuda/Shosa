@@ -1,0 +1,9 @@
+title "Shopkeeper greeting"
+tempo 60
+
+// bow 0.8s, held 1s, up 0.8s, present 0.8s, held 1.5s, return 0.8s
+section Greet {
+  torso    { fwd.60:0.8s hold:1s up:0.8s }
+  rightArm { skip:2.6s side.-20:0.8s!present hold:1.5s down:0.8s }
+  head     { skip:2.6s fwd.right:0.8s hold:0.5s fwd:0.5s hold:0.5s hold:0.8s }
+}

@@ -1,0 +1,16 @@
+title "Boss idle"
+tempo 120
+time 4/4
+
+pose guard {
+  steps { left.fwd.low@small }
+  arms  { fwd.high@bent }
+}
+
+// Loop: starts in the state it ends in, so no guard:0.
+section Idle loop {
+  body  { guard:4 | guard:4 | guard:4 | guard:4 | }
+  // one bounce per beat: up a little on the off-beat, down on the beat
+  steps { { both.low@small:1/2 both.low:1/2 } q q q | % | % | % | }
+  head  { fwd.left:2 hold:2 | fwd:2 fwd.right:2 | hold:2 fwd:2 | hold:4 | }
+}

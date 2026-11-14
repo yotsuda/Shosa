@@ -11,4 +11,10 @@
     <InternalsVisibleTo Include="Shosa.Tests" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The synthesiser of the VS Code preview; `shosa preview` writes it into its page (PreviewHtml). -->
+    <EmbeddedResource Include="..\editors\vscode\src\preview\sound.js" LogicalName="sound.js" />
+    <EmbeddedResource Include="..\editors\vscode\src\preview\time.js" LogicalName="time.js" />
+  </ItemGroup>
+
 </Project>

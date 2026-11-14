@@ -1,0 +1,16 @@
+// Turning — danced to a song that changes on the way (turning.lys). The March is four bars of
+// 4/4 at 120 and slows to 90 in its last bar; the Waltz is four bars of 3/4. Nothing here says
+// so: the bars of each section are the song's, and a beat is as long as the song makes it.
+// `shosa check samples\turning.shosa` prints where the tempo and the time change.
+title "Turning"
+music "turning.lys"
+
+section March {
+  steps { left.fwd right.fwd left.fwd right.fwd | left.back right.back left.back right.back | %2 | }
+  arms  { side:2 down:2 | % | side.high:2 down:2 | side:2 up:2!top | }
+}
+
+section Waltz {
+  steps { left.side:1 together:1 both.low:1 | right.side:1 together:1 both.low:1 | %2 | }
+  arms  { side.high:3 | fwd:3 | side.high:3 | down:3!end | }
+}

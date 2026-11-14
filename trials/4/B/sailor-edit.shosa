@@ -1,0 +1,50 @@
+// Two sailors dance a rough jig to "Drunken Sailor" (8 bars of 4/4, 120 a minute).
+title "Drunken Sailor jig"
+music "drunken-sailor.lys"
+
+figure one "first sailor"
+figure two "second sailor"
+dancer jack humanoid on one at 0.9 0
+dancer tom  humanoid on two at -0.9 0
+
+// Heel, toe, heel with the right foot, then a stamp that lands on the next bar line.
+move heel {
+  rightLeg { fwd.low:1 back.low@bent:1 fwd.low:1 down:1/2 }
+  steps    { both.mid:1 hold:5/2 right.place.low:1/2!stamp }
+}
+
+// A stagger to the left: side, cross, side, and a stamp that lands on the next bar line.
+move stagger {
+  steps { left.side.low:1 right.across:1 left.side.low:1 hold:1/2 right.place.low:1/2!stamp }
+  torso { left.70:1 right.80:1 left.65:1 up:1 }
+}
+
+// Three stamps on the spot and a fourth that lands on the next bar line.
+move stomp {
+  steps { right.place.low:1@sharp left.place.low:1@sharp right.place.low:1@sharp both.high:1/2 left.place.low:1/2!stamp }
+  torso { right.80:1 left.80:1 right.80:1 up:1 }
+}
+
+// Arms swinging against each other, two beats there and back.
+move swing {
+  leftArm  { fwd.-20:1 back.-60:1 }
+  rightArm { back.-60:1 fwd.-20:1 }
+}
+
+// The end: two steps and a jump with the feet apart.
+move finish {
+  steps { right.place.low:1 left.place.low:1 jump.apart:1 hold:1 }
+}
+
+section Verse {
+  one {
+    body { { heel:4 } & { swing:2 swing:2 } | { heel@mirror:4 } & { swing:2 swing:2 } | { stagger:4 } & { swing:2 swing:2 } | { stagger@mirror:4 } & { swing:2 swing:2 } |
+           { stomp:4 } & { swing:2 swing:2 } | { stomp@mirror:4 } & { swing:2 swing:2 } | { heel@mirror:4 } & { swing:2 swing:2 } | finish:4 | }
+    arms { skip:4 | skip:4 | skip:4 | skip:4 | skip:3/2 clap:1/2!clap skip:2 | skip:4 | skip:4 | side.high:2 up:1@bent side.high:1 | }
+  }
+  two {
+    body { heel@mirror:4 | heel:4 | stagger@mirror:4 | stagger:4 | stomp@mirror:4 | stomp:4 | heel:4 | finish@mirror:4 | }
+    leftArm  { hip:1 hold:3 | hold:4 | side:2 hold:2 | hip:2 hold:2 | hold:4 | hold:4 | hold:4 | side.high:2 hold:2 | }
+    rightArm { hip:1 hold:3 | hold:4 | side:2 hold:2 | { up:1/2@bent side.high:1/2@bent } q q q | % | % | hip:2 hold:2 | side.high:2 hold:2 | }
+  }
+}

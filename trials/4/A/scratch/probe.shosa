@@ -1,0 +1,4 @@
+music "../greensleeves.lys"
+
+section Verse  { arms { side:6 | down:6 | } }
+section Chorus { arms { side:6 | up:6 | } }

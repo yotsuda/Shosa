@@ -1,0 +1,5 @@
+music "../drunken-sailor.lys"
+
+section Verse {
+  arms { side:4 | up:4 | }
+}

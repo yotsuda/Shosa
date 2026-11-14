@@ -1,0 +1,44 @@
+title "Greensleeves (duo)"
+music "greensleeves.lys"
+
+// One choreography, two bodies. ann dances all of it; ben stands through the Verse and
+// joins in the Chorus as her mirror image. They stand 1.6 m apart and the first
+// travelling phrase takes each of them AWAY from the other (ann to her left, ben to his right).
+figure lead
+dancer ann humanoid on lead at 0.8 0
+dancer ben humanoid on lead at -0.8 0 mirror in Chorus
+
+// Practice cut: only the Chorus, twice, slower (the song gives 120 beats a minute).
+form chorusTwice { |: Chorus :| }
+score practice { form chorusTwice  tempo 80  title "Greensleeves (chorus practice)" }
+
+// A travelling phrase of two bars: grapevine to the left in the song's long-short rhythm, then close.
+move vine {
+  steps { left.side:2 right.back.across:1 left.side:2 right.across:1 left.side:2 together:1 hold:3 }
+}
+
+// Verse: small steps side to side, the body swaying, the arms floating a little.
+section Verse {
+  lead {
+    steps    { left.side@small:3 together:3 | right.side@small:3 together:3 | %2 | %2 | %2 | }
+    torso    { left.80:3 up:3 | right.80:3 up:3 | %2 | %2 | %2 | }
+    leftArm  { side.-35:3 side.-60:3 | across.-60:3 side.-60:3 | %2 | %2 | side.-35:3 side.-60:3 | fwd.low:3 side.high:3 | }
+    rightArm { across.-60:3 side.-60:3 | side.-35:3 side.-60:3 | %2 | %2 | across.-60:3 side.-60:3 | fwd.low:3 side.high:3 | }
+  }
+}
+
+// Chorus: four phrases of two bars. The arms are open and high on the first beat of each.
+section Chorus {
+  lead {
+    steps {
+      vine:6~ | :6 |
+      vine@mirror:6~ | :6 |
+      left.fwd:2 right.fwd:1 left.fwd:2 together:1 | turn.left.full:3 hold:3 |
+      right.back:2 left.back:1 right.back:2 together:1 | both.low@small:3 both.mid:3 |
+    }
+    arms {
+      side.high:1 hold:5 | fwd.low:3 side.high:3 | %2 | %2 |
+      side.high:1 hold:5 | side.low:3 down:3 |
+    }
+  }
+}

@@ -8,4 +8,4 @@ section Side {
   steps { left.fwd right.fwd left.fwd@turn(left.quarter) }
 }
 
-form { Side*4 }
+form { |: Side :|*4 }

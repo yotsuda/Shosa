@@ -1,0 +1,21 @@
+title "Taunt"
+tempo 120
+dancer me humanoid facing stageLeft
+time 4/4
+
+pose stance {
+  steps { left.fwd.low@small }
+  arms  { fwd.high@bent }
+}
+
+section Taunt {
+  body     { stance:0 | hold:4 | hold:4 | hold:4 | }
+  // bar 1: the right hand reaches out and is pulled in twice ("come on"); the left on the hip
+  // bar 2: stand up, fold the arms
+  // bar 3: a slow nod
+  steps    { | hold:4 | together:2 hold:2 | hold:4 | }
+  rightArm { | fwd:1 repeat 2 { fwd.high:1/2@bent@sharp fwd:1/2 } hold:1 | skip:4 | skip:4 | }
+  leftArm  { | hip:1 hold:3 | skip:4 | skip:4 | }
+  arms     { | skip:4 | across.shoulder:2 hold:2 | hold:4 | }
+  head     { | fwd:4 | fwd:4 | fwd.-25:2 fwd:2 | }
+}

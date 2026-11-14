@@ -40,11 +40,16 @@ public sealed class ShosaCompilation
 
     public bool HasErrors => Diagnostics.Any(d => d.Severity == DiagnosticSeverity.Error);
 
-    public static ShosaCompilation Compile(string text, string? score = null) => Compile(SyntaxTree.Parse(text), score);
+    /// <param name="songs">
+    /// Reads the song a `music` line names (<see cref="Music.SongReader.For"/> for a file on
+    /// disk). Without one the file is compiled by what it says itself.
+    /// </param>
+    public static ShosaCompilation Compile(string text, string? score = null, SongSource? songs = null) =>
+        Compile(SyntaxTree.Parse(text), score, songs);
 
-    public static ShosaCompilation Compile(SyntaxTree tree, string? score = null)
+    public static ShosaCompilation Compile(SyntaxTree tree, string? score = null, SongSource? songs = null)
     {
-        var (bound, found) = Binder.Bind(tree, score);
+        var (bound, found) = Binder.Bind(tree, score, songs);
         var diagnostics = tree.Diagnostics.Concat(found).ToList();
         var seen = diagnostics.Select(d => (d.Code, d.Span)).ToHashSet();
         var clips = new List<MotionClip>();

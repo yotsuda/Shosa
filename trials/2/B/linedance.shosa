@@ -1,0 +1,28 @@
+title "Line dance"
+tempo 120
+time 4/4
+
+figure line
+dancer mid   humanoid on line at 0 0
+dancer lefty humanoid on line at 1.8 0 mirror
+dancer late  humanoid on line at -1.8 0 delay 1
+
+// grapevine to the right, ending in a clap
+move vine {
+  steps { right.side left.back.across right.side together }
+  arms  { down:3 clap:1@sharp!clap }
+}
+// two forward, two back, arms opening
+move rock {
+  steps { right.fwd left.fwd right.back left.back }
+  arms  { side.high:2 down:2 }
+}
+// jump apart, jump together, quarter turn, clap
+move spin {
+  steps { jump.apart jump.together turn.left.quarter hold }
+  arms  { side:1 down:1 hip:1 clap:1@sharp }
+}
+
+section Dance {
+  line { body { vine:4 | vine@mirror:4 | rock:4 | spin:4 | } }
+}

@@ -1,6 +1,7 @@
-// Dance — choreography for a song. Tempo, time and form come from song.lys (4/4, sections
-// Verse and Chorus of 4 bars each); a section here is danced during the song's section of
-// the same name. Three dancers share two figures: carol dances `chorus` mirrored.
+// Dance — choreography for a song. Tempo, time and the order of the sections come from
+// song.lys (108, 4/4, Verse then Chorus, 4 bars each); a section here is danced during the
+// song's section of the same name. Three dancers share two figures: carol dances `chorus` mirrored.
+// `shosa midi samples\dance.shosa` writes the song as it is danced.
 title "Dance"
 music "song.lys"
 
@@ -18,16 +19,16 @@ section Verse {
     arms  { side:4 | up:4 | side:4 | down:4 }
   }
   chorus {
-    steps { repeat 4 { left.side together right.side together | } }
+    steps { left.side together right.side together | % | % | % | }
   }
 }
 
 section Chorus {
   lead {
-    steps { repeat 4 { left.fwd@turn(left.quarter) right.fwd left.back together | } }
-    arms  { repeat 4 { side.high up side.high down | } }
+    steps { left.fwd@turn(left.quarter) right.fwd left.back together | % | % | % | }
+    arms  { side.high up side.high down | % | % | % | }
   }
   chorus {
-    arms { repeat 4 { clap:1/2!clap hold:1/2 side.high up:2 | } }
+    arms { clap:1/2!clap hold:1/2 side.high up:2 | % | % | % | }
   }
 }

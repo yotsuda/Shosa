@@ -1,0 +1,5 @@
+time 4/4
+// does % at the start of a section reach back into the previous section of the form?
+form { A B }
+section A { arms { side up side down | } }
+section B { arms { % | } }

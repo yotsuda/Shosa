@@ -11,6 +11,8 @@ public sealed class ScoreIr
     /// <summary>The names of every score the file has, the default one ("") first.</summary>
     public List<string> Scores { get; } = [];
     public List<MotionIr> Clips { get; } = [];
+    /// <summary>Every `move` of the file and the beats it takes when it is written without a length. For an editor to say.</summary>
+    public Dictionary<string, double> MoveLengths { get; } = [];
 }
 
 /// <summary>
@@ -33,17 +35,26 @@ public sealed class MotionIr
     /// <summary>The section's name, or the score's or form's for a clip made from a form ("" if unnamed).</summary>
     public string Name { get; set; } = "";
     public string Title { get; set; } = "";
+    /// <summary>Beats per minute at the start.</summary>
     public double Tempo { get; set; } = 90;
+    /// <summary>The time at the start.</summary>
     public int BeatsPerBar { get; set; } = 4;
     public int BeatUnit { get; set; } = 4;
+    /// <summary>
+    /// Every tempo of the clip, the first at beat 0. More than one only when the song it is
+    /// danced to changes tempo on the way. Empty (an IR written by hand) means <see cref="Tempo"/> throughout.
+    /// </summary>
+    public List<TempoIr> Tempos { get; set; } = [];
+    /// <summary>Every time of the clip, the first at beat 0; empty means the one above throughout.</summary>
+    public List<MeterIr> Meters { get; set; } = [];
     public int Fps { get; set; } = 30;
     public double TotalBeats { get; set; }
     /// <summary>The end joins the start: solved as if the clip followed itself.</summary>
     public bool Loop { get; set; }
     /// <summary>The travel over the floor is taken out of the output and reported as a velocity.</summary>
     public bool Inplace { get; set; }
-    /// <summary>The song this is danced to (not read yet).</summary>
-    public string? Music { get; set; }
+    /// <summary>The song this is danced to, and how it is to sound beside the dance.</summary>
+    public MusicIr? Music { get; set; }
     public List<DancerIr> Dancers { get; } = [];
     public List<SectionIr> Sections { get; } = [];
     public List<MarkIr> Marks { get; } = [];
@@ -69,14 +80,147 @@ public sealed class DancerIr
 }
 
 /// <summary>One play of a section in the clip.</summary>
-public sealed record SectionIr(string Name, double T0, double T1, int Src, int Len);
+/// <param name="Pickup">Beats of it before its first bar line (a song's upbeat): its bars, and the dance of it, begin at T0 + Pickup.</param>
+/// <param name="Bar">The number of its first bar, counting the clip's bars from 1. An upbeat belongs to the bar before.</param>
+public sealed record SectionIr(string Name, double T0, double T1, int Src, int Len, double Pickup = 0, int Bar = 1);
+
+/// <summary>From <paramref name="Beat"/> on, the clip goes at <paramref name="Bpm"/> beats a minute.</summary>
+public sealed record TempoIr(double Beat, double Bpm);
+
+/// <summary>
+/// From <paramref name="Beat"/> on, a bar has <paramref name="BeatsPerBar"/> beats, each the note
+/// of <paramref name="BeatUnit"/> (4 a crotchet, 8 a quaver). A beat is always what the time in
+/// force counts, so a change from 4/4 to 6/8 changes what a beat is.
+/// </summary>
+public sealed record MeterIr(double Beat, int BeatsPerBar, int BeatUnit);
+
+/// <summary>Beats to seconds and back, through a clip's tempos.</summary>
+public static class TempoMap
+{
+    /// <summary>The tempos as written, or the one tempo of a clip that has none written.</summary>
+    public static IReadOnlyList<TempoIr> Of(IReadOnlyList<TempoIr> tempos, double tempo) =>
+        tempos.Count > 0 ? tempos : [new TempoIr(0, tempo)];
+
+    public static double BpmAt(IReadOnlyList<TempoIr> tempos, double beat)
+    {
+        double bpm = tempos[0].Bpm;
+        foreach (var tempo in tempos)
+        {
+            if (tempo.Beat <= beat + 1e-9)
+                bpm = tempo.Bpm;
+        }
+        return bpm;
+    }
+
+    public static double Seconds(IReadOnlyList<TempoIr> tempos, double beat)
+    {
+        double seconds = 0;
+        for (int i = 0; i < tempos.Count; i++)
+        {
+            double end = i + 1 < tempos.Count ? Math.Min(beat, tempos[i + 1].Beat) : beat;
+            seconds += (end - tempos[i].Beat) * 60 / tempos[i].Bpm;
+            if (i + 1 < tempos.Count && beat <= tempos[i + 1].Beat)
+                break;
+        }
+        return seconds;
+    }
+
+    public static double Beat(IReadOnlyList<TempoIr> tempos, double seconds)
+    {
+        for (int i = 0; i < tempos.Count; i++)
+        {
+            double span = i + 1 < tempos.Count ? (tempos[i + 1].Beat - tempos[i].Beat) * 60 / tempos[i].Bpm : double.PositiveInfinity;
+            if (seconds <= span)
+                return tempos[i].Beat + seconds * tempos[i].Bpm / 60;
+            seconds -= span;
+        }
+        return 0;
+    }
+}
+
+/// <summary>
+/// Where the bars of a clip are. They are not at multiples of the bar's length when a section
+/// begins with an upbeat, or when the time changes on the way.
+/// </summary>
+public static class Bars
+{
+    private const double Epsilon = 1e-9;
+
+    /// <summary>The times as written, or the one time of a clip that has none written.</summary>
+    public static IReadOnlyList<MeterIr> Of(IReadOnlyList<MeterIr> meters, int beatsPerBar, int beatUnit = 4) =>
+        meters.Count > 0 ? meters : [new MeterIr(0, Math.Max(1, beatsPerBar), beatUnit)];
+
+    /// <summary>The time in force at a beat.</summary>
+    public static MeterIr MeterAt(IReadOnlyList<MeterIr> meters, double beat)
+    {
+        var meter = meters[0];
+        foreach (var candidate in meters)
+        {
+            if (candidate.Beat <= beat + Epsilon)
+                meter = candidate;
+        }
+        return meter;
+    }
+
+    /// <summary>The bar a beat is in (from 1; 0 is an upbeat before the first) and the beat within that bar, from 0.</summary>
+    public static (int Bar, double Beat) At(IReadOnlyList<SectionIr> sections, IReadOnlyList<MeterIr> meters, double beat)
+    {
+        SectionIr? section = null;
+        foreach (var candidate in sections)
+        {
+            if (candidate.T0 <= beat + Epsilon)
+                section = candidate;
+        }
+        double line = section is null ? 0 : section.T0 + section.Pickup;
+        int first = section?.Bar ?? 1;
+        if (beat < line - Epsilon)
+            return (first - 1, MeterAt(meters, beat).BeatsPerBar + beat - line);
+        var (bars, into) = Walk(meters, line, beat);
+        return (first + bars, into);
+    }
+
+    /// <summary>How many bars begin from one bar line up to (not at) a later beat.</summary>
+    public static int Count(IReadOnlyList<MeterIr> meters, double line, double end)
+    {
+        var (bars, into) = Walk(meters, line, end);
+        return bars + (into > Epsilon ? 1 : 0);
+    }
+
+    /// <summary>The whole bars between a bar line and a beat after it, and how far the beat is into its own bar.</summary>
+    private static (int Bars, double Into) Walk(IReadOnlyList<MeterIr> meters, double line, double beat)
+    {
+        int bars = 0;
+        for (int i = 0; i < meters.Count; i++)
+        {
+            double end = i + 1 < meters.Count ? meters[i + 1].Beat : double.PositiveInfinity;
+            if (end <= line + Epsilon)
+                continue;
+            int perBar = Math.Max(1, meters[i].BeatsPerBar);
+            if (beat < end - Epsilon)
+            {
+                int whole = (int)Math.Floor((beat - line) / perBar + Epsilon);
+                return (bars + whole, Math.Max(0, beat - line - whole * perBar));
+            }
+            // A new time begins on a bar line; a bar it cuts short still counts as one.
+            bars += (int)Math.Ceiling((end - line) / perBar - Epsilon);
+            line = end;
+        }
+        return (bars, 0);
+    }
+}
 
 /// <summary>A moment named by the author (`!hit`), for the engine: the beat the part arrives.</summary>
 public sealed record MarkIr(double Beat, string Name, string Dancer, int Src, int Len);
 
 public static class Channels
 {
+    /// <summary>Where the feet and the weight are. Its events cannot be cut short: a step is taken or it is not.</summary>
     public const string Support = "support";
+    /// <summary>
+    /// How high the body stands on its feet. Written by the same `steps` track as the support,
+    /// but a part of its own: a narrower track can take the height and leave the steps.
+    /// </summary>
+    public const string Height = "height";
     public const string LeftArm = "leftArm";
     public const string RightArm = "rightArm";
     public const string LeftLeg = "leftLeg";
@@ -84,7 +228,7 @@ public static class Channels
     public const string Torso = "torso";
     public const string Head = "head";
 
-    public static readonly string[] All = [Support, LeftArm, RightArm, LeftLeg, RightLeg, Torso, Head];
+    public static readonly string[] All = [Support, Height, LeftArm, RightArm, LeftLeg, RightLeg, Torso, Head];
 
     public static string Mirror(string channel) => channel switch
     {
@@ -104,7 +248,7 @@ public static class SegKinds
     public const string Reach = "reach";        // arm: to a place on another dancer; head: look at it
     public const string Step = "step";          // support: move Foot, then carry the weight on it
     public const string Together = "together";  // support: close the free foot to the supporting one
-    public const string Level = "level";        // support: both feet, change of height
+    public const string Level = "level";        // height: stand at Level (from `both.low`, or the level a step arrives at)
     public const string Turn = "turn";          // support: pivot by TurnDeg, or to face Target
     public const string Jump = "jump";          // support: leave the floor and land on both feet
     public const string Shift = "shift";        // support: the weight goes over Foot (left | right | center)
@@ -141,7 +285,7 @@ public sealed class Seg
     public double Dx { get; set; }
     /// <summary>Step, Jump and Lift: metres forward.</summary>
     public double Dz { get; set; }
-    /// <summary>Step and Level: -1 knees bent, 0 normal, 1 on the toes.</summary>
+    /// <summary>Level: -1 knees bent, 0 normal, 1 on the toes. Reach: the height two hands meet at.</summary>
     public double? Level { get; set; }
     /// <summary>Turn: degrees, positive to the left. Step and Jump: the turn made during it.</summary>
     public double TurnDeg { get; set; }

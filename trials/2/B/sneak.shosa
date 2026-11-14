@@ -1,0 +1,11 @@
+title "Sneak"
+tempo 60
+time 4/4
+
+// Crouched, long slow steps, arms out a little, head looking around.
+section Sneak loop inplace {
+  steps { repeat 2 { left.fwd.low:2@large right.fwd.low:2@large | } }
+  torso { fwd.70:8 }
+  arms  { side.-35:8 }
+  head  { fwd.left:2 fwd:2 | fwd.right:2 fwd:2 | }
+}

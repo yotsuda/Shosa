@@ -1,0 +1,30 @@
+// One dancer, slow and solemn, to "Amazing Grace" (3/4, 84 a minute).
+// The song begins with a one-beat upbeat ("A-"); the dance begins at the first bar line
+// and has the 15 whole bars that follow.
+title "Amazing Grace"
+music "amazing-grace.lys"
+
+section Verse {
+  // A slow walk forward, one small step to the bar, for eight bars; then stand;
+  // at the end a step back and a deep bend of the knees (the language has no kneel).
+  steps {
+    left.fwd@small:2 hold:1 | right.fwd@small:2 hold:1 | %2 | %2 | %2 |
+    together:3 | hold:3 | hold:3 | hold:3 |
+    right.back.low:3 | both.low@large:3 | hold:3 |
+  }
+  // Long arm movements, each over two bars.
+  arms {
+    fwd.low:3~ | :3 | fwd.high:3~ | :3 | side.high:3~ | :3 | side.low:3~ | :3 |
+    fwd:3~ | :3 | up:3~ | :3 |
+    fwd.high:3 | clap:3~ | :3 |
+  }
+  torso {
+    skip:3 | % | % | % | % | % | % | % | % | % | % | % |
+    hold:3 | fwd.65:3~ | :3 |
+  }
+  head {
+    skip:3 | % | % | % | % | % | % | % | % | % |
+    fwd.35:3~ | :3 |
+    fwd:3 | fwd.-30:3~ | :3 |
+  }
+}

@@ -1,0 +1,3 @@
+tempo 120
+pose win { rightArm { up } }
+section V { steps { turn.left.half hold:3 } body { skip:3 win:1 } }

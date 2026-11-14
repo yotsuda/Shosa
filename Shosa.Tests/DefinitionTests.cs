@@ -162,6 +162,41 @@ public class DefinitionTests
     }
 
     [Fact]
+    public void A_row_of_knee_bends_beside_a_pose_takes_the_height_and_leaves_the_stance()
+    {
+        // The height is a part of its own: `both` does not take the feet from the pose (DESIGN.md 15).
+        var compilation = Clean(Fighter + "section Idle loop {\n body { guard:8 }\n steps { { both.low@small both.low } q q q }\n}\n");
+        var clip = compilation.Clip;
+
+        Assert.Equal(SegKinds.Step, Assert.Single(Track(compilation, Channels.Support)).Kind);
+        Assert.All(new[] { 0.0, 1, 4.5, 8 }, beat =>
+            Assert.Equal(0.3, At(clip, beat, Rig.LAnkle).Z - At(clip, beat, Rig.RAnkle).Z, 2));   // the guard: left foot a small step ahead
+        Assert.True(At(clip, 1, Rig.Pelvis).Y > At(clip, 2, Rig.Pelvis).Y + 0.05, "it bounces");
+        Assert.Equal(At(clip, 0, Rig.Pelvis).Y, At(clip, 8, Rig.Pelvis).Y, 3);
+    }
+
+    [Fact]
+    public void A_height_written_beside_a_walk_keeps_the_steps()
+    {
+        var compilation = Clean("move walk { steps { left.fwd right.fwd } }\nsection Sneak loop inplace {\n body { walk:2 }\n steps { both.low:2 }\n}\n");
+        var plain = Clean("section Walk loop inplace { steps { left.fwd right.fwd } }\n");
+
+        Assert.Equal(2, Track(compilation, Channels.Support).Count);
+        Assert.True(At(compilation.Clip, 1, Rig.Pelvis).Y < At(plain.Clip, 1, Rig.Pelvis).Y - 0.1, "the same walk, low");
+        Assert.Equal(At(plain.Clip, 1, Rig.LAnkle).Z, At(compilation.Clip, 1, Rig.LAnkle).Z, 3);
+    }
+
+    [Fact]
+    public void A_height_that_loses_part_of_its_time_still_arrives_when_it_said()
+    {
+        var compilation = Clean(Fighter + "section Idle loop {\n body { guard:8 }\n steps { skip:4 both.mid:2 skip:2 }\n}\n");
+        var clip = compilation.Clip;
+
+        Assert.True(At(clip, 6, Rig.Pelvis).Y > At(clip, 4, Rig.Pelvis).Y + 0.1, "up for the two beats written");
+        Assert.Equal(At(clip, 4, Rig.Pelvis).Y, At(clip, 8, Rig.Pelvis).Y, 3);
+    }
+
+    [Fact]
     public void A_loop_that_ends_facing_another_way_is_reported()
     {
         var compilation = ShosaCompilation.Compile("section Spin loop { steps { left.fwd turn.left.quarter } }\n");
@@ -178,6 +213,17 @@ public class DefinitionTests
         Assert.Equal(2, compilation.Clip.TotalBeats, 6);
         Assert.Equal(new[] { ("hit", 0.5), ("back", 2.0) }, compilation.Clip.Marks.Select(m => (m.Name, Math.Round(m.Beat, 6))).ToArray());
         Assert.Equal(0.25, compilation.Clip.Marks[0].Seconds, 6);
+    }
+
+    [Fact]
+    public void One_bar_of_a_repeat_is_changed_by_a_narrower_track_and_the_mark_it_covers_is_gone()
+    {
+        // The second clap is held back by the narrower row: it does not happen, so it is not marked.
+        var clip = Clean("move vine { steps { right.side left.back.across right.side together }  arms { down:3 clap:1@sharp!clap } }\n" +
+            "section A {\n body { vine:4 | % | }\n arms { skip:4 | skip:3 hold:1 | }\n steps { skip:4 | skip:3 jump.together:1!jump | }\n}\n").Clip;
+
+        Assert.Equal(new[] { ("clap", 3.5), ("jump", 7.85) }, clip.Marks.Select(m => (m.Name, Math.Round(m.Beat, 6))).ToArray());
+        Assert.True((At(clip, 8, Rig.LHand) - At(clip, 8, Rig.RHand)).Length > 0.2, "the hands are apart");
     }
 
     [Fact]
@@ -238,6 +284,32 @@ public class DefinitionTests
 
         Assert.Equal(new[] { "ann", "ben" }, clip.Figures.Select(f => f.Id).ToArray());
         Assert.True((At(clip, 2, Rig.RHand, 0) - At(clip, 2, Rig.RHand, 1)).Length < 0.01, "the right hands are in the same place");
+    }
+
+    [Fact]
+    public void Two_hands_meet_above_the_heads_for_a_high_five_and_stay_there_until_they_leave()
+    {
+        var clip = Clean(Pair.Replace("0.5", "0.35")
+            + "section Five {\n a { rightArm { fwd.high@bent b.hand.high:1 down:2 } }\n b { rightArm { fwd.high@bent a.hand.high:1 down:2 } }\n}\n").Clip;
+
+        var hand = At(clip, 2, Rig.RHand, 0);
+        Assert.True((hand - At(clip, 2, Rig.RHand, 1)).Length < 0.01, "the right hands are in the same place");
+        Assert.True(hand.Y > At(clip, 2, Rig.Head, 0).Y, "above the head");
+    }
+
+    [Fact]
+    public void A_small_knee_bend_is_less_than_a_knee_bend_and_a_large_one_more()
+    {
+        var clip = Clean("section A { steps { both.low@small both.low both.low@large } }\n").Clip;
+
+        double Drop(double beat) => At(clip, 0, Rig.Pelvis).Y - At(clip, beat, Rig.Pelvis).Y;
+        Assert.True(Drop(1) > 0.1 && Drop(1) < Drop(2) - 0.05 && Drop(2) < Drop(3) - 0.05, $"{Drop(1)} {Drop(2)} {Drop(3)}");
+    }
+
+    [Fact]
+    public void Arms_held_out_through_a_turning_jump_are_not_too_fast()
+    {
+        Clean("tempo 120\nsection A { steps { hold jump@turn(left.half) } arms { side.high hold } }\n");
     }
 
     [Fact]

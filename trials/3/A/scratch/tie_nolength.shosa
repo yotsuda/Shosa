@@ -1,0 +1,6 @@
+time 3/4
+move kick { rightLeg { fwd.low:1@bent fwd:1@sharp!kick fwd.low:1@bent down:1 } }
+section T {
+  // is the length before a tie required? the kick is 4 beats by definition
+  body { hold:2 kick~ | :3 | }
+}

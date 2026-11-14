@@ -29,16 +29,25 @@ public static class Solver
             Fps = fps,
             Tempo = ir.Tempo,
             BeatsPerBar = ir.BeatsPerBar,
+            Tempos = [.. TempoMap.Of(ir.Tempos, ir.Tempo)],
+            Meters = [.. Bars.Of(ir.Meters, ir.BeatsPerBar, ir.BeatUnit)],
             TotalBeats = ir.TotalBeats,
             Loop = ir.Loop,
             Inplace = ir.Inplace,
             Sections = ir.Sections,
+            Music = ir.Music,
         };
         foreach (var mark in ir.Marks)
-            clip.Marks.Add(new ClipMark(mark.Beat, Math.Round(mark.Beat * 60 / ir.Tempo, 4), mark.Name, mark.Dancer));
+            clip.Marks.Add(new ClipMark(mark.Beat, Math.Round(clip.SecondsAt(mark.Beat), 4), mark.Name, mark.Dancer));
 
+        // Frames are even in seconds; where the tempo changes, the beats between two of them change.
+        double totalSeconds = clip.SecondsAt(ir.TotalBeats);
+        int frames = (int)Math.Ceiling(totalSeconds * fps - 1e-9) + 1;
+        var beatOfFrame = new double[frames];
+        for (int f = 0; f < frames; f++)
+            beatOfFrame[f] = clip.BeatOfFrame(f);
+        // The solver's own small step of time, for smoothing: a frame at the first tempo.
         double beatsPerFrame = ir.Tempo / (60.0 * fps);
-        int frames = (int)Math.Ceiling(ir.TotalBeats / beatsPerFrame - 1e-9) + 1;
 
         var solvers = new Dictionary<string, FigureSolver>();
         foreach (var dancer in ir.Dancers)
@@ -46,12 +55,34 @@ public static class Solver
         foreach (var dancer in ir.Dancers)
             solvers[dancer.Id].Build();
 
+        // Head, chest and pelvis of every dancer at every frame, where they really are (before `inplace`).
+        var bodies = new Dictionary<string, List<(Vec3 Head, Vec3 Chest, Vec3 Pelvis)>>();
+        var unreached = new HashSet<int>();
+
         foreach (var dancer in ir.Dancers)
         {
             var solver = solvers[dancer.Id];
             var clipFigure = new ClipFigure { Id = dancer.Id, Name = dancer.Name };
             var flagged = new HashSet<(Seg, string)>();
             Vec3[]? previous = null;
+            var body = bodies[dancer.Id] = [];
+
+            // A hand sent to a place on another dancer that is farther away than the arm is long.
+            foreach (var (channel, side) in new[] { (Channels.LeftArm, 1), (Channels.RightArm, -1) })
+            {
+                if (!dancer.Tracks.TryGetValue(channel, out var arm))
+                    continue;
+                foreach (var seg in arm)
+                {
+                    // Taken over before it arrives: it was never going to get there.
+                    if (seg.Kind != SegKinds.Reach || arm.Any(s => s.T0 > seg.T0 + 1e-9 && s.T0 < seg.T1 - 1e-9))
+                        continue;
+                    double shortfall = solver.ReachShortfall(seg, side);
+                    if (shortfall > 0.03 && unreached.Add(seg.Src))
+                        diagnostics.Add(new Diagnostic("SH2006", DiagnosticSeverity.Warning, new TextSpan(seg.Src, seg.Len), FormattableString.Invariant(
+                            $"The hand does not get there: {seg.Target}'s {seg.Part} is about {shortfall:0.00} m farther than the arm reaches. Start the two closer together (`at`), step toward it first, or lean (`torso`).")));
+                }
+            }
 
             if (solver.LoopProblem is { } problem && ir.Sections.Count > 0)
                 diagnostics.Add(new Diagnostic("SH2005", DiagnosticSeverity.Warning, new TextSpan(ir.Sections[0].Src, "section".Length), problem));
@@ -60,21 +91,23 @@ public static class Solver
             var travel = ir.Inplace && ir.TotalBeats > 0 ? solver.Travel : default;
             if (ir.Inplace && ir.TotalBeats > 0)
             {
-                double seconds = ir.TotalBeats * 60 / ir.Tempo;
+                double seconds = totalSeconds;
                 clipFigure.Velocity = [Math.Round(travel.X / seconds, 4), Math.Round(travel.Z / seconds, 4)];
             }
 
             void Flag(string channel, double t, string code, DiagnosticSeverity severity, string message, bool evenIfFree = false)
             {
-                var seg = SegAt(dancer, channel, t);
+                // A knee bend is written in the same row as the steps: what the feet cannot do may be its doing.
+                var seg = SegAt(dancer, channel, t) ?? (channel == Channels.Support ? SegAt(dancer, Channels.Height, t) : null);
                 if (seg is not null && (evenIfFree || !seg.Free) && flagged.Add((seg, code)))
                     diagnostics.Add(new Diagnostic(code, severity, new TextSpan(seg.Src, seg.Len), message));
             }
 
             for (int f = 0; f < frames; f++)
             {
-                double t = Math.Min(ir.TotalBeats, f * beatsPerFrame);
+                double t = beatOfFrame[f];
                 var pose = solver.Pose(t, out var problems);
+                body.Add((pose[Rig.Head], pose[Rig.Chest], pose[Rig.Pelvis]));
                 if (ir.Inplace && ir.TotalBeats > 0)
                 {
                     var back = travel * (t / ir.TotalBeats);
@@ -121,7 +154,11 @@ public static class Solver
 
                 void Speed(int joint, string channel, double limit, string what)
                 {
-                    double speed = (pose[joint] - previous![joint]).Length * fps;
+                    // A hand is judged against the body it hangs on: an arm held out through a turn or
+                    // a jump is not a fast arm. (The feet, which make the turn, are judged against the floor.)
+                    double speed = what == "hand"
+                        ? (InBody(pose, joint) - InBody(previous!, joint)).Length * fps
+                        : (pose[joint] - previous![joint]).Length * fps;
                     if (speed > limit)
                         Flag(channel, t, "SH2003", DiagnosticSeverity.Warning,
                             $"Too fast to perform: the {what} would move at about {speed:0} m/s. Give it more time, or lower the tempo.");
@@ -136,7 +173,75 @@ public static class Solver
             }
         }
 
+        Collisions(ir, bodies, beatOfFrame, diagnostics);
         return clip;
+    }
+
+    private const double HeadRadius = 0.10, TrunkRadius = 0.11;
+
+    /// <summary>
+    /// SH2007. Two dancers in the same place: a head or a trunk inside another's. Arms and legs
+    /// are left out — hands are meant to meet, and a kick that lands is the point of it.
+    /// Said once for each pair, at the first moment.
+    /// </summary>
+    private static void Collisions(MotionIr ir, Dictionary<string, List<(Vec3 Head, Vec3 Chest, Vec3 Pelvis)>> bodies, double[] beatOfFrame, List<Diagnostic> diagnostics)
+    {
+        for (int i = 0; i < ir.Dancers.Count; i++)
+        {
+            for (int j = i + 1; j < ir.Dancers.Count; j++)
+            {
+                DancerIr a = ir.Dancers[i], b = ir.Dancers[j];
+                var framesA = bodies[a.Id];
+                var framesB = bodies[b.Id];
+                for (int f = 0; f < framesA.Count; f++)
+                {
+                    var (p, q) = (framesA[f], framesB[f]);
+                    (double Gap, string What)[] pairs =
+                    [
+                        ((p.Head - q.Head).Length - 2 * HeadRadius, "heads"),
+                        (Between(p.Head, p.Head, q.Pelvis, q.Chest) - HeadRadius - TrunkRadius, $"{a.Id}'s head and {b.Id}'s body"),
+                        (Between(q.Head, q.Head, p.Pelvis, p.Chest) - HeadRadius - TrunkRadius, $"{b.Id}'s head and {a.Id}'s body"),
+                        (Between(p.Pelvis, p.Chest, q.Pelvis, q.Chest) - 2 * TrunkRadius, "bodies"),
+                    ];
+                    var worst = pairs.MinBy(x => x.Gap);
+                    if (worst.Gap >= 0)
+                        continue;
+
+                    double t = beatOfFrame[f];
+                    var span = new[] { Channels.Torso, Channels.Support, Channels.Height }
+                        .SelectMany(channel => new[] { SegAt(a, channel, t), SegAt(b, channel, t) })
+                        .Where(seg => seg is not null && seg.Kind != SegKinds.Hold)
+                        .Select(seg => new TextSpan(seg!.Src, seg.Len))
+                        .FirstOrDefault(ir.Sections.LastOrDefault(s => s.T0 <= t) is { } section ? new TextSpan(section.Src, "section".Length) : default);
+                    string what = worst.What is "heads" or "bodies" ? $"the {worst.What} of {a.Id} and {b.Id}" : worst.What;
+                    diagnostics.Add(new Diagnostic("SH2007", DiagnosticSeverity.Warning, span, FormattableString.Invariant(
+                        $"Two dancers are in the same place: at beat {t:0.##} {what} run into each other. Start them farther apart (`at`), or make the movement smaller.")));
+                    break;
+                }
+            }
+        }
+    }
+
+    /// <summary>The shortest distance between two line segments (either may be a point).</summary>
+    private static double Between(Vec3 a0, Vec3 a1, Vec3 b0, Vec3 b1)
+    {
+        Vec3 u = a1 - a0, v = b1 - b0, w = a0 - b0;
+        double uu = u.Dot(u), uv = u.Dot(v), vv = v.Dot(v), uw = u.Dot(w), vw = v.Dot(w);
+        double det = uu * vv - uv * uv;
+        double s = det > 1e-12 ? Math.Clamp((uv * vw - vv * uw) / det, 0, 1) : 0;
+        double r = vv > 1e-12 ? Math.Clamp((uv * s + vw) / vv, 0, 1) : 0;
+        s = uu > 1e-12 ? Math.Clamp((uv * r - uw) / uu, 0, 1) : 0;
+        return (w + u * s - v * r).Length;
+    }
+
+    /// <summary>A joint as seen from the pelvis: sideways along the hips, up, and forward.</summary>
+    private static Vec3 InBody(Vec3[] pose, int joint)
+    {
+        var across = pose[Rig.LHip] - pose[Rig.RHip];
+        var left = new Vec3(across.X, 0, across.Z).Normalized();
+        var fwd = left.Cross(Vec3.Up);
+        var d = pose[joint] - pose[Rig.Pelvis];
+        return new Vec3(d.Dot(left), d.Y, d.Dot(fwd));
     }
 
     private static Seg? SegAt(DancerIr dancer, string channel, double t)
@@ -223,13 +328,15 @@ internal sealed class FigureSolver
         public double Angle;
         public bool Air;
         public double AirHeight;
+        /// <summary>How much of a stride the step goes the way the foot points: 1 forward, -1 back, 0 sideways.</summary>
+        public double Along;
     }
 
     /// <summary>Where the feet and the weight are between two events of the support track.</summary>
     private sealed class Stand
     {
         public Vec3 Left, Right, Weight;
-        public double LeftYaw, RightYaw, Yaw, Level, Float;
+        public double LeftYaw, RightYaw, Yaw, Float;
         public char On = 'B';   // the supporting foot: L, R or Both
         public Stand Clone() => (Stand)MemberwiseClone();
     }
@@ -240,6 +347,7 @@ internal sealed class FigureSolver
         public Vec3 Fwd, Left;
         public Vec3 LPos, RPos;
         public double LYaw, RYaw, LLift, RLift;
+        public double LPitch, RPitch;   // the foot about its ankle, radians; positive lifts the toes
         public bool LAir, RAir;
         public double GwL, GwR;     // how far each leg is into a gesture, 0..1
         public Vec3 GoL, GoR;       // the gesturing ankle, from its hip
@@ -258,17 +366,18 @@ internal sealed class FigureSolver
 
     private readonly DancerIr _dancer;
     private readonly Func<string, FigureSolver?> _others;
-    private readonly double _secondsPerBeat, _dt, _length;
+    private readonly IReadOnlyList<TempoIr> _tempos;
+    private readonly double _dt, _length;
     private readonly bool _loop;
     private readonly Vec3 _origin;
     private double _yawStart, _leftYawStart, _rightYawStart;
     private Vec3 _leftStart, _rightStart;
     private readonly List<FootMove> _leftMoves = [], _rightMoves = [];
-    private readonly Curve _weightX = new(), _weightZ = new(), _level = new(), _float = new();
-    private double _weightTime, _levelTime, _floatTime;
+    private readonly Curve _weightX = new(), _weightZ = new(), _float = new();
+    private double _weightTime, _floatTime;
     private readonly List<(double T0, double T1, double From, double To)> _turns = [];
     private readonly List<(double T0, double Up, double Land, double T1, double Height)> _jumps = [];
-    private readonly List<Seg> _leftArm, _rightArm, _leftLeg, _rightLeg, _torso, _head;
+    private readonly List<Seg> _height, _leftArm, _rightArm, _leftLeg, _rightLeg, _torso, _head;
     private bool _built;
     private int _posing;
 
@@ -276,13 +385,14 @@ internal sealed class FigureSolver
     {
         _dancer = dancer;
         _others = others;
-        _secondsPerBeat = 60.0 / ir.Tempo;
+        _tempos = TempoMap.Of(ir.Tempos, ir.Tempo);
         _dt = beatsPerFrame;
         _length = ir.TotalBeats;
         _loop = ir.Loop && ir.TotalBeats > 0;
         _yawStart = dancer.FacingDeg * Math.PI / 180;
         _origin = new Vec3(dancer.X, 0, dancer.Z);
 
+        _height = Row(Channels.Height);
         _leftArm = Row(Channels.LeftArm);
         _rightArm = Row(Channels.RightArm);
         _leftLeg = Row(Channels.LeftLeg);
@@ -347,7 +457,7 @@ internal sealed class FigureSolver
             if (Math.Abs(Math.IEEERemainder(after.Yaw - stand.Yaw, 2 * Math.PI)) > 1e-3)
                 LoopProblem = "This loop does not join: it ends facing another way than it starts. The turns in it must add up to nothing, or to a full turn.";
             else if (((after.Left - stand.Left) - travel).Length > 0.02 || ((after.Right - stand.Right) - travel).Length > 0.02
-                || Math.Abs(after.Level - stand.Level) > 1e-6 || Math.Abs(after.Float - stand.Float) > 1e-6)
+                || Math.Abs(after.Float - stand.Float) > 1e-6)
                 LoopProblem = "This loop does not join: the feet do not end as they start.";
 
             // Start one turn early, placed so that the weight is over the dancer's own place at beat 0.
@@ -365,9 +475,8 @@ internal sealed class FigureSolver
         _rightStart = stand.Right;
         _weightX.Add(start, stand.Weight.X);
         _weightZ.Add(start, stand.Weight.Z);
-        _level.Add(start, stand.Level);
         _float.Add(start, stand.Float);
-        _weightTime = _levelTime = _floatTime = start;
+        _weightTime = _floatTime = start;
 
         if (_loop)
         {
@@ -402,18 +511,6 @@ internal sealed class FigureSolver
                 _weightTime = t1;
             }
             s.Weight = to;
-        }
-
-        void Level(double t0, double t1, double to)
-        {
-            if (record)
-            {
-                if (t0 > _levelTime)
-                    _level.Add(t0, s.Level);
-                _level.Add(t1, to);
-                _levelTime = t1;
-            }
-            s.Level = to;
         }
 
         void Float(double t0, double t1, double to)
@@ -471,7 +568,6 @@ internal sealed class FigureSolver
                         if (Math.Abs(apart.Dot(fwd) - seg.Dz) < 0.02 && Math.Abs(apart.Dot(isLeft ? leftward : -leftward) - seg.Dx) < 0.02)
                         {
                             Weight(t0, t1, s.Weight);
-                            Level(t0, t1, seg.Level ?? 0);
                             break;
                         }
                     }
@@ -498,13 +594,12 @@ internal sealed class FigureSolver
                     {
                         T0 = t0, T1 = t1, From = from, To = target,
                         YawFrom = isLeft ? s.LeftYaw : s.RightYaw, YawTo = s.Yaw, Lift = StepLift(from, target),
+                        Along = Math.Clamp((target - from).Dot(fwd) / Rig.Stride, -1, 1),
                     });
                     s.On = isLeft ? 'L' : 'R';
                     // At the landing the weight is between the feet, a little toward the new one.
                     // Keyed only at landings, the pelvis passes over the standing foot in mid-step.
                     Weight(t0, t1, Vec3.Lerp((s.Left + s.Right) * 0.5, target, 0.3));
-                    if (seg.Level is { } stepLevel)
-                        Level(t0, t1, stepLevel);
                     break;
                 }
 
@@ -524,15 +619,8 @@ internal sealed class FigureSolver
                     }
                     s.On = 'B';
                     Weight(t0, t1, (s.Left + s.Right) * 0.5);
-                    Level(t0, t1, seg.Level ?? 0);
                     break;
                 }
-
-                case SegKinds.Level:
-                    s.On = 'B';
-                    Weight(t0, t1, (s.Left + s.Right) * 0.5);
-                    Level(t0, t1, seg.Level ?? 0);
-                    break;
 
                 case SegKinds.Shift:
                 {
@@ -580,7 +668,7 @@ internal sealed class FigureSolver
                     double angle = seg.TurnDeg * Math.PI / 180;
                     var leftAfter = Vec3.Left(s.Yaw + angle);
                     // The time in the air fixes the height: h = g T^2 / 8.
-                    double airSeconds = (land - up) * _secondsPerBeat;
+                    double airSeconds = TempoMap.Seconds(_tempos, land) - TempoMap.Seconds(_tempos, up);
                     double height = 9.81 * airSeconds * airSeconds / 8;
                     Move(true, new FootMove
                     {
@@ -701,12 +789,13 @@ internal sealed class FigureSolver
         return yaw;
     }
 
-    private static void FootAt(List<FootMove> moves, Vec3 start, double startYaw, double t, out Vec3 pos, out double yaw, out double lift, out bool air)
+    private static void FootAt(List<FootMove> moves, Vec3 start, double startYaw, double t, out Vec3 pos, out double yaw, out double lift, out bool air, out double pitch)
     {
         pos = start;
         yaw = startYaw;
         lift = 0;
         air = false;
+        pitch = 0;
         foreach (var move in moves)
         {
             if (t >= move.T1)
@@ -737,6 +826,9 @@ internal sealed class FigureSolver
                 pos = Vec3.Lerp(move.From, move.To, s);
                 yaw = move.YawFrom + (move.YawTo - move.YawFrom) * s;
                 lift = move.Lift * Math.Sin(Math.PI * u);
+                // A step forward rolls through the foot: it leaves heel first, toes last, and
+                // lands on the heel with the toes up. A step back does the reverse.
+                pitch = -move.Along * (u < 0.5 ? 0.6 : 0.5) * Math.Sin(2 * Math.PI * u);
             }
             break;
         }
@@ -773,8 +865,8 @@ internal sealed class FigureSolver
         var c = new CoreState { Yaw = YawAt(t) };
         c.Fwd = Vec3.Forward(c.Yaw);
         c.Left = Vec3.Left(c.Yaw);
-        FootAt(_leftMoves, _leftStart, _leftYawStart, t, out c.LPos, out c.LYaw, out c.LLift, out c.LAir);
-        FootAt(_rightMoves, _rightStart, _rightYawStart, t, out c.RPos, out c.RYaw, out c.RLift, out c.RAir);
+        FootAt(_leftMoves, _leftStart, _leftYawStart, t, out c.LPos, out c.LYaw, out c.LLift, out c.LAir, out c.LPitch);
+        FootAt(_rightMoves, _rightStart, _rightYawStart, t, out c.RPos, out c.RYaw, out c.RLift, out c.RAir, out c.RPitch);
         (c.GwL, c.GoL) = LegGesture(_leftLeg, t, c.Left, c.Fwd);
         (c.GwR, c.GoR) = LegGesture(_rightLeg, t, c.Left, c.Fwd);
         c.Float = _float.Eval(t);
@@ -796,9 +888,10 @@ internal sealed class FigureSolver
         p -= new Vec3(c.TorsoUp.X, 0, c.TorsoUp.Z) * 0.18;
         c.P = p;
 
-        double level = _level.Eval(t);
+        // The height is a row of its own, read like a gesture: it can be taken over half-way.
+        double level = Chain(_height, t, seg => seg?.Level ?? 0, (a, b, e) => a + (b - a) * e);
         c.Raise = Math.Max(0, level) * 0.07;
-        double reach = Rig.Leg * 0.985;
+        double reach = Rig.Leg * 0.995;
         double y = Rig.AnkleHeight + reach - 0.30 * Math.Max(0, -level) + c.Raise;
 
         // The pelvis is as high as it can be with both planted feet still in reach.
@@ -865,7 +958,7 @@ internal sealed class FigureSolver
     }
 
     /// <summary>A place on this body, for another dancer to reach or look at. Heights include a lift.</summary>
-    private Vec3 PlaceAt(string part, int side, double t, FigureSolver asker)
+    private Vec3 PlaceAt(string part, int side, double t, FigureSolver asker, double? level = null)
     {
         var trunk = TrunkAt(t);
         var lifted = Vec3.Up * trunk.C.Float;
@@ -879,16 +972,43 @@ internal sealed class FigureSolver
         // A hand. If this arm is reaching for the asker's hand at the same moment, neither hand
         // is anywhere yet: the two meet half-way between the shoulders, at the height of a handshake.
         var arm = side == 1 ? _leftArm : _rightArm;
-        var current = arm.LastOrDefault(s => s.T0 <= t && s.Kind != SegKinds.Hold);
+        // The segment that is arriving at t, not one that starts there: at the instant the hands meet they are still reaching.
+        var current = arm.LastOrDefault(s => s.T0 < t - 1e-9 && s.Kind != SegKinds.Hold) ?? arm.FirstOrDefault(s => s.T0 <= t && s.Kind != SegKinds.Hold);
         bool mutual = current is { Kind: SegKinds.Reach, Part: "hand" } && current.Target == asker._dancer.Id;
         if (mutual || _posing > 0)
         {
             var mine = trunk.Shoulder(side) + lifted;
             var theirs = asker.TrunkAt(t) is var other ? other.Shoulder(side) + Vec3.Up * other.C.Float : mine;
             var middle = (mine + theirs) * 0.5;
-            return new Vec3(middle.X, Math.Min(mine.Y, theirs.Y) - 0.25, middle.Z);
+            // With a level (b.hand.high) the hands meet above the heads, at the shoulders or by the hips.
+            double y = level switch
+            {
+                > 0 => Math.Max(mine.Y, theirs.Y) + 0.40,
+                0 => middle.Y,
+                < 0 => Math.Min(mine.Y, theirs.Y) - 0.45,
+                _ => Math.Min(mine.Y, theirs.Y) - 0.25,
+            };
+            return new Vec3(middle.X, y, middle.Z);
         }
         return Pose(t, out _)[side == 1 ? Rig.LHand : Rig.RHand];
+    }
+
+    /// <summary>How far beyond the arm's length the place a reach is sent to lies when it arrives (negative: within reach).</summary>
+    public double ReachShortfall(Seg seg, int side)
+    {
+        if (seg.Target is null || _others(seg.Target) is not { } other)
+            return 0;
+        _posing++;
+        try
+        {
+            var trunk = TrunkAt(seg.T1);
+            var shoulder = trunk.Shoulder(side) + Vec3.Up * trunk.C.Float;
+            return (other.PlaceAt(seg.Part!, side, seg.T1, this, seg.Level) - shoulder).Length - Rig.Arm;
+        }
+        finally
+        {
+            _posing--;
+        }
     }
 
     public Vec3[] Pose(double t, out PoseProblems problems)
@@ -960,8 +1080,10 @@ internal sealed class FigureSolver
             var (knee, reached) = TwoBone(hip, ankle, Rig.Thigh, Rig.Shin, Rig.KneePole(c.Left, c.Fwd, side));
             bool offFloor = reached.Y > Rig.AnkleHeight + c.Raise + 0.005;
             var footFwd = Vec3.Forward(isLeft ? c.LYaw : c.RYaw);
-            var toe = reached + footFwd * Rig.FootLength;
-            toe = new Vec3(toe.X, offFloor ? reached.Y - 0.05 : 0.02, toe.Z);
+            // A gesturing leg has taken the foot over: the roll of a step fades as it does.
+            double pitch = (isLeft ? c.LPitch : c.RPitch) * (1 - gesture);
+            var toe = reached + footFwd * (Rig.FootLength * Math.Cos(pitch));
+            toe = new Vec3(toe.X, offFloor ? Math.Max(0.02, reached.Y - 0.05 + Rig.FootLength * Math.Sin(pitch)) : 0.02, toe.Z);
 
             int first = isLeft ? Rig.LHip : Rig.RHip;
             joints[first] = hip;
@@ -981,7 +1103,7 @@ internal sealed class FigureSolver
                 if (seg is null)
                     return (c.Left * (0.10 * side) - Vec3.Up + c.Fwd * 0.04).Normalized() * (Rig.Arm * 0.97);
                 if (seg.Kind == SegKinds.Reach)
-                    return _others(seg.Target!) is { } other ? other.PlaceAt(seg.Part!, side, t, this) - (shoulder + lifted) : Offset(null);
+                    return _others(seg.Target!) is { } other ? other.PlaceAt(seg.Part!, side, t, this, seg.Level) - (shoulder + lifted) : Offset(null);
                 if (seg.Kind == SegKinds.Anchor)
                 {
                     var place = seg.Anchor switch

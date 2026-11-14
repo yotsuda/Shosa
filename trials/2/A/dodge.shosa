@@ -1,0 +1,14 @@
+title "Dodge"
+tempo 120
+
+pose stance {
+  steps { left.fwd.low@small }
+  arms  { fwd.high@bent }
+}
+
+section Dodge {
+  body  { stance:0 hold:0.7s }
+  steps { right.side.low:0.4s right.back.low@small:0.3s }
+  torso { fwd.right.high:0.4s!low up:0.3s }
+  head  { fwd.-25:0.4s fwd:0.3s }
+}

@@ -13,13 +13,29 @@ public static class PreviewHtml
 {
     private static readonly JsonSerializerOptions Json = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
-    public static string Render(MotionClip clip, string source)
+    /// <param name="notes">
+    /// The song the clip is danced to, in the clip's beats (`SongReader.Notes`): the page then
+    /// plays it with the movement. Null for a clip without a song.
+    /// </param>
+    public static string Render(MotionClip clip, string source, IReadOnlyList<double[]>? notes = null)
     {
         // "</" must not appear inside a script element.
-        string data = JsonSerializer.Serialize(new { clip, source }, Json).Replace("</", "<\\/");
+        string data = JsonSerializer.Serialize(new { clip, source, notes }, Json).Replace("</", "<\\/");
         return Template.Replace("/*TITLE*/", System.Net.WebUtility.HtmlEncode(clip.Title.Length > 0 ? clip.Title : "Shosa preview"))
+            .Replace("/*SOUND*/", Sound.Value)
             .Replace("/*DATA*/", data);
     }
+
+    /// <summary>
+    /// What the VS Code preview is made of too (editors/vscode/src/preview): the synthesiser
+    /// (sound.js) and where a clip's beats are in time and in its bars (time.js), as plain functions.
+    /// </summary>
+    private static readonly Lazy<string> Sound = new(() => string.Concat(new[] { "sound.js", "time.js" }.Select(name =>
+    {
+        using var stream = typeof(PreviewHtml).Assembly.GetManifestResourceStream(name)!;
+        using var reader = new StreamReader(stream);
+        return reader.ReadToEnd().Replace("export function", "function") + "\n";
+    })));
 
     private const string Template = """
 <!doctype html>
@@ -29,9 +45,9 @@ public static class PreviewHtml
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>/*TITLE*/</title>
 <style>
-  :root { --bg:#f6f7f9; --panel:#ffffff; --ink:#23272e; --faint:#7b838f; --line:#dfe3e8; --on:#ffe28a; --accent:#2f6fdf; }
+  :root { --bg:#f6f7f9; --panel:#ffffff; --ink:#23272e; --faint:#7b838f; --line:#dfe3e8; --on:#ffe28a; --accent:#2f6fdf; --mark:#1e8e5a; }
   @media (prefers-color-scheme: dark) {
-    :root { --bg:#16181c; --panel:#1e2126; --ink:#e3e6ea; --faint:#8a929e; --line:#30353c; --on:#6b5a12; --accent:#6fa2ff; }
+    :root { --bg:#16181c; --panel:#1e2126; --ink:#e3e6ea; --faint:#8a929e; --line:#30353c; --on:#6b5a12; --accent:#6fa2ff; --mark:#4fd08f; }
   }
   * { box-sizing: border-box; }
   html, body { height: 100%; margin: 0; }
@@ -46,20 +62,25 @@ public static class PreviewHtml
   #stage canvas { display: block; width: 100%; height: 100%; }
   footer { display: flex; gap: 12px; align-items: center; padding: 8px 16px; background: var(--panel); border-top: 1px solid var(--line); }
   button { font: inherit; padding: 4px 14px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink); cursor: pointer; }
-  input[type=range] { flex: 1; }
+  input[type=range] { flex: 1; margin: 0; }
+  #track { flex: 1; display: flex; position: relative; }
+  #ticks i { position: absolute; bottom: -5px; width: 2px; margin-left: -1px; height: 5px; background: var(--mark); pointer-events: none; }
+  #marks { position: absolute; left: 14px; top: 10px; font-weight: 600; color: var(--mark); pointer-events: none; white-space: pre; }
   #beat { font-variant-numeric: tabular-nums; min-width: 12ch; color: var(--faint); }
+  [hidden] { display: none; }
   @media (max-width: 720px) { main { flex-direction: column; } #source { width: 100%; max-width: none; height: 40%; border-right: 0; border-bottom: 1px solid var(--line); } }
 </style>
 </head>
 <body>
 <main>
   <pre id="source"></pre>
-  <div id="stage"></div>
+  <div id="stage"><div id="marks"></div></div>
 </main>
 <footer>
   <button id="play">Play</button>
-  <input id="seek" type="range" min="0" max="1000" value="0" aria-label="Position">
+  <div id="track"><input id="seek" type="range" min="0" max="1000" value="0" aria-label="Position"><div id="ticks"></div></div>
   <span id="beat"></span>
+  <label id="soundLabel" hidden><input id="sound" type="checkbox" checked> Sound</label>
   <label>Speed <select id="speed"><option>0.25</option><option>0.5</option><option selected>1</option></select></label>
 </footer>
 <script id="data" type="application/json">/*DATA*/</script>
@@ -71,9 +92,14 @@ public static class PreviewHtml
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-const { clip, source } = JSON.parse(document.getElementById('data').textContent);
+/*SOUND*/
+
+const { clip, source, notes } = JSON.parse(document.getElementById('data').textContent);
+// The song the clip is danced to, if it has one: played from the figure's own clock.
+const player = createSound(), soundBox = document.getElementById('sound');
+player.setSong(notes ?? null);
+document.getElementById('soundLabel').hidden = !notes;
 const frameCount = clip.figures.length ? clip.figures[0].frames.length : 1;
-const beatsPerFrame = clip.tempo / (60 * clip.fps);
 
 // ---- Source pane: every event of the source becomes a span that knows when it is performed.
 const byStart = new Map();
@@ -171,23 +197,39 @@ const playButton = document.getElementById('play'), seek = document.getElementBy
 const beatLabel = document.getElementById('beat'), speed = document.getElementById('speed');
 let beat = 0, playing = false, last = 0;
 
+// The moments named for the engine (`!hit`): a tick under the slider at each (the knob travels
+// the slider's width less its own), and the name over the stage as it arrives.
+const marksLabel = document.getElementById('marks');
+if (clip.totalBeats > 0) {
+  for (const at of new Set((clip.marks ?? []).map(m => m.beat))) {
+    const tick = document.createElement('i');
+    tick.style.left = `calc(8px + (100% - 16px) * ${at / clip.totalBeats})`;
+    document.getElementById('ticks').append(tick);
+  }
+}
+
 function show() {
-  pose(beat / beatsPerFrame);
+  pose(secondsAt(clip, beat) * clip.fps);
+  const arrived = markText(clip, marksAt(clip, beat));
+  if (marksLabel.textContent !== arrived) marksLabel.textContent = arrived;
   for (const ev of events) {
     if (!ev.el) continue;
     ev.el.classList.toggle('on', ev.times.some(t => beat >= t[0] && beat < t[1]));
   }
-  const bar = Math.floor(beat / clip.beatsPerBar) + 1, inBar = beat - (bar - 1) * clip.beatsPerBar + 1;
-  beatLabel.textContent = 'bar ' + bar + '  beat ' + inBar.toFixed(2);
+  const [bar, inBar] = barAt(clip, beat);
+  beatLabel.textContent = 'bar ' + bar + '  beat ' + (inBar + 1).toFixed(2);
   seek.value = clip.totalBeats ? Math.round(1000 * beat / clip.totalBeats) : 0;
 }
-function seekTo(value) { beat = Math.max(0, Math.min(clip.totalBeats, value)); show(); }
+function seekTo(value) { beat = Math.max(0, Math.min(clip.totalBeats, value)); show(); player.cue(beat); }
 playButton.addEventListener('click', () => {
   playing = !playing;
   if (playing && beat >= clip.totalBeats - 1e-6) beat = 0;
   playButton.textContent = playing ? 'Pause' : 'Play';
   last = performance.now();
+  if (playing && notes) player.start();   // a browser lets sound start only from a click or a key
+  player.cue(beat);
 });
+soundBox.addEventListener('change', () => player.cue(beat));
 seek.addEventListener('input', () => { playing = false; playButton.textContent = 'Play'; seekTo(clip.totalBeats * seek.value / 1000); });
 addEventListener('keydown', e => { if (e.code === 'Space') { e.preventDefault(); playButton.click(); } });
 
@@ -202,8 +244,9 @@ resize();
 
 function tick(now) {
   if (playing) {
-    beat += (now - last) / 1000 * clip.tempo / 60 * Number(speed.value);
+    beat = beatAt(clip, secondsAt(clip, beat) + (now - last) / 1000 * Number(speed.value));
     if (beat >= clip.totalBeats) { beat = clip.totalBeats; playing = false; playButton.textContent = 'Play'; }
+    else if (soundBox.checked) player.play(beat, 60 / (tempoAt(clip, beat) * Number(speed.value)));
     show();
   }
   last = now;

@@ -1,0 +1,16 @@
+tempo 120
+pose stance {
+  steps { left.fwd.low@small }
+  arms  { fwd.high@bent }
+}
+move palm { leftArm { fwd:1/2@sharp!hit1 stance:1/2 } }
+move bodypunch { rightArm { fwd.low:1/2@sharp!hit2 stance:1/2 } }
+move spinkick {
+  steps    { turn.right.half:1 hold:2 turn.right.half:1 }
+  rightLeg { skip:1 back.low:1/2@bent back:1/2@sharp!hit3 down:1 }
+}
+move spinkick2 {
+  steps    { turn.right.half:1 hold:1 turn.right.half:1 }
+  rightLeg { back.low:1@bent back:1/2@sharp!hit3 down:1/2 }
+}
+section A { body { stance:0 | palm:1 bodypunch:1 spinkick:3 hold:3 | } }

@@ -1,0 +1,2 @@
+tempo 120
+section V { steps { jump@turn(left.half) hold:3 } arms { skip:2 side:1 skip:1 } rightArm { skip:3 up:1 } }

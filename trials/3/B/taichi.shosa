@@ -1,0 +1,15 @@
+title "Tai chi"
+tempo 60
+time 4/4
+
+// Four movements of 6 beats each, end to end: 24 beats = 6 bars.
+section Flow {
+  // (a) knees bend   (b) step to the left   (c) weight to the right   (d) feet together, up
+  steps    { both.low:4~ | :2 left.side.low:2~ | :4 | shift.right:4~ | :2 together:2~ | :4 | }
+  // (a) rise forward to shoulder height   (b) open to the sides   (d) float down
+  arms     { fwd:4~ | :2 side:2~ | :4 | skip:4 | skip:2 down:2~ | :4 | }
+  // (c) the left arm sweeps across the body, the right arm goes up
+  //     (from `side`, `across` is the exact opposite, so it goes through the front)
+  leftArm  { skip:4 | skip:4 | skip:4 | fwd:3 across:1~ | :2 skip:2 | skip:4 | }
+  rightArm { skip:4 | skip:4 | skip:4 | up:4~ | :2 side:2 | skip:4 | }
+}

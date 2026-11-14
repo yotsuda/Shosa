@@ -1,10 +1,10 @@
-// Wave — the back-and-forth is a `move`: a named row of events. Written without a
-// length it lasts as long as it was defined (3 beats); `wave:2` would squeeze it into 2.
+// Wave — the back-and-forth is a group in braces, and `q` does it again. The whole is a
+// `move`: without a length it lasts as long as it was defined (3 beats); `wave:2` would squeeze it into 2.
 title "Wave"
 tempo 96
 time 4/4
 
-move wave { rightArm { repeat 3 { up:1/2@bent side.high:1/2@bent } } }
+move wave { rightArm { { up:1/2@bent side.high:1/2@bent } q q } }
 
 section Wave {
   rightArm { side.high:1@bent wave | down:2 hold:2 }

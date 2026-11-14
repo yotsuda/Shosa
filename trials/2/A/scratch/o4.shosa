@@ -1,0 +1,3 @@
+tempo 120
+move m { leftArm { fwd:2 down:2 } }
+section V { body { | m:2 m:4 hold:2 | } }

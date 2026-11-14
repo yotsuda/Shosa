@@ -1,0 +1,16 @@
+title "Boss heavy attack"
+tempo 100
+time 4/4
+
+pose guard {
+  steps { left.fwd.low@small }
+  arms  { fwd.high@bent }
+}
+
+section Heavy {
+  body     { guard:0 hold:4 | hold:4 | hold:4 | }
+  // bar 1: beats 1-2 guard; wind-up from beat 3, 3 beats, tied over the bar line.
+  // bar 2: strike on beat 2, recovery 3 beats from beat 3 runs into bar 3.
+  rightArm { skip:2 back.high:2@bent~ | :1 fwd:1@sharp!hit guard:2~ | :1 skip:3 | }
+  torso    { skip:2 back.80:2~ | :1 fwd.70:1@sharp up:2~ | :1 skip:3 | }
+}

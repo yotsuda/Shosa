@@ -1,0 +1,12 @@
+music "../song.lys"
+form { Chorus Verse Chorus }
+
+section Verse {
+  arms { side:4 | up:4 | }
+}
+section Chorus {
+  arms { fwd:4 | down:4 | }
+}
+section Chorus {
+  arms { clap:4 | down:4 | }
+}

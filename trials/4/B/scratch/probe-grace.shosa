@@ -1,0 +1,5 @@
+music "../amazing-grace.lys"
+
+section Verse {
+  arms { side:3 | up:3 | }
+}

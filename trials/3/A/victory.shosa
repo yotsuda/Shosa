@@ -1,0 +1,30 @@
+title "Boss victory dance"
+tempo 120
+time 4/4
+
+pose win {
+  steps    { left.side }
+  leftArm  { hip }
+  rightArm { up }
+}
+
+form { |: A [1. B] :| [2. C] }
+
+// step-touch left, step-touch right; clap on beats 2 and 4. Bar 2 is bar 1 again.
+section A {
+  steps { left.side together right.side together | % | }
+  arms  { side.low clap!clap side.low clap!clap | % | }
+}
+
+// first ending: a jump with the arms up
+section B {
+  steps { both.low:1 jump:2 both.mid:1 | }
+  arms  { side:1 up:1 hold:1 side.low:1 | }
+}
+
+// second ending: a half turn, then the final pose, held
+section C {
+  steps { turn.left.half:2 skip:2 | skip:4 | }
+  arms  { side.low:2 skip:2 | skip:4 | }
+  body  { skip:2 win:2 | hold:4 | }
+}

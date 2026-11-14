@@ -1,0 +1,2 @@
+tempo 120
+section V { arms { side:1 } leftArm { skip:1 hip:1 } }

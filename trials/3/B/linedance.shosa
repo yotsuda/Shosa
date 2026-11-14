@@ -1,0 +1,20 @@
+title "Line dance"
+tempo 120
+time 4/4
+
+figure line
+dancer ann humanoid on line at -1.5 0 mirror
+dancer bea humanoid on line at 0 0
+dancer cat humanoid on line at 1.5 0
+
+// Grapevine to the left: side, cross behind, side, close.
+move vine  { steps { left.side right.back.across left.side together } }
+// Rock forward and recover, rock back and recover.
+move rocks { steps { left.fwd shift.right left.back shift.right } }
+
+section Dance {
+  line {
+    steps { vine:4 | vine@mirror:4 | rocks:4 | turn.left.quarter:2 together:1 hold:1 | %4 | }
+    arms  { skip:4 | skip:4 | skip:4 | skip:2 clap:1!clap down:1 | %4 | }
+  }
+}

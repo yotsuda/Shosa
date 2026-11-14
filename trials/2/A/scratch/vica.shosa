@@ -1,0 +1,24 @@
+title "Victory"
+tempo 120
+time 4/4
+
+// the last pose: right fist in the air, left hand on the hip, looking up
+pose win {
+  rightArm { up }
+  leftArm  { hip }
+}
+
+section Victory {
+  // bar 1: side steps left and right, clapping on 2 and 4
+  // bar 2: side step, a step on the spot, a jump with a half turn (now facing the back)
+  // bar 3: side step back to the start, a half turn to the front, a small step into the pose
+  // bar 4: the pose, held
+  steps { | left.side together right.side together
+          | left.side together right.place jump@turn(left.half)!jump
+          | left.side together turn.left.half left.side@small
+          | hold:4 | }
+  arms  { | side.high clap side.high clap
+          | side.high clap side.low side.high
+          | hip:1 hold:1 side:1 skip:1 | }
+  body  { | skip:4 | skip:4 | skip:3 win:1 | hold:4 | }
+}

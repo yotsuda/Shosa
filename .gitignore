@@ -5,3 +5,6 @@ out/
 trials/*/*.png
 node_modules/
 dist/
+artifacts/
+*.vsix
+__pycache__/

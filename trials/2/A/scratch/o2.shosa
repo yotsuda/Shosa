@@ -1,0 +1,3 @@
+tempo 120
+section V { head { fwd.-35:2 fwd:2 } }
+dancer me humanoid facing stageLeft
