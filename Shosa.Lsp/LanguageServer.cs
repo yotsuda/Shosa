@@ -320,6 +320,11 @@ public sealed class LanguageServer(Action<string> send)
         {
             // Keep the table's order: it goes from the common word to the rare one.
             string sortText = (order++).ToString("000", CultureInfo.InvariantCulture);
+            // A top-level word brings the least its item needs: nothing of a file can be left out.
+            if (kind == "keyword" && Words.Snippet(document.Tree, w.Name) is { } snippet)
+                return new { label = w.Name, kind = itemKind, detail = w.Doc, sortText, insertText = snippet, insertTextFormat = 2 };
+            if (kind == "word" && w.Name == "verse")
+                return new { label = w.Name, kind = 14, detail = w.Doc, sortText, insertText = Words.VerseSnippet, insertTextFormat = 2 };
             if (from is not { } start)
                 return (object)new { label = w.Name, kind = itemKind, detail = w.Doc, sortText };
             // A file's name replaces everything typed since the quote, dots and all.

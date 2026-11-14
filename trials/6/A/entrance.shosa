@@ -1,0 +1,31 @@
+title "Entrance"
+tempo 110
+time 4/4
+
+figure one
+figure two
+figure three
+dancer ann humanoid on one   at -1.5 0
+dancer ben humanoid on two   at 0 0
+dancer cat humanoid on three at 1.5 0
+
+// The same step-touch for all three: out to the side and close, left then right.
+move sway { steps { left.side together right.side together } }
+
+section Entrance {
+  one {
+    steps { sway:4 | % | % | % | %4 | %4 | }
+    arms  { side:2 down:2 | % | % | % | %4 | %4 | }
+  }
+  two {
+    steps { sway:4 | % | % | % | %4 | %4 | }
+    arms  { skip:4bar | side.high:2 down:2 | % | % | % | %4 | }
+  }
+  three {
+    steps { sway:4 | % | % | % | %4 | %4 | }
+    arms  { skip:11bar | side.low:2 clap:1!clap down:1 | }
+  }
+}
+
+form { Entrance }
+score { dancer ann  dancer ben  dancer cat }

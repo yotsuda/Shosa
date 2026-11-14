@@ -1,0 +1,13 @@
+figure solo
+dancer solo humanoid on solo
+
+section Six {
+  solo {
+    arms  { side:2 up:2 side:2 | fwd:2 side:2 down:2 | }
+  }
+}
+
+form { tempo 120 time 6/4 Six time 6/8 Six }
+form b { tempo 120 time 6/4 Six tempo 120 time 6/8 Six }
+score { dancer solo }
+score b { dancer solo form b }

@@ -1,0 +1,53 @@
+title "Cuts"
+tempo 100
+time 4/4
+
+figure solo
+dancer solo humanoid on solo
+
+// Warm: 4 bars of 4/4 at 100. Ends as it starts, so it can loop.
+section Warm {
+  tempo 100
+  time 4/4
+  solo {
+    steps { left.side together right.side together | % | % | % | }
+    arms  { side:2!warm down:2 | fwd:2 down:2 | %2 | }
+  }
+}
+
+// Fast: 4 bars of 2/4 at 160.
+section Fast {
+  tempo 160
+  time 2/4
+  solo {
+    steps { left.place right.place | % | jump.apart jump.together | % | }
+    arms  { clap:1!fast side:1 | % | % | clap:1 down:1 | }
+  }
+}
+
+// AsFast: no movement and no length. It only sets the time and tempo Fast leaves,
+// so that Cool, played alone, is in what it is in after Fast.
+section AsFast {
+  tempo 160
+  time 2/4
+}
+
+// Cool: 4 bars in whatever is in force (after Fast: 2/4 at 160). Calming down.
+section Cool {
+  solo {
+    arms  { side.high:2 | hold:2 | side:2 | down:2!cool | }
+    steps { both.low:2 | both.mid:2 | hold:2 | hold:2 | }
+    head  { fwd.-25:2 | hold:2 | fwd:2 | hold:2 | }
+  }
+}
+
+form           { Warm Fast Cool }
+form fastTwice { |: Fast :| }
+form coolAlone { AsFast Cool }
+form warmAlone { Warm }
+
+score              { dancer solo }
+// The file begins at 100; 50 halves every tempo, so Fast (160) is at 80.
+score FastPractice { dancer solo  form fastTwice  tempo 50 }
+score CoolPractice { dancer solo  form coolAlone }
+score WarmLoop     { dancer solo  form warmAlone  loop }

@@ -1,0 +1,5 @@
+music "song.lys"
+figure solo
+dancer solo humanoid on solo
+section Verse { solo { arms { side:4 | } } }
+score { dancer solo }

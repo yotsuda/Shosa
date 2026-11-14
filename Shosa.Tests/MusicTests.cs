@@ -26,10 +26,17 @@ public class MusicTests
 
     private const string Dance = """
         music "waltz.lys"
-        section A { arms { side:3 | up:3 | } }
-        section B { arms { fwd:3 | down:3 | } }
+        figure solo
+        dancer solo humanoid on solo
+        score { dancer solo }
+        section A { solo { arms { side:3 | up:3 | } } }
+        section B { solo { arms { fwd:3 | down:3 | } } }
 
         """;
+
+    /// <summary>One body dancing to a song: the order is the song's, so there is no form.</summary>
+    private static string To(string song, string sections) =>
+        $"music \"{song}\"\n{Samples.SoloCast}score {{ dancer solo }}\n{sections}\n";
 
     private static ShosaCompilation Compile(string text, string? score = null) => ShosaCompilation.Compile(text, score, Waltz);
 
@@ -67,8 +74,8 @@ public class MusicTests
     [Fact]
     public void An_event_across_several_bar_lines_is_told_how_to_be_tied_over_each()
     {
-        var long_ = Compile("music \"waltz.lys\"\nsection A { arms { skip:9 side:3 | } }\n");
-        var short_ = Compile("music \"waltz.lys\"\nsection A { arms { side:2 up:3 fwd:1 | } }\n");
+        var long_ = Compile(To("waltz.lys", "section A { solo { arms { skip:9 side:3 | } } }"));
+        var short_ = Compile(To("waltz.lys", "section A { solo { arms { side:2 up:3 fwd:1 | } } }"));
 
         Assert.Contains("'skip' runs across 2 bar lines: tie it over each, skip:3~ | :3~ | :3 — or leave the bar lines out of this row", Assert.Single(long_.Diagnostics).Message);
         Assert.Contains("'up' runs across the bar line: tie it over, up:1~ | :2", Assert.Single(short_.Diagnostics).Message);
@@ -81,7 +88,7 @@ public class MusicTests
             tempo 90
             form { B B }
             form once { A }
-            score slow { form once  tempo 60 }
+            score slow { dancer solo  form once  tempo 60 }
 
             """;
         var whole = Compile(text);
@@ -95,9 +102,35 @@ public class MusicTests
     }
 
     [Fact]
+    public void A_tempo_in_per_cent_is_of_the_songs()
+    {
+        // What the 8th writing trial worked out by hand: the song at three quarters of its speed, whatever that is.
+        const string text = Dance + """
+            form once { A }
+            score slow { dancer solo  form once  tempo 75% }
+            score note { dancer solo  form once  tempo 2 = 30 }
+
+            """;
+        var slow = Compile(text, "slow");
+        Assert.Empty(slow.Diagnostics);
+        Assert.Equal(90.0, slow.Clip.Tempo);
+        Assert.Equal(90.0, slow.Clip.Music!.Tempo);
+        Assert.Equal(60.0, Compile(text, "note").Clip.Tempo);   // a minim is two of the song's beats
+
+        // At the top of the file it is of the song's too, and a score's own is of that.
+        var both = Compile("tempo 50%\n" + text, "slow");
+        Assert.Empty(both.Diagnostics);
+        Assert.Equal(45.0, both.Clip.Tempo);
+
+        // A form over the song's sections still writes none.
+        var form = Compile(Dance + "form { tempo 50% A }\n");
+        Assert.Equal("SH1035", Assert.Single(form.Diagnostics).Code);
+    }
+
+    [Fact]
     public void A_section_the_file_does_not_have_is_stood_through()
     {
-        var compilation = Compile("music \"waltz.lys\"\nsection B { arms { fwd:3 | } }\n");
+        var compilation = Compile(To("waltz.lys", "section B { solo { arms { fwd:3 | } } }"));
 
         Assert.Empty(compilation.Diagnostics);
         Assert.Equal(31.0, compilation.Clip.TotalBeats);
@@ -105,14 +138,15 @@ public class MusicTests
     }
 
     [Theory]
-    [InlineData("music \"waltz.lys\"\ntime 4/4\nsection A { arms { side:3 | } }", "SH1902", "time 4/4")]
-    [InlineData("music \"waltz.lys\"\nsection B { arms { side:3 | % | % | } }", "SH1903", "B")]             // 9 beats in the 6 after the upbeat
-    [InlineData("music \"waltz.lys\"\nsection Bridge { arms { side:3 | } }", "SH1905", "Bridge")]
-    [InlineData("music \"waltz.lys\"\nsection A { arms { side:3 | } }\nform { A Bridge }", "SH1005", "Bridge")]
-    [InlineData("music \"polka.lys\"\nsection A { arms { side:4 | } }", "SH1901", "music \"polka.lys\"")]
+    [InlineData("music \"waltz.lys\"\ntime 4/4\nsection A { solo { arms { side:3 | } } }", "SH1902", "time 4/4")]
+    [InlineData("music \"waltz.lys\"\nsection B { solo { arms { side:3 | % | % | } } }", "SH1903", "B")]             // 9 beats in the 6 after the upbeat
+    [InlineData("music \"waltz.lys\"\nsection Bridge { solo { arms { side:3 | } } }", "SH1905", "Bridge")]
+    [InlineData("music \"waltz.lys\"\nsection A { solo { arms { side:3 | } } }\nform { A Bridge }", "SH1005", "Bridge")]
+    [InlineData("music \"polka.lys\"\nsection A { solo { arms { side:4 | } } }", "SH1901", "music \"polka.lys\"")]
     public void What_does_not_fit_the_song_is_said(string text, string code, string at)
     {
-        var compilation = Compile(text + "\n");
+        // The cast and the score come after, so the places in `text` stay where they are.
+        var compilation = Compile(text + "\n" + Samples.SoloCast + "score { dancer solo }\n");
 
         var diagnostic = Assert.Single(compilation.Diagnostics);
         Assert.Equal(code, diagnostic.Code);
@@ -122,14 +156,15 @@ public class MusicTests
     [Fact]
     public void A_song_that_cannot_be_read_leaves_the_file_as_it_is_written()
     {
-        var unread = Compile("music \"polka.lys\"\ntempo 100\nsection A { arms { side:4 | } }\n");
+        var unread = Compile("tempo 100\n" + To("polka.lys", "section A { solo { arms { side:4 | } } }"));
         var nobody = ShosaCompilation.Compile(Dance);
 
         Assert.Equal((100.0, 4, 4.0), (unread.Clip.Tempo, unread.Clip.BeatsPerBar, unread.Clip.TotalBeats));
         Assert.Null(unread.Clip.Music);
         // Compiled from the text alone there is nothing to read a song with: said once, as information.
         Assert.Equal(("SH1900", DiagnosticSeverity.Info), (Assert.Single(nobody.Diagnostics).Code, nobody.Diagnostics[0].Severity));
-        Assert.Equal(2, nobody.Clips.Count);
+        // With no song to say the order, the score plays the sections as they are written.
+        Assert.Equal(new[] { "A", "B" }, Assert.Single(nobody.Clips).Sections.Select(s => s.Name).ToArray());
     }
 
     /// <summary>
@@ -148,8 +183,11 @@ public class MusicTests
 
     private const string ChangingDance = """
         music "changing.lys"
-        section A { arms { side:4 | up:2!top side:2 | } }
-        section B { arms { fwd:3 | down:3 | } }
+        figure solo
+        dancer solo humanoid on solo
+        score { dancer solo }
+        section A { solo { arms { side:4 | up:2!top side:2 | } } }
+        section B { solo { arms { fwd:3 | down:3 | } } }
 
         """;
 
@@ -190,8 +228,8 @@ public class MusicTests
         Assert.Equal(new[] { (2, 3.0), (3, 0.0), (4, 0.0), (4, 2.0) }, new[] { 7.0, 8, 11, 13 }.Select(b => Bars.At(clip.Sections, clip.Meters, b)).ToArray());
 
         // A bar of four where the song is in three, and `%` doing a bar of three again.
-        var four = ShosaCompilation.Compile("music \"changing.lys\"\nsection B { arms { fwd:4 | } }\n", null, Changing);
-        var again = ShosaCompilation.Compile("music \"changing.lys\"\nsection B { arms { fwd:1 side:2 | % | } }\n", null, Changing);
+        var four = ShosaCompilation.Compile(To("changing.lys", "section B { solo { arms { fwd:4 | } } }"), null, Changing);
+        var again = ShosaCompilation.Compile(To("changing.lys", "section B { solo { arms { fwd:1 side:2 | % | } } }"), null, Changing);
         Assert.Contains("time 3/4 has 3", Assert.Single(four.Diagnostics).Message);
         Assert.Empty(again.Diagnostics);
         Assert.Equal(new[] { 8.0, 9, 11, 12 }, again.Ir.Dancers[0].Tracks[Channels.LeftArm].Select(s => s.T0).ToArray());
@@ -200,7 +238,7 @@ public class MusicTests
     [Fact]
     public void Seconds_are_counted_at_the_tempo_their_section_begins_in()
     {
-        const string text = "music \"changing.lys\"\nsection A { arms { side:1s } }\nsection B { arms { fwd:1s } }\n";
+        string text = To("changing.lys", "section A { solo { arms { side:1s } } }\nsection B { solo { arms { fwd:1s } } }");
         var arm = ShosaCompilation.Compile(text, null, Changing).Ir.Dancers[0].Tracks[Channels.LeftArm];
 
         // A second is two beats at 120 and one at 60.
@@ -299,7 +337,8 @@ public class MusicTests
                     clip.RootElement.GetProperty("params").GetProperty("clip").GetProperty("tempo").GetDouble());
             }
 
-            Tell("textDocument/didOpen", new { textDocument = new { uri, version = 1, text = "music \"song.lys\"\nsection Verse { arms { side:4 | } }\n" } });
+            string text = To("song.lys", "section Verse { solo { arms { side:4 | } } }");
+            Tell("textDocument/didOpen", new { textDocument = new { uri, version = 1, text } });
             Assert.Equal((0, 108.0), Last());
 
             // VS Code writes a Windows drive's colon as %3A; the song is still found beside the file.
@@ -307,7 +346,7 @@ public class MusicTests
             {
                 string encoded = uri.Replace(":/", "%3A/").Replace("file%3A/", "file:/");
                 Assert.Contains("%3A", encoded);
-                Tell("textDocument/didOpen", new { textDocument = new { uri = encoded, languageId = "shosa", version = 1, text = "music \"song.lys\"\nsection Verse { arms { side:4 | } }\n" } });
+                Tell("textDocument/didOpen", new { textDocument = new { uri = encoded, languageId = "shosa", version = 1, text } });
                 Assert.Equal((0, 108.0), Last());
                 Tell("textDocument/didClose", new { textDocument = new { uri = encoded } });
             }
@@ -359,7 +398,7 @@ public class MusicTests
             // Inside the quotes: the .lys files, the nearer first, written with '/'.
             Assert.Equal(new[] { "my-song.lys", "tunes/other.lys" }, Labels("music \""));
             // The name replaces what has been typed since the quote: an editor would stop at the dash.
-            var item = Complete("music \"my-so\nsection A { arms { up } }\n")[0];
+            var item = Complete("music \"my-so\nsection A { solo { arms { up } } }\n")[0];
             var range = item.GetProperty("textEdit").GetProperty("range");
             Assert.Equal(7, range.GetProperty("start").GetProperty("character").GetInt32());
             Assert.Equal(12, range.GetProperty("end").GetProperty("character").GetInt32());

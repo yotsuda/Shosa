@@ -1,0 +1,27 @@
+// Refrain — two sections played twice, and different the second time: `verse N { }`.
+// What stands outside a verse is done on every play; verses side by side share one place
+// in the row. The head only joins in on the second chorus, after three bars of saying nothing.
+title "Refrain"
+tempo 112
+time 4/4
+
+figure solo
+dancer solo humanoid on solo
+
+section Verse {
+  solo {
+    steps { left.side together right.side together | % | % | % | }
+    arms  { side:2 down:2 | % | verse 1 { %2 | } verse 2 { side.high:2 up:2 | side.high:2 down:2 | } }
+  }
+}
+
+section Chorus {
+  solo {
+    steps { left.fwd together right.back together | % | % | verse 1 { % | } verse 2 { left.fwd both.low jump.together!land both.mid | } }
+    arms  { clap:1/2!clap hold:1/2 side.high up:2 | % | % | % | }
+    head  { verse 2 { skip:3bar | fwd.left:2 fwd:2 | } }
+  }
+}
+
+form { |: Verse Chorus :| }
+score { dancer solo }

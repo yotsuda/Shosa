@@ -1,0 +1,22 @@
+title "Rounds"
+time 4/4
+
+figure solo
+dancer solo humanoid on solo
+
+section Theme {
+  solo {
+    steps { left.side together right.side together | % | left.fwd together right.back together | % | }
+    arms  { side:2 up:2 | side:2 down:2 | fwd:2 up:2 | fwd:2 down:2 | }
+  }
+}
+
+section Coda {
+  solo {
+    arms  { side:2 clap:2 | side:2 down:2 | }
+    steps { both.low:2 both.mid:2 | hold:4 | }
+  }
+}
+
+form { tempo 100 Theme tempo 80 Theme tempo 100 Theme tempo 140 Coda }
+score { dancer solo }

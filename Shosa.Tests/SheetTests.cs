@@ -27,8 +27,9 @@ public class SheetTests
     [Fact]
     public void A_clip_of_several_sections_names_each_where_it_begins()
     {
-        const string sections = "tempo 100\nsection A { arms { up:4 } }\nsection B { arms { down:4 } }\n";
-        var one = Sheet("tempo 100\nsection A { arms { up:4 } }\n");
+        const string sections = "tempo 100\n" + Samples.SoloCast + "score { dancer solo }\n"
+            + "section A { solo { arms { up:4 } } }\nsection B { solo { arms { down:4 } } }\n";
+        var one = Sheet(sections + "form { A }\n");
         var two = Sheet(sections + "form { A B }\n");
 
         Assert.Equal(0, Count(one, SectionColor, 0, 0, one.Width, one.Height));
@@ -41,9 +42,11 @@ public class SheetTests
     [Fact]
     public void Several_dancers_have_their_names_under_them()
     {
-        const string solo = "tempo 100\nsection A { arms { up:4 } }\n";
-        const string duo = "tempo 100\nfigure f\ndancer ann humanoid on f at -1 0\ndancer ben humanoid on f at 1 0\n"
-            + "section A { f { arms { up:4 } } }\n";
+        const string cast = "tempo 100\nfigure f\ndancer ann humanoid on f at -1 0\ndancer ben humanoid on f at 1 0\n"
+            + "section A { f { arms { up:4 } } }\nform { A }\n";
+        // The same file with one of its dancers in the score, and with both.
+        const string solo = cast + "score { dancer ann }\n";
+        const string duo = cast + "score { dancer ann  dancer ben }\n";
 
         // Under the floor line of the first cell (the floor is 40 pixels above the cell's bottom, at 238).
         Assert.Equal(0, Count(Sheet(solo), Faint, 14, 240, 204, 276));

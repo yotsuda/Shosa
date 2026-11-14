@@ -617,6 +617,25 @@ internal sealed class FigureSolver
                             YawFrom = moveLeft ? s.LeftYaw : s.RightYaw, YawTo = s.Yaw, Lift = StepLift(from, target),
                         });
                     }
+                    else
+                    {
+                        // The weight is on both feet (after a jump, a `shift.center`): neither is the
+                        // free one, so both close, each as far as the other, to under the weight.
+                        var middle = (s.Left + s.Right) * 0.5;
+                        var apart = s.Left - s.Right;
+                        if (Math.Abs(apart.Dot(leftward) - Rig.Stance) > 0.02 || Math.Abs(apart.Dot(fwd)) > 0.02)
+                        {
+                            foreach (bool isLeft in new[] { true, false })
+                            {
+                                var from = isLeft ? s.Left : s.Right;
+                                Move(isLeft, new FootMove
+                                {
+                                    T0 = t0, T1 = t1, From = from, To = middle + (isLeft ? leftward : -leftward) * (Rig.Stance / 2),
+                                    YawFrom = isLeft ? s.LeftYaw : s.RightYaw, YawTo = s.Yaw, Lift = 0.03,
+                                });
+                            }
+                        }
+                    }
                     s.On = 'B';
                     Weight(t0, t1, (s.Left + s.Right) * 0.5);
                     break;
@@ -670,21 +689,23 @@ internal sealed class FigureSolver
                     // The time in the air fixes the height: h = g T^2 / 8.
                     double airSeconds = TempoMap.Seconds(_tempos, land) - TempoMap.Seconds(_tempos, up);
                     double height = 9.81 * airSeconds * airSeconds / 8;
+                    // A jump that takes no time (in the upbeat a score starts with) has been made: the body stands as it landed.
+                    bool made = duration <= 1e-9;
                     Move(true, new FootMove
                     {
                         T0 = up, T1 = land, From = s.Left, To = landing + leftAfter * (spread / 2),
-                        YawFrom = s.LeftYaw, YawTo = s.Yaw + angle, Air = true, AirHeight = height,
+                        YawFrom = s.LeftYaw, YawTo = s.Yaw + angle, Air = !made, AirHeight = height,
                     });
                     Move(false, new FootMove
                     {
                         T0 = up, T1 = land, From = s.Right, To = landing - leftAfter * (spread / 2),
-                        YawFrom = s.RightYaw, YawTo = s.Yaw + angle, Air = true, AirHeight = height,
+                        YawFrom = s.RightYaw, YawTo = s.Yaw + angle, Air = !made, AirHeight = height,
                     });
                     if (angle != 0)
                         Turn(up, land, angle);
                     Weight(t0, up, middle);
                     Weight(up, land, landing);
-                    if (record)
+                    if (record && !made)
                         _jumps.Add((t0, up, land, t1, height));
                     s.On = 'B';
                     break;
@@ -765,6 +786,25 @@ internal sealed class FigureSolver
         else
             direction = Vec3.Slerp(from, to, e);
         return direction * (lengthA + (lengthB - lengthA) * e);
+    }
+
+    /// <summary>The part of a vector square to a unit axis, as a unit vector; zero if there is none.</summary>
+    private static Vec3 Across(Vec3 v, Vec3 axis)
+    {
+        var across = v - axis * v.Dot(axis);
+        return across.Length < 1e-6 ? default : across * (1 / across.Length);
+    }
+
+    /// <summary>
+    /// A direction square to one unit axis, turned with that axis onto another by the shortest
+    /// turn. Null where there is no shortest turn (the axes are opposite) or nothing to carry.
+    /// </summary>
+    private static Vec3? Carry(Vec3 v, Vec3 from, Vec3 to)
+    {
+        double d = 1 + from.Dot(to);
+        if (d < 1e-3 || v.Length < 1e-6)
+            return null;
+        return v - (from + to) * (v.Dot(to) / d);
     }
 
     private static Vec3 DirOf(Seg? seg, Vec3 neutral) => seg?.Dir is { } d ? new Vec3(d[0], d[1], d[2]) : neutral;
@@ -1128,8 +1168,27 @@ internal sealed class FigureSolver
                 return direction * (Rig.Arm * 0.999 * seg.Ext);
             }
 
-            var hand = shoulder + Chain(isLeft ? _leftArm : _rightArm, t, Offset, (a, b, e) => Blend(a, b, e, c.Fwd));
-            var (elbow, reachedHand) = TwoBone(shoulder, hand, Rig.UpperArm, Rig.Forearm, Rig.ElbowPole(c.Left, c.Fwd, side));
+            // Where the elbow points is decided at the poses the text names, and carried between
+            // them with the arm. Read off the pole at every instant instead, it spins half a turn
+            // in a frame when the hand passes the one direction that lies along the pole
+            // (overhead and a little forward, on the way from `up` to `clap`).
+            var pole = Rig.ElbowPole(c.Left, c.Fwd, side);
+            (Vec3 Offset, Vec3 Bend) Posed(Seg? seg)
+            {
+                var offset = Offset(seg);
+                return (offset, Across(pole, offset.Normalized()));
+            }
+
+            var (reach, bend) = Chain(isLeft ? _leftArm : _rightArm, t, Posed, (a, b, e) =>
+            {
+                var offset = Blend(a.Offset, b.Offset, e, c.Fwd);
+                var axis = offset.Normalized();
+                Vec3? from = Carry(a.Bend, a.Offset.Normalized(), axis), to = Carry(b.Bend, b.Offset.Normalized(), axis);
+                var between = from is null || to is null ? from ?? to ?? pole : Vec3.Slerp(from.Value, to.Value, e);
+                return (offset, Across(between, axis));
+            });
+            var hand = shoulder + reach;
+            var (elbow, reachedHand) = TwoBone(shoulder, hand, Rig.UpperArm, Rig.Forearm, bend.Length < 1e-6 ? pole : bend);
 
             int first = isLeft ? Rig.LShoulder : Rig.RShoulder;
             joints[first] = shoulder;

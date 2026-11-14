@@ -1,0 +1,39 @@
+title "Pair"
+tempo 100
+time 4/4
+
+figure a
+figure b
+dancer ann humanoid on a at -0.5 0 facing stageLeft
+dancer ben humanoid on b at 0.5 0 facing stageRight
+
+// A: 4/4 at 100, 2 bars. They travel the same way across the stage, right hands joined.
+section A {
+  tempo 100
+  time 4/4
+  a {
+    steps    { left.side together right.side together | % | }
+    rightArm { b.hand:2 hold:2 | hold:2 down:2 | }
+  }
+  b {
+    steps    { right.side together left.side together | % | }
+    rightArm { a.hand:2 hold:2 | hold:2 down:2 | }
+  }
+}
+
+// B: 6/8, the beat is a quaver; dotted crotchet = 60 is quaver = 180. 4 bars.
+section B {
+  tempo 180
+  time 6/8
+  a {
+    steps { left.back:3 together:3 | left.fwd:3 together:3 | %2 | }
+    arms  { side:3 down:3 | side.high:3 down:3 | %2 | }
+  }
+  b {
+    steps { left.back:3 together:3 | left.fwd:3 together:3 | %2 | }
+    arms  { side:3 down:3 | side.high:3 down:3 | %2 | }
+  }
+}
+
+form { A B A }
+score { dancer ann  dancer ben }

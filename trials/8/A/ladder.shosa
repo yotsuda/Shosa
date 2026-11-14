@@ -1,0 +1,17 @@
+title "Ladder"
+tempo 90
+time 4/4
+
+figure solo
+dancer solo humanoid on solo
+
+// The phrase: 2 bars of 4/4, written once.
+section Phrase {
+  solo {
+    steps { left.side together right.side together | left.fwd together right.back together | }
+    arms  { side:2 up:2 | side:2 down:2 | }
+  }
+}
+
+form { tempo 90 Phrase tempo 110 Phrase tempo 130 Phrase tempo 150 Phrase }
+score { dancer solo }

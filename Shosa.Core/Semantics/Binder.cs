@@ -13,13 +13,33 @@ namespace Shosa.Core.Semantics;
 /// </summary>
 public static class Binder
 {
-    /// <param name="score">The score to bind; null or "" is the file's default one.</param>
+    /// <param name="score">The score to bind ("" is the unnamed one); null binds every score the file has, a clip each.</param>
     /// <param name="songs">Reads the song a `music` line names; null where there is nothing to read one with.</param>
-    public static (ScoreIr Score, List<Diagnostic> Diagnostics) Bind(SyntaxTree tree, string? score = null, SongSource? songs = null) =>
-        new BinderRun(tree, score ?? "", songs).Run();
+    public static (ScoreIr Score, List<Diagnostic> Diagnostics) Bind(SyntaxTree tree, string? score = null, SongSource? songs = null)
+    {
+        var names = tree.Root.ChildNodes(SyntaxKind.ScoreDecl).Select(s => s.Token(SyntaxKind.Identifier, 1)?.Text ?? "").Distinct().ToList();
+        var result = new ScoreIr { Name = score ?? "" };
+        result.Scores.AddRange(names);
+
+        // A score is bound by itself: its tempo, its song and its dancers are its own.
+        // A file with no score yet is still checked, as far as it goes.
+        IEnumerable<string?> runs = score is not null ? [score] : names.Count > 0 ? names : new string?[] { null };
+        var diagnostics = new List<Diagnostic>();
+        var seen = new HashSet<(string, int, int)>();
+        foreach (string? name in runs)
+        {
+            var (bound, found) = new BinderRun(tree, name, songs).Run();
+            result.Clips.AddRange(bound.Clips);
+            foreach (var (move, length) in bound.MoveLengths)
+                result.MoveLengths.TryAdd(move, length);
+            diagnostics.AddRange(found.Where(d => seen.Add((d.Code, d.Span.Start, d.Span.Length))));
+        }
+        return (result, diagnostics);
+    }
 }
 
-internal sealed class BinderRun(SyntaxTree tree, string scoreName, SongSource? songs)
+/// <param name="scoreName">The score to bind; null in a file that has none.</param>
+internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? songs)
 {
     private const double Epsilon = 1e-6;
 
@@ -60,6 +80,7 @@ internal sealed class BinderRun(SyntaxTree tree, string scoreName, SongSource? s
     private readonly List<Diagnostic> _diagnostics = [];
     private readonly HashSet<(string, int, int)> _reported = [];
     private int _mute;
+    private int _verse = 1;   // which play of its section, in this score, is being bound: what a `verse N` asks
     private int _order;
     private readonly List<(MarkIr Mark, List<(string Channel, Raw Raw)> Raws)> _marks = [];   // of the dancer being bound
 
@@ -68,7 +89,7 @@ internal sealed class BinderRun(SyntaxTree tree, string scoreName, SongSource? s
     private int _beatsPerBar = 4, _beatUnit = 4, _fps = 30;
     private string? _music, _musicScore;
     private SyntaxNode? _musicNode, _timeNode;
-    private bool _tempoWritten;
+    private bool _tempoWritten, _scoreTempo;    // _scoreTempo: by the score itself
     private SongInfo? _song;                    // read, and without error
     private IReadOnlyList<string>? _songOrder;  // what the file's own form plays, when it is danced to a song
     private ICollection<string>? _formNames;    // the names a form may use; null for this file's sections
@@ -109,6 +130,106 @@ internal sealed class BinderRun(SyntaxTree tree, string scoreName, SongSource? s
     private readonly Dictionary<string, SyntaxNode> _defs = [];
     private readonly Dictionary<string, SyntaxNode> _sections = [];
     private readonly List<string> _sectionOrder = [];
+
+    /// <summary>
+    /// The lines a section begins with. Its tempo and its time are in force from where it is
+    /// played until a section that writes another is played; its upbeat is how many beats a row
+    /// of it may begin before its first bar line, over the end of whatever is played before it.
+    /// </summary>
+    private sealed record SectionHead(TempoSpec? Tempo, (int Beats, int Unit)? Time, double Upbeat, SyntaxNode? UpbeatNode);
+
+    /// <summary>
+    /// A tempo as it is written, the same wherever it is written: `tempo 120` (Count, in beats),
+    /// `tempo 4. = 60` (Count of the Note: a dotted crotchet), `tempo 80%` (Ratio, of the tempo
+    /// there would be without the line; Count is then null). What a beat is, and what the tempo
+    /// would have been, are only known where it is played: <see cref="Resolve"/>.
+    /// A form's percentage before a section that writes a tempo is both: the section's Count, times the Ratio.
+    /// </summary>
+    private sealed record TempoSpec(double? Count, (int Unit, bool Dotted)? Note, double Ratio, SyntaxNode Node);
+
+    private TempoSpec? _fileSpec, _scoreSpec;        // the `tempo` at the top of the file, and the score's own
+
+    /// <summary>`tempo N`, `tempo N%` or `tempo NOTE = N`, wherever a tempo is written.</summary>
+    private TempoSpec? ReadTempo(SyntaxNode line)
+    {
+        var numbers = Tokens(line, SyntaxKind.Number);
+        if (Tokens(line, SyntaxKind.EqualsSign).Count > 0)
+        {
+            if (numbers.Count != 2)
+                return null;
+            double unit = Number(numbers[0]), count = Number(numbers[1]);
+            if (unit is not (1 or 2 or 4 or 8 or 16 or 32 or 64))
+                Error("SH1001", numbers[0].Span, "The note a tempo counts is 2 (a minim), 4 (a crotchet), 8 (a quaver) …, with a dot for a dotted one: tempo 4 = 120, tempo 4. = 60.");
+            else if (!(count > 0))
+                Error("SH1001", numbers[1].Span, "The tempo is how many of that note there are in a minute: tempo 4. = 60.");
+            else
+                return new TempoSpec(count, ((int)unit, Tokens(line, SyntaxKind.Dot).Count > 0), 1, line);
+            return null;
+        }
+        if (numbers.Count != 1)
+            return null;
+        double value = Number(numbers[0]);
+        if (Tokens(line, SyntaxKind.Percent).Count > 0)
+        {
+            if (value > 0)
+                return new TempoSpec(null, null, value / 100, line);
+            Error("SH1001", numbers[0].Span, "A tempo in per cent is more than none: tempo 50% is half as fast, tempo 110% a little faster.");
+            return null;
+        }
+        if (value is < 10 or > 400)
+        {
+            Error("SH1001", numbers[0].Span, "The tempo is in beats per minute, from 10 to 400.");
+            return null;
+        }
+        return new TempoSpec(value, null, 1, line);
+    }
+
+    /// <summary>
+    /// The beats a minute of a tempo where it is played: <paramref name="inherited"/> is the
+    /// tempo there would be without it, <paramref name="beatUnit"/> the note a beat is there,
+    /// <paramref name="faster"/> how much faster the score plays everything that is written.
+    /// </summary>
+    private double Resolve(TempoSpec spec, double inherited, int beatUnit, double faster = 1)
+    {
+        double bpm = spec.Count is { } count
+            ? count * (spec.Note is { } note ? (double)beatUnit / note.Unit * (note.Dotted ? 1.5 : 1) : 1) * faster
+            : inherited;
+        bpm *= spec.Ratio;
+        double written = bpm / faster;
+        if ((spec.Note is not null || spec.Ratio != 1) && written is < 10 or > 400)
+        {
+            Error("SH1001", spec.Node.Span, $"This comes to {Format(written)} beats a minute here; a tempo is from 10 to 400.");
+            return Math.Clamp(written, 10, 400) * faster;
+        }
+        return bpm;
+    }
+
+    /// <summary>
+    /// The tempo the score begins at, from what the top of the file and the score write.
+    /// <paramref name="song"/>: the tempo of the song it is danced to, which is what there is when nothing is written.
+    /// </summary>
+    private void SettleTempo(double? song, int beatUnit)
+    {
+        double file = song ?? 90;
+        if (_fileSpec is { Count: null } && song is null)
+        {
+            if (_music is null)
+                Error("SH1038", _fileSpec.Node.Span, "A tempo in per cent is of the tempo there would be without it, and at the top of a file without a song there is none. Write the beats a minute: tempo 120");
+        }
+        else if (_fileSpec is { } top)
+        {
+            file = Resolve(top, file, beatUnit);
+        }
+        _fileTempo = file;
+        _tempo = _scoreSpec is { } own ? Resolve(own, file, beatUnit) : file;
+        _tempoWritten = _fileSpec is not null || _scoreSpec is not null;
+        _scoreTempo = _scoreSpec is not null;
+    }
+    private readonly Dictionary<string, SectionHead> _heads = [];
+    private double _fileTempo = 90;                  // the tempo at the top of the file: a score's own is so much faster or slower
+    private bool _probing;                           // a row is walked only to see how long its first bar is
+    private double _firstBar = double.NaN;
+    private double _upbeatEnd = double.NaN;          // the walk's time at the first bar line of a row that begins with the upbeat
     private readonly Dictionary<string, SyntaxNode> _forms = [];
     private readonly Dictionary<string, SyntaxNode> _scores = [];
     private readonly Dictionary<string, double> _natural = [];
@@ -143,29 +264,44 @@ internal sealed class BinderRun(SyntaxTree tree, string scoreName, SongSource? s
     /// The sections a form plays, in order, its repeats written out: `|: A :|` twice, `|: A :|*N`
     /// N times, `|: A [1. B] :| [2. C]` as A B A C (the same signs as a Lily# form).
     /// </summary>
-    private List<string> Plays(SyntaxNode form)
+    private List<Play> Plays(SyntaxNode form)
     {
-        var plays = new List<string>();
-        List<string>? body = null;      // of the repeat that is open
+        var plays = new List<Play>();
+        List<Play>? body = null;        // of the repeat that is open
         SyntaxNode? open = null;
         bool closed = false;            // its ':|' has been read: only further endings still belong to it
         int? times = null;
-        var endings = new List<(int From, int To, List<string> Names)>();
+        var endings = new List<(int From, int To, List<Play> Names)>();
+        // A `tempo` or a `time` written in the form waits for the name after it.
+        TempoSpec? tempo = null;
+        (int, int)? time = null;
+        SyntaxNode? waiting = null;
 
-        List<string> Names(IEnumerable<SyntaxNode> items)
+        List<Play> Names(IEnumerable<SyntaxNode> items)
         {
-            var names = new List<string>();
+            var names = new List<Play>();
             foreach (var item in items)
             {
+                if (item.Kind == SyntaxKind.FormChange)
+                {
+                    string word = item.ChildTokens().First().Text;
+                    if (_music is not null)
+                        Error("SH1035", item.Span, $"The {word} is the song's: a form over a song's sections does not write it. Take it out (a score's own 'tempo N' or 'tempo N%' plays the whole song faster or slower).");
+                    else
+                        ReadChange(item, ref tempo, ref time);
+                    waiting = item;
+                    continue;
+                }
                 if (item.Token(SyntaxKind.Identifier) is not { } name)
                     continue;
                 if (item.Token(SyntaxKind.Star) is { } star)
                     Error("SH1025", star.Span, $"A section is repeated with repeat signs: |: {name.Text} :|*{item.Token(SyntaxKind.Number)?.Text ?? "N"}");
                 var known = _formNames ?? _sections.Keys;
                 if (_anyFormName || known.Contains(name.Text))
-                    names.Add(name.Text);
+                    names.Add(new Play(name.Text, tempo is null && time is null ? null : new SectionHead(tempo, time, 0, null)));
                 else
                     Error("SH1005", name.Span, $"{(_formNames is null ? "No section is" : "The song has no section")} named '{name.Text}'.{Hint(name.Text, known)}");
+                (tempo, time, waiting) = (null, null, null);
             }
             return names;
         }
@@ -201,15 +337,15 @@ internal sealed class BinderRun(SyntaxTree tree, string scoreName, SongSource? s
         {
             switch (node.Kind)
             {
-                case SyntaxKind.FormItem:
+                case SyntaxKind.FormItem or SyntaxKind.FormChange:
                     if (closed)
                         Finish();
                     (body ?? plays).AddRange(Names([node]));
                     break;
 
                 case SyntaxKind.FormEnding:
-                    var numbers = Tokens(node, SyntaxKind.Number);
-                    var names = Names(node.ChildNodes(SyntaxKind.FormItem));
+                    var numbers = node.ChildTokens().Where(t => t.Kind == SyntaxKind.Number && !t.IsMissing).ToList();
+                    var names = Names(node.ChildNodes().Where(n => n.Kind is SyntaxKind.FormItem or SyntaxKind.FormChange));
                     if (body is null)
                     {
                         Error("SH1025", node.Span, "An ending belongs to a repeat: |: A [1. B] :| [2. C]");
@@ -259,26 +395,45 @@ internal sealed class BinderRun(SyntaxTree tree, string scoreName, SongSource? s
         {
             Finish();
         }
+        if (waiting is not null)
+            Error("SH1037", waiting.Span, $"A '{waiting.ChildTokens().First().Text}' in a form is for the section named after it, and none is: form {{ A tempo 132 B }}");
         return plays;
     }
+
+    /// <summary>
+    /// One section played by a form. Set: the tempo and the time the form writes before its name,
+    /// which it is played in this time whatever the section writes itself.
+    /// </summary>
+    private sealed record Play(string Name, SectionHead? Set = null);
 
     public (ScoreIr, List<Diagnostic>) Run()
     {
         Collect();
 
-        var result = new ScoreIr { Name = scoreName };
-        result.Scores.Add("");
-        result.Scores.AddRange(_scores.Keys.Where(name => name != ""));
+        var result = new ScoreIr { Name = scoreName ?? "" };
 
         string? formName = null;
-        HashSet<string>? cast = null;
-        if (_scores.TryGetValue(scoreName, out var scoreNode))
-            BindScore(scoreNode, ref formName, ref cast);
-        else if (scoreName != "")
+        var cast = new List<SyntaxToken>();
+        var attributes = new HashSet<string>();
+        SyntaxNode? scoreNode = null;
+        if (scoreName is null)
+        {
+            string who = _dancerNodes.Select(d => d.Token(SyntaxKind.Identifier, 1)?.Text).FirstOrDefault(n => n is not null) ?? "NAME";
+            Error("SH1030", new TextSpan(tree.Text.Length, 0),
+                $"A file needs a score: what is written out, and who dances in it. Add: score {{ dancer {who} }}");
+        }
+        else if (_scores.TryGetValue(scoreName, out scoreNode))
+        {
+            BindScore(scoreNode, ref formName, cast, attributes);
+        }
+        else
+        {
             Error("SH1005", new TextSpan(0, 0), $"No score is named '{scoreName}'.{Hint(scoreName, _scores.Keys)}");
+        }
 
         // The song first: its tempo is what seconds and frames are counted by.
         var form = formName is not null ? _forms.GetValueOrDefault(formName) : _forms.GetValueOrDefault("");
+        SettleTempo(null, _beatUnit);
         ReadSong(form);
         if (_tempos.Count == 0 || _tempos[0].Beat > 0)
             _tempos.Insert(0, new TempoIr(0, _tempo));
@@ -286,42 +441,42 @@ internal sealed class BinderRun(SyntaxTree tree, string scoreName, SongSource? s
             _meters.Insert(0, new MeterIr(0, _beatsPerBar, _beatUnit));
         Place(null);
 
-        _active = BuildDancers().Where(d => cast is null || cast.Contains(d.Id)).ToList();
+        var dancers = BuildDancers();
+        foreach (var name in cast.Where(c => !dancers.Any(d => d.Id == c.Text)))
+            Error("SH1005", name.Span, $"No dancer is named '{name.Text}'.{Hint(name.Text, dancers.Select(d => d.Id))}");
+        _active = dancers.Where(d => cast.Any(c => c.Text == d.Id)).ToList();
         foreach (var definition in _defs)
             CheckDefinition(definition.Key, definition.Value);
         foreach (var section in _sections.Values)
             CheckSection(section);
 
-        if (_song is not null)
+        // One score is one movement: what its form plays (or its song), danced by whom it lists.
+        if (scoreNode is not null)
         {
-            // Danced to a song, the clip is the song: every section it plays, for as long as it plays it.
-            var clip = NewClip(scoreName != "" ? scoreName : formName ?? "");
-            BindClip(clip, _song.Plays.Select(p => (p.Name, (double?)p.Beats, p.Pickup)).ToList());
-            result.Clips.Add(clip);
-        }
-        else if (form is not null)
-        {
-            var clip = NewClip(scoreName != "" ? scoreName : formName ?? "");
-            BindClip(clip, Plays(form).Select(Own).ToList());
-            result.Clips.Add(clip);
-        }
-        else
-        {
-            // No form: every section is a clip of its own, starting from neutral.
-            foreach (string name in _sectionOrder)
+            var keyword = scoreNode.ChildTokens().First();
+            List<(string Name, double? Beats, double Pickup, SectionHead? Set)>? plays =
+                _song is not null ? _song.Plays.Select(p => (p.Name, (double?)p.Beats, p.Pickup, (SectionHead?)null)).ToList()   // the song, every section for as long as it plays it
+                : form is not null ? Plays(form).Select(Own).ToList()
+                : _music is not null ? _sectionOrder.Select(n => Own(new Play(n))).ToList()                    // the song could not be read: the sections as they are written
+                : null;
+            if (cast.Count == 0)
             {
-                var clip = NewClip(name);
-                var attributes = SectionAttributes(_sections[name]);
+                string who = dancers.Count > 0 ? dancers[0].Id : "NAME";
+                Error("SH1031", keyword.Span, $"A score lists who dances in it: score {(scoreName == "" ? "" : scoreName + " ")}{{ dancer {who} }}");
+            }
+            if (plays is null)
+            {
+                Error("SH1032", keyword.Span, formName is null && _forms.Count > 0
+                    ? $"This score plays the unnamed form, and the file has none. Name one of its forms: form {_forms.Keys.First()}"
+                    : $"A score plays a form, and the file has none. Write the order of the sections: form {{ {string.Join(' ', _sectionOrder)} }}");
+            }
+            else
+            {
+                var clip = NewClip(scoreName ?? "");
                 clip.Loop = attributes.Contains("loop");
                 clip.Inplace = attributes.Contains("inplace");
-                BindClip(clip, [Own(name)]);
+                BindClip(clip, plays);
                 result.Clips.Add(clip);
-            }
-            if (_forms.Count == 0 && _music is null && _sectionOrder.Count > 1 && !_sections.Values.Any(s => SectionAttributes(s).Contains("loop")))
-            {
-                var second = _sections[_sectionOrder[1]].Token(SyntaxKind.Identifier, 1)!;
-                Report("SH1018", DiagnosticSeverity.Info, second.Span,
-                    $"Without a form each section is a clip of its own, starting from neutral. To play them one after the other, add: form {{ {string.Join(' ', _sectionOrder)} }}");
             }
         }
 
@@ -347,9 +502,6 @@ internal sealed class BinderRun(SyntaxTree tree, string scoreName, SongSource? s
         Music = _music is null || _song is null ? null : new MusicIr(_music, _musicScore, _songOrder, _tempoWritten ? _tempo : null),
     };
 
-    private static List<string> SectionAttributes(SyntaxNode section) =>
-        Tokens(section, SyntaxKind.Identifier).Skip(2).Select(t => t.Text).ToList();
-
     private void Collect()
     {
         foreach (var item in tree.Root.ChildNodes())
@@ -362,7 +514,7 @@ internal sealed class BinderRun(SyntaxTree tree, string scoreName, SongSource? s
                     break;
 
                 case SyntaxKind.FigureDecl:
-                    if (name is not null && !_figures.TryAdd(name.Text, item.Token(SyntaxKind.String)?.Text.Trim('"') ?? name.Text))
+                    if (name is not null && !_figures.TryAdd(name.Text, name.Text))
                         Error("SH1003", name.Span, $"A figure named '{name.Text}' is already declared above.");
                     break;
 
@@ -383,13 +535,17 @@ internal sealed class BinderRun(SyntaxTree tree, string scoreName, SongSource? s
                     if (name is null)
                         break;
                     if (_sections.TryAdd(name.Text, item))
+                    {
                         _sectionOrder.Add(name.Text);
+                        _heads[name.Text] = ReadHead(item);
+                    }
                     else
                         Error("SH1005", name.Span, $"A section named '{name.Text}' is already written above.");
                     foreach (var attribute in Tokens(item, SyntaxKind.Identifier).Skip(2))
                     {
-                        if (attribute.Text is not ("loop" or "inplace"))
-                            Error("SH1024", attribute.Span, $"A section can be marked loop or inplace.{Hint(attribute.Text, ["loop", "inplace"])}");
+                        Error("SH1024", attribute.Span, attribute.Text is "loop" or "inplace"
+                            ? $"'{attribute.Text}' is said of what is written out, so it goes in the score: score {{ dancer NAME  {attribute.Text} }}"
+                            : $"After a section's name comes its '{{'; '{attribute.Text}' does not belong here.");
                     }
                     break;
 
@@ -408,6 +564,108 @@ internal sealed class BinderRun(SyntaxTree tree, string scoreName, SongSource? s
         }
     }
 
+    private SectionHead ReadHead(SyntaxNode section)
+    {
+        TempoSpec? tempo = null;
+        (int, int)? time = null;
+        double upbeat = 0;
+        SyntaxNode? upbeatNode = null;
+        bool late = false;
+        foreach (var child in section.ChildNodes())
+        {
+            if (child.Kind != SyntaxKind.SectionItem)
+            {
+                late = true;
+                continue;
+            }
+            var numbers = Tokens(child, SyntaxKind.Number);
+            switch (child.ChildTokens().First().Text)
+            {
+                case "tempo" or "time":
+                    ReadChange(child, ref tempo, ref time);
+                    break;
+
+                case "upbeat" when numbers.Count >= 1:
+                    double length = Number(numbers[0]) / (numbers.Count > 1 ? Number(numbers[1]) : 1);
+                    if (late)
+                        Error("SH1036", child.Span, "The upbeat is said where the section begins, before its first block: section A { upbeat 1  solo { ... } }");
+                    else if (!(length > 0) || double.IsInfinity(length))
+                        Error("SH1036", child.Span, "An upbeat is a number of beats, more than none and less than a bar: upbeat 1, upbeat 1/2.");
+                    else
+                        (upbeat, upbeatNode) = (length, child);
+                    break;
+            }
+        }
+        return new SectionHead(tempo, time, upbeat, upbeatNode);
+    }
+
+    /// <summary>`tempo N` or `time N/N`, at the start of a section or before a name in a form.</summary>
+    private void ReadChange(SyntaxNode line, ref TempoSpec? tempo, ref (int, int)? time)
+    {
+        var numbers = Tokens(line, SyntaxKind.Number);
+        if (line.ChildTokens().First().Text == "tempo")
+        {
+            tempo = ReadTempo(line) ?? tempo;
+        }
+        else if (numbers.Count == 2)
+        {
+            double beats = Number(numbers[0]), unit = Number(numbers[1]);
+            if (beats < 1 || beats != Math.Floor(beats) || unit < 1 || unit != Math.Floor(unit))
+                Error("SH1001", line.Span, "The time is written as two whole numbers: time 4/4, time 3/4.");
+            else
+                time = ((int)beats, (int)unit);
+        }
+    }
+
+    /// <summary>The beats of a section's upbeat where a bar has <paramref name="perBar"/>; none if it is not shorter than that.</summary>
+    private double UpbeatOf(string name, int perBar) =>
+        _heads.TryGetValue(name, out var head) && head.Upbeat < perBar - Epsilon ? head.Upbeat : 0;
+
+    /// <summary>
+    /// Whether a row begins with its section's upbeat: its first bar line closes a bar of just
+    /// that many beats. Any other row begins at the section's first bar line.
+    /// </summary>
+    private bool BeginsWithUpbeat(SyntaxNode track, string[] channels, string trackName, double upbeat, double start)
+    {
+        if (upbeat <= Epsilon)
+            return false;
+        (_probing, _firstBar) = (true, double.NaN);
+        _mute++;
+        double time = start, bar = start;
+        Walk(track, new Ctx(Nobody, null, [], channels, trackName, [0], 0, Free: true), ref time, ref bar);
+        _mute--;
+        _probing = false;
+        return Math.Abs(_firstBar - upbeat) < Epsilon;
+    }
+
+    /// <summary>The tempo and the time there are once <paramref name="head"/> has written its own over <paramref name="from"/>.</summary>
+    private (double Bpm, MeterIr Meter) Under((double Bpm, MeterIr Meter) from, SectionHead? head, double faster)
+    {
+        if (head is null)
+            return from;
+        var (bpm, meter) = from;
+        if (head.Time is { } time)
+        {
+            // What a beat is may change with the time (4/4 to 6/8): the music goes on as fast as it went.
+            bpm = bpm * time.Unit / meter.BeatUnit;
+            meter = meter with { BeatsPerBar = time.Beats, BeatUnit = time.Unit };
+        }
+        if (head.Tempo is { } written)
+            bpm = Resolve(written, bpm, meter.BeatUnit, faster);
+        return (Math.Round(bpm, 3), meter);
+    }
+
+    /// <summary>What is played from <paramref name="beat"/> is played at this tempo and in this time.</summary>
+    private void Put(double beat, (double Bpm, MeterIr Meter) at)
+    {
+        _meters.RemoveAll(m => m.Beat >= beat - Epsilon);
+        if (_meters.Count == 0 || _meters[^1].BeatsPerBar != at.Meter.BeatsPerBar || _meters[^1].BeatUnit != at.Meter.BeatUnit)
+            _meters.Add(at.Meter with { Beat = beat });
+        _tempos.RemoveAll(t => t.Beat >= beat - Epsilon);
+        if (_tempos.Count == 0 || _tempos[^1].Bpm != at.Bpm)
+            _tempos.Add(new TempoIr(beat, at.Bpm));
+    }
+
     private void BindHeader(SyntaxNode header)
     {
         var keyword = header.ChildTokens().First();
@@ -422,8 +680,7 @@ internal sealed class BinderRun(SyntaxTree tree, string scoreName, SongSource? s
                 SetMusic(header, header.ChildTokens().Where(t => !t.IsMissing).Skip(1).ToList());
                 break;
             case "tempo":
-                if (numbers.Count == 1)
-                    SetTempo(numbers[0]);
+                _fileSpec = ReadTempo(header) ?? _fileSpec;
                 break;
             case "fps":
                 if (numbers.Count == 1)
@@ -454,15 +711,6 @@ internal sealed class BinderRun(SyntaxTree tree, string scoreName, SongSource? s
         }
     }
 
-    private void SetTempo(SyntaxToken number)
-    {
-        double tempo = Number(number);
-        if (tempo is < 10 or > 400)
-            Error("SH1001", number.Span, "The tempo is in beats per minute, from 10 to 400.");
-        else
-            (_tempo, _tempoWritten) = (tempo, true);
-    }
-
     /// <summary>music "song.lys" (score NAME)? — at the top of the file, or in a score in its place.</summary>
     private void SetMusic(SyntaxNode node, List<SyntaxToken> values)
     {
@@ -487,7 +735,7 @@ internal sealed class BinderRun(SyntaxTree tree, string scoreName, SongSource? s
         if (form is not null)
         {
             (_anyFormName, _mute) = (true, _mute + 1);
-            _songOrder = Plays(form);
+            _songOrder = Plays(form).Select(p => p.Name).ToList();
             (_anyFormName, _mute) = (false, _mute - 1);
         }
 
@@ -512,8 +760,7 @@ internal sealed class BinderRun(SyntaxTree tree, string scoreName, SongSource? s
         if (_timeNode is not null)
             Error("SH1902", _timeNode.Span, $"The time is the song's ({song.BeatsPerBar}/{song.BeatUnit}): its bars are where they are. Take this line out.");
         (_beatsPerBar, _beatUnit) = (song.BeatsPerBar, song.BeatUnit);
-        if (!_tempoWritten)
-            _tempo = Math.Clamp(song.Tempo, 10, 400);
+        SettleTempo(Math.Clamp(song.Tempo, 10, 400), song.BeatUnit);
         // A tempo written here is the one the song begins at; where the song changes tempo, it
         // changes by the same proportion.
         double faster = song.Tempo > 0 ? _tempo / song.Tempo : 1;
@@ -532,7 +779,7 @@ internal sealed class BinderRun(SyntaxTree tree, string scoreName, SongSource? s
         }
     }
 
-    private void BindScore(SyntaxNode score, ref string? formName, ref HashSet<string>? cast)
+    private void BindScore(SyntaxNode score, ref string? formName, List<SyntaxToken> cast, HashSet<string> attributes)
     {
         foreach (var item in score.ChildNodes(SyntaxKind.ScoreItem))
         {
@@ -547,8 +794,7 @@ internal sealed class BinderRun(SyntaxTree tree, string scoreName, SongSource? s
                         Error("SH1005", item.Span, $"A score names one of the file's forms: form NAME.{(values.Count == 1 ? Hint(values[0].Text, _forms.Keys) : "")}");
                     break;
                 case "tempo":
-                    if (values.Count == 1 && values[0].Kind == SyntaxKind.Number)
-                        SetTempo(values[0]);
+                    _scoreSpec = ReadTempo(item) ?? _scoreSpec;
                     break;
                 case "title":
                     if (values.Count == 1 && values[0].Kind == SyntaxKind.String)
@@ -558,8 +804,12 @@ internal sealed class BinderRun(SyntaxTree tree, string scoreName, SongSource? s
                     SetMusic(item, values);
                     break;
                 case "dancer":
-                    foreach (var value in values)
-                        (cast ??= []).Add(value.Text);
+                    if (values.Count == 0)
+                        Error("SH1005", item.Span, "'dancer' is followed by the name of one of the file's dancers: dancer alice");
+                    cast.AddRange(values);
+                    break;
+                case "loop" or "inplace":
+                    attributes.Add(tokens[0].Text);
                     break;
             }
         }
@@ -569,7 +819,6 @@ internal sealed class BinderRun(SyntaxTree tree, string scoreName, SongSource? s
     {
         var dancers = new List<DancerSpec>();
         var ids = new HashSet<string>();
-        bool hasFigures = _figures.Count > 0;
 
         foreach (var node in _dancerNodes)
         {
@@ -594,10 +843,10 @@ internal sealed class BinderRun(SyntaxTree tree, string scoreName, SongSource? s
                 {
                     case "on":
                         on = true;
-                        if (!hasFigures)
-                            Error("SH1003", clause.Span, "This file has no figure, so its one dancer is written without 'on'.");
-                        else if (values.Count == 1 && _figures.ContainsKey(values[0].Text))
+                        if (values.Count == 1 && _figures.ContainsKey(values[0].Text))
                             dancer.Figure = values[0].Text;
+                        else if (_figures.Count == 0)
+                            Error("SH1003", clause.Span, $"'on' names the figure this dancer dances, and the file declares none. Add: figure {(values.Count == 1 ? values[0].Text : dancer.Id)}");
                         else
                             Error("SH1003", clause.Span, $"'on' names the figure this dancer dances: on {_figures.Keys.First()}.{(values.Count == 1 ? Hint(values[0].Text, _figures.Keys) : "")}");
                         break;
@@ -666,25 +915,10 @@ internal sealed class BinderRun(SyntaxTree tree, string scoreName, SongSource? s
                 }
             }
 
-            if (hasFigures && !on)
-                Error("SH1003", words[1].Span, $"Say which figure this dancer dances: dancer {dancer.Id} humanoid on {_figures.Keys.First()}");
-            if (hasFigures && dancer.Figure == "")
-                continue;
-            if (!hasFigures && dancers.Count > 0)
-            {
-                Error("SH1003", words[1].Span, "A file without figures has one dancer. To have more, declare figures: figure lead");
-                continue;
-            }
+            if (!on)
+                Error("SH1003", words[1].Span, $"Say which figure this dancer dances: dancer {dancer.Id} humanoid on {(_figures.Count > 0 ? _figures.Keys.First() : "FIGURE")}");
+            // A dancer whose figure is not known still exists: a score may name it.
             dancers.Add(dancer);
-        }
-
-        // A figure nobody was cast for is danced by a default body, at the origin, facing front.
-        if (!hasFigures && dancers.Count == 0)
-            dancers.Add(new DancerSpec { Id = "dancer", Name = _title });
-        foreach (var (figure, label) in _figures)
-        {
-            if (!dancers.Any(d => d.Figure == figure))
-                dancers.Add(new DancerSpec { Id = figure, Name = label, Figure = figure });
         }
         return dancers;
     }
@@ -742,27 +976,29 @@ internal sealed class BinderRun(SyntaxTree tree, string scoreName, SongSource? s
 
     private void CheckSection(SyntaxNode section)
     {
-        bool hasFigures = _figures.Count > 0;
         foreach (var child in section.ChildNodes())
         {
             var name = child.Token(SyntaxKind.Identifier);
             if (name is null)
                 continue;
+            if (child.Kind == SyntaxKind.SectionItem)
+            {
+                if (_music is not null && name.Text is "tempo" or "time")
+                    Error("SH1035", child.Span, $"The {name.Text} is the song's: a file danced to a song does not write it in a section. Take this line out.");
+                continue;
+            }
             if (child.Kind == SyntaxKind.FigureBlock && !_figures.ContainsKey(name.Text))
             {
-                Error("SH1003", name.Span, hasFigures
+                Error("SH1003", name.Span, _figures.Count > 0
                     ? $"No figure is named '{name.Text}'.{Hint(name.Text, _figures.Keys)}"
-                    : $"No figure is named '{name.Text}'. Declare it (figure {name.Text}), or write the tracks directly in the section.");
-            }
-            else if (child.Kind == SyntaxKind.Track && hasFigures)
-            {
-                Error("SH1003", name.Span, _figures.ContainsKey(name.Text)
-                    ? $"The block of figure '{name.Text}' holds tracks: {name.Text} {{ steps {{ ... }} }}"
-                    : $"This file has figures, so a track goes inside a figure's block: {_figures.Keys.First()} {{ {name.Text} {{ ... }} }}");
+                    : $"No figure is named '{name.Text}'. Declare it: figure {name.Text}");
             }
             else if (child.Kind == SyntaxKind.Track)
             {
-                TrackChannels(child, false);
+                Error("SH1003", name.Span,
+                    _figures.ContainsKey(name.Text) ? $"The block of figure '{name.Text}' holds tracks: {name.Text} {{ steps {{ ... }} }}"
+                    : _figures.Count > 0 ? $"A track goes inside the block of the figure that does it: {_figures.Keys.First()} {{ {name.Text} {{ ... }} }}"
+                    : $"A track goes inside the block of the figure that does it. Declare the figure and who dances it (figure hero, dancer hero humanoid on hero), then: hero {{ {name.Text} {{ ... }} }}");
             }
             else if (child.Kind == SyntaxKind.FigureBlock)
             {
@@ -775,32 +1011,35 @@ internal sealed class BinderRun(SyntaxTree tree, string scoreName, SongSource? s
     // ---------------------------------------------------------------- clips
 
     private IEnumerable<SyntaxNode> TracksOf(SyntaxNode section, string figure) =>
-        (figure == ""
-            ? section.ChildNodes(SyntaxKind.Track)
-            : section.ChildNodes(SyntaxKind.FigureBlock).Where(b => b.Token(SyntaxKind.Identifier)?.Text == figure).SelectMany(b => b.ChildNodes(SyntaxKind.Track)))
+        section.ChildNodes(SyntaxKind.FigureBlock).Where(b => b.Token(SyntaxKind.Identifier)?.Text == figure).SelectMany(b => b.ChildNodes(SyntaxKind.Track))
         .Where(t => t.Token(SyntaxKind.Identifier) is { } name && ChannelsOf(name.Text) is not null);
 
     /// <summary>A section is as long as its longest track, whoever dances it.</summary>
     private double SectionLength(string name)
     {
-        if (_sectionLength.TryGetValue(name, out double known))
+        // Where it is played says how long a bar is and how many beats a second has, so its length is of that place.
+        var meter = double.IsNaN(_songShift) ? _meters[0] : Bars.MeterAt(_meters, _songShift);
+        string key = FormattableString.Invariant($"{name}|{meter.BeatsPerBar}|{_unitTempo}");
+        if (_sectionLength.TryGetValue(key, out double known))
             return known;
-        double length = 0;
+        double length = 0, upbeat = UpbeatOf(name, meter.BeatsPerBar);
         _mute++;
         foreach (var track in _sections[name].DescendantNodes().Where(n => n.Kind == SyntaxKind.Track && n.Parent!.Kind != SyntaxKind.Track))
         {
             if (track.Token(SyntaxKind.Identifier) is not { } trackName || ChannelsOf(trackName.Text) is not { } channels)
                 continue;
-            double time = 0, bar = 0;
+            // The upbeat is before the section: it is not a part of its length.
+            double time = BeginsWithUpbeat(track, channels, trackName.Text, upbeat, 0) ? -upbeat : 0, bar = time;
             Walk(track, new Ctx(Nobody, null, [], channels, trackName.Text, [0], 0, Free: true), ref time, ref bar);
             length = Math.Max(length, time);
         }
         _mute--;
-        return _sectionLength[name] = length;
+        return _sectionLength[key] = length;
     }
 
     /// <summary>A play of one of this file's sections, as long as the section is written.</summary>
-    private static (string Name, double? Beats, double Pickup) Own(string name) => (name, null, 0);
+    private static (string Name, double? Beats, double Pickup, SectionHead? Set) Own(Play play) => (play.Name, null, 0, play.Set);
+
 
     /// <summary>
     /// Lays the plays out one after the other. A play with Beats is a section of the song: it
@@ -808,15 +1047,45 @@ internal sealed class BinderRun(SyntaxTree tree, string scoreName, SongSource? s
     /// rest, a section this file does not have is stood through — and the dance of it begins
     /// after the song's upbeat (Pickup).
     /// </summary>
-    private void BindClip(MotionIr clip, List<(string Name, double? Beats, double Pickup)> plays)
+    private void BindClip(MotionIr clip, List<(string Name, double? Beats, double Pickup, SectionHead? Set)> plays)
     {
         double cursor = 0;
         int bar = 1;
         var starts = new List<double>();
-        foreach (var (name, beats, pickup) in plays)
+        // Without a song the sections and the form say the tempo and the time themselves, each from where it is played.
+        bool mapped = _music is null && plays.Any(p => p.Set is not null || _heads.GetValueOrDefault(p.Name) is { } h && (h.Tempo is not null || h.Time is not null));
+        // A score's own tempo is the one it BEGINS at, and what it plays first may write a tempo
+        // of its own: every section's tempo is as much faster or slower as that one is.
+        double faster = 1;
+        if (mapped && _scoreTempo)
+        {
+            var kept = (Bpm: _fileTempo, Meter: _meters[0] with { BeatUnit = _beatUnit });
+            var begins = kept;
+            foreach (var play in plays)
+            {
+                kept = Under(kept, _heads.GetValueOrDefault(play.Name), 1);
+                begins = Under(kept, play.Set, 1);
+                // A section of no rows has no length: the next one begins the score too.
+                if (!_sections.TryGetValue(play.Name, out var written) || written.DescendantNodes().Any(n => n.Kind == SyntaxKind.Track))
+                    break;
+            }
+            faster = Resolve(_scoreSpec!, begins.Bpm, begins.Meter.BeatUnit) / begins.Bpm;
+            _tempos[0] = new TempoIr(0, Math.Round(_fileTempo * faster, 3));
+        }
+        // What a section writes at its start is in force until the next one that writes; what the
+        // form writes before a name is over that for the one play, and the next play is as if it had not been.
+        var inForce = (_tempos[^1].Bpm, Meter: _meters[^1]);
+        foreach (var (name, beats, pickup, set) in plays)
         {
             bool danced = _sections.ContainsKey(name);
-            Place(beats is null ? null : cursor + pickup);
+            if (mapped)
+            {
+                inForce = Under(inForce, _heads.GetValueOrDefault(name), faster);
+                Put(cursor, Under(inForce, set, faster));
+            }
+            Place(beats is null && !mapped ? null : cursor + pickup);
+            if (danced && _heads[name] is { UpbeatNode: { } said } early && early.Upbeat >= Bars.MeterAt(_meters, cursor + pickup).BeatsPerBar - Epsilon)
+                Error("SH1036", said.Span, "An upbeat is shorter than a bar: upbeat 1, upbeat 1/2.");
             double own = danced ? SectionLength(name) : 0, length = beats ?? own;
             int bars = Bars.Count(_meters, cursor + pickup, cursor + length);
             if (danced && beats is { } whole && own > whole - pickup + Epsilon)
@@ -834,6 +1103,11 @@ internal sealed class BinderRun(SyntaxTree tree, string scoreName, SongSource? s
             cursor += length;
         }
         clip.TotalBeats = cursor + (cursor > 0 && _active.Count > 0 ? _active.Max(d => d.Delay) : 0);
+        if (mapped)
+        {
+            (clip.Tempos, clip.Meters) = ([.. _tempos], [.. _meters]);
+            (clip.Tempo, clip.BeatsPerBar, clip.BeatUnit) = (_tempos[0].Bpm, _meters[0].BeatsPerBar, _meters[0].BeatUnit);
+        }
 
         foreach (var dancer in _active)
         {
@@ -848,9 +1122,11 @@ internal sealed class BinderRun(SyntaxTree tree, string scoreName, SongSource? s
             {
                 if (!_sections.TryGetValue(plays[i].Name, out var section) || dancer.In is not null && !dancer.In.Contains(plays[i].Name))
                     continue;
-                Place(plays[i].Beats is null ? null : starts[i], starts[i] + dancer.Delay);
+                Place(plays[i].Beats is null && !mapped ? null : starts[i], starts[i] + dancer.Delay);
+                _verse = plays.Take(i).Count(p => p.Name == plays[i].Name) + 1;
+                double upbeat = UpbeatOf(plays[i].Name, Bars.MeterAt(_meters, starts[i]).BeatsPerBar);
                 foreach (var track in TracksOf(section, dancer.Figure))
-                    BindTrack(track, dancer, clip, sink, starts[i] + dancer.Delay, trackIndex++);
+                    BindTrack(track, dancer, clip, sink, starts[i] + dancer.Delay, trackIndex++, i, upbeat);
             }
             Place(null);
             foreach (string channel in Channels.All)
@@ -867,15 +1143,19 @@ internal sealed class BinderRun(SyntaxTree tree, string scoreName, SongSource? s
         clip.Marks.Sort((a, b) => a.Beat.CompareTo(b.Beat));
     }
 
-    private void BindTrack(SyntaxNode track, DancerSpec dancer, MotionIr clip, Dictionary<string, List<Raw>> sink, double start, int index)
+    /// <param name="play">Which play of the score this is: a later one wins where two meet, which is how an upbeat takes the end of what is before it.</param>
+    private void BindTrack(SyntaxNode track, DancerSpec dancer, MotionIr clip, Dictionary<string, List<Raw>> sink, double start, int index, int play, double upbeat)
     {
         var name = track.Token(SyntaxKind.Identifier)!;
         var channels = ChannelsOf(name.Text)!;
         var ctx = new Ctx(dancer, clip, sink, dancer.Mirror ? channels.Select(Channels.Mirror).ToArray() : channels, name.Text,
-            [Channels.All.Length - channels.Length, index], dancer.Delay, Mirror: dancer.Mirror, Free: dancer.Free, CheckBars: BarsKnown);
+            [play, Channels.All.Length - channels.Length, index], dancer.Delay, Mirror: dancer.Mirror, Free: dancer.Free, CheckBars: BarsKnown);
 
-        double time = start, barStart = start;
+        bool early = BeginsWithUpbeat(track, channels, name.Text, upbeat, start);
+        double time = early ? start - upbeat : start, barStart = time;
+        _upbeatEnd = early ? start : double.NaN;
         Walk(track, ctx, ref time, ref barStart);
+        _upbeatEnd = double.NaN;
 
         double rest = time - barStart;
         var meter = MeterAt(ctx, barStart);
@@ -889,15 +1169,19 @@ internal sealed class BinderRun(SyntaxTree tree, string scoreName, SongSource? s
     // ---------------------------------------------------------------- rows of events
 
     /// <summary>
-    /// A bar line closes exactly one bar. One with nothing before it (at the start of a row, after
-    /// a `:0` starting pose) is only punctuation. After a miscount the next bar is counted from here.
+    /// A bar line closes exactly one bar (the caller has made a bar with nothing in it a whole,
+    /// empty one). After a miscount the next bar is counted from here.
     /// </summary>
     private void CloseBar(SyntaxNode line, Ctx ctx, double time, ref double barStart)
     {
         double beats = (time - barStart) / ctx.Scale;
+        if (_probing && ctx.Depth == 0 && double.IsNaN(_firstBar))
+            _firstBar = beats;
         var meter = MeterAt(ctx, barStart);
         int perBar = meter.BeatsPerBar;
-        if (ctx.CheckBars && beats > Epsilon && Math.Abs(beats - perBar) > Epsilon)
+        // The bar a row's upbeat is in is as short as the upbeat.
+        bool upbeat = ctx.Depth == 0 && barStart < _upbeatEnd - Epsilon && Math.Abs(time - _upbeatEnd) < Epsilon;
+        if (ctx.CheckBars && !upbeat && beats > Epsilon && Math.Abs(beats - perBar) > Epsilon)
         {
             // Say where the tie goes: the first event that starts in the bar and ends after it.
             double barEnd = barStart + perBar * ctx.Scale;
@@ -905,7 +1189,7 @@ internal sealed class BinderRun(SyntaxTree tree, string scoreName, SongSource? s
             string hint = beats < perBar ? ""
                 : across.Word is null ? " An event that runs across a bar line is tied over it, as in kick:1~ | :2"
                 : TieHint(across.Word, (barEnd - across.T0) / ctx.Scale, (across.T1 - barEnd) / ctx.Scale, MeterAt(ctx, barEnd).BeatsPerBar);
-            string changed = meter == _meters[0] ? "" : " (the song changes time on the way: `shosa check` says where)";
+            string changed = meter == _meters[0] ? "" : $" (the {(_music is null ? "time changes" : "song changes time")} on the way: `shosa check` says where)";
             Error("SH1002", line.Span, $"The bar that ends here has {Format(beats)} beats; time {meter.BeatsPerBar}/{meter.BeatUnit} has {perBar}{changed}.{hint}");
         }
         _barEvents.Clear();
@@ -938,12 +1222,55 @@ internal sealed class BinderRun(SyntaxTree tree, string scoreName, SongSource? s
     /// <summary>The events since the last bar line, for the hint of SH1002.</summary>
     private readonly List<(string? Word, double T0, double T1)> _barEvents = [];
 
-    private void Walk(SyntaxNode parent, Ctx ctx, ref double time, ref double barStart)
+    /// <summary>Which plays of its section a `verse` is for: 2, 1,3 or 1-2 (the lexer reads -2 as one number).</summary>
+    private static HashSet<int> VerseNumbers(SyntaxNode verse)
+    {
+        var plays = new HashSet<int>();
+        int before = 0;
+        foreach (var token in Tokens(verse, SyntaxKind.Number))
+        {
+            int n = (int)Math.Clamp(Number(token), -999, 999);
+            for (int k = n < 0 ? before + 1 : n; k <= Math.Abs(n); k++)
+                plays.Add(k);
+            before = Math.Abs(n);
+        }
+        return plays;
+    }
+
+    /// <summary>
+    /// Verses written next to each other share one place in the row: on a play of the section
+    /// the ones that name it are done, and the place is as long as the longest of them all, so
+    /// that what follows starts at the same beat every time.
+    /// </summary>
+    private (double Time, double BarStart) Verses(List<SyntaxNode> run, Ctx ctx, double start, double barStart,
+        List<(double T0, double T1, Func<double, Ctx, double> Play)> before, double rowStart)
+    {
+        if (ctx.Depth > 0)
+            Error("SH1034", run[0].Token(SyntaxKind.Identifier)!.Span, "A `verse` is written in a section's track: it is the section that is played a first and a second time, not a move.");
+        double end = start, bars = barStart;
+        foreach (var verse in run)
+        {
+            var numbers = VerseNumbers(verse);
+            if (numbers.Contains(0))
+                Error("SH1034", verse.Token(SyntaxKind.Number)!.Span, "Plays are counted from 1: verse 1 is the first time the section is played.");
+            if (verse.Child(SyntaxKind.Sequence) is not { } rows)
+                continue;
+            double t = start, b = barStart;
+            // The others are walked too, for their length and for what is wrong in them, and write nothing.
+            Walk(rows, numbers.Contains(_verse) ? ctx : ctx with { Clip = null, Sink = [] }, ref t, ref b, [.. before], rowStart);
+            if (t > end + Epsilon)
+                (end, bars) = (t, b);
+        }
+        return (end, bars);
+    }
+
+    private void Walk(SyntaxNode parent, Ctx ctx, ref double time, ref double barStart,
+        List<(double T0, double T1, Func<double, Ctx, double> Play)>? before = null, double? beganAt = null)
     {
         var items = parent.ChildNodes().ToList();
         // What this row has done so far, so that `%` can do a bar of it again.
-        var done = new List<(double T0, double T1, Func<double, Ctx, double> Play)>();
-        double rowStart = time, written = 0;   // written: the length of the last bar a line closed in this row
+        var done = before ?? [];
+        double rowStart = beganAt ?? time, written = 0;   // written: the length of the last bar a line closed in this row
 
         for (int i = 0; i < items.Count; i++)
         {
@@ -952,7 +1279,17 @@ internal sealed class BinderRun(SyntaxTree tree, string scoreName, SongSource? s
             {
                 case SyntaxKind.BarLine:
                     if (time - barStart > Epsilon)
+                    {
                         written = time - barStart;
+                    }
+                    else
+                    {
+                        // A bar with nothing in it is a bar in which this row says nothing (as in Lily#):
+                        // `| |`, the line a row begins with, the line after a `:0` starting pose.
+                        double empty = !BarsKnown && written > 0 ? written : MeterAt(ctx, time).BeatsPerBar * ctx.Scale;
+                        done.Add((time, time + empty, (start, c) => start + MeterAt(c, start).BeatsPerBar * c.Scale));
+                        time += empty;
+                    }
                     CloseBar(item, ctx, time, ref barStart);
                     break;
 
@@ -979,6 +1316,22 @@ internal sealed class BinderRun(SyntaxTree tree, string scoreName, SongSource? s
                     }
                     time += span;
                     barStart = time - bar;   // the line after it closes one bar, as after any other
+                    break;
+                }
+
+                case SyntaxKind.Verse:
+                {
+                    int lastVerse = i;
+                    while (lastVerse + 1 < items.Count && items[lastVerse + 1].Kind == SyntaxKind.Verse)
+                        lastVerse++;
+                    var run = items.GetRange(i, lastVerse - i + 1);
+                    var soFar = done.ToList();
+                    double t0 = time, row0 = rowStart;
+                    (time, barStart) = Verses(run, ctx, t0, barStart, soFar, rowStart);
+                    // Done again by a `%`, it is the verse of the play then, with the bars before it moved along.
+                    done.Add((t0, time, (start, c) =>
+                        Verses(run, c, start, start, [.. soFar.Select(e => (e.T0 + start - t0, e.T1 + start - t0, e.Play))], row0 + start - t0).Time));
+                    i = lastVerse;
                     break;
                 }
 
@@ -1085,6 +1438,8 @@ internal sealed class BinderRun(SyntaxTree tree, string scoreName, SongSource? s
     private void BindAgain(SyntaxNode ev, SyntaxToken word, Ctx ctx, ref double time, ref double barStart, double extra)
     {
         double? written = ev.Child(SyntaxKind.Duration) is { } duration ? WrittenLength(duration) : null;
+        if (InBars(ev.Child(SyntaxKind.Duration)))
+            Error("SH1033", ev.Child(SyntaxKind.Duration)!.Span, "Only `skip` and `hold` are counted in bars: skip:3bar, hold:2bar. 'q' takes beats: q:8");
         var group = GroupBefore(ev);
         if (group is null)
         {
@@ -1101,7 +1456,7 @@ internal sealed class BinderRun(SyntaxTree tree, string scoreName, SongSource? s
             natural = 1;
         if (written is <= 0)
         {
-            Error("SH1009", ev.Child(SyntaxKind.Duration)!.Span, "A group takes time; only a pose can be the ':0' a clip starts in.");
+            Error("SH1009", ev.Child(SyntaxKind.Duration)!.Span, "A group takes time; only a pose can be the ':0' a score starts in.");
             written = null;
         }
 
@@ -1129,7 +1484,7 @@ internal sealed class BinderRun(SyntaxTree tree, string scoreName, SongSource? s
         time += length;
         barStart = b;
         if (ev.Child(SyntaxKind.Mark)?.Token(SyntaxKind.Identifier) is { } mark && ctx.Clip is not null)
-            _marks.Add((new MarkIr(time, mark.Text, ctx.Dancer.Id, src.Start, src.Length), []));
+            _marks.Add((new MarkIr(Math.Max(0, time + Wrap(ctx, time - length)), mark.Text, ctx.Dancer.Id, src.Start, src.Length), []));
     }
 
 
@@ -1156,7 +1511,26 @@ internal sealed class BinderRun(SyntaxTree tree, string scoreName, SongSource? s
         return _natural[name] = length > Epsilon ? length : 1;
     }
 
-    private double? WrittenLength(SyntaxNode duration)
+    /// <summary>`:3bar`: a length counted in bars, which only a `skip` or a `hold` at the start of a bar has.</summary>
+    private static bool InBars(SyntaxNode? duration) =>
+        duration is not null && Tokens(duration, SyntaxKind.Identifier).FirstOrDefault()?.Text == "bar";
+
+    /// <summary>The beats of so many bars from a place: each bar is as long as the time it is in.</summary>
+    private double BarsFrom(double bars, Ctx? ctx, double time, out double lastBar)
+    {
+        lastBar = _meters.Count > 0 ? _meters[0].BeatsPerBar : _beatsPerBar;
+        if (ctx is null)
+            return bars * lastBar;
+        double beats = 0;
+        for (double left = bars; left > Epsilon; left -= 1)
+        {
+            lastBar = MeterAt(ctx, time + beats * ctx.Scale).BeatsPerBar;
+            beats += Math.Min(1, left) * lastBar;
+        }
+        return beats;
+    }
+
+    private double? WrittenLength(SyntaxNode duration, Ctx? ctx = null, double time = 0)
     {
         var numbers = Tokens(duration, SyntaxKind.Number);
         if (numbers.Count == 0)
@@ -1174,6 +1548,7 @@ internal sealed class BinderRun(SyntaxTree tree, string scoreName, SongSource? s
         {
             "s" => value * _unitTempo / 60,
             "f" => value / _fps * _unitTempo / 60,
+            "bar" => BarsFrom(Math.Min(value, 9999), ctx, time, out _),
             _ => value,
         };
     }
@@ -1190,15 +1565,35 @@ internal sealed class BinderRun(SyntaxTree tree, string scoreName, SongSource? s
             return;
         }
 
-        double? written = ctx.ForcedLength is null && ev.Child(SyntaxKind.Duration) is { } duration ? WrittenLength(duration) : null;
-        if (written == 0 && (ctx.Depth > 0 || !(Math.Abs(time - ctx.Origin) < Epsilon)))
+        double? written = ctx.ForcedLength is null && ev.Child(SyntaxKind.Duration) is { } duration ? WrittenLength(duration, ctx, time) : null;
+        double? lastBar = null;   // of a length in bars: how long the last of them is
+        if (ctx.ForcedLength is null && ev.Child(SyntaxKind.Duration) is { } inBars && InBars(inBars))
         {
-            Error("SH1009", ev.Child(SyntaxKind.Duration)!.Span, "':0' is the pose a clip starts in; it can only be written before anything else in the clip.");
+            double count = Number(Tokens(inBars, SyntaxKind.Number)[0]);
+            bool rest = words.Count == 1 && arguments is null && words[0].Text is Vocabulary.Skip or Vocabulary.Hold;
+            if (!rest)
+                Error("SH1033", inBars.Span, "Only `skip` and `hold` are counted in bars: skip:3bar, hold:2bar. A movement that runs across a bar line is tied over it: kick:1~ | :2");
+            else if (Tokens(inBars, SyntaxKind.Number).Count > 1 || count < 1 || Math.Abs(count - Math.Round(count)) > Epsilon)
+                Error("SH1033", inBars.Span, "Bars are counted whole: skip:1bar, skip:3bar. A part of a bar is written in beats.");
+            else if (Math.Abs(time - barStart) > Epsilon)
+                Error("SH1033", inBars.Span, "A length in bars starts at the start of a bar: fill this bar in beats first, then `| skip:3bar |`.");
+            BarsFrom(Math.Max(1, Math.Round(count)), ctx, time, out double bar);
+            lastBar = bar * ctx.Scale;
+        }
+        // In a verse of another play (walked for its length, writing nothing) it is not said: `verse 1 { guard:0 }`
+        // is how a section that is played again starts in a pose.
+        if (written == 0 && ctx.Clip is not null && (ctx.Depth > 0 || time > ctx.Origin + Epsilon))
+        {
+            Error("SH1009", ev.Child(SyntaxKind.Duration)!.Span, words[0].Text is "skip" or "hold"
+                ? $"A '{words[0].Text}' of no length does nothing: take it out, or give it a length."
+                : "':0' is the pose a score starts in; it can only be written before anything else in the score. In a section that is played again: verse 1 { guard:0 }.");
             written = 1;
         }
         double length = ctx.ForcedLength ?? ((written ?? (definition is not null ? Natural(words[0].Text) : 1)) + extra) * ctx.Scale;
         double t0 = time, t1 = time + length;
         time = t1;
+        if (lastBar is { } closing)
+            barStart = t1 - closing;   // the line after it closes one bar, as after `%3`
 
         if (target is null || words.Count == 0 || target.ChildTokens().Any(t => t.IsMissing))
             return;   // the parser has already said what is missing
@@ -1223,11 +1618,12 @@ internal sealed class BinderRun(SyntaxTree tree, string scoreName, SongSource? s
         if (words.Count == 1 && words[0].Text == Vocabulary.Skip)
             return;   // this track says nothing: a wider one may
 
+        double wrap = Wrap(ctx, t0);
         if (definition is not null)
         {
             ExpandDefinition(definition, words[0], annotations, ctx with { Mirror = mirror, Free = free, Src = src }, t0, length, ease);
             if (mark is not null && ctx.Clip is not null)
-                _marks.Add((new MarkIr(t1, mark.Text, ctx.Dancer.Id, src.Start, src.Length), []));
+                _marks.Add((new MarkIr(Math.Max(0, t1 + wrap), mark.Text, ctx.Dancer.Id, src.Start, src.Length), []));
             return;
         }
 
@@ -1261,8 +1657,8 @@ internal sealed class BinderRun(SyntaxTree tree, string scoreName, SongSource? s
                 : BindGesture(channel, words, arguments, annotations, mirror, ctx);
             if (seg is null)
                 continue;
-            seg.T0 = t0;
-            seg.T1 = t1;
+            seg.T0 = ctx.Clip is null ? t0 : Math.Max(0, t0 + wrap);
+            seg.T1 = ctx.Clip is null ? t1 : Math.Max(0, t1 + wrap);
             seg.Src = src.Start;
             seg.Len = src.Length;
             seg.Free = free;
@@ -1275,12 +1671,22 @@ internal sealed class BinderRun(SyntaxTree tree, string scoreName, SongSource? s
 
             if (!ctx.Sink.TryGetValue(channel, out var list))
                 ctx.Sink[channel] = list = [];
-            list.Add(new Raw(seg, ctx.Priority, _order++));
+            // Wrapped to the end of a loop, it takes that from the last play as it would from the one before it.
+            list.Add(new Raw(seg, wrap > 0 ? [int.MaxValue, .. ctx.Priority.Skip(1)] : ctx.Priority, _order++));
             raws.Add((channel, list[^1]));
         }
         if (mark is not null && ctx.Clip is not null)
-            _marks.Add((new MarkIr(markBeat, mark.Text, ctx.Dancer.Id, src.Start, src.Length), raws));
+            _marks.Add((new MarkIr(Math.Max(0, markBeat + wrap), mark.Text, ctx.Dancer.Id, src.Start, src.Length), raws));
     }
+
+    /// <summary>
+    /// An upbeat of the first section is before the first beat of the score. In a loop it is over
+    /// the end, which is what is played before the start: the beats to move such an event by.
+    /// Otherwise there is nothing before it, and the body starts as the upbeat leaves it (the
+    /// caller brings what is before beat 0 to beat 0, as a `:0` pose is).
+    /// </summary>
+    private static double Wrap(Ctx ctx, double t0) =>
+        ctx.Clip is { Loop: true, TotalBeats: > 0 } clip && t0 < -Epsilon ? clip.TotalBeats : 0;
 
     /// <summary>
     /// A defined word in a track: the definition's tracks, each cut down to what the enclosing
@@ -1304,7 +1710,7 @@ internal sealed class BinderRun(SyntaxTree tree, string scoreName, SongSource? s
             return;
         }
         if (!isPose && length <= 0)
-            Error("SH1009", name.Span, "A move takes time; only a pose can be the ':0' a clip starts in.");
+            Error("SH1009", name.Span, "A move takes time; only a pose can be the ':0' a score starts in.");
 
         double natural = isPose ? 1 : Natural(name.Text);
         _expanding.Add(name.Text);
@@ -1831,10 +2237,11 @@ internal sealed class BinderRun(SyntaxTree tree, string scoreName, SongSource? s
                 else if (seg.Kind == SegKinds.Dir)
                 {
                     var dir = seg.Dir!;
-                    if (previous is not null && previous[0] * dir[0] + previous[1] * dir[1] + previous[2] * dir[2] < -0.98)
+                    // The pose a score starts in (`:0`) is not gone to: there is no way round to write.
+                    if (seg.T1 - seg.T0 > Epsilon && previous is not null && previous[0] * dir[0] + previous[1] * dir[1] + previous[2] * dir[2] < -0.98)
                     {
                         Report("SH2001", DiagnosticSeverity.Warning, new TextSpan(seg.Src, seg.Len),
-                            "This target is the exact opposite of where the part is, so the way round is not written. Add a target in between (down, fwd, up).");
+                            $"This target is the exact opposite of where the part is ({channel}), so the way round is not written. Add a target in between (down, fwd, up).");
                     }
                     previous = dir;
                 }

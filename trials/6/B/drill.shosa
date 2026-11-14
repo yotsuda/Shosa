@@ -1,0 +1,28 @@
+// A drill without a song: 2/4, 120, one section of 24 bars.
+title "Drill"
+tempo 120
+time 2/4
+
+figure solo
+dancer solo humanoid on solo
+
+section Drill {
+  solo {
+    // Marking time on the spot, all 24 bars.
+    steps { left.place right.place | % | % | % | % | % | % | % |
+            % | % | % | % | % | % | % | % |
+            % | % | % | % | % | % | % | % | }
+
+    // Bars 1-8 nothing; 9-16 moving; 17-23 held out to the side; 24 down.
+    arms  { skip:8bar |
+            side:1 down:1 | fwd:1 down:1 | %2 | %2 | side:1 down:1 | fwd:1 side:1 |
+            hold:7bar |
+            down:2 | }
+
+    // One nod, in bar 21.
+    head  { skip:20bar | fwd.-25:1 fwd:1 | }
+  }
+}
+
+form { Drill }
+score { dancer solo }

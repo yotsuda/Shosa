@@ -8,8 +8,7 @@ public class MotionTests
 {
     private static ShosaCompilation Compile(string text) => ShosaCompilation.Compile(text);
 
-    private static string Body(string tracks) =>
-        "tempo 100\ntime 4/4\nsection P {\n" + tracks + "\n}\n";
+    private static string Body(string tracks) => Samples.Solo(tracks, "tempo 100\ntime 4/4\n");
 
     [Fact]
     public void A_bar_with_the_wrong_number_of_beats_is_reported_at_its_bar_line()
@@ -100,7 +99,8 @@ public class MotionTests
     [Fact]
     public void A_form_repeats_sections_with_repeat_signs_and_numbered_endings()
     {
-        const string sections = "section A { arms { side } }\nsection B { arms { fwd } }\nsection C { arms { up } }\n";
+        const string sections = Samples.SoloCast + "score { dancer solo }\n"
+            + "section A { solo { arms { side } } }\nsection B { solo { arms { fwd } } }\nsection C { solo { arms { up } } }\n";
         string[] Order(string form) => Compile(sections + form).Clip.Sections.Select(s => s.Name).ToArray();
 
         Assert.Equal(new[] { "A", "A", "B" }, Order("form { |: A :| B }"));
@@ -320,7 +320,7 @@ public class MotionTests
     }
 
     private static string Two(double apart, string a, string b = "head { hold:2 }") => FormattableString.Invariant(
-        $"tempo 100\ntime 4/4\nfigure a\nfigure b\ndancer ann humanoid on a at {-apart / 2} 0 facing stageLeft\ndancer ben humanoid on b at {apart / 2} 0 facing stageRight\nsection P {{\n  a {{ {a} }}\n  b {{ {b} }}\n}}\n");
+        $"tempo 100\ntime 4/4\nfigure a\nfigure b\ndancer ann humanoid on a at {-apart / 2} 0 facing stageLeft\ndancer ben humanoid on b at {apart / 2} 0 facing stageRight\nsection P {{\n  a {{ {a} }}\n  b {{ {b} }}\n}}\nform {{ P }}\nscore {{ dancer ann  dancer ben }}\n");
 
     [Fact]
     public void A_hand_sent_to_a_place_it_cannot_reach_is_warned_about_with_the_distance()
@@ -337,6 +337,336 @@ public class MotionTests
         Assert.Equal(2, Compile(Two(2, "rightArm { b.hand:2 }", "rightArm { a.hand:2 }")).Diagnostics.Count(d => d.Code == "SH2006"));
         // A step toward it is enough.
         Assert.Empty(Compile(Two(1.0, "steps { left.fwd hold }\n rightArm { hold b.chest }")).Diagnostics);
+    }
+
+    [Fact]
+    public void A_bar_with_nothing_in_it_is_a_bar_of_saying_nothing()
+    {
+        // As in Lily#: every line closes a bar, the first one of a row too.
+        var clip = Compile(Body("    arms { | | side:1 hold:3 | }")).Clip;
+        Assert.Empty(Compile(Body("    arms { | | side:1 hold:3 | }")).Diagnostics);
+        Assert.Equal(12, clip.TotalBeats);
+
+        // The line after a starting pose is a bar too, and `%` does an empty bar again.
+        Assert.Equal(8, Compile(Body("    arms { up:0 | side:4 | }")).Clip.TotalBeats);
+        var again = Compile(Body("    arms { | % | side:4 | }"));
+        Assert.Empty(again.Diagnostics);
+        Assert.Equal(12, again.Clip.TotalBeats);
+    }
+
+    private static string Twice(string arms, string form = "form { |: A :| }", string define = "") =>
+        $"tempo 100\ntime 4/4\nfigure solo\ndancer solo humanoid on solo\n{define}section A {{ solo {{ arms {{ {arms} }} }} }}\n{form}\nscore {{ dancer solo }}\n";
+
+    [Fact]
+    public void A_verse_is_done_on_its_play_of_the_section_only()
+    {
+        // The first time the bar before again, the second time something else; what has no verse is done both times.
+        var compiled = Compile(Twice("side:3 fwd:1!every | verse 1 { % | } verse 2 { side.high:4!second | }"));
+        Assert.Empty(compiled.Diagnostics);
+        Assert.Equal(16, compiled.Clip.TotalBeats);
+        Assert.Equal(new[] { ("every", 4.0), ("every", 8.0), ("every", 12.0), ("second", 16.0) },
+            compiled.Clip.Marks.Select(m => (m.Name, m.Beat)).ToArray());
+
+        // The place is as long as the longest verse on every play, and a list names several plays.
+        var uneven = Compile(Twice("verse 1,3 { side:4!odd | } verse 2 { fwd:4 | side.high:4!late | }", "form { |: A :|*3 }"));
+        Assert.Empty(uneven.Diagnostics);
+        Assert.Equal(24, uneven.Clip.TotalBeats);
+        Assert.Equal(new[] { ("odd", 4.0), ("late", 16.0), ("odd", 20.0) },
+            uneven.Clip.Marks.Select(m => (m.Name, m.Beat)).ToArray());
+
+        // A range: plays 2 and 3 of three.
+        Assert.Equal(new[] { 8.0, 12.0 }, Compile(Twice("verse 2-3 { side:4!late | }", "form { |: A :|*3 }")).Clip.Marks.Select(m => m.Beat).ToArray());
+        // What is wrong in a verse is said even where no play of this score does it.
+        Assert.Contains(Compile(Twice("side:4 | verse 5 { fwd:3 | }")).Diagnostics, d => d.Code == "SH1002");
+        // A move is not played a first and a second time.
+        Assert.Contains(Compile(Twice("wave:4 |", define: "move wave { arms { verse 1 { side:4 } } }\n")).Diagnostics, d => d.Code == "SH1034");
+        // The pose a score starts in belongs to the first play — and is not gone to, so it is the opposite of nothing.
+        Assert.Empty(Compile(Twice("verse 1 { up:0 } side:4 |")).Diagnostics);
+        Assert.Contains(Compile(Twice("up:0 side:4 |")).Diagnostics, d => d.Code == "SH1009");
+        // A part of a bar, the line after it.
+        var lastBeat = Compile(Twice("side:3 verse 1 { fwd } verse 2 { side.high!second } |"));
+        Assert.Empty(lastBeat.Diagnostics);
+        Assert.Equal(new[] { 8.0 }, lastBeat.Clip.Marks.Select(m => m.Beat).ToArray());
+        // One bar sixteen times.
+        var sixteen = Compile(Body("    arms { side:2 down:2 | % | %2 | %4 | %8 | }"));
+        Assert.Empty(sixteen.Diagnostics);
+        Assert.Equal(64, sixteen.Clip.TotalBeats);
+    }
+
+    [Fact]
+    public void A_wait_is_counted_in_bars()
+    {
+        var waited = Compile(Body("    arms { skip:2bar | side:1 hold:3 | hold:1bar | }"));
+        Assert.Empty(waited.Diagnostics);
+        Assert.Equal(16, waited.Clip.TotalBeats);
+
+        // In three to the bar a bar is three beats.
+        Assert.Equal(9, Compile(Samples.Solo("    arms { skip:2bar | up:3 | }", "tempo 100\ntime 3/4\n")).Clip.TotalBeats);
+
+        // Only a wait, only whole bars, only from the start of a bar.
+        foreach (string row in new[] { "arms { up:2bar | }", "arms { skip:1/2bar up:2 | }", "arms { up:1 skip:1bar | }", "arms { { up side } q:1bar | }" })
+            Assert.Contains(Compile(Body("    " + row)).Diagnostics, d => d.Code == "SH1033");
+    }
+
+    [Fact]
+    public void A_close_with_the_weight_on_both_feet_brings_both_feet_in_alike()
+    {
+        // After a jump the weight is on both feet: neither is the free one, so each comes half the way.
+        var clip = Solve("    steps { jump.apart:1 hold:1 together:2 }");
+        Vec3 Foot(double beat, int joint) => At(clip, beat, joint) - At(clip, 0, joint);
+
+        Assert.True(Foot(2, Rig.LAnkle).X > 0.1 && Foot(2, Rig.RAnkle).X < -0.1, "apart after the jump");
+        Assert.True(Foot(4, Rig.LAnkle).Length < 0.01 && Foot(4, Rig.RAnkle).Length < 0.01, "and back where they stood");
+        Assert.True(Math.Abs(At(clip, 3, Rig.Pelvis).X - At(clip, 0, Rig.Pelvis).X) < 0.01, "the weight stays between them");
+
+        // A foot made free closes alone; feet that already stand together have nothing to do (a knee bend).
+        var one = Solve("    steps { jump.apart:1 shift.left:1 together:2 }");
+        Assert.True((At(one, 4, Rig.LAnkle) - At(one, 2, Rig.LAnkle)).Length < 0.01, "the standing foot stays");
+        Assert.Empty(Compile(Body("    steps { together.low:2 together:2 }")).Diagnostics);
+    }
+
+    private static string Sections(string first, string second, string form = "form { A B }", string before = "tempo 120\ntime 4/4\n", string score = "") =>
+        $"{before}figure solo\ndancer solo humanoid on solo\nsection A {{ {first} }}\nsection B {{ {second} }}\n{form}\nscore {{ dancer solo  {score} }}\n";
+
+    [Fact]
+    public void A_section_says_the_tempo_and_the_time_from_there_on()
+    {
+        // They stay until a section that writes another is played: C has neither, and is in three at 90.
+        string text = $"tempo 120\ntime 4/4\n{Samples.SoloCast}"
+            + "section A { solo { arms { side:4 | down:4 | } } }\n"
+            + "section B { tempo 90  time 3/4\n solo { arms { side:3!three | % | skip:1bar | } } }\n"
+            + "section C { solo { arms { up:3 | } } }\n"
+            + "section D { tempo 120\n solo { arms { side:3 | } } }\n"
+            + "form { A B C D }\nscore { dancer solo }\nscore half { dancer solo  tempo 60 }\n";
+        var compiled = ShosaCompilation.Compile(text, score: "");
+        Assert.Empty(compiled.Diagnostics);
+        var clip = compiled.Clip;
+
+        Assert.Equal(23, clip.TotalBeats);
+        Assert.Equal(new[] { (0.0, 120.0), (8.0, 90.0), (20.0, 120.0) }, clip.Tempos.Select(t => (t.Beat, t.Bpm)).ToArray());
+        Assert.Equal(new[] { (0.0, 4), (8.0, 3) }, clip.Meters.Select(m => (m.Beat, m.BeatsPerBar)).ToArray());
+        Assert.Equal(4 + 12 * 60 / 90.0 + 1.5, clip.SecondsAt(23), 6);
+        Assert.Equal(new[] { 11.0, 14.0 }, clip.Marks.Select(m => m.Beat).ToArray());   // a bar of three, and `%` another
+
+        // A score's own tempo is the one the file begins at; the sections' keep their proportion.
+        var half = ShosaCompilation.Compile(text, score: "half").Clip;
+        Assert.Equal(new[] { 60.0, 45.0, 60.0 }, half.Tempos.Select(t => t.Bpm).ToArray());
+
+        // The order is the form's: played first, B is in three from the start, and A after it too.
+        var turned = Compile(Sections("solo { arms { side:3 | } }", "time 3/4\n solo { arms { fwd:3 | } }", "form { B A }"));
+        Assert.Empty(turned.Diagnostics);
+        Assert.Equal(3, Assert.Single(turned.Clip.Meters).BeatsPerBar);
+        Assert.Contains(Compile(Sections("solo { arms { side:3 | } }", "time 3/4\n solo { arms { up:3 | } }")).Diagnostics, d => d.Code == "SH1002");
+
+        // A beat that becomes another note keeps the music's speed: a quaver at 240 is a crotchet at 120.
+        var quavers = Compile(Sections("solo { arms { side:4 | } }", "time 6/8\n solo { arms { up:6 | } }")).Clip;
+        Assert.Equal(new[] { 120.0, 240.0 }, quavers.Tempos.Select(t => t.Bpm).ToArray());
+    }
+
+    [Fact]
+    public void A_warning_that_is_not_in_every_score_names_the_scores_it_is_in()
+    {
+        // Found in the 9th writing trial: the same strike is too fast only in the score that plays it faster.
+        string text = $"tempo 120\ntime 4/4\n{Samples.SoloCast}"
+            + "section Hit { solo { rightArm { back.side:1 fwd:1@sharp down:2 | } } }\n"
+            + "form { Hit }\nscore { dancer solo }\nscore rage { dancer solo  tempo 300 }\nscore slow { dancer solo  tempo 50% }\n";
+        var warning = Assert.Single(ShosaCompilation.Compile(text).Diagnostics);
+        Assert.Equal("SH2003", warning.Code);
+        Assert.EndsWith("(In score rage.)", warning.Message);
+
+        // One score alone, or every score: nothing to tell apart.
+        Assert.DoesNotContain("(In", Assert.Single(ShosaCompilation.Compile(text, score: "rage").Diagnostics).Message);
+        string both = text.Replace("tempo 120\n", "tempo 300\n").Replace("score rage { dancer solo  tempo 300 }\nscore slow { dancer solo  tempo 50% }\n", "score again { dancer solo }\n");
+        Assert.DoesNotContain("(In", Assert.Single(ShosaCompilation.Compile(both).Diagnostics).Message);
+    }
+
+    [Fact]
+    public void A_scores_own_tempo_is_the_one_it_begins_at()
+    {
+        // Found in the 7th writing trial: a practice score of a section that writes its own tempo.
+        string text = $"tempo 100\ntime 4/4\n{Samples.SoloCast}"
+            + "section Warm { solo { arms { side:4 | } } }\n"
+            + "section Fast { tempo 160  time 2/4\n solo { arms { up:2!pose | % | } } }\n"   // a mark may be named by any word
+            + "section Cool { solo { arms { fwd:2 | } } }\n"
+            + "section AsFast { tempo 160  time 2/4 }\n"
+            + "form { Warm Fast Cool }\nform fast { Fast Cool }\nform cool { AsFast Cool }\nform slow { Warm Fast }\n"
+            + "score { dancer solo }\nscore fast { dancer solo  form fast  tempo 80 }\n"
+            + "score cool { dancer solo  form cool  tempo 80 }\nscore slow { dancer solo  form slow  tempo 50 }\n";
+        Assert.Empty(ShosaCompilation.Compile(text, score: "").Diagnostics);
+
+        // Fast is played first and writes 160: the score's 80 is half of THAT, not 80/100 of it.
+        var fast = ShosaCompilation.Compile(text, score: "fast").Clip;
+        Assert.Equal(80, Assert.Single(fast.Tempos).Bpm);
+        Assert.Equal(2, Assert.Single(fast.Meters).BeatsPerBar);
+        Assert.Equal(new[] { 2.0, 4.0 }, fast.Marks.Select(m => m.Beat).ToArray());   // `%` gives the mark again
+
+        // A section of no rows has no length, so the score begins in what it writes.
+        var cool = ShosaCompilation.Compile(text, score: "cool").Clip;
+        Assert.Equal(2, cool.TotalBeats);
+        Assert.Equal(80, Assert.Single(cool.Tempos).Bpm);
+
+        // The first section writes none: the file's tempo is the one the score begins at, as before.
+        var slow = ShosaCompilation.Compile(text, score: "slow").Clip;
+        Assert.Equal(new[] { 50.0, 80.0 }, slow.Tempos.Select(t => t.Bpm).ToArray());
+    }
+
+    [Fact]
+    public void A_form_says_the_tempo_and_the_time_of_one_play()
+    {
+        // The 7th writing trial's three: the last march alone faster, the same bars at three tempos, a cut in the whole's tempo.
+        string sections = $"tempo 100\ntime 4/4\n{Samples.SoloCast}"
+            + "section March { tempo 120  time 4/4\n solo { arms { side:4 | } } }\n"
+            + "section Waltz { tempo 90  time 3/4\n solo { arms { up:3 | } } }\n"
+            + "section Drill { solo { arms { fwd:2 down:2 | } } }\n"
+            + "section Cool { solo { arms { fwd:2 | } } }\n";
+        string text = sections
+            + "form { March Waltz tempo 132 March }\n"
+            + "form drill { tempo 100 Drill tempo 120 Drill\n tempo 140 Drill }\n"
+            + "form again { |: tempo 80 Drill March [1. tempo 60 Drill] :| [2. Drill] }\n"
+            + "form cool { tempo 160 time 2/4 Cool }\n"
+            + "score { dancer solo }\nscore drill { dancer solo  form drill }\nscore again { dancer solo  form again }\n"
+            + "score cool { dancer solo  form cool }\nscore half { dancer solo  form cool  tempo 80 }\n";
+
+        // What the form writes before a name comes before what the section writes, that one time.
+        var whole = ShosaCompilation.Compile(text, score: "");
+        Assert.Empty(whole.Diagnostics);
+        Assert.Equal(new[] { (0.0, 120.0), (4.0, 90.0), (7.0, 132.0) }, whole.Clip.Tempos.Select(t => (t.Beat, t.Bpm)).ToArray());
+        Assert.Equal(new[] { (0.0, 4), (4.0, 3), (7.0, 4) }, whole.Clip.Meters.Select(m => (m.Beat, m.BeatsPerBar)).ToArray());
+
+        var drill = ShosaCompilation.Compile(text, score: "drill");
+        Assert.Empty(drill.Diagnostics);
+        Assert.Equal(new[] { (0.0, 100.0), (4.0, 120.0), (8.0, 140.0) }, drill.Clip.Tempos.Select(t => (t.Beat, t.Bpm)).ToArray());
+
+        // It is for that one play: the next name is played as if the form had written nothing (the
+        // 8th and 9th writing trials pinned the next section down again, or copied "the usual tempo" to it).
+        var once = ShosaCompilation.Compile(sections
+            + "form { Drill tempo 110% Drill tempo 120% Drill tempo 110% time 2/4 Cool Drill March tempo 50% Drill Drill }\nscore { dancer solo }\n", score: "");
+        Assert.Empty(once.Diagnostics);
+        Assert.Equal(new[] { (0.0, 100.0), (4.0, 110.0), (8.0, 120.0), (12.0, 110.0), (14.0, 100.0), (18.0, 120.0), (22.0, 60.0), (26.0, 120.0) },
+            once.Clip.Tempos.Select(t => (t.Beat, t.Bpm)).ToArray());
+        Assert.Equal(new[] { (0.0, 4), (12.0, 2), (14.0, 4) }, once.Clip.Meters.Select(m => (m.Beat, m.BeatsPerBar)).ToArray());
+
+        // It belongs to the name it stands before, every time a repeat plays that name.
+        var again = ShosaCompilation.Compile(text, score: "again");
+        Assert.Empty(again.Diagnostics);
+        Assert.Equal(new[] { (0.0, 80.0), (4.0, 120.0), (8.0, 60.0), (12.0, 80.0), (16.0, 120.0) }, again.Clip.Tempos.Select(t => (t.Beat, t.Bpm)).ToArray());
+        Assert.Equal(24, again.Clip.TotalBeats);
+
+        // A score that plays a section alone says in its form what the whole piece would have played before it.
+        var cool = ShosaCompilation.Compile(text, score: "cool").Clip;
+        Assert.Equal(160, Assert.Single(cool.Tempos).Bpm);
+        Assert.Equal(2, Assert.Single(cool.Meters).BeatsPerBar);
+        Assert.Equal(80, Assert.Single(ShosaCompilation.Compile(text, score: "half").Clip.Tempos).Bpm);
+
+        // With no name after it, it is for nothing.
+        var last = ShosaCompilation.Compile(sections + "form { March tempo 132 }\nscore { dancer solo }\n", score: "");
+        Assert.Equal("SH1037", Assert.Single(last.Diagnostics).Code);
+
+        // The guess of the trial, a verse around the section's tempo, is told where it goes: once.
+        var verse = ShosaCompilation.Compile(sections.Replace("section Drill {", "section Drill {\n verse 2 { tempo 132 }\n")
+            + "form { Drill Drill }\nscore { dancer solo }\n", score: "");
+        Assert.Equal("SH0013", Assert.Single(verse.Diagnostics).Code);
+    }
+
+    [Fact]
+    public void A_tempo_is_written_in_per_cent_or_by_a_note_wherever_a_tempo_is_written()
+    {
+        // The 7th and 8th writing trials worked these out by hand: half the speed of an attack
+        // (140 looked up, 70 written), a dotted crotchet at 60 in 6/8 (180 written).
+        string sections = $"tempo 4 = 120\ntime 4/4\n{Samples.SoloCast}"
+            + "section March { tempo 120  time 4/4\n solo { arms { side:4 | } } }\n"
+            + "section Jig { tempo 4. = 60\n time 6/8\n solo { arms { fwd:3 down:3 | } } }\n"
+            + "section Trio { tempo 80%\n solo { arms { fwd:3 down:3 | } } }\n"
+            + "section Plain { solo { arms { fwd:2 down:2 | } } }\n";
+        string text = sections
+            + "form { March Jig Trio tempo 110% March }\n"
+            + "form march { March }\n"
+            + "form plain { Plain tempo 50% Plain }\n"
+            + "form six { tempo 4 = 120 time 6/4 Trio tempo 4. = 80 time 6/8 Trio }\n"
+            + "score { dancer solo }\nscore replay { dancer solo  form march  tempo 50% }\n"
+            + "score plain { dancer solo  form plain }\nscore six { dancer solo  form six }\n"
+            + "score slow { dancer solo  tempo 2 = 30 }\nscore faster { dancer solo  form plain  tempo 150% }\n";
+
+        // A note's count is turned into the beats of the time in force there; a percentage is of the tempo
+        // there would be without it — the tempo before (Trio), or the section's own under a form's (the last March).
+        var whole = ShosaCompilation.Compile(text, score: "");
+        Assert.Empty(whole.Diagnostics);
+        Assert.Equal(new[] { (0.0, 120.0), (4.0, 180.0), (10.0, 144.0), (16.0, 132.0) }, whole.Clip.Tempos.Select(t => (t.Beat, t.Bpm)).ToArray());
+
+        // A score's percentage is of the tempo it would begin at, which its first section may write.
+        Assert.Equal(60, Assert.Single(ShosaCompilation.Compile(text, score: "replay").Clip.Tempos).Bpm);
+        Assert.Equal(new[] { 60.0, 90.0, 72.0, 66.0 }, ShosaCompilation.Compile(text, score: "slow").Clip.Tempos.Select(t => t.Bpm).ToArray());
+
+        // Before a section that writes no tempo it is of the tempo in force; a score's own is over all of it.
+        Assert.Equal(new[] { 120.0, 60.0 }, ShosaCompilation.Compile(text, score: "plain").Clip.Tempos.Select(t => t.Bpm).ToArray());
+        Assert.Equal(new[] { 180.0, 90.0 }, ShosaCompilation.Compile(text, score: "faster").Clip.Tempos.Select(t => t.Bpm).ToArray());
+
+        // The same six counts as crotchets and as quavers: a tempo by its note with the time it is counted in.
+        var six = ShosaCompilation.Compile(text, score: "six");
+        Assert.Empty(six.Diagnostics);
+        Assert.Equal(new[] { (0.0, 120.0), (6.0, 240.0) }, six.Clip.Tempos.Select(t => (t.Beat, t.Bpm)).ToArray());
+
+        // At the top of a file without a song there is nothing for a percentage to be of.
+        var top = ShosaCompilation.Compile("tempo 50%\n" + sections.Replace("tempo 4 = 120\n", "") + "form { Plain }\nscore { dancer solo }\n", score: "");
+        Assert.Equal("SH1038", Assert.Single(top.Diagnostics).Code);
+
+        // What it comes to is still a tempo, and the note is one of Lily#'s.
+        var wild = ShosaCompilation.Compile(sections + "form { tempo 1% Plain }\nscore { dancer solo }\n", score: "");
+        Assert.Contains("1.2 beats a minute", Assert.Single(wild.Diagnostics).Message);
+        var note = ShosaCompilation.Compile(sections + "form { tempo 3 = 60 Plain }\nscore { dancer solo }\n", score: "");
+        Assert.Equal("SH1001", Assert.Single(note.Diagnostics).Code);
+    }
+
+    [Fact]
+    public void A_repeat_after_an_upbeat_does_the_bars_after_it_again()
+    {
+        string second = "upbeat 1\n solo { arms { up:1 | side:4!wide | % | verse 1 { fwd:4 | } } }";
+        var compiled = Compile(Sections("solo { arms { side:4 | fwd:4 | } }", second));
+        Assert.Empty(compiled.Diagnostics);
+        Assert.Equal(20, compiled.Clip.TotalBeats);
+        Assert.Equal(new[] { 12.0, 16.0 }, compiled.Clip.Marks.Select(m => m.Beat).ToArray());
+
+        // A skip or a hold of no length is told so, not taken for the pose a score starts in.
+        var none = Compile(Sections("solo { arms { side:4 | } }", "solo { arms { up:2 skip:0 fwd:2 | } }"));
+        Assert.Contains(none.Diagnostics, d => d.Code == "SH1009" && d.Message.Contains("does nothing"));
+    }
+
+    [Fact]
+    public void An_upbeat_is_done_over_the_end_of_what_is_played_before()
+    {
+        // The arms use the upbeat (their first bar is as long as it); the steps begin at the bar line.
+        string second = "upbeat 1\n solo { arms { up:1!there | side:4 | }\n steps { left.side together right.side together | } }";
+        var compiled = Compile(Sections("solo { arms { side:4 | fwd:4!kept | } }", second));
+        Assert.Empty(compiled.Diagnostics);
+        var clip = compiled.Clip;
+
+        Assert.Equal(12, clip.TotalBeats);
+        Assert.Equal(8, clip.Sections[1].T0);
+        // The upbeat takes the last beat of A: its arrival is the first beat of B, and A's arm never arrives.
+        Assert.Equal(new[] { ("there", 8.0) }, clip.Marks.Select(m => (m.Name, m.Beat)).ToArray());
+        var figure = clip.Figures[0];
+        Assert.True(figure.Joint(clip.FrameAt(8), Rig.LHand).Y > figure.Joint(clip.FrameAt(8), Rig.Head).Y, "the hands are up on the first beat of B");
+
+        // With nothing before it the body starts as the upbeat leaves it, like a `:0` pose.
+        var first = Compile(Sections("upbeat 1\n solo { arms { up:1 | side:4 | } }", "solo { arms { down:4 | } }"));
+        Assert.Empty(first.Diagnostics);
+        Assert.Equal(8, first.Clip.TotalBeats);
+        Assert.True(first.Clip.Figures[0].Joint(0, Rig.LHand).Y > first.Clip.Figures[0].Joint(0, Rig.Head).Y, "up at beat 0");
+
+        // A jump there has been made: the feet stand where it landed.
+        var jumped = Compile(Sections("upbeat 1\n solo { steps { jump.apart:1 | together:4 | } }", "solo { arms { side:4 | } }")).Clip;
+        double Apart(double beat) => jumped.Figures[0].Joint(jumped.FrameAt(beat), Rig.LAnkle).X - jumped.Figures[0].Joint(jumped.FrameAt(beat), Rig.RAnkle).X;
+        Assert.True(Apart(0) > 0.5 && Apart(4) < 0.3, $"{Apart(0)} then {Apart(4)}");
+
+        // In a loop what is before the start is the end.
+        var loop = Compile(Sections("upbeat 1\n solo { arms { up:1!there | side:4 | } }", "solo { arms { fwd:4 | } }", score: "loop"));
+        Assert.Empty(loop.Diagnostics);
+        Assert.Equal(8, Assert.Single(loop.Clip.Marks).Beat);
+
+        // A bar of another length is still a miscount, and an upbeat is shorter than a bar and stands first.
+        Assert.Contains(Compile(Sections("solo { arms { side:4 | } }", "upbeat 1\n solo { arms { up:2 | side:4 | } }")).Diagnostics, d => d.Code == "SH1002");
+        Assert.Contains(Compile(Sections("solo { arms { side:4 | } }", "upbeat 4\n solo { arms { side:4 | } }")).Diagnostics, d => d.Code == "SH1036");
+        Assert.Contains(Compile(Sections("solo { arms { side:4 | } }", "solo { arms { side:4 | } }\n upbeat 1")).Diagnostics, d => d.Code == "SH1036");
     }
 
     [Fact]

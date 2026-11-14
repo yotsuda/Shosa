@@ -1,0 +1,61 @@
+// A game character: four movements, one file each.
+title "Guard"
+tempo 120
+time 4/4
+
+figure hero
+dancer hero humanoid on hero
+
+pose guard {
+  steps { left.fwd.low@small }
+  arms  { fwd.high@bent }
+}
+
+// A quick left jab: out in half a beat (lands a quarter beat in), back in half a beat.
+move jab { leftArm { fwd:1/2@sharp!hit guard:1/2 } }
+
+// (a) Idle: a guard that bounces and breathes, 2 bars, loops.
+section Idle {
+  hero {
+    body  { guard:4 | guard:4 | }
+    steps { { both.low@small both.low } q | q q | }
+    torso { fwd.80:2 up:2 | % | }
+  }
+}
+
+// (b) Jab: 1 bar.
+section Jab {
+  hero {
+    body { guard:0 hold:1 jab:1 jab:1 hold:1 | }
+  }
+}
+
+// (c) Sweep: crouch, the right leg out low, a full turn on the left foot, up again. 2 bars.
+section Sweep {
+  hero {
+    body     { guard:0 hold:4 | hold:4 | }
+    steps    { both.low@large:1 hold:1 turn.left.half:1!hit turn.left.half:1 | hold:2 both.low:2 | }
+    rightLeg { skip:1 side.low:1 hold:2 | hold:1 down:1 skip:2 | }
+  }
+}
+
+// (d) Hurt: a hit to the head; recoil and recover to guard. Timed in seconds.
+section Hurt {
+  hero {
+    body  { guard:0 hold:0.8s }
+    head  { fwd.right.40:0.15s@sharp!hurt hold:0.2s fwd:0.45s }
+    torso { back.65:0.15s@sharp hold:0.2s up:0.45s }
+    arms  { side.low@bent:0.15s hold:0.2s guard:0.45s }
+    steps { right.back.low:0.2s hold:0.25s right.back.low@small:0.35s }
+  }
+}
+
+form Idle  { Idle }
+form Jab   { Jab }
+form Sweep { Sweep }
+form Hurt  { Hurt }
+
+score Idle  { dancer hero  form Idle  loop }
+score Jab   { dancer hero  form Jab }
+score Sweep { dancer hero  form Sweep  inplace }
+score Hurt  { dancer hero  form Hurt }

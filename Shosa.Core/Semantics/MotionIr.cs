@@ -1,14 +1,14 @@
 namespace Shosa.Core.Semantics;
 
 /// <summary>
-/// What one `score` of a file binds to: its clips. A file without a `form` gives one clip per
-/// `section`; with a form, the form is the one clip.
+/// What a file binds to: a clip for each `score` that was bound. One score is one movement,
+/// and one file written.
 /// </summary>
 public sealed class ScoreIr
 {
-    /// <summary>"" for the file's default score.</summary>
+    /// <summary>The score that was asked for; "" for the unnamed one, or when every score was.</summary>
     public string Name { get; set; } = "";
-    /// <summary>The names of every score the file has, the default one ("") first.</summary>
+    /// <summary>The names of every score the file has, as written ("" for the unnamed one).</summary>
     public List<string> Scores { get; } = [];
     public List<MotionIr> Clips { get; } = [];
     /// <summary>Every `move` of the file and the beats it takes when it is written without a length. For an editor to say.</summary>
@@ -32,7 +32,7 @@ public sealed class ScoreIr
 /// </summary>
 public sealed class MotionIr
 {
-    /// <summary>The section's name, or the score's or form's for a clip made from a form ("" if unnamed).</summary>
+    /// <summary>The name of the score this is the movement of ("" for the unnamed one).</summary>
     public string Name { get; set; } = "";
     public string Title { get; set; } = "";
     /// <summary>Beats per minute at the start.</summary>
@@ -65,7 +65,7 @@ public sealed class DancerIr
 {
     public string Id { get; set; } = "";
     public string Name { get; set; } = "";
-    /// <summary>The figure whose choreography it dances ("" in a file without figures).</summary>
+    /// <summary>The figure whose choreography it dances.</summary>
     public string Figure { get; set; } = "";
     public string Rig { get; set; } = "humanoid";
     /// <summary>Start position on the floor: x to stage left, z toward the audience.</summary>

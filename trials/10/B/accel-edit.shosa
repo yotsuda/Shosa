@@ -1,0 +1,30 @@
+// A 2-bar figure four times, each time one tenth faster than the time before, from 96;
+// then a 2-bar ending at the speed of the first time. One dancer, no music.
+title "Accel"
+
+figure solo
+dancer solo humanoid on solo
+
+section Figure {
+  tempo 96
+  time 4/4
+  solo {
+    steps { left.side together right.side together | left.fwd together right.back together | }
+    arms  { side:2 up:2 | side:2 down:2 | }
+  }
+}
+
+// The ending writes no tempo: it goes at the tempo in force, which is Figure's own 96
+// (what the form writes before a name is for that play only).
+section Ending {
+  solo {
+    steps { jump.apart:1 hold:1 together:2 | both.low:2 both.mid:2 | }
+    arms  { side:1 up:1 hold:2 | side:2 down:2 | }
+  }
+}
+
+// Percentages in a form do not build up: each is of Figure's own 96.
+// 96, 105.6, 96, 127.776.
+form { Figure  tempo 110% Figure  Figure  tempo 133.1% Figure  Ending }
+
+score { dancer solo }

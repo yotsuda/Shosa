@@ -1,9 +1,13 @@
-// Fighter — the clips of one game character. No figure, no form: each section is a clip.
+// Fighter — the movements of one game character. Each is a score of its own, and a score
+// is one file written: fighter-Idle.glb, fighter-Combo.glb …
 // `!name` marks a moment for the engine (a hit, a footstep).
 title "Fighter"
 tempo 120                                   // one beat = 0.5 s
 
 // A pose is a stance: being in it again moves nothing.
+figure fighter
+dancer fighter humanoid on fighter
+
 pose guard {
   steps { left.fwd.low@small }
   arms  { fwd.high@bent }
@@ -19,41 +23,71 @@ move frontKick { rightLeg { fwd.low:1@bent fwd:1@sharp!hit fwd.low:1@bent down:1
 // right foot closes up to a small stride behind it. Both feet end 0.2 m further on, in guard.
 move stepIn    { steps { left.fwd.low!step right.back.low@small!step } }
 
-section Idle loop {
-  body { guard:8 }                          // a loop follows itself: already in guard
-  head { fwd.left:2 fwd:2 fwd.right:2 fwd:2 }
+section Idle {
+  fighter {
+    body { guard:8 }                          // a loop follows itself: already in guard
+    head { fwd.left:2 fwd:2 fwd.right:2 fwd:2 }
+  }
 }
 
-section Advance loop inplace {
-  body  { guard:1 }
-  steps { stepIn:1 }
+section Advance {
+  fighter {
+    body  { guard:1 }
+    steps { stepIn:1 }
+  }
 }
 
-section Walk loop inplace {
-  steps    { left.fwd!step right.fwd!step }
-  leftArm  { back.-70 fwd.-70 }             // arm swing, 20 degrees from hanging
-  rightArm { fwd.-70 back.-70 }
+section Walk {
+  fighter {
+    steps    { left.fwd!step right.fwd!step }
+    leftArm  { back.-70 fwd.-70 }             // arm swing, 20 degrees from hanging
+    rightArm { fwd.-70 back.-70 }
+  }
 }
 
 section Jab {
-  body { guard:0 jab:0.3s }
+  fighter {
+    body { guard:0 jab:0.3s }
+  }
 }
 
 section Combo {
-  // `&`: the two sides happen together. Punches while stepping in; the weight ends on
-  // the right foot, so the kick is the mirrored one (the left leg).
-  body { guard:0 | { jab:1/2 jab:1/2 cross:1 } & { stepIn:2 }  frontKick@mirror:2 | hold:4 }
+  fighter {
+    // `&`: the two sides happen together. Punches while stepping in; the weight ends on
+    // the right foot, so the kick is the mirrored one (the left leg).
+    body { guard:0 { jab:1/2 jab:1/2 cross:1 } & { stepIn:2 }  frontKick@mirror:2 | hold:4 | }
+  }
 }
 
 section Hurt {
-  body  { guard:0 }
-  steps { right.back.low:0.2s!stagger hold:0.4s }   // from guard the right foot goes 0.2 m further back
-  torso { back.70:0.2s@sharp up:0.4s }
-  head  { fwd.-30:0.2s@sharp fwd:0.4s }
+  fighter {
+    body  { guard:0 }
+    steps { right.back.low:0.2s!stagger hold:0.4s }   // from guard the right foot goes 0.2 m further back
+    torso { back.70:0.2s@sharp up:0.4s }
+    head  { fwd.-30:0.2s@sharp fwd:0.4s }
+  }
 }
 
 section Victory {
-  body  { guard:0 }
-  steps { together jump jump hold }
-  arms  { down side.high:1/2 up:1/2 hold:2 }
+  fighter {
+    body  { guard:0 }
+    steps { together jump jump hold }
+    arms  { down side.high:1/2 up:1/2 hold:2 }
+  }
 }
+
+form Idle { Idle }
+form Advance { Advance }
+form Walk { Walk }
+form Jab { Jab }
+form Combo { Combo }
+form Hurt { Hurt }
+form Victory { Victory }
+
+score Idle { dancer fighter  form Idle  loop }
+score Advance { dancer fighter  form Advance  loop inplace }
+score Walk { dancer fighter  form Walk  loop inplace }
+score Jab { dancer fighter  form Jab }
+score Combo { dancer fighter  form Combo }
+score Hurt { dancer fighter  form Hurt }
+score Victory { dancer fighter  form Victory }

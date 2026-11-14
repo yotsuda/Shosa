@@ -1,0 +1,58 @@
+title "Duo"
+music "song.lys"
+
+figure one
+figure two
+dancer ann humanoid on one at -1 0
+dancer bea humanoid on two at 1 0
+
+// Intro: 2 bars. Only one dances; two stands.
+section Intro {
+  one {
+    arms  { hip:2 hold:2 | hold:4 | }
+    steps { both.low@small both.mid both.low@small both.mid | % | }
+  }
+}
+
+// Verse: 4 bars. Two stands through the first one; in the second she sways her
+// weight and looks about. The last beat of her rows is left empty for the dip
+// that the Chorus begins with.
+section Verse {
+  one {
+    steps { left.side together right.side together | % | % | % | }
+    arms  { side.low:1 down:1 side.low:1 down:1 | % | % | % | }
+  }
+  two {
+    steps { verse 2 { shift.left:2 shift.right:2 | % | % | shift.left:2 shift.center:1 hold:1 | } }
+    head  { verse 2 { fwd.left:2 fwd:2 | fwd.right:2 fwd:2 | %2 | } }
+  }
+}
+
+// Chorus: 4 bars, with one beat before it.
+// one: the arms open high on the first beat.
+// two: sinks and rises in the beat before, upright with the right arm high on the first beat.
+section Chorus {
+  upbeat 1
+  one {
+    arms  { side.high:1!open | hold:1 clap:1 side.high:2 | up:2 side.high:2 | hold:1 clap:1 side.high:2 | up:2 side:1 side.low:1 | }
+    steps { left.fwd together right.back together | right.fwd together left.back together | %2 | }
+  }
+  two {
+    steps    { both.low@large:1/2 both.mid:1/2!risen | both.low@small both.mid both.low@small both.mid | % | % | % | }
+    rightArm { fwd.high:1/2 up:1/2!high | hold:2 side.high:2 | up:2 side.high:2 | up:2 side.high:2 | side:2 down:2 | }
+  }
+}
+
+// Outro: 2 bars. Both clap on its first beat.
+section Outro {
+  upbeat 1
+  one {
+    arms  { clap:1!clap | hold:1 side:1 down:2 | hold:4 | }
+    steps { both.low:1 both.mid:1 hold:2 | hold:4 | }
+  }
+  two {
+    arms  { clap:1 | hold:1 side:1 down:2 | hold:4 | }
+  }
+}
+
+score { dancer ann  dancer bea }

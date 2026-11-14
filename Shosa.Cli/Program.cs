@@ -20,16 +20,17 @@ const string Usage = """
                     [--scale N]     metres by default; 100 for centimetres
       shosa gltf    FILE [-o GLB]   the same as glTF, for Godot, Blender, Unity and the web
                                     (-o NAME.gltf writes text with the data embedded)
+                    [--combined]    every score in ONE file, an animation each (for a game engine)
       shosa vrma    FILE [-o VRMA]  the same as a VRM Animation, to put on any VRM model
       shosa midi    FILE [-o MID]   the song the file is danced to (`music`), in the dance's order and tempo
       shosa wav     FILE [-o WAV] --soundfont FONT.sf2   the same as sound
       shosa grammar [-o MD]        the language in one file, for an AI that will write it
 
-    A file without a `form` has one clip per section. Every command writes them all, each to
-    its own file (walk.Idle.png); --clip NAME picks one. glTF holds them all in one file, an
-    animation per clip. --score NAME picks one of the file's scores (the output is then named
-    FILE-NAME). Marks (`!hit`), loops and `inplace` velocities are in the glTF animations'
-    extras; bvh and vrma write them beside the files as FILE.events.json.
+    One `score` of the file is one file written. Every command writes every score: the
+    unnamed one to the input's name (walk.png), `score Idle` to walk-Idle.png. --score NAME
+    writes that one only (--score "" the unnamed one); gltf --combined puts them all into one. Marks (`!hit`), loops and `inplace`
+    velocities are in the glTF animation's extras; bvh and vrma write them beside the files
+    as FILE.events.json.
     """;
 
 if (args.Length >= 1 && args[0] == "grammar")
@@ -60,7 +61,7 @@ string? Text(string name)
 double? Option(string name) =>
     double.TryParse(Text(name), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double value) ? value : null;
 
-string? output = Text("-o"), scoreName = Text("--score"), clipName = Text("--clip");
+string? output = Text("-o"), scoreName = Text("--score");
 
 if (!File.Exists(path))
 {
@@ -83,12 +84,9 @@ foreach (var diagnostic in compilation.Diagnostics)
     Console.Error.WriteLine($"{path}({line},{column}): {severity} {diagnostic.Code}: {diagnostic.Message}");
 }
 
-var clips = compilation.Clips.Where(c => clipName is null || c.Name == clipName).ToList();
-if (clipName is not null && clips.Count == 0)
-{
-    Console.Error.WriteLine($"shosa: no clip named '{clipName}'. This file has: {string.Join(", ", compilation.Clips.Select(c => c.Name))}");
-    return 2;
-}
+// One solved movement per score.
+var clips = compilation.Clips.ToList();
+string Label(string name) => name == "" ? "score" : name;
 
 var json = new JsonSerializerOptions
 {
@@ -97,37 +95,30 @@ var json = new JsonSerializerOptions
     WriteIndented = command == "ir",
 };
 
-// walk.shosa -> walk.png; with --score practice -> walk-practice.png.
-string Base(string extension)
+// As Lily# names what it writes: the unnamed score goes to the input's name (walk.png), `score
+// practice` to walk-practice.png. With -o the same is done to that name; -o with --score is the
+// name as it is.
+string Target(string score, string extension, string? figure = null)
 {
-    if (output is not null)
-        return output;
-    string stem = Path.Combine(Path.GetDirectoryName(path) ?? "", Path.GetFileNameWithoutExtension(path));
-    return (string.IsNullOrEmpty(scoreName) ? stem : $"{stem}-{scoreName}") + extension;
+    string file = output ?? Path.Combine(Path.GetDirectoryName(path) ?? "", Path.GetFileNameWithoutExtension(path) + extension);
+    string suffix = (score == "" || (output is not null && scoreName is not null) ? "" : "-" + score) + (figure is null ? "" : "." + figure);
+    return Path.Combine(Path.GetDirectoryName(file) ?? "", Path.GetFileNameWithoutExtension(file) + suffix + Path.GetExtension(file));
 }
 
-// One clip goes to the name as it is; several each get their own (walk.Idle.png).
-string Target(MotionClip clip, string extension, string? figure = null)
+void WriteEvents(MotionClip c)
 {
-    string file = Base(extension);
-    string suffix = (clips.Count > 1 ? "." + clip.Name : "") + (figure is null ? "" : "." + figure);
-    return suffix == "" ? file : Path.ChangeExtension(file, suffix + Path.GetExtension(file));
-}
-
-void WriteEvents()
-{
-    if (!clips.Any(c => c.Marks.Count > 0 || c.Inplace))
+    if (c.Marks.Count == 0 && !c.Inplace)
         return;
-    var events = clips.Select(c => new
+    var events = new
     {
-        clip = c.Name,
+        score = c.Name,
         seconds = Math.Round(c.SecondsAt(c.TotalBeats), 4),
         loop = c.Loop,
         velocity = c.Inplace ? c.Figures.ToDictionary(f => f.Id, f => f.Velocity) : null,
         marks = c.Marks,
-    });
-    string file = Path.ChangeExtension(Base(".json"), ".events.json");
-    File.WriteAllText(file, JsonSerializer.Serialize(new { clips = events }, new JsonSerializerOptions(json) { WriteIndented = true }));
+    };
+    string file = Path.ChangeExtension(Target(c.Name, ".json"), ".events.json");
+    File.WriteAllText(file, JsonSerializer.Serialize(events, new JsonSerializerOptions(json) { WriteIndented = true }));
     Console.WriteLine(file);
 }
 
@@ -135,28 +126,42 @@ switch (command)
 {
     case "check":
         if (compilation.Diagnostics.Count == 0)
+            Console.WriteLine($"{path}: no problems");
+        // Every score: how long it is and how many dance in it; then a line for each section it
+        // plays — where it falls, how long it takes, the tempo and the time it is played in.
+        // A cut of the piece may begin in another tempo and time than the file, and a writer
+        // counts in bars and checks a speed in seconds: all of it is said, for every score.
+        foreach (var clip in clips)
         {
-            string list = string.Join(", ", compilation.Clips.Select(c => $"{(c.Name == "" ? "clip" : c.Name)} {Math.Round(c.TotalBeats, 3)} beats"));
-            Console.WriteLine($"{path}: no problems ({list}; {compilation.Clip.Figures.Count} dancer(s))");
-        }
-        // Danced to a song: where its sections fall, which is where the dance's sections were put.
-        foreach (var clip in compilation.Clips.Where(c => c.Music is not null && c.Sections.Count > 0))
-        {
-            // With the bars, since a writer counts in them: "Verse 0-49 (upbeat of 1, then 8 bars from beat 1)".
-            string Bars(Shosa.Core.Semantics.SectionIr s)
+            string N(double value) => Math.Round(value, 3).ToString(System.Globalization.CultureInfo.InvariantCulture);
+            string Seconds(double from, double to) => (clip.SecondsAt(to) - clip.SecondsAt(from)).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + " s";
+            string head = clip.Music is { } song ? (clip.Name == "" ? "score" : clip.Name) + " to " + song.File : Label(clip.Name);
+            Console.WriteLine($"  {head}: {N(clip.TotalBeats)} beats, {Seconds(0, clip.TotalBeats)}, {clip.Figures.Count} dancer{(clip.Figures.Count == 1 ? "" : "s")}");
+
+            var tempos = Shosa.Core.Semantics.TempoMap.Of(clip.Tempos, clip.Tempo);
+            var meters = Shosa.Core.Semantics.Bars.Of(clip.Meters, clip.BeatsPerBar);
+            var rows = new List<string[]>();
+            foreach (var s in clip.Sections)
             {
-                int bars = Shosa.Core.Semantics.Bars.Count(clip.Meters, s.T0 + s.Pickup, s.T1);
-                string count = FormattableString.Invariant($"{bars} bar{(bars == 1 ? "" : "s")}");
-                return s.Pickup > 0 ? FormattableString.Invariant($"upbeat of {Math.Round(s.Pickup, 3)}, then {count} from beat {Math.Round(s.T0 + s.Pickup, 3)}") : count;
+                // With the bars, since a writer counts in them: "upbeat of 1, then 8 bars from beat 1".
+                int bars = Shosa.Core.Semantics.Bars.Count(meters, s.T0 + s.Pickup, s.T1);
+                string count = $"{bars} bar{(bars == 1 ? "" : "s")}";
+                if (s.Pickup > 0)
+                    count = $"upbeat of {N(s.Pickup)}, then {count} from beat {N(s.T0 + s.Pickup)}";
+                // A song may change tempo or time inside a section: each change with its beat, since the bars are counted by them.
+                bool Inside(double beat) => beat > s.T0 + 1e-9 && beat < s.T1 - 1e-9;
+                string tempo = string.Concat(tempos.Where(t => Inside(t.Beat)).Select(t => $", {N(t.Bpm)} from beat {N(t.Beat)}"));
+                var first = Shosa.Core.Semantics.Bars.MeterAt(meters, s.T0);
+                string time = string.Concat(meters.Where(m => Inside(m.Beat)).Select(m => $", {m.BeatsPerBar}/{m.BeatUnit} from beat {N(m.Beat)}"));
+                // In a compound time (6/8, 9/8, 12/8) the beat is the quaver and the pulse a dancer
+                // feels is the dotted crotchet: the tempo is said by both, "at 288 (4. = 96)".
+                double bpm = Shosa.Core.Semantics.TempoMap.BpmAt(tempos, s.T0);
+                string felt = first is { BeatUnit: 8, BeatsPerBar: 6 or 9 or 12 } ? $" (4. = {N(bpm / 3)})" : "";
+                rows.Add([s.Name, $"{N(s.T0)}-{N(s.T1)}", count, Seconds(s.T0, s.T1),
+                    $"at {N(bpm)}{felt}{tempo}", $"{first.BeatsPerBar}/{first.BeatUnit}{time}"]);
             }
-            string sections = string.Join(", ", clip.Sections.Select(s => FormattableString.Invariant($"{s.Name} {Math.Round(s.T0, 3)}-{Math.Round(s.T1, 3)} ({Bars(s)})")));
-            // A song that changes tempo or time on the way: every change with its beat, since the bars are counted by them.
-            string Changes<T>(IEnumerable<T> later, Func<T, FormattableString> say) =>
-                later.Any() ? " (" + string.Join(", ", later.Select(c => FormattableString.Invariant(say(c)))) + ")" : "";
-            string tempos = Changes(clip.Tempos.Skip(1), t => $"{Math.Round(t.Bpm, 3)} from beat {Math.Round(t.Beat, 3)}");
-            string meters = Changes(clip.Meters.Skip(1), m => $"{m.BeatsPerBar} from beat {Math.Round(m.Beat, 3)}");
-            Console.WriteLine(FormattableString.Invariant(
-                $"  to {clip.Music!.File} at {Math.Round(clip.Tempo, 3)} beats a minute{tempos}, {clip.BeatsPerBar} to the bar{meters}: {sections}"));
+            foreach (var row in rows)
+                Console.WriteLine("    " + string.Join("   ", row.Select((cell, i) => cell.PadRight(rows.Max(r => r[i].Length)))).TrimEnd());
         }
         // Marks do nothing to the movement, so this is the only place a writer sees where they fell.
         foreach (var clip in compilation.Clips)
@@ -165,7 +170,7 @@ switch (command)
             {
                 string who = clip.Figures.Count > 1 ? $" ({mark.Figure})" : "";
                 Console.WriteLine(FormattableString.Invariant(
-                    $"  {(clip.Name == "" ? "clip" : clip.Name)} !{mark.Name} at beat {Math.Round(mark.Beat, 3)} = {Math.Round(mark.Seconds, 3)} s{who}"));
+                    $"  {Label(clip.Name)} !{mark.Name} at beat {Math.Round(mark.Beat, 3)} = {Math.Round(mark.Seconds, 3)} s{who}"));
             }
         }
         break;
@@ -180,8 +185,8 @@ switch (command)
         {
             // --view side looks from stage left (a front-facing figure in profile); a number is degrees round from the front.
             double view = Text("--view") switch { "side" => 90, "back" => 180, "front" or null => ContactSheet.FrontView, _ => Option("--view") ?? ContactSheet.FrontView };
-            ContactSheet.Render(clip, Option("--step"), Option("--from") ?? 0, Option("--to"), view).SavePng(Target(clip, ".png"));
-            Console.WriteLine(Target(clip, ".png"));
+            ContactSheet.Render(clip, Option("--step"), Option("--from") ?? 0, Option("--to"), view).SavePng(Target(clip.Name, ".png"));
+            Console.WriteLine(Target(clip.Name, ".png"));
         }
         break;
 
@@ -192,8 +197,8 @@ switch (command)
             var song = clip.Music is null ? null : songs.Notes(clip.Music);
             if (song?.Error is { } silent)
                 Console.Error.WriteLine($"shosa: the page will have no sound. {silent}");
-            File.WriteAllText(Target(clip, ".html"), PreviewHtml.Render(clip, text, song is { Error: null } ? song.Notes : null));
-            Console.WriteLine(Target(clip, ".html"));
+            File.WriteAllText(Target(clip.Name, ".html"), PreviewHtml.Render(clip, text, song is { Error: null } ? song.Notes : null));
+            Console.WriteLine(Target(clip.Name, ".html"));
         }
         break;
 
@@ -203,23 +208,37 @@ switch (command)
         {
             foreach (var figure in clip.Figures)
             {
-                string file = Target(clip, ".bvh", clip.Figures.Count == 1 ? null : figure.Id);
+                string file = Target(clip.Name, ".bvh", clip.Figures.Count == 1 ? null : figure.Id);
                 File.WriteAllText(file, Bvh.Render(clip, figure, Option("--scale") ?? 1));
                 Console.WriteLine(file);
             }
+            WriteEvents(clip);
         }
-        WriteEvents();
         break;
 
     case "gltf":
-    {
-        // glTF holds any number of skeletons and animations: every figure and every clip go into
-        // the one file, each clip an animation of its name, with its marks in the animation's extras.
-        string file = Base(".glb");
-        File.WriteAllBytes(file, Gltf.Render(clips, binary: !file.EndsWith(".gltf", StringComparison.OrdinalIgnoreCase)));
-        Console.WriteLine(file);
+        // glTF holds any number of skeletons and animations. A score is a file with its one
+        // animation; --combined puts every score into one file instead, an animation each, named
+        // after its score — what a game engine wants of a character with several movements.
+        if (args.Contains("--combined"))
+        {
+            if (scoreName is not null)
+            {
+                Console.Error.WriteLine("shosa: --combined writes every score into one file, --score writes one: take one of the two out.");
+                return 2;
+            }
+            string file = output ?? Path.Combine(Path.GetDirectoryName(path) ?? "", Path.GetFileNameWithoutExtension(path) + ".glb");
+            File.WriteAllBytes(file, Gltf.Render(clips, binary: !file.EndsWith(".gltf", StringComparison.OrdinalIgnoreCase)));
+            Console.WriteLine(file);
+            break;
+        }
+        foreach (var clip in clips)
+        {
+            string file = Target(clip.Name, ".glb");
+            File.WriteAllBytes(file, Gltf.Render([clip], binary: !file.EndsWith(".gltf", StringComparison.OrdinalIgnoreCase)));
+            Console.WriteLine(file);
+        }
         break;
-    }
 
     case "vrma":
         // A VRM Animation is for one humanoid: with several figures, each gets its own file (duet.a.vrma).
@@ -227,18 +246,19 @@ switch (command)
         {
             foreach (var figure in clip.Figures)
             {
-                string file = Target(clip, ".vrma", clip.Figures.Count == 1 ? null : figure.Id);
+                string file = Target(clip.Name, ".vrma", clip.Figures.Count == 1 ? null : figure.Id);
                 File.WriteAllBytes(file, Gltf.RenderVrma(clip, figure));
                 Console.WriteLine(file);
             }
+            WriteEvents(clip);
         }
-        WriteEvents();
         break;
 
     case "midi" or "wav":
     {
-        // The song, as this score of the dance plays it: Lily# makes the notes, through shosa-music.
-        if (compilation.Ir.Music is not { } music)
+        // The song, as each score of the dance plays it: Lily# makes the notes, through shosa-music.
+        var danced = compilation.Score.Clips.Where(c => c.Music is not null).ToList();
+        if (danced.Count == 0)
         {
             Console.Error.WriteLine($"shosa: {path} is not danced to a song (music \"song.lys\").");
             return 2;
@@ -248,20 +268,21 @@ switch (command)
             Console.Error.WriteLine("shosa: a wav needs a SoundFont 2 to play the notes with: --soundfont FONT.sf2");
             return 2;
         }
-        string file = Base("." + (command == "midi" ? "mid" : command));
-        if (songs.Write(music, Path.GetFullPath(file), command == "wav" ? Path.GetFullPath(Text("--soundfont")!) : null) is { } problem)
+        foreach (var clip in danced)
         {
-            Console.Error.WriteLine($"shosa: {problem}");
-            return 1;
+            string file = Target(clip.Name, "." + (command == "midi" ? "mid" : command));
+            if (songs.Write(clip.Music!, Path.GetFullPath(file), command == "wav" ? Path.GetFullPath(Text("--soundfont")!) : null) is { } problem)
+            {
+                Console.Error.WriteLine($"shosa: {problem}");
+                return 1;
+            }
+            Console.WriteLine(file);
         }
-        Console.WriteLine(file);
         break;
     }
 
     case "ir":
-        Write(clipName is null
-            ? JsonSerializer.Serialize(compilation.Score, json)
-            : JsonSerializer.Serialize(compilation.Score.Clips.First(c => c.Name == clipName), json));
+        Write(JsonSerializer.Serialize(compilation.Score, json));
         break;
 
     case "clip":

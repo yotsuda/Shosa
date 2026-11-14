@@ -1,0 +1,59 @@
+title "Boss"
+tempo 100
+time 4/4
+
+figure boss
+dancer boss humanoid on boss
+
+// The stance it waits and taunts in: wide, knees bent, fists low in front.
+pose ready {
+  steps { left.side.low }
+  arms  { fwd.low@bent }
+}
+
+// Wound up for the slam: both arms overhead, leaning back a little.
+pose charge {
+  steps { left.side.low }
+  arms  { back.70 }      // `up` from hanging arms is SH2001, even at :0
+  torso { back.70 }
+}
+
+section Idle {
+  boss {
+    body  { ready:4 | hold:3bar | }
+    steps { { both.low@small both.low } q | % | % | % | }
+    head  { fwd.left:4 | fwd:4 | fwd.right:4 | fwd:4 | }
+  }
+}
+
+// Two bars: beckon twice with the right hand, then a gesture.
+// The second time the gesture is a point straight at the player.
+// (A `:0` cannot stand in a section that is played twice, so the starting pose
+// has a section of its own, of no length.)
+section Ready {
+  boss { body { ready:0 } }
+}
+
+section Taunt {
+  boss {
+    rightArm { { fwd.high:1 fwd.high:1@bent } q | verse 1 { side.high:2 ready:2 | } verse 2 { up:1 fwd:1@sharp!taunt hold:1 ready:1 | } }
+  }
+}
+
+// In the charge from the start, two bars still, then down with both arms.
+section Slam {
+  boss {
+    body  { charge:0 hold:3bar | }
+    head  { fwd.left:2 fwd:2 | fwd.right:2 fwd:2 | }
+    arms  { skip:2bar | fwd.low:1@sharp!hit hold:3 | }
+    torso { skip:2bar | fwd.60:1 hold:1 up:2 | }
+  }
+}
+
+form Idle  { Idle }
+form Taunt { Ready |: Taunt :| }
+form Slam  { Slam }
+
+score Idle  { dancer boss  form Idle  loop }
+score Taunt { dancer boss  form Taunt }
+score Slam  { dancer boss  form Slam }

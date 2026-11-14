@@ -1,0 +1,14 @@
+title "Metre"
+
+figure solo
+dancer solo humanoid on solo
+
+section Six {
+  solo {
+    steps { left.side together right.side together both.low both.mid | % | }
+    arms  { side:2 up:2 side:2 | fwd:2 side:2 down:2 | }
+  }
+}
+
+form { tempo 120 time 6/4 Six tempo 240 time 6/8 Six }
+score { dancer solo }

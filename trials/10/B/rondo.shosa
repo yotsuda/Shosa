@@ -1,0 +1,56 @@
+// A rondo: theme, episode 1, theme, episode 2, theme, episode 3, theme. One dancer, no music.
+title "Rondo"
+
+figure solo
+dancer solo humanoid on solo
+
+// The theme: 4 bars of 2/4 at 120. It writes its own tempo and time, so it is the same wherever it is played.
+section Theme {
+  tempo 120
+  time 2/4
+  solo {
+    steps { left.side together | right.side together | left.fwd together | right.back together | }
+    arms  { side:2 | up:2 | side:2 | down:2 | }
+  }
+}
+
+// Episode 1: a waltz box, 4 bars of 3/4 at 96.
+section Ep1 {
+  tempo 96
+  time 3/4
+  solo {
+    steps { left.fwd right.side together | right.back left.side together | %2 | }
+    arms  { side.low:3 | side:3 | side.high:3 | down:3 | }
+  }
+}
+
+// Episode 2: quarter turns out and back, 2 bars of 4/4 at 100.
+section Ep2 {
+  tempo 100
+  time 4/4
+  solo {
+    steps { left.side together turn.left.quarter hold | right.side together turn.right.quarter hold | }
+    arms  { clap:1!clap side:1 up:2 | side:2 down:2 | }
+  }
+}
+
+// Episode 3: 4 bars of 6/8, counted two to the bar, that count at 80.
+section Ep3 {
+  tempo 4. = 80
+  time 6/8
+  solo {
+    steps { left.side:3 together:3 | right.side:3 together:3 | jump:3 hold:3 | both.low:3 both.mid:3 | }
+    arms  { side.high:3 side:3 | % | up:3 side:3 | down:6 | }
+    head  { fwd.left:3 fwd:3 | fwd.right:3 fwd:3 | }
+  }
+}
+
+// The whole piece. The second theme at 90% of a theme's usual tempo, the third at 115%, the last as the first.
+form { Theme Ep1 tempo 90% Theme Ep2 tempo 115% Theme Ep3 Theme }
+
+// Episode 2 alone: it writes its own tempo and time, so it sounds as it does inside the piece.
+form ep2 { Ep2 }
+
+score      { dancer solo }                    // the whole piece
+score ep2  { dancer solo  form ep2 }          // episode 2 alone
+score fast { dancer solo  tempo 120% }        // the whole piece one fifth faster

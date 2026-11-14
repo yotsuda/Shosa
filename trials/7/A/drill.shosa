@@ -1,0 +1,41 @@
+title "Drill"
+tempo 100
+time 4/4
+
+figure solo
+dancer solo humanoid on solo
+
+// The four bars of the pattern, one move each (4 beats).
+move apartIn { steps { jump.apart:1 hold:1 together:2 }  arms { side.high:1 hold:1 down:2 } }
+move sideSteps { steps { left.side together right.side together }  arms { hip:1 hold:3 } }
+move claps { arms { side.high:1 clap:1!clap side.high:1 clap:1!clap } }
+move outBack { steps { left.fwd together right.back together }  arms { side:2 down:2 } }
+
+// The whole pattern: 16 beats, ending where it began.
+move drill { body { apartIn:4 | sideSteps:4 | claps:4 | outBack:4 | } }
+
+section Slow {
+  tempo 100
+  solo { body { drill:4~ | :4~ | :4~ | :4 | } }
+}
+
+section Medium {
+  tempo 120
+  solo { body { drill:4~ | :4~ | :4~ | :4 | } }
+}
+
+section Fast {
+  tempo 140
+  solo { body { drill:4~ | :4~ | :4~ | :4 | } }
+}
+
+// The ending: 2 bars, still at 140. A last jump apart, then the feet close.
+section Ending {
+  solo {
+    steps { jump.apart:1!land hold:3 | together:2 hold:2 | }
+    arms  { side.high:1 hold:3 | down:2 hold:2 | }
+  }
+}
+
+form { Slow Medium Fast Ending }
+score { dancer solo }

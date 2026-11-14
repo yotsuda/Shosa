@@ -4,12 +4,20 @@ title "Kick"
 tempo 100
 time 4/4
 
+figure solo
+dancer solo humanoid on solo
+
 move kick {
   rightLeg { hold fwd.low@sharp!hit down hold }
   arms     { hold side down hold }
 }
 
 section Kick {
-  steps { left.fwd hold:3 | right.fwd hold:3 }
-  body  { kick | kick@mirror }
+  solo {
+    steps { left.fwd hold:3 | right.fwd hold:3 }
+    body  { kick | kick@mirror }
+  }
 }
+
+form { Kick }
+score { dancer solo }

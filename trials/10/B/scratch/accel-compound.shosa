@@ -1,0 +1,18 @@
+// Experiment: does `tempo 110%` at the start of a section build up when the form repeats the section?
+tempo 96
+figure solo
+dancer solo humanoid on solo
+
+section First {
+  solo { steps { left.side together right.side together | left.fwd together right.back together | } }
+}
+section Faster {
+  tempo 110%
+  solo { steps { left.side together right.side together | left.fwd together right.back together | } }
+}
+section Ending {
+  solo { steps { jump.apart:1 hold:1 together:2 | hold:4 | } }
+}
+
+form { First |: Faster :|*3 Ending }
+score { dancer solo }

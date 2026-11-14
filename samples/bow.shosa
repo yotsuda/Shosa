@@ -4,7 +4,15 @@ title "Bow"
 tempo 60
 time 4/4
 
+figure solo
+dancer solo humanoid on solo
+
 section Bow {
-  torso { hold fwd.60 hold up }
-  head  { hold fwd.-20 hold fwd }
+  solo {
+    torso { hold fwd.60 hold up }
+    head  { hold fwd.-20 hold fwd }
+  }
 }
+
+form { Bow }
+score { dancer solo }

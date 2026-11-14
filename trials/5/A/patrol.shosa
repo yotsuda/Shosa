@@ -1,0 +1,34 @@
+// A guard NPC on patrol: four steps out, a look around, a shrug, about turn, four steps back.
+title "Patrol"
+tempo 96
+time 2/4
+
+figure npc
+dancer npc humanoid on npc
+
+// Four steps and a close, the arms swinging against the legs. Played twice by the form.
+section Walk {
+  npc {
+    steps    { left.fwd right.fwd | left.fwd right.fwd | together hold | }
+    leftArm  { back.-70 fwd.-70 | % | down hold | }
+    rightArm { fwd.-70 back.-70 | % | down hold | }
+  }
+}
+
+// Look left, look right, face front, then a shrug (the arms only: shoulders cannot be written).
+section Look {
+  npc {
+    head { fwd.left:1 hold:1 | fwd.right:1 hold:1 | fwd:1 hold:1 | fwd.left.20:1/2 hold:1/2 fwd:1 | }
+    arms { skip:2 | skip:2 | skip:2 | side.-60@bent:1/2 hold:1/2 down:1 | }
+  }
+}
+
+// About turn on the spot.
+section Turn {
+  npc {
+    steps { turn.left.half:2 | }
+  }
+}
+
+form { Walk Look Turn Walk }
+score { dancer npc }

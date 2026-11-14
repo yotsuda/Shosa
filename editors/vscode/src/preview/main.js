@@ -1,6 +1,6 @@
 // The preview: the figures of one Shosa file, moving, inside a VS Code webview.
 //
-// It is given the solved movement (the file's "clips": every joint at every frame, plus
+// It is given the solved movement (the file's "clips", one per `score`: every joint at every frame, plus
 // which source span is performed when) and draws ONE clip at a time: the one whose section
 // the cursor is in, or the one picked in the selector. It never parses anything. Messages:
 //   in   { type: 'clip', clips, offset, reset? }   the movement (after every edit); offset
@@ -57,7 +57,7 @@ style.textContent = `
 document.head.append(style);
 document.body.innerHTML = `
   <header id="bar" hidden>
-    <select id="clips" aria-label="Clip" hidden></select>
+    <select id="clips" aria-label="Score" hidden></select>
     <span id="name" hidden></span>
     <span id="kind" hidden></span>
   </header>
@@ -274,7 +274,8 @@ function clipAt(offset) {
   return (clip && clips.includes(clip) && holds(clip, offset) ? clip : clips.find(c => holds(c, offset))) ?? null;
 }
 
-const clipLabel = c => c.name || '(form)';
+// A clip is one score of the file; the unnamed score is listed as Lily# lists its own.
+const clipLabel = c => c.name || '(Default)';
 
 function header() {
   const names = clips.map(clipLabel);

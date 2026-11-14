@@ -1,0 +1,46 @@
+title "Pair"
+
+figure a
+figure b
+dancer ann humanoid on a at -0.35 0 facing stageLeft
+dancer ben humanoid on b at 0.35 0 facing stageRight
+
+// A: 3/4. A balance to one side and back (the two go the same way over the floor),
+// then the right hands meet.
+section A {
+  tempo 108
+  time 3/4
+  a {
+    steps    { left.side right.place left.place | right.side left.place right.place | hold:3 | hold:3 | }
+    leftArm  { side.low:3 | down:3 | hip:3 | hold:2 down:1 | }
+    rightArm { side.low:3 | down:3 | b.hand:2!touch hold:1 | hold:1 down:2 | }
+    head     { b.head:3 | hold:3 | hold:3 | hold:3 | }
+  }
+  b {
+    steps    { right.side left.place right.place | left.side right.place left.place | hold:3 | hold:3 | }
+    leftArm  { side.low:3 | down:3 | hip:3 | hold:2 down:1 | }
+    rightArm { side.low:3 | down:3 | a.hand:2 hold:1 | hold:1 down:2 | }
+    head     { a.head:3 | hold:3 | hold:3 | hold:3 | }
+  }
+}
+
+// B: 9/8, counted three to the bar (the dotted crotchet), that count at 60.
+// Count 1 open, count 2 clap your own hands, count 3 a high five; then the left hands low.
+section B {
+  time 9/8
+  tempo 4. = 60
+  a {
+    steps    { both.high:3 both.mid:3 both.high:3 | both.mid:3 both.low:3 both.mid:3 | }
+    rightArm { side:3 clap:3!clap b.hand.high:3!five | side:3 down:6 | }
+    leftArm  { side:3 clap:3 side:3 | b.hand.low:3!low hold:3 down:3 | }
+  }
+  b {
+    steps    { both.high:3 both.mid:3 both.high:3 | both.mid:3 both.low:3 both.mid:3 | }
+    rightArm { side:3 clap:3 a.hand.high:3 | side:3 down:6 | }
+    leftArm  { side:3 clap:3 side:3 | a.hand.low:3 hold:3 down:3 | }
+  }
+}
+
+// A, B, and A again a little slower: 90% of A's own tempo, for that play.
+form { A B tempo 90% A }
+score { dancer ann  dancer ben }

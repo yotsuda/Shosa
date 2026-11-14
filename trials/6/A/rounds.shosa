@@ -1,0 +1,24 @@
+title "Rounds"
+tempo 120
+time 4/4
+
+figure solo
+dancer solo humanoid on solo
+
+section A {
+  solo {
+    steps { left.side together right.side together | % | left.fwd together right.back together | left.side together right.side verse 1-2 { together } verse 3 { jump.together } | }
+    arms  { side:2 down:2 | % | fwd:2 down:2 | verse 1,3 { side:1 side.high:1 side:1 down:1 | } verse 2 { clap:1 hip:1 hold:2 | } }
+    head  { verse 3 { fwd.left:2 fwd:2 | fwd.right:2 fwd:2 | } }
+  }
+}
+
+section B {
+  solo {
+    steps { left.fwd together right.back together | % | both.low:2 both.mid:2 | jump:2 hold:2 | }
+    arms  { fwd:2 up:2 | side:2 down:2 | %2 | }
+  }
+}
+
+form { |: A :|*3 B }
+score { dancer solo }

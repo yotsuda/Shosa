@@ -1,0 +1,26 @@
+title "Drill"
+time 4/4
+
+figure solo
+dancer solo humanoid on solo
+
+section Drill {
+  tempo 100
+  time 4/4
+  solo {
+    steps { left.fwd right.fwd left.fwd together | right.back left.back right.back together | left.side together right.side together | both.low both.mid jump hold | }
+    arms  { fwd:2 up:2 | side:2 down:2 | side:1 hip:1 side:1 hip:1 | fwd:1 up:1 side:1 down:1 | }
+  }
+}
+
+section Bow {
+  tempo 100
+  time 4/4
+  solo {
+    torso { fwd.30:3 hold:1 | up:3 hold:1 | }
+    arms  { side.low:3 hold:1 | down:3 hold:1 | }
+  }
+}
+
+form { Drill tempo 110% Drill tempo 120% Drill Bow }
+score { dancer solo }

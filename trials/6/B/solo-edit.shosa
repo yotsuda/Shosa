@@ -1,0 +1,40 @@
+// One dancer, the whole song.
+title "Solo"
+music "song.lys"
+
+figure solo
+dancer solo humanoid on solo
+
+// Intro: no section here, so it is stood through.
+
+// Verse: the feet are the same both times; the arms differ in bars 3-4 the second time.
+section Verse {
+  solo {
+    steps { left.side together right.side together | % | % | % | }
+    arms  { side:2 down:2 | fwd:2 down:2 |
+            verse 1 { %2 | }
+            verse 2 { fwd:2 up:2 | side:2 down:2 | } }
+  }
+}
+
+// Chorus: the same both times, but the last one jumps at the end of bar 4.
+section Chorus {
+  solo {
+    steps { left.fwd together right.back together | % | % |
+            verse 1 { % | }
+            verse 2 { left.fwd:1/2 together:1/2 right.back:1/2 together:1/2 hold:1 jump:1 | } }
+    arms  { side:1 up:1 side:1 clap:1 | % |
+            verse 1 { % | }
+            verse 2 { side:1 clap:1!clap side:1 clap:1 | }
+            side:1 up:1 hold:2 | }
+  }
+}
+
+// Outro: the arms come down slowly, through the side.
+section Outro {
+  solo {
+    arms { side:4 | down:4 | }
+  }
+}
+
+score { dancer solo }

@@ -1,0 +1,28 @@
+title "Suite"
+tempo 120
+time 4/4
+
+figure solo
+dancer solo humanoid on solo
+
+section March {
+  tempo 120
+  time 4/4
+  solo {
+    steps    { left.place right.place left.place right.place | % | % | % | }
+    leftArm  { { fwd.low back.low } q | % | % | % | }
+    rightArm { { back.low fwd.low } q | % | % | % | }
+  }
+}
+
+section Waltz {
+  tempo 96
+  time 3/4
+  solo {
+    steps { left.fwd right.side together | right.back left.side together | %2 | }
+    arms  { side:3 | down:3 | %2 | }
+  }
+}
+
+form { March Waltz tempo 144 March tempo 72 Waltz }
+score { dancer solo }

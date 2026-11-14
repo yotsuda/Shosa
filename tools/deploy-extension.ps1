@@ -36,11 +36,20 @@ if (-not (Test-Path $Code)) { throw "no VS Code CLI at ${Code}: pass -Code <path
 $extensions = "$env:USERPROFILE\.vscode\extensions"
 # The programs a running VS Code started from the installed extension. (A VS Code started with
 # --extensionDevelopmentPath runs the repository's own build, which is not touched here.)
+# The editor starts a stopped server again at once, and gives up after a few times (five in three
+# minutes): an install takes longer than that restart, so the server is stopped until it stays away.
 function Stop-InstalledServer {
-    $running = @(Get-Process Shosa.Lsp, shosa-music -ErrorAction SilentlyContinue |
-        Where-Object { $_.Path -and $_.Path.StartsWith("$extensions\yotsuda.shosa", [StringComparison]::OrdinalIgnoreCase) })
-    foreach ($process in $running) { Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue }
-    return $running | ForEach-Object { "$($_.ProcessName)($($_.Id))" }
+    $stopped = @()
+    $quiet = 0
+    for ($try = 0; $try -lt 40 -and $quiet -lt 4; $try++) {
+        $running = @(Get-Process Shosa.Lsp, shosa-music -ErrorAction SilentlyContinue |
+            Where-Object { $_.Path -and $_.Path.StartsWith("$extensions\yotsuda.shosa", [StringComparison]::OrdinalIgnoreCase) })
+        foreach ($process in $running) { Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue }
+        $stopped += $running | ForEach-Object { "$($_.ProcessName)($($_.Id))" }
+        if ($running) { $quiet = 0 } else { $quiet++ }
+        Start-Sleep -Milliseconds 500
+    }
+    return $stopped
 }
 
 # The CLI writes a Node DeprecationWarning to stderr on every run, which Windows PowerShell turns

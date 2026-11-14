@@ -1,0 +1,40 @@
+title "Hero"
+tempo 90
+time 4/4
+
+figure hero
+dancer hero humanoid on hero
+
+pose guard {
+  steps { left.fwd.low@small }
+  arms  { fwd.high@bent }
+}
+
+// Breathing and looking around, in guard, on the spot.
+section Idle {
+  hero {
+    body  { guard:8 }
+    steps { { both.low@small:2 both.low:2 } q }
+    torso { fwd.80:4 up:4 }
+    head  { fwd.left:2 fwd:2 fwd.right:2 fwd:2 }
+  }
+}
+
+// Wind-up (beat 0-1), strike (lands in beat 1-2), recovery (beats 2-4).
+section Attack {
+  tempo 120
+  hero {
+    body     { guard:0 hold:4 | }
+    rightArm { back.side:1@bent fwd:1@sharp!hit guard:2 | }
+    torso    { back.80:1 fwd.70:1 up:2 | }
+    steps    { hold:1 left.fwd.low:1 right.back.low@small:2 | }
+  }
+}
+
+form Idle   { Idle }
+form Attack { Attack }
+
+score Idle   { dancer hero  form Idle  loop }
+score Attack { dancer hero  form Attack }
+score Replay { dancer hero  form Attack  tempo 50% }
+score Rage   { dancer hero  form Attack  tempo 125% }

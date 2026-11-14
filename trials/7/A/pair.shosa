@@ -1,0 +1,32 @@
+title "Pair"
+tempo 132
+time 4/4
+
+figure duo
+dancer ann humanoid on duo at 0.9 0
+dancer ben humanoid on duo at -0.9 0 mirror
+
+// A: lively, 4 bars of 4/4 at 132.
+section A {
+  tempo 132
+  time 4/4
+  duo {
+    steps { left.side together right.side together | jump.apart jump.together jump.apart jump.together | % | left.side together right.side together | }
+    arms  { side.high clap side.high clap | up side up side | % | side.high clap side.high:1/2 clap:1/2 hold:1 | }
+  }
+}
+
+// B: calm, 4 bars of 4/4 at 88. The arms open during the last beat of what is
+// played before (A's last step is left alone) and are wide open ON B's first beat.
+section B {
+  tempo 88
+  upbeat 1
+  duo {
+    arms  { side:1 | hold:4 | fwd:2 side:2 | up:4 | side:2 down:2 | }
+    steps { left.side:2 together:2 | right.side:2 together:2 | both.low:2 both.mid:2 | hold:4 | }
+    torso { left.75:4 | right.75:4 | up:4 | hold:4 | }
+  }
+}
+
+form { |: A B :| }
+score { dancer ann  dancer ben }

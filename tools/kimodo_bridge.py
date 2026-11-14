@@ -3,7 +3,7 @@
 Kimodo (NVIDIA) generates human motion from a text and constraints. Shosa knows the key poses
 of a clip and when each is reached. This asks Kimodo to fill what is between them:
 
-  export   a solved clip (`shosa clip FILE --clip NAME -o clip.json`) -> a folder Kimodo's
+  export   a solved clip (`shosa clip FILE --score NAME -o clip.json`) -> a folder Kimodo's
            generator takes (`kimodo_gen --input_folder DIR`): constraints.json and meta.json.
            The poses where a word of the source arrives, and the marks (`!hit`), become
            full-body key frames; the path of the hips becomes the root path.

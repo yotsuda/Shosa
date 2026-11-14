@@ -1,0 +1,11 @@
+figure solo
+dancer solo humanoid on solo
+
+section Theme { solo { arms { side:2 up:2 | side:2 down:2 | %2 | } } }
+section Coda { solo { arms { side:2 clap:2 | side:2 down:2 | } } }
+
+// does a form's tempo last into the next section that writes none, and through a repeat?
+form { |: tempo 100 Theme :|*2 Coda }
+form c { tempo 80 Coda }
+score { dancer solo }
+score c { dancer solo form c tempo 40 loop }

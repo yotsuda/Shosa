@@ -1,0 +1,10 @@
+tempo 120
+figure solo
+dancer solo humanoid on solo
+section March {
+  verse 1 { tempo 120 } verse 2 { tempo 132 }
+  time 4/4
+  solo { steps { left.place right.place left.place together | } }
+}
+form { March March }
+score { dancer solo }

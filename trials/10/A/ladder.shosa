@@ -1,0 +1,25 @@
+title "Ladder"
+tempo 100
+time 4/4
+
+figure solo
+dancer solo humanoid on solo
+
+// A 4-bar phrase: side steps, a walk out and home, a knee bend, two jumps.
+section Phrase {
+  solo {
+    steps { left.side together right.side together | left.fwd right.fwd left.back right.back | together hold:1 both.low both.mid | jump.apart:1 hold:1 jump.together:1 hold:1 | }
+    arms  { side:2 down:2 | fwd:2 up:2 | side:2 down:2 | side.high:1 hold:1 down:1 hold:1 | }
+  }
+}
+
+section Bow {
+  solo {
+    torso { fwd.60:2 up:2 | }
+    head  { fwd.-25:2 fwd:2 | }
+  }
+}
+
+// 100, then a tenth faster, then a quarter faster, then 100 again, and the bow at 100.
+form { Phrase tempo 110% Phrase tempo 125% Phrase Phrase Bow }
+score { dancer solo }

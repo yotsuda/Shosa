@@ -1,0 +1,47 @@
+title "Guard"
+tempo 120
+time 4/4
+
+figure hero
+dancer hero humanoid on hero
+
+pose guard {
+  steps { left.fwd.low@small }
+  arms  { fwd.high@bent }
+}
+
+// (a) A looping 2-bar guard stance that breathes.
+section Idle {
+  hero {
+    body  { guard:4 | hold:4 | }
+    steps { both.low@small:2 both.low:2 | % | }
+    torso { fwd.85:2 up:2 | % | }
+  }
+}
+
+// (b) A one-shot chop with the right arm; `impact` is the moment it lands.
+section Chop {
+  hero {
+    body     { guard:0 hold:4 | }
+    rightArm { up:1 fwd.low:1@sharp!impact hold:1 guard:1 | }
+    torso    { back.80:1 fwd.70:1@sharp hold:1 up:1 | }
+  }
+}
+
+// (c) A looping 2-bar drum pattern. The arms are raised in the last beat of the
+// round before and land exactly on beat 0; the feet start on beat 0 as usual.
+section Drum {
+  upbeat 1
+  hero {
+    arms  { fwd.high:3/4@bent fwd.low:1/4!strike | hold:2 fwd.high:3/2@bent fwd.low:1/2!strike | hold:3 skip:1 | }
+    steps { left.side together right.side together | % | }
+  }
+}
+
+form Idle { Idle }
+form Chop { Chop }
+form Drum { Drum }
+
+score Idle { dancer hero  form Idle  loop }
+score Chop { dancer hero  form Chop }
+score Drum { dancer hero  form Drum  loop }

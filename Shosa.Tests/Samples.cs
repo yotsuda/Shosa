@@ -17,12 +17,35 @@ internal static class Samples
     public const string Walk = """
         tempo 100
         time 4/4
+        figure solo
+        dancer solo humanoid on solo
         section Walk {
-          steps { left.fwd right.fwd left.fwd right.fwd | left.fwd right.fwd left.fwd together }
-          arms  { side:2 down:2 | hold:4 }
+          solo {
+            steps { left.fwd right.fwd left.fwd right.fwd | left.fwd right.fwd left.fwd together }
+            arms  { side:2 down:2 | hold:4 }
+          }
         }
         form { Walk }
+        score { dancer solo }
         """;
+
+    /// <summary>The one body most tests are about: a figure and the dancer who dances it.</summary>
+    public const string SoloCast = "figure solo\ndancer solo humanoid on solo\n";
+
+    /// <summary>
+    /// A whole file around the tracks of one body: a section P that `solo` dances, the form
+    /// that plays it and the score that writes it out. <paramref name="before"/> is what stands
+    /// above (tempo, definitions), <paramref name="score"/> what the score says besides its dancer.
+    /// </summary>
+    public static string Solo(string tracks, string before = "", string score = "") =>
+        before + SoloCast + "section P {\n  solo {\n" + tracks + "\n  }\n}\nform { P }\nscore { dancer solo  " + score + " }\n";
+
+    /// <summary>
+    /// One movement of a file that has several, as a game character's does: a section, the
+    /// form of the same name that plays it and the score that writes it out. Goes after <see cref="SoloCast"/>.
+    /// </summary>
+    public static string Movement(string name, string tracks, string score = "") =>
+        $"section {name} {{\n  solo {{\n{tracks}\n  }}\n}}\nform {name} {{ {name} }}\nscore {name} {{ dancer solo  form {name}  {score} }}\n";
 
     /// <summary>The tree as text — kinds and token texts, no positions — to compare two parses.</summary>
     public static string Dump(SyntaxNode node)

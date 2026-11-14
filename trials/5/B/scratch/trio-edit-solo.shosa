@@ -1,0 +1,36 @@
+// Three dancers in a line. The outer two are mirror images; the middle one does something else.
+// A A B A: in B only the middle dancer moves.
+title "Trio"
+tempo 120
+time 4/4
+
+figure outer
+figure mid
+dancer lena humanoid on outer at -2 0
+dancer mia  humanoid on mid   at 0 0
+dancer rosa humanoid on outer at 2 0 mirror
+
+move outerA {
+    steps { left.side together right.side together | left.fwd together right.back together | %2 | }
+    arms  { side:2 down:2 | fwd:1 up:1 fwd:1 down:1 | %2 | }
+  }
+move midA {
+    steps { both.low both.mid both.low both.mid | % | jump.apart hold jump.together hold | both.low both.mid both.low both.mid | }
+    arms  { side.low:1 clap:1/2!clap side.low:1/2 hip:2 | % | side:2 up:2 | side:2 down:2 | }
+  }
+section A     { outer { body { outerA:16 } }  mid { body { midA:16 } } }
+section Alast { outer { body { outerA:16 } }  mid { body { midA:16 }  steps { skip:15 jump } } }
+
+section B {
+  mid {
+    steps    { left.side right.back.across left.side together | right.side left.back.across right.side together | jump hold jump hold | turn.left.full:2 hold:2 | }
+    rightArm { side.high:2 { up:1/2@bent side.high:1/2@bent } q | hold:4 | fwd:2 up:2 | side:2 down:2 | }
+    leftArm  { hip:4 | side.high:2 { up:1/2@bent side.high:1/2@bent } q | fwd:2 up:2 | side:2 down:2 | }
+    head     { fwd.right:2 fwd:2 | fwd.left:2 fwd:2 | hold:4 | hold:4 | }
+  }
+}
+
+form { |: A :| B Alast }
+
+score { dancer lena  dancer mia  dancer rosa }
+score solo { dancer mia }

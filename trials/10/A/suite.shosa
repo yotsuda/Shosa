@@ -1,0 +1,37 @@
+title "Suite"
+
+figure solo
+dancer solo humanoid on solo
+
+// The march: 4/4 at 112, wherever it is played.
+section March {
+  tempo 112
+  time 4/4
+  solo {
+    steps    { left.fwd right.fwd left.fwd together | left.place right.place left.place right.place | left.back right.back left.back together | left.place right.place left.place together | }
+    leftArm  { back.-70 fwd.-70 back.-70 fwd.-70 | % | % | back.-70 fwd.-70 back.-70 down | }
+    rightArm { fwd.-70 back.-70 fwd.-70 back.-70 | % | % | fwd.-70 back.-70 fwd.-70 down | }
+  }
+}
+
+// The jig: 6/8, counted two to the bar (the dotted crotchet), that count at 84.
+section Jig {
+  time 6/8
+  tempo 4. = 84
+  solo {
+    steps { left.side:3 together:3 | right.side:3 together:3 | jump:3 jump:3 | left.place:1 right.place:1 left.place:1 right.place:1 left.place:1 together:1 | }
+    arms  { hip:3 hold:3 | hold:6 | side.high:3 hip:3 | side.high:3 down:3 | }
+  }
+}
+
+// The finale writes neither tempo nor time: it is in whatever the march left.
+section Finale {
+  solo {
+    steps { jump.apart:2 hold:2 | together:2 hold:2 | }
+    arms  { side:2 up:2 | side:2 down:2 | }
+    torso { skip:4 | fwd.60:2 up:2 | }
+  }
+}
+
+form { March Jig tempo 120% March Finale }
+score { dancer solo }

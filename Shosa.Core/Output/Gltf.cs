@@ -22,8 +22,8 @@ public static class Gltf
     public static byte[] Render(MotionClip clip, bool binary = true) => Render([clip], binary);
 
     /// <summary>
-    /// Several clips of the same figures in one file: one skeleton each, one animation per clip,
-    /// named after the clip. An animation's <c>extras</c> carry what the engine needs beside the
+    /// Several clips in one file: one skeleton for each dancer of any of them, one animation per
+    /// clip, named after the clip. An animation's <c>extras</c> carry what the engine needs beside the
     /// curves: whether it loops, the velocity an `inplace` clip had taken out, and the marks.
     /// </summary>
     public static byte[] Render(IReadOnlyList<MotionClip> clips, bool binary = true) =>
@@ -37,8 +37,9 @@ public static class Gltf
     {
         var bin = new MemoryStream();
         JsonArray nodes = [], roots = [], skins = [], accessors = [], views = [], samplers = [], channels = [], animations = [];
-        var figures = cast.Count > 0 ? cast[0] : [];
-        var firstNode = new List<int>();
+        // A skeleton for everyone who dances in any of the clips, by name: a clip moves its own.
+        var figures = cast.SelectMany(c => c).GroupBy(f => f.Id).Select(g => g.First()).ToList();
+        var firstNode = new Dictionary<string, int>();
 
         int Accessor(float[] values, string type, int width, bool bounds = false)
         {
@@ -79,7 +80,7 @@ public static class Gltf
         foreach (var figure in figures)
         {
             int first = nodes.Count;
-            firstNode.Add(first);
+            firstNode[figure.Id] = first;
             var rest = new Vec3[bones.Length];
             for (int b = 0; b < bones.Length; b++)
             {
@@ -134,8 +135,8 @@ public static class Gltf
             int time = Accessor([.. Enumerable.Range(0, frames).Select(f => (float)((double)f / clip.Fps))], "SCALAR", 1, bounds: true);
             samplers = [];
             channels = [];
-            for (int i = 0; i < cast[c].Count && i < firstNode.Count; i++)
-                Animate(cast[c][i], firstNode[i], frames, time);
+            foreach (var figure in cast[c])
+                Animate(figure, firstNode[figure.Id], frames, time);
 
             var extras = new JsonObject { ["loop"] = clip.Loop };
             if (clip.Inplace)

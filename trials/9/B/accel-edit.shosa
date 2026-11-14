@@ -1,0 +1,32 @@
+// A 2-bar figure four times, each time one tenth faster than the time before; then a 2-bar ending.
+title "Accel"
+tempo 100
+time 4/4
+
+figure solo
+dancer solo humanoid on solo
+
+// Writes no tempo: each play goes at what the form says.
+section Figure {
+  solo {
+    steps { left.side together right.side together | left.fwd together right.back together | }
+    arms  { side:1 clap:1 side:1 clap:1 | fwd:2 down:2 | }
+  }
+}
+
+section Ending {
+  solo {
+    steps { left.side:2 together:2 | both.low:2 both.mid:2 | }
+    arms  { side:2 up:2 | side:2 down:2 | }
+  }
+}
+
+form {
+  tempo 100  Figure      // the first time: 100
+  tempo 110% Figure      // each of the next a tenth faster than the one before
+  tempo 100  Figure      // the third time drops back to the starting speed
+  tempo 133.1 Figure     // the fourth as before: 100 x 1.1 x 1.1 x 1.1
+  tempo 100  Ending      // the ending at the speed the first time had
+}
+
+score { dancer solo }

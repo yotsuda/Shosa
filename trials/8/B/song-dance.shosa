@@ -1,0 +1,37 @@
+title "Song dance"
+music "song.lys"
+
+figure solo
+dancer solo humanoid on solo
+
+section Intro {
+  solo {
+    arms { side:4 | down:4 | }
+  }
+}
+
+section Verse {
+  solo {
+    steps { left.side together right.side together | % | left.fwd together right.back together | % | }
+    arms  { fwd:2 side:2 | fwd:2 down:2 | %2 | }
+  }
+}
+
+section Chorus {
+  solo {
+    arms  { clap:1 side:3 | % | % | verse 1 { clap:1 down:3 | } verse 2 { clap:1 up:3 | } }
+    steps { left.side together right.side together | % | both.low:2 both.mid:2 | jump:2 hold:2 | }
+  }
+}
+
+section Outro {
+  solo {
+    arms  { side:4 | down:4 | }
+    torso { hold:4 | fwd.60:2 up:2 | }
+  }
+}
+
+form chorus { Chorus }
+
+score          { dancer solo }
+score practice { dancer solo  form chorus  tempo 72 }

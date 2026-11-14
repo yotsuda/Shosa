@@ -1,0 +1,17 @@
+tempo 100
+time 4/4
+figure solo
+dancer solo humanoid on solo
+
+section Fast { tempo 160
+  time 2/4
+  solo { steps { left.place right.place | % | } } }
+section AsFast { tempo 160
+  time 2/4
+}
+section Cool { solo { arms { side:2 | down:2 | } } }
+
+form { Fast Cool }
+form cool { AsFast Cool }
+form half { |: Fast :| }
+score { dancer solo }

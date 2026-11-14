@@ -1,33 +1,62 @@
-// NPC — small gestures, one clip each. Lengths in seconds where no beat matters.
+// NPC — small gestures, a score each (npc-Nod.glb …). Lengths in seconds where no beat matters.
 title "NPC gestures"
 tempo 60
 
+figure npc
+dancer npc humanoid on npc
+
 section Nod {
-  head { fwd.-25:0.25s fwd:0.25s fwd.-15:0.2s fwd:0.3s }
+  npc {
+    head { fwd.-25:0.25s fwd:0.25s fwd.-15:0.2s fwd:0.3s }
+  }
 }
 
 section Point {
-  rightArm { fwd.high:0.3s@bent fwd:0.2s@sharp!point hold:1s down:0.6s }
-  head     { fwd.right:0.3s hold:1.2s fwd:0.6s }
+  npc {
+    rightArm { fwd.high:0.3s@bent fwd:0.2s@sharp!point hold:1s down:0.6s }
+    head     { fwd.right:0.3s hold:1.2s fwd:0.6s }
+  }
 }
 
-section Applaud loop {
-  arms { fwd.-20:1/4@bent clap:1/4!clap }
+section Applaud {
+  npc {
+    arms { fwd.-20:1/4@bent clap:1/4!clap }
+  }
 }
 
 section PickUp {
-  steps    { both.low:0.5s hold:0.3s both.mid:0.6s }
-  torso    { fwd.high:0.5s hold:0.3s up:0.6s }
-  rightArm { fwd.low:0.3s down:0.2s!grab hold:0.3s chest:0.6s }
-  head     { fwd.low:0.5s hold:0.3s fwd:0.6s }
+  npc {
+    steps    { both.low:0.5s hold:0.3s both.mid:0.6s }
+    torso    { fwd.high:0.5s hold:0.3s up:0.6s }
+    rightArm { fwd.low:0.3s down:0.2s!grab hold:0.3s chest:0.6s }
+    head     { fwd.low:0.5s hold:0.3s fwd:0.6s }
+  }
 }
 
-section LookAround loop {
-  head  { fwd.left:2 hold:1 fwd:1 fwd.right:2 hold:1 fwd:1 }
-  steps { shift.left:4 shift.right:4 }      // the weight moves; neither foot leaves the floor
+section LookAround {
+  npc {
+    head  { fwd.left:2 hold:1 fwd:1 fwd.right:2 hold:1 fwd:1 }
+    steps { shift.left:4 shift.right:4 }      // the weight moves; neither foot leaves the floor
+  }
 }
 
-section Wait loop {
-  arms  { across.shoulder:4 }               // arms folded: each hand to the opposite shoulder.
-  steps { shift.right:4 }                   // a loop follows itself, so it is already there
+section Wait {
+  npc {
+    arms  { across.shoulder:4 }               // arms folded: each hand to the opposite shoulder.
+    steps { shift.right:4 }                   // a loop follows itself, so it is already there
+  }
 }
+
+form Nod { Nod }
+form Point { Point }
+form Applaud { Applaud }
+form PickUp { PickUp }
+form LookAround { LookAround }
+form Wait { Wait }
+
+score Nod { dancer npc  form Nod }
+score Point { dancer npc  form Point }
+score Applaud { dancer npc  form Applaud  loop }
+score PickUp { dancer npc  form PickUp }
+score LookAround { dancer npc  form LookAround  loop }
+score Wait { dancer npc  form Wait  loop }

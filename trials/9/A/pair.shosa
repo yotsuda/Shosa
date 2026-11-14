@@ -1,0 +1,37 @@
+title "Pair"
+
+figure a
+figure b
+dancer ann humanoid on a at 0.6 0
+dancer ben humanoid on b at -0.6 0
+
+// The phrase of part A, four bars of 4/4. b dances it mirrored.
+move phrase {
+  steps   { left.side together left.side together | right.side together right.side together | left.fwd together right.back together | both.low both.mid jump hold | }
+  arms    { side:2 up:2 | side:2 down:2 | fwd:2 side:2 | down:2 hold:2 | }
+  leftArm { skip:3bar | skip:2 side.high:1 down:1 | }
+}
+
+section A {
+  tempo 120
+  time 4/4
+  a { body { phrase:4~ | :4~ | :4~ | :4 | } }
+  b { body { phrase@mirror:4~ | :4~ | :4~ | :4 | } }
+}
+
+section B {
+  tempo 4. = 60
+  time 6/8
+  a {
+    steps { shift.left:3 shift.right:3 | % | % | shift.center:3 hold:3 | }
+    arms  { side.low:3 side:3 | side.high:3 side:3 | side.low:3 down:3 | hold:6 | }
+  }
+  b {
+    steps { left.side:3 together:3 | right.side:3 together:3 | %2 | }
+    arms  { hip:3 hold:3 | hold:6 | fwd:3 up:3 | side:3 down:3 | }
+    head  { fwd.left:6 | fwd:6 | fwd.right:6 | fwd:6 | }
+  }
+}
+
+form { A B tempo 85% A }
+score { dancer ann  dancer ben }

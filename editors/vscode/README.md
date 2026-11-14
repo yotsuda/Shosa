@@ -4,14 +4,25 @@ Write human movement as text and watch it performed beside the source.
 
 ```
 tempo 120
-section Wave loop {
-  steps    { left.side together right.side together }
-  rightArm { side up side down }
+
+figure solo
+dancer solo humanoid on solo
+
+section Wave {
+  solo {
+    steps    { left.side together right.side together }
+    rightArm { side up side down }
+  }
 }
+
+form { Wave }
+score { dancer solo  loop }
 ```
 
 - **Preview to the side** (the button at the top right of a `.shosa` file, or Ctrl+K V): the figures move as you type.
   The word being performed is lit in the source; put the cursor on a word to see its pose; click a limb to go to the word that put it there.
+- **File > New File... > Shosa File** starts from a file that already compiles; nothing of the skeleton above can be left out, and completion writes each item for you.
+  One `score` is one file written, and the preview shows one score at a time.
 - **Diagnostics, completion and hover** for every word of the language, from the same table the compiler checks against.
 - **Dancing to a song**: `music "song.lys"` takes tempo, time and the order of the sections from a [Lily#](https://yotsuda.github.io/LilySharp/) song,
   and the preview plays the song with the dance — through the sound font Lily# plays with, when one is installed.

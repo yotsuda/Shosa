@@ -32,3 +32,5 @@ section Chorus {
     arms { clap:1/2!clap hold:1/2 side.high up:2 | % | % | % | }
   }
 }
+
+score { dancer alice  dancer bob  dancer carol }

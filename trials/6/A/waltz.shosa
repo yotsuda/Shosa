@@ -1,0 +1,17 @@
+title "Waltz"
+tempo 132
+time 3/4
+
+figure solo
+dancer solo humanoid on solo
+
+section Waltz {
+  solo {
+    // A box: forward-side-close, back-side-close.
+    steps { left.fwd right.side together | right.back left.side together | %2 | %4 | %4 | %4 | }
+    arms  { skip:4bar | side:3 | hold:3bar | side.high:1 side:1 down:1 | % | % | % | }
+  }
+}
+
+form { Waltz }
+score { dancer solo }

@@ -53,12 +53,28 @@ public sealed class ShosaCompilation
         var diagnostics = tree.Diagnostics.Concat(found).ToList();
         var seen = diagnostics.Select(d => (d.Code, d.Span)).ToHashSet();
         var clips = new List<MotionClip>();
+        // A section danced in two clips is solved twice; say each thing once, and which scores it
+        // is in when it is not in all of them (the same bar is too fast only in the score that
+        // plays it faster).
+        var movement = new List<(Diagnostic First, List<string> Scores)>();
         foreach (var ir in bound.Clips)
         {
-            // A section danced in two clips is solved twice; say each thing once.
             var solved = new List<Diagnostic>();
-            clips.Add(Solver.Solve(ir, solved));
-            diagnostics.AddRange(solved.Where(d => seen.Add((d.Code, d.Span))));
+            var clip = Solver.Solve(ir, solved);
+            clips.Add(clip);
+            foreach (var d in solved.DistinctBy(d => (d.Code, d.Span)))
+            {
+                if (seen.Add((d.Code, d.Span)))
+                    movement.Add((d, [clip.Name]));
+                else if (movement.Find(m => m.First.Code == d.Code && m.First.Span == d.Span) is { Scores: { } scores })
+                    scores.Add(clip.Name);
+            }
+        }
+        foreach (var (first, scores) in movement)
+        {
+            string Named(string name) => name == "" ? "the unnamed score" : $"score {name}";
+            diagnostics.Add(scores.Count == clips.Count ? first
+                : first with { Message = $"{first.Message} (In {string.Join(", ", scores.Select(Named))}.)" });
         }
         return new ShosaCompilation(tree, bound, clips, diagnostics.OrderBy(d => d.Span.Start).ToList());
     }

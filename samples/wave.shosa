@@ -4,11 +4,19 @@ title "Wave"
 tempo 96
 time 4/4
 
+figure solo
+dancer solo humanoid on solo
+
 move wave { rightArm { { up:1/2@bent side.high:1/2@bent } q q } }
 
 section Wave {
-  rightArm { side.high:1@bent wave | down:2 hold:2 }
-  head     { hold:1 fwd.right:1 hold:2 | fwd:2 hold:2 }
+  solo {
+    rightArm { side.high:1@bent wave | down:2 hold:2 }
+    head     { hold:1 fwd.right:1 hold:2 | fwd:2 hold:2 }
+  }
 }
 
 // The same with the left arm: `leftArm { side.high:1@bent wave@mirror | down:2 hold:2 }`.
+
+form { Wave }
+score { dancer solo }

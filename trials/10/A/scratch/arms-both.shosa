@@ -1,0 +1,14 @@
+// Question: can the `arms` track (both arms at once) take a place on another figure?
+// The manual says "An arm or the head can take a place on ANOTHER figure" and shows only rightArm.
+figure a
+figure b
+dancer ann humanoid on a at -0.4 0 facing stageLeft
+dancer ben humanoid on b at 0.4 0 facing stageRight
+
+section Main {
+  a { arms { b.hand.high:2 down:2 | } }
+  b { arms { a.hand.high:2 down:2 | } }
+}
+
+form { Main }
+score { dancer ann  dancer ben }

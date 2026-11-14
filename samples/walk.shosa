@@ -1,9 +1,17 @@
 // Walk — seven steps forward, feet together on the eighth count.
-// One figure, so no `figure` line: the tracks sit directly in the section.
+// The figure owns the steps; the dancer is the body that walks them; the score is what is written out.
 title "Walk"
 tempo 100
 time 4/4
 
+figure solo
+dancer solo humanoid on solo
+
 section Walk {
-  steps { left.fwd right.fwd left.fwd right.fwd | left.fwd right.fwd left.fwd together }
+  solo {
+    steps { left.fwd right.fwd left.fwd right.fwd | left.fwd right.fwd left.fwd together }
+  }
 }
+
+form { Walk }
+score { dancer solo }

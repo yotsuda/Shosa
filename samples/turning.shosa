@@ -5,12 +5,21 @@
 title "Turning"
 music "turning.lys"
 
+figure solo
+dancer solo humanoid on solo
+
 section March {
-  steps { left.fwd right.fwd left.fwd right.fwd | left.back right.back left.back right.back | %2 | }
-  arms  { side:2 down:2 | % | side.high:2 down:2 | side:2 up:2!top | }
+  solo {
+    steps { left.fwd right.fwd left.fwd right.fwd | left.back right.back left.back right.back | %2 | }
+    arms  { side:2 down:2 | % | side.high:2 down:2 | side:2 up:2!top | }
+  }
 }
 
 section Waltz {
-  steps { left.side:1 together:1 both.low:1 | right.side:1 together:1 both.low:1 | %2 | }
-  arms  { side.high:3 | fwd:3 | side.high:3 | down:3!end | }
+  solo {
+    steps { left.side:1 together:1 both.low:1 | right.side:1 together:1 both.low:1 | %2 | }
+    arms  { side.high:3 | fwd:3 | side.high:3 | down:3!end | }
+  }
 }
+
+score { dancer solo }

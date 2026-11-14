@@ -16,6 +16,9 @@ internal static class Words
     private static readonly Vocabulary.Word Skip = new("skip", "This track says nothing for this long: a wider track (body, arms) has the part meanwhile.");
     private static readonly Vocabulary.Word Again = new("q", "The group in braces before it, again: { a b } q q. With a length the group is stretched to it; q@mirror swaps left and right.");
 
+    private static readonly Vocabulary.Word Verse = new("verse", "verse N { … } — done only the Nth time the score plays this section: verse 2, verse 1,3, verse 1-2. Verses side by side share one place in the row.");
+    private static readonly Vocabulary.Word Bar = new("bar", "Whole bars: skip:3bar says nothing for three bars, hold:2bar stays for two. At the start of a bar; the next | closes it.");
+
     private static readonly Vocabulary.Word[] TurnSides =
     [
         new("left", "Turn to the figure's left (counter-clockwise seen from above)."),
@@ -24,7 +27,7 @@ internal static class Words
 
     private static readonly Vocabulary.Word[] DancerClauses =
     [
-        new("on", "on FIGURE — the figure whose choreography this dancer dances. Not written in a file without figures."),
+        new("on", "on FIGURE — the figure whose choreography this dancer dances."),
         new("at", "Start position in metres: at X Z (x is stage left, z is toward the audience)."),
         new("facing", "facing front | back | stageLeft | stageRight, or degrees (positive turns left)."),
         new("mirror", "Dances the figure with left and right swapped."),
@@ -41,36 +44,94 @@ internal static class Words
         new("stageRight", "Toward stage right (-x)."),
     ];
 
-    private static readonly Vocabulary.Word[] SectionAttributes =
-    [
-        new("loop", "The end joins the start: the section is solved as if it followed itself."),
-        new("inplace", "The travel over the floor is taken out of the output and given to the engine as a velocity."),
-    ];
-
     private static readonly Vocabulary.Word[] ScoreItems =
     [
-        new("form", "form NAME — the order this score plays."),
-        new("tempo", "tempo N — this score's own tempo."),
+        new("dancer", "dancer NAME — a dancer who appears in this score. Every score lists at least one."),
+        new("form", "form NAME — the form this score plays, instead of the unnamed one."),
+        new("loop", "The end joins the start: the score is solved as if it followed itself."),
+        new("inplace", "The travel over the floor is taken out of the output and given to the engine as a velocity."),
+        new("tempo", "tempo N — the tempo this score begins at; the tempos after it keep their proportion. tempo 50% is half of what it would begin at; tempo 4. = 60 says it by a note."),
         new("title", "title \"…\""),
-        new("dancer", "dancer NAME — only these dancers appear."),
         new("music", "music \"song.lys\" score NAME — this score is danced to another song, or to another of the song's scores."),
+    ];
+
+    private static readonly Vocabulary.Word[] SectionItems =
+    [
+        new("upbeat", "upbeat N — the section's rows may begin N beats before its first bar line, over the end of what is played before. A row uses it by beginning with a bar of N beats."),
+        new("tempo", "tempo N — beats per minute from this section on, until a section that writes another is played. tempo 80% is of the tempo before it; tempo 4. = 60 counts a note (a dotted crotchet) instead of the beat."),
+        new("time", "time N/N — the time from this section on, until a section that writes another is played."),
+    ];
+
+    private static readonly Vocabulary.Word[] FormChanges =
+    [
+        new("tempo", "tempo N — the section named next is played at this tempo this time, whatever it writes itself, and that time only: the name after it is played as if this were not written. tempo 110% is of the tempo that play would go at; tempo 4. = 60 counts a note instead of the beat."),
+        new("time", "time N/N — the section named next is played in this time this time, whatever it writes itself, and that time only: the name after it is played as if this were not written."),
     ];
 
     public static readonly Vocabulary.Word[] TopLevel =
     [
         new("title", "title \"…\""),
-        new("tempo", "tempo N — beats per minute."),
+        new("tempo", "tempo N — beats per minute. tempo 4. = 60 counts a note (a dotted crotchet) instead of the beat; in a file danced to a song, tempo 80% is of the song's."),
         new("time", "time N/N — beats per bar / beat unit."),
         new("fps", "fps N — frames per second of the output, and what `:12f` counts (30 if not written)."),
         new("music", "music \"song.lys\" score NAME — the Lily# song this is danced to: tempo, time and the order of the sections come from it."),
-        new("figure", "figure NAME \"label\" — an owner of choreography. A file for one body needs none."),
+        new("figure", "figure NAME — an owner of choreography: its tracks are written in its block in each section."),
         new("dancer", "dancer NAME humanoid on FIGURE at X Z facing … — a body that dances a figure."),
         new("pose", "pose NAME { TRACK { target } } — a named way of standing or holding the body."),
         new("move", "move NAME { TRACK { events } } — a named row of events; written with a length it is stretched to it."),
-        new("section", "section NAME [loop] [inplace] { TRACK { … } } — a stretch of time. Without a form, each section is a clip."),
-        new("form", "form { A B*2 } — the order the sections are performed in, as one clip."),
-        new("score", "score NAME { form F  tempo N  dancer D } — a unit of output."),
+        new("section", "section NAME { FIGURE { TRACK { … } } } — a stretch of time: what each figure does in it."),
+        new("form", "form { A |: B :| } — the order the sections are played in. A named one (form short { B }) is played by the score that names it."),
+        new("score", "score NAME { dancer D  form F  loop } — one file written: who dances, and which form. The unnamed score plays the unnamed form."),
     ];
+
+    /// <summary>
+    /// What a top-level word is completed to: the least the item needs, with the names the
+    /// file already has filled in. Nothing of a file is left out, so the editor writes it.
+    /// </summary>
+    public static string? Snippet(SyntaxTree tree, string word)
+    {
+        string figure = FigureNames(tree).Select(f => f.Id).FirstOrDefault() ?? "solo";
+        string dancer = DancerNames(tree).FirstOrDefault() ?? figure;
+        string sections = string.Join(' ', tree.Root.ChildNodes(SyntaxKind.SectionDecl).Select(s => s.Token(SyntaxKind.Identifier, 1)?.Text).OfType<string>());
+        return word switch
+        {
+            "title" => "title \"${1:Untitled}\"",
+            "tempo" => "tempo ${1:100}",
+            "time" => "time ${1:4}/${2:4}",
+            "fps" => "fps ${1:30}",
+            "music" => "music \"$1\"",
+            "figure" => "figure ${1:" + figure + "}",
+            "dancer" => "dancer ${1:" + dancer + "} humanoid on ${2:" + figure + "}",
+            "pose" => "pose ${1:name} {\n  ${2:arms} { $0 }\n}",
+            "move" => "move ${1:name} {\n  ${2:steps} { $0 }\n}",
+            "section" => "section ${1:Main} {\n  ${2:" + figure + "} {\n    ${3:steps} { $0 }\n  }\n}",
+            "form" => "form { ${1:" + (sections == "" ? "Main" : sections) + "} }",
+            "score" => "score { dancer ${1:" + dancer + "} }",
+            _ => null,
+        };
+    }
+
+    /// <summary>What `verse` is completed to in a row: the play it is for, and its braces.</summary>
+    public const string VerseSnippet = "verse ${1:2} { $0 }";
+
+    /// <summary>
+    /// Whether the cursor stands in the length of a `skip` or a `hold`, after a whole number
+    /// (`skip:3`, `hold:2b`): the one place the unit `bar` can be written.
+    /// </summary>
+    private static bool AtBars(string text, int wordStart, int offset)
+    {
+        string typed = text[wordStart..offset];
+        int digits = typed.TakeWhile(char.IsAsciiDigit).Count();
+        if (digits == 0 || !"bar".StartsWith(typed[digits..], StringComparison.Ordinal))
+            return false;
+        int end = wordStart - 1, start = end;   // the colon
+        while (start > 0 && char.IsLetter(text[start - 1]))
+            start--;
+        return text[start..end] is "skip" or "hold";
+    }
+
+    private static IEnumerable<string> DancerNames(SyntaxTree tree) =>
+        tree.Root.ChildNodes(SyntaxKind.DancerDecl).Select(d => d.Token(SyntaxKind.Identifier, 1)?.Text).OfType<string>();
 
     private static bool IsLimb(string track) => track is "arms" or "leftArm" or "rightArm" or "leftLeg" or "rightLeg";
     private static bool IsArm(string track) => track is "arms" or "leftArm" or "rightArm";
@@ -221,26 +282,53 @@ internal static class Words
             string name = track.Token(SyntaxKind.Identifier)?.Text ?? "";
             if (trigger == '@')
                 return (ForAnnotation(name), "annotation");
+            if (trigger == ':' && AtBars(text, wordStart, offset))
+                return ([Bar], "value");
             if (trigger is ':' or '!' or '(' || (trigger != '.' && wordStart > 0 && char.IsAsciiDigit(text[wordStart - 1])))
                 return ([], "none");
-            return (ForTarget(name, trigger == '.' ? ChainBefore(text, wordStart - 1) : [], Definitions(tree), figures), "word");
+            var targets = ForTarget(name, trigger == '.' ? ChainBefore(text, wordStart - 1) : [], Definitions(tree), figures);
+            // A verse is written where an event is, in a section's row: a move is not played a first and a second time.
+            bool inSection = Enclosing(tree, SyntaxKind.PoseDecl, offset) is null && Enclosing(tree, SyntaxKind.MoveDecl, offset) is null;
+            return (trigger != '.' && inSection ? targets.Append(Verse) : targets, "word");
         }
 
         if (Enclosing(tree, SyntaxKind.FigureBlock, offset) is not null
             || Enclosing(tree, SyntaxKind.PoseDecl, offset) is not null || Enclosing(tree, SyntaxKind.MoveDecl, offset) is not null)
             return (Vocabulary.Tracks, "track");
 
-        if (Enclosing(tree, SyntaxKind.SectionDecl, offset) is not null)
-            return figures.Count > 0 ? (figures, "figure") : (Vocabulary.Tracks, "track");
+        if (Enclosing(tree, SyntaxKind.SectionDecl, offset) is { } section)
+        {
+            // The lines a section begins with come before its first block, each on its own line.
+            int lineBegins = text.LastIndexOf('\n', Math.Max(0, wordStart - 1)) + 1;
+            if (text[lineBegins..wordStart].Trim() is "tempo" or "time" or "upbeat")
+                return ([], "none");
+            bool atHead = !section.ChildNodes().Any(n => n.Kind is SyntaxKind.FigureBlock or SyntaxKind.Track && n.Span.Start < wordStart);
+            return (atHead ? [.. figures, .. SectionItems] : figures, "figure");
+        }
 
-        if (Enclosing(tree, SyntaxKind.FormDecl, offset) is not null)
-            return (sections, "section");
-
-        if (Enclosing(tree, SyntaxKind.ScoreDecl, offset) is not null)
-            return (ScoreItems, "property");
+        if (Enclosing(tree, SyntaxKind.FormDecl, offset) is { } form)
+        {
+            // After `tempo` or `time` comes a number.
+            string? before = text[form.Token(SyntaxKind.OpenBrace)!.Span.End..Math.Max(wordStart, form.Token(SyntaxKind.OpenBrace)!.Span.End)]
+                .Split([' ', '\t', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries).LastOrDefault();
+            return before is "tempo" or "time" or "=" ? ([], "none") : ([.. sections, .. FormChanges], "section");
+        }
 
         // The one-line items: what has been written on this line so far decides.
         int lineStart = text.LastIndexOf('\n', Math.Max(0, wordStart - 1)) + 1;
+
+        if (Enclosing(tree, SyntaxKind.ScoreDecl, offset) is { } score)
+        {
+            // After `dancer` a dancer of the file, after `form` one of its named forms.
+            int from = Math.Max(lineStart, Math.Min(wordStart, score.Token(SyntaxKind.OpenBrace)!.Span.End));
+            string? before = text[from..wordStart].Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries).LastOrDefault();
+            if (before == "dancer")
+                return (DancerNames(tree).Select(d => new Vocabulary.Word(d, "Dancer")), "figure");
+            if (before == "form")
+                return (tree.Root.ChildNodes(SyntaxKind.FormDecl).Select(f => f.Token(SyntaxKind.Identifier, 1)?.Text).OfType<string>().Select(f => new Vocabulary.Word(f, "Form")), "section");
+            return (ScoreItems, "property");
+        }
+
         var line = text[lineStart..wordStart].Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries);
         if (line is ["dancer", ..])
         {
@@ -255,8 +343,6 @@ internal static class Words
                 _ => (DancerClauses, "property"),
             };
         }
-        if (line is ["section", _, ..])
-            return (SectionAttributes, "property");
         if (line.Length > 0)
             return ([], "none");
 
@@ -267,7 +353,7 @@ internal static class Words
         from figure in tree.Root.ChildNodes(SyntaxKind.FigureDecl)
         let id = figure.Token(SyntaxKind.Identifier, 1)
         where id is not null
-        select (id.Text, figure.Token(SyntaxKind.String)?.Text ?? id.Text);
+        select (id.Text, id.Text);
 
     /// <summary>The words of a dotted target that stand before the dot at <paramref name="dot"/>.</summary>
     private static List<string> ChainBefore(string text, int dot)
@@ -353,13 +439,17 @@ internal static class Words
         {
             word = DancerClauses.FirstOrDefault(w => w.Name == token.Text);
         }
+        else if (parent.Kind == SyntaxKind.SectionItem && first)
+        {
+            word = SectionItems.FirstOrDefault(w => w.Name == token.Text);
+        }
+        else if (parent.Kind == SyntaxKind.FormChange && first)
+        {
+            word = FormChanges.FirstOrDefault(w => w.Name == token.Text);
+        }
         else if (parent.Kind == SyntaxKind.ScoreItem && first)
         {
             word = ScoreItems.FirstOrDefault(w => w.Name == token.Text);
-        }
-        else if (parent.Kind == SyntaxKind.SectionDecl && !first && token != parent.Token(SyntaxKind.Identifier, 1))
-        {
-            word = SectionAttributes.FirstOrDefault(w => w.Name == token.Text);
         }
         else if (first && parent.Kind is SyntaxKind.Header or SyntaxKind.FigureDecl or SyntaxKind.DancerDecl or SyntaxKind.PoseDecl
                      or SyntaxKind.MoveDecl or SyntaxKind.SectionDecl or SyntaxKind.FormDecl or SyntaxKind.ScoreDecl)

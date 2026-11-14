@@ -1,0 +1,13 @@
+figure solo
+dancer solo humanoid on solo
+
+section A { solo { steps { jump.apart:1 hold:1 together:2 } } }
+section B { solo { steps { jump.apart:1 hold:1 shift.left:1 together:1 } } }
+section C { solo { steps { jump.apart:1 hold:1 jump.together:2 } } }
+
+form a { A }
+form b { B }
+form c { C }
+score a { dancer solo form a }
+score b { dancer solo form b }
+score c { dancer solo form c }

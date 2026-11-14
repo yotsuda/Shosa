@@ -1,0 +1,40 @@
+// Two dancers, two figures, the whole song.
+title "Duo"
+music "song.lys"
+
+figure a
+figure b
+dancer one humanoid on a at -0.8 0
+dancer two humanoid on b at 0.8 0
+
+// Intro: no section, both stand.
+
+// Verse: a dances it both times. b stands the first time; the second time b
+// only claps once, in bar 4.
+section Verse {
+  a {
+    steps { left.side together right.side together | % | % | % | }
+    arms  { side:2 down:2 | fwd:2 down:2 | %2 | }
+  }
+  b {
+    arms { verse 2 { skip:3bar | side.low:3/2 clap:1/2!clap down:2 | } }
+  }
+}
+
+// Chorus: the feet are the same both times, the arms differ the second time.
+section Chorus {
+  a {
+    steps { left.fwd together right.back together | % | % | % | }
+    arms  { verse 1 { side:1 up:1 side:1 down:1 | % | % | % | }
+            verse 2 { fwd:1 up:1 fwd:1 down:1 | % | % | % | } }
+  }
+  b {
+    steps { right.fwd together left.back together | % | % | % | }
+    arms  { verse 1 { clap:1 side:1 clap:1 down:1 | % | % | % | }
+            verse 2 { hip:2 side.high:1 down:1 | % | % | % | } }
+  }
+}
+
+// Outro: no section, both stand.
+
+score { dancer one  dancer two }

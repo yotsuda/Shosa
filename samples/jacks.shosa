@@ -1,13 +1,21 @@
-// Jumping jacks — one jack is a move; the section is that move, looped.
+// Jumping jacks — one jack is a move; the section is that move, and the score loops it.
 title "Jumping jacks"
 tempo 120
 time 4/4
+
+figure solo
+dancer solo humanoid on solo
 
 move jack {
   steps { jump.apart!land jump.together!land }
   arms  { side.high down }
 }
 
-section Jacks loop {
-  body { jack jack }
+section Jacks {
+  solo {
+    body { jack jack }
+  }
 }
+
+form { Jacks }
+score { dancer solo  loop }

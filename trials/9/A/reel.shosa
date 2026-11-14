@@ -1,0 +1,27 @@
+title "Reel"
+
+figure solo
+dancer solo humanoid on solo
+
+// Part one (and three): six-eight, two counts to the bar, the count at 100.
+section Jig {
+  tempo 4. = 100
+  time 6/8
+  solo {
+    steps { left.side:2 right.back.across left.side:2 together | right.side:2 left.back.across right.side:2 together | left.side:2 right.across left.side:2 together | right.side:2 left.across right.side:2 together | }
+    arms  { hip:3 side.high:3 | hip:3 side.high:3 | %2 | }
+  }
+}
+
+// Part two: two-four, the crotchet as fast as the count of two was.
+section Reel {
+  tempo 4 = 100
+  time 2/4
+  solo {
+    steps { left.fwd right.fwd | left.fwd together | right.back left.back | right.back together | left.side together | right.side together | jump jump | jump.apart jump.together | }
+    arms  { side:2 | up:2 | side:2 | hip:2 | clap:1/2 side:3/2 | % | up:2 | side down | }
+  }
+}
+
+form { Jig Reel tempo 90% Jig }
+score { dancer solo }

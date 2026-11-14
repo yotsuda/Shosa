@@ -1,0 +1,14 @@
+tempo 120
+figure solo
+dancer solo humanoid on solo
+section March {
+  time 4/4
+  solo { steps { left.place right.place left.place together | } }
+}
+section Waltz { tempo 90
+  time 3/4
+  solo { steps { left.fwd right.side together | } } }
+section Faster { tempo 132
+  solo { } }
+form { March Waltz Faster March }
+score { dancer solo }

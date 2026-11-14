@@ -1,0 +1,30 @@
+// A warm-up in 3/4: four bars of side steps with arm swings, then four bars of slow bends.
+title "Warm-up"
+tempo 96
+time 3/4
+
+figure solo
+dancer solo humanoid on solo
+
+// Side steps: left, close, wait; right, close, wait. The arms swing out and fall.
+section Steps {
+  solo {
+    steps { left.side together hold | right.side together hold | %2 | }
+    arms  { fwd.low:1 side:1 down:1 | % | % | % | }
+  }
+}
+
+// Slow bends: a forward fold with bent knees, up with the arms overhead, a side bend, back to standing.
+section Stretch {
+  solo {
+    torso { fwd.high:3 | up:3        | left.60:3  | up:3          | }
+    arms  { hold:3     | side:1 up:2 | up:3@body  | side:1 down:2 | }
+    steps { both.low:3 | both.mid:3  | hold:3     | hold:3        | }
+  }
+}
+
+form { Steps Stretch }
+form StepsOnly { Steps }
+
+score { dancer solo }
+score steploop { dancer solo  form StepsOnly  loop }

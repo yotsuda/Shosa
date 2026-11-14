@@ -4,8 +4,15 @@ title "Square"
 tempo 110
 time 3/4
 
+figure solo
+dancer solo humanoid on solo
+
 section Side {
-  steps { left.fwd right.fwd left.fwd@turn(left.quarter) }
+  solo {
+    steps { left.fwd right.fwd left.fwd@turn(left.quarter) }
+  }
 }
 
 form { |: Side :|*4 }
+
+score { dancer solo }

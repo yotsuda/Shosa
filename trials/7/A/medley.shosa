@@ -1,0 +1,44 @@
+title "Medley"
+tempo 120
+time 4/4
+
+figure solo
+dancer solo humanoid on solo
+
+// The march: 4 bars of 4/4 at 120. It writes its tempo and time itself,
+// because it is played again after the coda (3/4 at 90).
+section March {
+  tempo 120
+  time 4/4
+  solo {
+    steps    { left.fwd@small right.fwd@small left.fwd@small right.fwd@small | left.fwd@small right.fwd@small left.fwd@small together | left.place right.place left.place right.place | left.place right.place left.place together | }
+    leftArm  { back.-60 fwd.-60 back.-60 fwd.-60 | % | % | % | }
+    rightArm { fwd.-60 back.-60 fwd.-60 back.-60 | % | % | % | }
+    torso    { up:1 hold:3 | }      // straightens after the coda's bow
+    head     { fwd:1 hold:3 | }
+  }
+}
+
+// The waltz: 8 bars of 3/4 at 90. A box step, arms flowing.
+section Waltz {
+  tempo 90
+  time 3/4
+  solo {
+    steps { left.fwd right.side together | right.back left.side together | %2 | %4 | }
+    arms  { side:3 | side.high:3 | side:3 | fwd.low:3 | %4 | }
+    torso { left.80:3 | right.80:3 | %2 | %4 | }
+  }
+}
+
+// The coda: 4 bars, still 3/4 at 90 (it writes neither). Slower and slower, into a bow.
+section Coda {
+  solo {
+    steps { left.side:3 | together:3 | hold:3 | hold:3 | }
+    arms  { side:3 | side.high:3 | down:3~ | :3 | }
+    torso { up:3 | hold:3 | fwd.60:3~ | :3 | }
+    head  { skip:2bar | fwd.-25:3~ | :3 | }
+  }
+}
+
+form { March Waltz Coda March }
+score { dancer solo }

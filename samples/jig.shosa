@@ -1,0 +1,35 @@
+// A jig in 6/8. The tempo is said by the note a dancer feels — two dotted crotchets to the
+// bar — and the scores that change it say by how much, not to what.
+title "Jig"
+tempo 4. = 96      // the beat is the quaver (six to the bar), so this is tempo 288
+time 6/8
+
+figure solo
+dancer solo humanoid on solo
+
+section Jig {
+  solo {
+    steps { left.side:3 together:3 | right.side:3 together:3 | left.fwd:3 right.fwd:3 | left.back:3 together:3 | }
+    arms  { side:3 hip:3 | % | side.high:3 side:3 | hip:6 | }
+  }
+}
+
+// Broader to the end: 85% of the tempo before it, whatever that was.
+section Close {
+  tempo 85%
+  solo {
+    steps { jump.apart:3 hold:3 | together:6 | }
+    arms  { side.high:3 hold:3 | down:6 | }
+  }
+}
+
+form { |: Jig :| Close }
+score { dancer solo }
+
+// For practice: the whole of it at half speed.
+score Slow { dancer solo  tempo 50% }
+
+// The second time round a little faster: 110% of the tempo that play would go at.
+// A form's tempo is for that one play, so Close is as broad as it is in the whole piece.
+form Push { Jig tempo 110% Jig Close }
+score Push { dancer solo  form Push }

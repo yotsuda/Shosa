@@ -1,0 +1,32 @@
+// A jig: 4 bars of 6/8, 4 bars of 3/4 with the quavers running on, 4 bars of 6/8 a little faster.
+title "Jig"
+
+figure solo
+dancer solo humanoid on solo
+
+// 6/8, two counts to the bar (dotted crotchets) at 96 a minute. A bar is still 6 beats (quavers).
+section Jig {
+  tempo 4. = 96
+  time 6/8
+  solo {
+    steps { left.side:2 right.place:1 left.place:3 | right.side:2 left.place:1 right.place:3 |
+            left.side:2 right.place:1 left.place:3 |
+            verse 1 { right.side:2 left.place:1 right.place:3 | }
+            verse 2 { right.side:2 together:1 jump:3 | } }       // the last time ends with a jump
+    arms  { hip:3 hold:3 | hold:6 | side.high:3 hip:3 | % | }
+    head  { fwd.left:3 fwd:3 | fwd.right:3 fwd:3 | %2 | }
+  }
+}
+
+// 3/4. No tempo is written: the quaver keeps its speed, so the crotchet beat is half the 6/8 beat's number.
+section Middle {
+  time 3/4
+  solo {
+    steps { left.fwd together.high both.mid | right.back together.high both.mid | %2 | }
+    arms  { side:1 up:1 side:1 | down:1 hold:2 | %2 | }
+  }
+}
+
+form { Jig Middle tempo 4. = 108 Jig }     // the six-eight returns with the count of two at 108
+
+score { dancer solo }

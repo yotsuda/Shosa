@@ -24,6 +24,28 @@ interface ClipMessage {
   clips?: unknown[];
 }
 
+/**
+ * What a new file starts as: one bar of walking, with everything a file cannot leave out
+ * (a figure, its dancer, a section, the form, the score). `shosa check` passes it.
+ */
+const newFileTitle = 'Untitled';
+const newFileText = `title "${newFileTitle}"
+tempo 100
+time 4/4
+
+figure solo
+dancer solo humanoid on solo
+
+section Main {
+  solo {
+    steps { left.fwd right.fwd left.fwd together | }
+  }
+}
+
+form { Main }
+score { dancer solo }
+`;
+
 let client: LanguageClient | undefined;
 let panel: vscode.WebviewPanel | undefined;
 let panelUri: string | undefined;
@@ -35,6 +57,16 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     borderRadius: '3px',
   });
   context.subscriptions.push(performed);
+
+  // File > New File... > Shosa File: an untitled file that already compiles, so the preview
+  // has something to perform. Registered before the server is looked for: it needs none.
+  context.subscriptions.push(vscode.commands.registerCommand('shosa.newFile', async () => {
+    const document = await vscode.workspace.openTextDocument({ language: 'shosa', content: newFileText });
+    const editor = await vscode.window.showTextDocument(document);
+    // The title is the one placeholder: selected, so the first keystroke names the piece.
+    const start = newFileText.indexOf(newFileTitle);
+    editor.selection = new vscode.Selection(document.positionAt(start), document.positionAt(start + newFileTitle.length));
+  }));
 
   const server = findServer(context);
   if (!server) {

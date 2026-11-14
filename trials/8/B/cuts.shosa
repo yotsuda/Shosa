@@ -1,0 +1,48 @@
+title "Cuts"
+
+figure solo
+dancer solo humanoid on solo
+
+section Intro {
+  tempo 100
+  time 4/4
+  solo {
+    arms  { side:2 up:2 | side:2 down:2 | }
+    steps { shift.left:2 shift.right:2 | shift.left:2 shift.center:2 | }
+  }
+}
+
+section Fast {
+  tempo 160
+  time 2/4
+  solo {
+    steps { left.side together | right.side together | %2 | }
+    arms  { clap:1 side:1 | % | % | clap:1 down:1 | }
+  }
+}
+
+section Cool {
+  solo {
+    arms  { fwd:2 | side:2 | fwd:2 | down:2 | }
+    steps { both.low:2 | both.mid:2 | %2 | }
+  }
+}
+
+section Outro {
+  tempo 100
+  time 4/4
+  solo {
+    arms  { side:2 up:2 | side:2 down:2 | }
+    torso { hold:4 | fwd.60:2 up:2 | }
+  }
+}
+
+form { Intro Fast Cool Outro }
+form cool  { tempo 160 time 2/4 Cool }
+form fast  { Fast }
+form intro { Intro }
+
+score       { dancer solo }
+score cool  { dancer solo  form cool }
+score fast  { dancer solo  form fast  tempo 80 }
+score intro { dancer solo  form intro  loop }

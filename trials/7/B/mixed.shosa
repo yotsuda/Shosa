@@ -1,0 +1,43 @@
+title "Mixed"
+tempo 120
+time 4/4
+
+figure solo
+dancer solo humanoid on solo
+
+// Stomp: 4 bars of 4/4 at 120. It writes its own tempo and time, because the
+// second time it is played after Sway, whose 6/8 at 180 would otherwise stay.
+section Stomp {
+  tempo 120
+  time 4/4
+  solo {
+    steps { left.place.low right.place.low left.place.low right.place.low | % | left.side.low together.low right.side.low together.low | left.place.low right.place.low left.place.low together | }
+    torso { fwd.75:1 hold:3 | hold:4 | hold:4 | hold:2 up:2 | }
+    arms  { { fwd.low@bent down } q | % | % | % | }
+  }
+}
+
+// Sway: 4 bars of 6/8, two sways to the bar (3 quavers each).
+// tempo 180 counts quavers, so the dotted-crotchet pulse is 60 a minute:
+// half as fast as the Stomp's crotchet.
+section Sway {
+  tempo 180
+  time 6/8
+  solo {
+    steps    { left.side:3 shift.right:3 | shift.left:3 shift.right:3 | % | shift.left:3 together:3 | }
+    torso    { left.75:3 right.75:3 | % | % | left.75:3 up:3 | }
+    leftArm  { side:3 across.high:3 | % | % | side:3 down:3 | }
+    rightArm { across.high:3 side:3 | % | % | across.high:3 down:3 | }
+  }
+}
+
+// Finale: 2 bars, in whatever the Stomp before it left (4/4 at 120): it writes neither.
+section Finale {
+  solo {
+    steps { left.place.low right.place.low jump.apart:1 hold:1 | hold:4 | }
+    arms  { skip:2 side.high:1!final hold:1 | hold:4 | }
+  }
+}
+
+form { Stomp Sway Stomp Finale }
+score { dancer solo }

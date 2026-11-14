@@ -1,0 +1,29 @@
+// A jig, a slip jig, the jig again. One dancer, no music.
+title "Slip"
+
+figure solo
+dancer solo humanoid on solo
+
+// The jig: 6/8, counted two to the bar (the dotted crotchet), that count at 100.
+section Jig {
+  tempo 4. = 100
+  time 6/8
+  solo {
+    steps { left.side:3 together:3 | right.side:3 together:3 | left.fwd:3 together:3 | right.back:3 together:3 | }
+    arms  { hip:6 | hold:6 | side:3 hip:3 | % | }
+  }
+}
+
+// The slip jig: 9/8, three counts to the bar. It writes no tempo: the quavers run on as they were.
+section Slip {
+  time 9/8
+  solo {
+    steps { left.side:3 together:3 jump:3 | right.side:3 together:3 jump:3 | %2 | }
+    arms  { side:3 side.high:3 side:3 | % | up:3 side:6 | hip:9 | }
+  }
+}
+
+// The last jig with the count of two at 112: for that play only, so it is written in the form.
+form { Jig Slip tempo 4. = 112 Jig }
+
+score { dancer solo }

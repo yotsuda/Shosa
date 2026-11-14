@@ -1,0 +1,35 @@
+// A victory sequence: fist pumps with jumps (twice), then three poses. 4 bars.
+title "Victory"
+tempo 120
+time 4/4
+
+figure hero
+dancer hero humanoid on hero
+
+// Named poses.
+pose vee     { arms { side.high } head { fwd.20 } }
+pose skyward { rightArm { up } leftArm { hip } head { fwd.high } }
+pose proud   { arms { hip } head { fwd } torso { up } }
+
+// A fist pump with the right arm: cock the fist, then punch the air. One beat as defined.
+move pump { rightArm { fwd.high@bent:1/2 up:1/2@sharp } }
+
+// One bar: two quick pumps on two jumps, then one slow pump over a knee bend.
+section Cheer {
+  hero {
+    body    { pump:1 pump:1 pump:2 | }
+    steps   { { jump:1 } q both.low:1 both.mid:1 | }
+    leftArm { hip:1 hold:3 | }
+  }
+}
+
+// Two bars: jump out into a V, point to the sky, settle with the hands on the hips.
+section Finale {
+  hero {
+    body  { vee:1@sharp hold:1 skyward:1@sharp hold:1 | proud:2 hold:2 | }
+    steps { jump.apart:1 hold:3 | jump.together:1 hold:3 | }   // `together` does nothing after a jump (no free foot)
+  }
+}
+
+form { |: Cheer :| Finale }
+score { dancer hero }

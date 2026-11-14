@@ -1,0 +1,45 @@
+// A solo dance to song.lys: Intro, Verse, Chorus, Verse, Chorus, Outro (the song's own form).
+title "Song dance"
+music "song.lys"
+
+figure solo
+dancer solo humanoid on solo
+
+// 2 bars: knee bends, the arms open and come down.
+section Intro {
+  solo {
+    steps { both.low:2 both.mid:2 | both.low:2 both.mid:2 | }
+    arms  { side.low:2 down:2 | side:2 down:2 | }
+  }
+}
+
+// 4 bars: side-close left and right, then forward-close and back-close.
+section Verse {
+  solo {
+    steps { left.side together right.side together | % | left.fwd together right.back together | % | }
+    arms  { side:2 down:2 | % | fwd:2 down:2 | % | }
+  }
+}
+
+// 4 bars: a grapevine each way with claps, two jumps, a knee bend.
+section Chorus {
+  solo {
+    steps { left.side right.back.across left.side together | right.side left.back.across right.side together | hold:1 jump.apart:1 hold:1 jump.together:1 | both.low:2 both.mid:2 | }
+    arms  { side.high:2 clap:1 side:1 | % | up:2 side:2 | clap:1 side:1 down:2 | }
+  }
+}
+
+// 2 bars: a step out and in with the arms overhead, then a bow.
+section Outro {
+  solo {
+    steps { left.side:2 together:2 | both.low:2 both.mid:2 | }
+    arms  { side:2 up:2 | side:2 down:2 | }
+    torso { skip:4 | fwd.60:2 up:2 | }
+  }
+}
+
+form chorus { Chorus }
+
+score          { dancer solo }                                  // the full dance with the song
+score practice { dancer solo  tempo 75% }                       // the whole thing at three quarters speed
+score drill    { dancer solo  form chorus  tempo 50%  loop }    // the chorus alone, half speed, going round

@@ -1,0 +1,33 @@
+// Danced to song.lys: Verse (4 bars of 4), then Chorus (4 bars of 4). The form is the song's.
+// Ann dances the verse alone; Bob joins for the chorus.
+title "Song dance"
+music "song.lys"
+
+figure a
+figure b
+dancer ann humanoid on a at -0.4 0
+dancer bob humanoid on b at 0.4 0 in Chorus
+
+// Verse: a grapevine each way, then forward and back, arms opening and rising.
+section Verse {
+  a {
+    steps { right.side left.back.across right.side together | left.side right.across left.side together | left.fwd right.fwd left.back together | right.back left.back right.fwd together | }
+    arms  { side:2 hip:2 | % | fwd:2 up:2 | side:2 down:2 | }
+  }
+}
+
+// Chorus: the two turn to each other, a high five, back to the front, a jump and side steps.
+section Chorus {
+  a {
+    steps    { turn.b:2 both.low both.mid | hold:4 | turn.right.quarter:2 jump hold | right.side together left.side together | }
+    rightArm { hold:4 | b.hand.high:2!five hold:1 down:1 | hold:2 fwd:1 up:1 | side:2 down:2 | }
+    leftArm  { hip:4  | hold:4                           | hold:2 fwd:1 up:1 | side:2 down:2 | }
+  }
+  b {
+    steps    { turn.a:2 both.low both.mid | hold:4 | turn.left.quarter:2 jump hold | left.side together right.side together | }
+    rightArm { hold:4 | a.hand.high:2 hold:1 down:1 | hold:2 fwd:1 up:1 | side:2 down:2 | }
+    leftArm  { hip:4  | hold:4                      | hold:2 fwd:1 up:1 | side:2 down:2 | }
+  }
+}
+
+score { dancer ann  dancer bob }

@@ -1,0 +1,9 @@
+music "song.lys"
+figure solo
+dancer solo humanoid on solo
+section Verse { solo { arms { side:2 down:2 | } } }
+form v { Verse }
+form cc { |: Chorus :| }
+score { dancer solo }
+score v { dancer solo form v loop }
+score cc { dancer solo form cc tempo 80 }

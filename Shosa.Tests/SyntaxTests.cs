@@ -35,14 +35,18 @@ public class SyntaxTests
     public void The_new_shapes_parse_into_their_own_nodes()
     {
         const string text = """
-            dancer mage humanoid at 0 1 free
+            figure mage
+            dancer mage humanoid on mage at 0 1 free
             pose guard { arms { fwd.high@bent } }
             move jab { leftArm { fwd.-10:0.3s@sharp!hit guard:12f } }
-            section Idle loop inplace {
-              body  { guard:0 | { jab:1/2 jab:1/2 } & { skip:1 } hold:3 }
-              steps { left.fwd@turn(left.quarter) lift.fwd(0.4)@free land@free hold }
+            section Idle {
+              mage {
+                body  { guard:0 | { jab:1/2 jab:1/2 } & { skip:1 } hold:3 }
+                steps { left.fwd@turn(left.quarter) lift.fwd(0.4)@free land@free hold }
+              }
             }
-            score practice { form short  tempo 80 }
+            form short { Idle }
+            score practice { dancer mage  form short  tempo 80  loop inplace }
 
             """;
         var tree = SyntaxTree.Parse(text);
@@ -50,12 +54,13 @@ public class SyntaxTests
         Assert.Empty(tree.Diagnostics);
         Assert.Equal(text, tree.ToFullString());
         int Count(SyntaxKind kind) => tree.Root.DescendantNodes().Count(n => n.Kind == kind);
-        Assert.Equal(2, Count(SyntaxKind.Clause));          // at 0 1, free; and nothing taken from the next line
+        Assert.Equal(3, Count(SyntaxKind.Clause));          // on mage, at 0 1, free; and nothing taken from the next line
+        Assert.Equal(1, Count(SyntaxKind.FigureBlock));
         Assert.Equal(1, Count(SyntaxKind.Overlay));
         Assert.Equal(2, Count(SyntaxKind.Sequence));
         Assert.Equal(1, Count(SyntaxKind.Mark));
         Assert.Equal(2, Count(SyntaxKind.Arguments));       // @turn(left.quarter), lift.fwd(0.4)
-        Assert.Equal(2, Count(SyntaxKind.ScoreItem));
+        Assert.Equal(5, Count(SyntaxKind.ScoreItem));       // dancer, form, tempo, loop, inplace
         // The unit of a length is part of the length; a number can stand where a level does.
         var durations = tree.Root.DescendantNodes().Where(n => n.Kind == SyntaxKind.Duration).Select(n => n.ToString().Trim()).ToList();
         Assert.Contains(":0.3s", durations);
@@ -97,7 +102,7 @@ public class SyntaxTests
     [Fact]
     public void A_dot_at_the_end_of_a_line_does_not_take_the_next_line_s_word()
     {
-        const string text = "section P { arms { side.\n down } }\n";
+        const string text = "section P { solo { arms { side.\n down } } }\n";
         var tree = SyntaxTree.Parse(text);
 
         var events = tree.Root.DescendantNodes().Where(n => n.Kind == SyntaxKind.Event).ToList();
@@ -116,8 +121,8 @@ public class SyntaxTests
         var full = SyntaxTree.Parse(edited.Text);
 
         Assert.Equal(Samples.Dump(full.Root), Samples.Dump(edited.Root));
-        // title, tempo, time, section Stretch before the edit; the form after it.
-        Assert.Equal(5, edited.ReusedItems);
+        // title, tempo, time, the figure, the dancer and section Stretch before the edit; the form and the score after it.
+        Assert.Equal(8, edited.ReusedItems);
     }
 
     [Theory]

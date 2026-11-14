@@ -1,0 +1,39 @@
+// Danced to song.lys (Verse 4 bars, Chorus 4 bars). Three files:
+//   the whole song with both dancers; the chorus twice, slower, Ann alone; the verse alone, looping, Bob alone.
+title "Song practice"
+music "song.lys"
+
+figure a
+figure b
+dancer ann humanoid on a at -0.7 0
+dancer bob humanoid on b at 0.7 0
+
+section Verse {
+  a {
+    steps { left.side right.back.across left.side together | right.side left.back.across right.side together | left.fwd right.fwd left.back together | right.back left.back right.fwd together | }
+    arms  { side:2 hip:2 | % | fwd:2 up:2 | side:2 down:2 | }
+  }
+  b {
+    steps { right.side together left.side together | % | both.low both.mid both.low both.mid | % | }
+    arms  { side:2 down:2 | % | clap:1 side.low:1 clap:1 down:1 | % | }
+  }
+}
+
+section Chorus {
+  a {
+    steps { jump.apart hold jump.together hold | left.side together right.side together | %2 | }
+    arms  { side:1 up:1 side:1 down:1 | fwd:2 hip:2 | %2 | }
+  }
+  b {
+    steps { left.fwd together right.back together | jump hold jump hold | %2 | }
+    arms  { fwd:2 down:2 | side.high:1 clap:1!clap side.high:1 down:1 | %2 | }
+  }
+}
+
+// The unnamed score plays the song's own form. The cuts name the song's sections.
+form ChorusTwice { |: Chorus :| }
+form VerseOnly   { Verse }
+
+score        { dancer ann  dancer bob }
+score chorus { dancer ann  form ChorusTwice  tempo 80 }
+score verse  { dancer bob  form VerseOnly  loop }

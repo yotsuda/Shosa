@@ -1,0 +1,42 @@
+title "Solo"
+music "song.lys"
+
+figure solo
+dancer solo humanoid on solo
+
+// Intro: 2 bars. Hands to the hips, a light bounce.
+section Intro {
+  solo {
+    arms  { hip:2 hold:2 | hold:4 | }
+    steps { both.low@small both.mid both.low@small both.mid | % | }
+  }
+}
+
+// Verse: 4 bars. Side-together steps, the arms swing out low and back.
+section Verse {
+  solo {
+    steps { left.side together right.side together | % | % | % | }
+    arms  { side.low:1 down:1 side.low:1 down:1 | % | % | % | }
+  }
+}
+
+// Chorus: 4 bars. The arms are open and high ON its first beat:
+// they travel there over the last beat of whatever is played before (the upbeat).
+section Chorus {
+  upbeat 1
+  solo {
+    arms  { side.high:1!open | hold:1 clap:1 side.high:2 | up:2 side.high:2 | hold:1 clap:1 side.high:2 | up:2 side:1 side.low:1 | }
+    steps { left.fwd together right.back together | right.fwd together left.back together | %2 | }
+  }
+}
+
+// Outro: 2 bars. A clap ON its first beat, then come to rest.
+section Outro {
+  upbeat 1
+  solo {
+    arms  { clap:1!clap | hold:1 side:1 down:2 | hold:4 | }
+    steps { both.low:1 both.mid:1 hold:2 | hold:4 | }
+  }
+}
+
+score { dancer solo }

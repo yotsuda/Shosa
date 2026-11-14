@@ -4,8 +4,8 @@ title "Duet"
 tempo 72
 time 4/4
 
-figure a "Lead"
-figure b "Follow"
+figure a
+figure b
 dancer ann humanoid on a  at -0.6 0  facing stageLeft
 dancer ben humanoid on b  at 0.6 0   facing stageRight
 
@@ -21,3 +21,6 @@ section Greet {
     rightArm { hold:4 | a.hand:2 down:2 }
   }
 }
+
+form { Greet }
+score { dancer ann  dancer ben }

@@ -1,0 +1,47 @@
+// One dancer dancing to song.lys.
+// The song (from `shosa check`): Intro 2 bars, Verse 4, Chorus 4, Verse 4, Chorus 4, Outro 2; 4/4 at 108.
+title "Song dance"
+music "song.lys"
+
+figure solo
+dancer solo humanoid on solo
+
+// Intro: sway, arms come up through the side.
+section Intro {
+  solo {
+    steps { shift.left:2 shift.right:2 | shift.left:2 shift.center:2 | }
+    arms  { hold:4 | side.low:2 side:2 | }
+  }
+}
+
+// Verse: step-touch side to side, arms swing; the second time the head looks around too.
+section Verse {
+  solo {
+    steps { left.side together right.side together | % | left.fwd together right.back together | left.side together right.side together | }
+    arms  { side:2 side.high:2 | side:2 side.low:2 | fwd:2 side:2 | side.high:2 down:2 | }
+    head  { verse 2 { fwd.left:2 fwd:2 | fwd.right:2 fwd:2 | } }
+  }
+}
+
+// Chorus: claps on the count of 2 and 4 (events that end at beats 1 and 3), a jump in the last bar.
+// Feet end as they begin (together, facing front), so the chorus alone can loop.
+section Chorus {
+  solo {
+    steps { left.side together right.side together | % | both.low:1 both.mid:1 both.low:1 both.mid:1 | jump:1 hold:3 | }
+    arms  { side.low:1/2 clap:1/2!clap side:1 side.low:1/2 clap:1/2!clap side:1 | % | fwd.high:2 up:2 | side:2 down:2 | }
+  }
+}
+
+// Outro: a bow.
+section Outro {
+  solo {
+    torso { fwd.60:3 hold:1 | up:2 hold:2 | }
+    arms  { side.low:2 down:2 | hold:4 | }
+  }
+}
+
+form chorus { Chorus }
+
+score          { dancer solo }                              // the whole song
+score practice { dancer solo  tempo 75% }                   // the whole song at three quarters of its speed
+score chorus   { dancer solo  form chorus  loop  tempo 50% }   // the chorus alone, round and round, at half speed

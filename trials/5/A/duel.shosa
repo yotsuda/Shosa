@@ -1,0 +1,43 @@
+// Two fighters face to face, 1.5 m apart: a bow, one strikes, the other blocks, back to guard.
+title "Duel"
+tempo 120
+time 4/4
+
+figure attacker
+figure defender
+dancer ann humanoid on attacker at -0.75 0 facing stageLeft
+dancer ben humanoid on defender at 0.75 0 facing stageRight
+
+pose guard {
+  steps { left.fwd.low@small }
+  arms  { fwd.high@bent }
+}
+
+// A bow of one bar: down in two beats, stay one, up in one.
+move salute { torso { fwd.60:2 hold:1 up:1 } }
+
+// Bar 1: both bow. Bar 2: both take guard.
+section Bow {
+  attacker { body { salute:4 | guard:2 hold:2 | } }
+  defender { body { salute:4 | guard:2 hold:2 | } }
+}
+
+// Bar 1: the attacker steps in and strikes with the right (lands at beat 1.5);
+//        the defender steps back, leans away and raises the left arm at the same moment.
+// Bar 2: both go back to where they stood, in guard.
+section Attack {
+  attacker {
+    steps    { left.fwd.low@large:1 right.back.low@small:1 hold:2 | right.back.low@large:1 left.fwd.low@small:1 hold:2 | }
+    rightArm { skip:1 fwd:1@sharp!strike guard:1 skip:1 | skip:4 | }
+  }
+  defender {
+    steps   { hold:1/2 right.back.low:1 hold:5/2 | right.back.low@small:1 hold:3 | }
+    leftArm { skip:1 head:1/2!block hold:3/2 guard:1 | skip:4 | }
+    torso   { skip:1 back.70:1/2 hold:3/2 up:1 | skip:4 | }
+  }
+}
+
+form { Bow Attack }
+
+score          { dancer ann  dancer ben }
+score attacker { dancer ann }

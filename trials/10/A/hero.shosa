@@ -1,0 +1,40 @@
+title "Hero"
+tempo 120
+time 4/4
+
+figure hero
+dancer hero humanoid on hero
+
+pose guard {
+  steps { left.fwd.low@small }
+  arms  { fwd.high@bent }
+}
+
+move jab   { leftArm  { fwd:1/2@sharp!jab guard:1/2 } }
+move cross { rightArm { fwd:1/2@sharp!cross guard:1/2 } }
+move kick  { rightLeg { fwd.low:1/2@bent fwd:1/2@sharp!kick fwd.low:1/2@bent down:1/2 } }
+
+// Breathing in guard: the knees give a little and come back, the chest with them.
+section Idle {
+  hero {
+    body  { guard:4 | guard:4 | }
+    steps { { both.low@small:2 both.low:2 } | q | }
+    torso { fwd.80:2 up:2 | % | }
+  }
+}
+
+// Jab, cross, kick: one bar. The guard it starts in belongs to the first play.
+section Attack {
+  hero {
+    body { verse 1 { guard:0 } jab:1 cross:1 kick:2 | }
+  }
+}
+
+form Idle     { Idle }
+form Attack   { Attack }
+form Finisher { Attack tempo 130% Attack }
+
+score Idle     { dancer hero  form Idle  loop }
+score Attack   { dancer hero  form Attack }
+score Replay   { dancer hero  form Attack  tempo 50% }
+score Finisher { dancer hero  form Finisher }

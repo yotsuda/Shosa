@@ -1,0 +1,25 @@
+figure boss
+dancer boss humanoid on boss
+
+pose c1 { steps { left.side.low }  arms { fwd.80 } }
+pose c2 { steps { left.side.low }  arms { fwd.70 } }
+pose c3 { steps { left.side.low }  arms { back.80 } }
+pose c4 { steps { left.side.low }  arms { side.80 } }
+pose ready { steps { left.side.low }  arms { fwd.low@bent } }
+
+section S1 { boss { body  { c1:0 hold:3bar | } } }
+section S2 { boss { body  { c2:0 hold:3bar | } } }
+section S3 { boss { body  { c3:0 hold:3bar | } } }
+section S5 { boss { body  { c4:0 hold:3bar | } } }
+section Ready { boss { body { ready:0 } } }
+section S4 { boss { rightArm { up:2 fwd:2 | ready:4 | } } }
+form S1 { S1 }
+form S2 { S2 }
+form S3 { S3 }
+form S4 { Ready |: S4 :| }
+form S5 { S5 }
+score S1 { dancer boss form S1 }
+score S2 { dancer boss form S2 }
+score S3 { dancer boss form S3 }
+score S4 { dancer boss form S4 }
+score S5 { dancer boss form S5 }

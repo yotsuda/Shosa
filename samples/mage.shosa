@@ -1,9 +1,11 @@
 // Mage — `free` on the dancer: the rules of weight and gravity do not apply to this body,
-// so it can hang in the air. In a file without figures the dancer line has no `on`.
+// so it can hang in the air.
 title "Mage"
 tempo 90
 
-dancer mage humanoid free
+
+figure mage
+dancer mage humanoid on mage free
 
 pose hover {
   steps    { lift(0.3) }                    // the feet 0.3 m above the floor
@@ -11,14 +13,24 @@ pose hover {
   arms     { side.low }
 }
 
-section Float loop {
-  body  { hover:4 }
-  arms  { side.-30:2 side.low:2 }
+section Float {
+  mage {
+    body  { hover:4 }
+    arms  { side.-30:2 side.low:2 }
+  }
 }
 
 section Cast {
-  body  { hover:0 }
-  arms  { side.high:2 up:1 fwd:0.15s@sharp!cast hold:1 side.low:2 }
-  torso { back.80:3 fwd.80:0.15s@sharp up:2 }
-  head  { fwd.20:3 fwd:0.15s@sharp }
+  mage {
+    body  { hover:0 }
+    arms  { side.high:2 up:1 fwd:0.15s@sharp!cast hold:1 side.low:2 }
+    torso { back.80:3 fwd.80:0.15s@sharp up:2 }
+    head  { fwd.20:3 fwd:0.15s@sharp }
+  }
 }
+
+form Float { Float }
+form Cast { Cast }
+
+score Float { dancer mage  form Float  loop }
+score Cast { dancer mage  form Cast }

@@ -6,22 +6,22 @@
     { "include": "#comment" },
     { "include": "#string" },
     {
-      "comment": "section NAME [loop] [inplace] {",
-      "match": "(?<![.@!:\\w])(section)\\b(?:[ \\t]+(?!(?:loop|inplace)\\b)([A-Za-z_][A-Za-z0-9_]*))?((?:[ \\t]+(?:loop|inplace)\\b)*)",
+      "comment": "section NAME {",
+      "match": "(?<![.@!:\\w])(section)\\b(?:[ \\t]+([A-Za-z_][A-Za-z0-9_]*))?",
       "captures": {
         "1": { "name": "keyword.control.shosa" },
-        "2": { "name": "entity.name.section.shosa" },
-        "3": { "patterns": [{ "name": "storage.modifier.shosa", "match": "\\b(loop|inplace)\\b" }] }
+        "2": { "name": "entity.name.section.shosa" }
       }
     },
+    { "comment": "In a score: loop, inplace.", "name": "storage.modifier.shosa", "match": "(?<![.@!:\\w])(loop|inplace)\\b(?![.:@])" },
     {
-      "comment": "dancer NAME humanoid [on FIGURE] [at X Z] [facing …] [mirror] [delay N] [free] [in SECTION …] — one line. In a score: dancer NAME.",
+      "comment": "dancer NAME humanoid on FIGURE [at X Z] [facing …] [mirror] [delay N] [free] [in SECTION …] — one line. In a score: dancer NAME.",
       "begin": "(?<![.@!:\\w])(dancer)\\b(?:[ \\t]+([A-Za-z_][A-Za-z0-9_]*))?",
       "beginCaptures": {
         "1": { "name": "keyword.control.shosa" },
         "2": { "name": "entity.name.type.dancer.shosa" }
       },
-      "end": "(?=[{}])|(?=\\b(?:form|tempo|title|music|score)\\b)|$",
+      "end": "(?=[{}])|(?=\\b(?:form|tempo|title|music|score|dancer|loop|inplace)\\b)|$",
       "name": "meta.dancer.shosa",
       "patterns": [
         { "include": "#comment" },
@@ -40,7 +40,8 @@
         "2": { "name": "entity.name.function.shosa" }
       }
     },
-    { "name": "keyword.control.shosa", "match": "(?<![.@!:\\w])(title|tempo|time|fps|music|q)\\b(?!\\.)" },
+    { "name": "keyword.control.shosa", "match": "(?<![.@!:\\w])(title|tempo|time|fps|music|q|verse)\\b(?!\\.)" },
+    { "name": "keyword.control.shosa", "match": "(?<![.@!:\\w])upbeat(?=[ \\t]+\\d)" },
     { "name": "entity.name.function.track.shosa", "match": "\\b(body|steps|arms|leftArm|rightArm|leftLeg|rightLeg|torso|head)\\b(?=\\s*\\{)" },
     {
       "comment": "@turn(left.quarter): an annotation with arguments.",
@@ -60,7 +61,7 @@
     { "name": "variable.other.constant.mark.shosa", "match": "![A-Za-z_][A-Za-z0-9_]*" },
     {
       "comment": "A length: beats (:2 :1/2 :1.5), seconds (:0.3s), frames (:12f).",
-      "match": "(:)(\\d+(?:\\.\\d+)?(?:/\\d+)?)(?:([sf])\\b)?",
+      "match": "(:)(\\d+(?:\\.\\d+)?(?:/\\d+)?)(?:(bar|[sf])\\b)?",
       "captures": {
         "1": { "name": "punctuation.separator.duration.shosa" },
         "2": { "name": "constant.numeric.duration.shosa" },
@@ -81,6 +82,8 @@
       }
     },
     { "name": "punctuation.section.brackets.end.shosa", "match": "\\]" },
+    { "comment": "tempo 50%: a number in per cent, not the sign of a bar again.", "name": "constant.numeric.percent.shosa", "match": "(?<![A-Za-z0-9_.])\\d+(?:\\.\\d+)?%" },
+    { "comment": "tempo 4. = 60: a tempo by its note.", "name": "keyword.operator.equals.shosa", "match": "=" },
     { "comment": "% and %2: the bar(s) before, again.", "name": "keyword.control.repeat.shosa", "match": "%\\d*" },
     { "comment": "A tie over a bar line: kick:2~ | :1.", "name": "keyword.operator.tie.shosa", "match": "~" },
     { "include": "#number" },

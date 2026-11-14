@@ -53,11 +53,14 @@ public class LanguageServerTests
             Notify("textDocument/didChange", new { textDocument = new { uri = Uri, version = ++_version }, contentChanges = new[] { change } });
         }
 
-        public string[] Complete(string after)
+        public string[] Complete(string after) => Items(after).Select(i => i.GetProperty("label").GetString()!).ToArray();
+
+        public JsonElement[] Items(string after)
         {
-            int offset = Text.IndexOf(after, StringComparison.Ordinal) + after.Length;
-            var items = Request("textDocument/completion", new { textDocument = new { uri = Uri }, position = PositionOf(offset) });
-            return items.EnumerateArray().Select(i => i.GetProperty("label").GetString()!).ToArray();
+            int at = Text.IndexOf(after, StringComparison.Ordinal);
+            Assert.True(at >= 0, $"'{after}' is not in the text");
+            var items = Request("textDocument/completion", new { textDocument = new { uri = Uri }, position = PositionOf(at + after.Length) });
+            return items.EnumerateArray().ToArray();
         }
 
         public string? Hover(string on)
@@ -92,8 +95,8 @@ public class LanguageServerTests
         // The range the editor will underline is the misspelt word.
         int line = Samples.Walk[..Samples.Walk.IndexOf("side:2", StringComparison.Ordinal)].Count(c => c == '\n');
         Assert.Equal(line, diagnostic.GetProperty("range").GetProperty("start").GetProperty("line").GetInt32());
-        // tempo and time before the section, the form after it.
-        Assert.Equal(3, session.Last("shosa/clip").GetProperty("reusedItems").GetInt32());
+        // tempo, time, the figure and the dancer before the section; the form and the score after it.
+        Assert.Equal(6, session.Last("shosa/clip").GetProperty("reusedItems").GetInt32());
 
         session.Replace("sid:2", "fwd:2");
         Assert.Empty(session.Last("textDocument/publishDiagnostics").GetProperty("diagnostics").EnumerateArray());
@@ -124,39 +127,87 @@ public class LanguageServerTests
         Assert.Contains("turn", session.Complete("steps { "));
         Assert.DoesNotContain("hip", session.Complete("steps { "));
         Assert.Contains("hip", session.Complete("arms  { "));
-        Assert.Contains("leftLeg", session.Complete("section Walk {\n"));
-        Assert.Equal(new[] { "Walk" }, session.Complete("form { "));
+        // In a section the file's figures, never a track; the tracks inside a figure's block.
+        Assert.Equal(new[] { "solo", "upbeat", "tempo", "time" }, session.Complete("section Walk {\n"));   // what a section may begin with
+        Assert.Contains("leftLeg", session.Complete("solo {\n"));
+        Assert.Equal(new[] { "Walk", "tempo", "time" }, session.Complete("form { "));   // a tempo or a time for the section named next
+        // After a whole number in the length of a hold or a skip: the unit `bar`. Of nothing else.
+        Assert.Equal(new[] { "bar" }, session.Complete("| hold:4"));
+        Assert.Empty(session.Complete("side:2"));
+        Assert.Contains("verse", session.Complete("steps { "));
 
         session.Replace("down:2", "down:2@");
         var annotations = session.Complete("down:2@");
         Assert.Contains("body", annotations);
         Assert.DoesNotContain("small", annotations);
+
+        // In a form, after `tempo` comes a number; the word says whose tempo it is.
+        session.Replace("form { ", "form { tempo 97 ");
+        Assert.Empty(session.Complete("form { tempo "));
+        Assert.Contains("Walk", session.Complete("form { tempo 97 "));
+        Assert.Contains("the section named next", session.Hover("tempo 97 "));
     }
 
     [Fact]
     public void Completion_knows_the_figures_dancers_and_definitions_of_the_file()
     {
         var session = new Session("""
-            figure a "Lead"
+            figure a
             figure b
             dancer ann humanoid on a facing front
+            dancer ben humanoid on b
+
             pose guard { arms { fwd.high@bent } }
             move jab { leftArm { fwd guard } }
-            section Greet loop {
+            section Greet {
               a { body { jab } rightArm { b. } }
             }
+            form { Greet }
+            form short { Greet }
+            score { dancer ann  dancer ben }
+            score practice { dancer ann  form short  loop }
 
             """);
 
         Assert.Equal(new[] { "humanoid" }, session.Complete("dancer ann "));
         Assert.Equal(new[] { "a", "b" }, session.Complete("humanoid on "));
         Assert.Contains("stageLeft", session.Complete("facing "));
-        Assert.Contains("inplace", session.Complete("section Greet "));
-        Assert.Equal(new[] { "a", "b" }, session.Complete("section Greet loop {\n"));
-        Assert.Equal(new[] { "guard", "jab", "hold", "skip", "q" }, session.Complete("a { body { "));
+        Assert.Empty(session.Complete("section Greet "));   // loop and inplace are said in the score
+        Assert.Equal(new[] { "a", "b", "upbeat", "tempo", "time" }, session.Complete("section Greet {\n"));
+        Assert.Equal(new[] { "guard", "jab", "hold", "skip", "q", "verse" }, session.Complete("a { body { "));
+        Assert.DoesNotContain("verse", session.Complete("move jab { leftArm { "));   // a move is not played a second time
+        Assert.DoesNotContain("verse", session.Complete("rightArm { b."));
         Assert.Contains("hand", session.Complete("rightArm { b."));
         Assert.Contains("pose", session.Complete("\n\n"));
         Assert.Contains("Move of this file", session.Hover("jab }"));
+
+        // In a score: what it can say, the file's dancers after `dancer`, its named forms after `form`.
+        Assert.Equal(new[] { "dancer", "form", "loop", "inplace", "tempo", "title", "music" }, session.Complete("score practice { "));
+        Assert.Equal(new[] { "dancer", "form", "loop", "inplace", "tempo", "title", "music" }, session.Complete("form short  "));
+        Assert.Equal(new[] { "ann", "ben" }, session.Complete("score practice { dancer "));
+        Assert.Equal(new[] { "short" }, session.Complete("dancer ann  form "));
+    }
+
+    [Fact]
+    public void A_top_level_word_is_completed_to_the_least_its_item_needs_with_the_names_of_the_file()
+    {
+        var session = new Session("""
+            figure lead
+            dancer alice humanoid on lead
+
+            section Verse { lead { arms { side } } }
+            section Chorus { lead { arms { fwd } } }
+
+            """);
+        string Snippet(string word) => session.Items("\n\n").Single(i => i.GetProperty("label").GetString() == word).GetProperty("insertText").GetString()!;
+
+        Assert.Equal("form { ${1:Verse Chorus} }", Snippet("form"));
+        Assert.Equal("score { dancer ${1:alice} }", Snippet("score"));
+        Assert.Equal("dancer ${1:alice} humanoid on ${2:lead}", Snippet("dancer"));
+        Assert.StartsWith("section ${1:Main} {\n  ${2:lead} {", Snippet("section"));
+        // Nothing is left to add after them: the file they complete has no diagnostics.
+        session.Replace("\n\n", "\nform { Verse Chorus }\nscore { dancer alice }\n");
+        Assert.Empty(session.Last("textDocument/publishDiagnostics").GetProperty("diagnostics").EnumerateArray());
     }
 
     [Fact]
@@ -165,7 +216,11 @@ public class LanguageServerTests
         var session = new Session("""
             pose guard { arms { fwd.high@bent } }
             move combo { leftArm { fwd:1/2 guard:1/2 fwd guard } rightArm { skip:2 fwd } }
-            section Fight { body { combo combo:6 } }
+            figure solo
+            dancer solo humanoid on solo
+            section Fight { solo { body { combo combo:6 } } }
+            form { Fight }
+            score { dancer solo }
 
             """);
 

@@ -1,0 +1,54 @@
+// A dance in four parts, cut four ways. No song.
+title "Cuts"
+
+figure solo
+dancer solo humanoid on solo
+
+// 4 bars of 4/4 at 100: side-close each way, the arms opening and closing.
+section Intro {
+  tempo 100
+  time 4/4
+  solo {
+    steps { left.side together right.side together | % | %2 | }
+    arms  { side:2 down:2 | % | side.high:2 down:2 | % | }
+  }
+}
+
+// 8 bars of 2/4 at 160: quick steps on the spot, claps.
+section Fast {
+  tempo 160
+  time 2/4
+  solo {
+    steps { left.place right.place | % | %2 | left.fwd together | right.back together | %2 | }
+    arms  { clap:1 side.low:1 | % | %2 | fwd:1 chest:1 | % | %2 | }
+  }
+}
+
+// 8 bars, carrying on in whatever Fast left (2/4 at 160): slow sways, the arms floating.
+section Cool {
+  solo {
+    steps { shift.left:2 | shift.right:2 | %2 | both.low:2 | both.mid:2 | shift.center:2 | hold:2 | }
+    arms  { side:2 | side.high:2 | side:2 | side.low:2 | fwd:2 | fwd.low:2 | down:2 | hold:2 | }
+    head  { fwd.left:2 | fwd:2 | fwd.right:2 | fwd:2 | skip:4bar | }
+  }
+}
+
+// 2 bars of 4/4 at 100 again: a step out, arms up, and a bow.
+section Outro {
+  tempo 100
+  time 4/4
+  solo {
+    steps { left.side:2 together:2 | hold:4 | }
+    arms  { side:2 up:2 | side:2 down:2 | }
+    torso { skip:4 | fwd.60:2 up:2 | }
+  }
+}
+
+form      { Intro Fast Cool Outro }
+form fast { Fast }
+form cool { tempo 160 time 2/4 Cool }      // alone, Cool does not hear Fast: say what Fast left
+
+score      { dancer solo }                            // the whole dance
+score fast { dancer solo  form fast  tempo 66.6667% }   // Fast alone at two thirds of its speed
+score cool { dancer solo  form cool }                 // Cool alone, as it sounds in the whole dance
+score show { dancer solo  tempo 120% }                // the whole dance one fifth faster
