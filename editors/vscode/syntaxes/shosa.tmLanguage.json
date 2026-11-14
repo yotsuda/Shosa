@@ -3,16 +3,84 @@
   "name": "Shosa",
   "scopeName": "source.shosa",
   "patterns": [
-    { "name": "comment.line.double-slash.shosa", "match": "//.*$" },
-    { "name": "string.quoted.double.shosa", "match": "\"[^\"\\n]*\"?" },
-    { "name": "keyword.control.shosa", "match": "\\b(title|tempo|time|figure|phrase|form|repeat)\\b" },
-    { "name": "keyword.other.property.shosa", "match": "\\b(rig|at|facing)\\b" },
-    { "name": "entity.name.function.track.shosa", "match": "\\b(steps|arms|leftArm|rightArm|leftLeg|rightLeg|torso|head)\\b(?=\\s*\\{)" },
+    { "include": "#comment" },
+    { "include": "#string" },
+    {
+      "comment": "section NAME [loop] [inplace] {",
+      "match": "(?<![.@!:\\w])(section)\\b(?:[ \\t]+(?!(?:loop|inplace)\\b)([A-Za-z_][A-Za-z0-9_]*))?((?:[ \\t]+(?:loop|inplace)\\b)*)",
+      "captures": {
+        "1": { "name": "keyword.control.shosa" },
+        "2": { "name": "entity.name.section.shosa" },
+        "3": { "patterns": [{ "name": "storage.modifier.shosa", "match": "\\b(loop|inplace)\\b" }] }
+      }
+    },
+    {
+      "comment": "dancer NAME humanoid [on FIGURE] [at X Z] [facing …] [mirror] [delay N] [free] [in SECTION …] — one line. In a score: dancer NAME.",
+      "begin": "(?<![.@!:\\w])(dancer)\\b(?:[ \\t]+([A-Za-z_][A-Za-z0-9_]*))?",
+      "beginCaptures": {
+        "1": { "name": "keyword.control.shosa" },
+        "2": { "name": "entity.name.type.dancer.shosa" }
+      },
+      "end": "(?=[{}])|(?=\\b(?:form|tempo|title|music|score)\\b)|$",
+      "name": "meta.dancer.shosa",
+      "patterns": [
+        { "include": "#comment" },
+        { "include": "#string" },
+        { "name": "support.type.shosa", "match": "\\bhumanoid\\b" },
+        { "name": "keyword.other.clause.shosa", "match": "\\b(on|at|facing|mirror|delay|free|in)\\b" },
+        { "name": "constant.language.facing.shosa", "match": "\\b(front|back|stageLeft|stageRight)\\b" },
+        { "include": "#number" }
+      ]
+    },
+    {
+      "comment": "figure NAME, pose NAME, move NAME, form [NAME], score [NAME]; in a score: form NAME, score NAME.",
+      "match": "(?<![.@!:\\w])(figure|pose|move|form|score)\\b(?:[ \\t]+([A-Za-z_][A-Za-z0-9_]*))?",
+      "captures": {
+        "1": { "name": "keyword.control.shosa" },
+        "2": { "name": "entity.name.function.shosa" }
+      }
+    },
+    { "name": "keyword.control.shosa", "match": "(?<![.@!:\\w])(title|tempo|time|fps|music|repeat)\\b(?!\\.)" },
+    { "name": "entity.name.function.track.shosa", "match": "\\b(body|steps|arms|leftArm|rightArm|leftLeg|rightLeg|torso|head)\\b(?=\\s*\\{)" },
+    {
+      "comment": "@turn(left.quarter): an annotation with arguments.",
+      "begin": "(@[A-Za-z_][A-Za-z0-9_]*)(\\()",
+      "beginCaptures": {
+        "1": { "name": "entity.name.tag.annotation.shosa" },
+        "2": { "name": "punctuation.section.arguments.begin.shosa" }
+      },
+      "end": "\\)|$",
+      "endCaptures": { "0": { "name": "punctuation.section.arguments.end.shosa" } },
+      "patterns": [
+        { "include": "#number" },
+        { "name": "variable.parameter.shosa", "match": "[A-Za-z_][A-Za-z0-9_]*" }
+      ]
+    },
     { "name": "entity.name.tag.annotation.shosa", "match": "@[A-Za-z_][A-Za-z0-9_]*" },
-    { "name": "constant.numeric.duration.shosa", "match": ":\\d+(\\.\\d+)?(/\\d+)?" },
-    { "name": "constant.numeric.shosa", "match": "-?\\b\\d+(\\.\\d+)?\\b" },
+    { "name": "variable.other.constant.mark.shosa", "match": "![A-Za-z_][A-Za-z0-9_]*" },
+    {
+      "comment": "A length: beats (:2 :1/2 :1.5), seconds (:0.3s), frames (:12f).",
+      "match": "(:)(\\d+(?:\\.\\d+)?(?:/\\d+)?)(?:([sf])\\b)?",
+      "captures": {
+        "1": { "name": "punctuation.separator.duration.shosa" },
+        "2": { "name": "constant.numeric.duration.shosa" },
+        "3": { "name": "keyword.other.unit.shosa" }
+      }
+    },
+    { "include": "#number" },
     { "name": "keyword.operator.bar.shosa", "match": "\\|" },
-    { "name": "comment.block.hold.shosa", "match": "\\bhold\\b" },
+    { "name": "keyword.operator.together.shosa", "match": "&" },
+    { "name": "keyword.operator.times.shosa", "match": "\\*" },
+    { "name": "comment.block.hold.shosa", "match": "(?<![.@!\\w])(hold|skip)\\b(?!\\.)" },
     { "name": "support.constant.level.shosa", "match": "(?<=\\.)(low|mid|high)\\b" }
-  ]
+  ],
+  "repository": {
+    "comment": { "name": "comment.line.double-slash.shosa", "match": "//.*$" },
+    "string": { "name": "string.quoted.double.shosa", "match": "\"[^\"\\n]*\"?" },
+    "number": {
+      "comment": "120, 0.4, -1.5, and the degrees after a dot: fwd.-70, back.70.",
+      "name": "constant.numeric.shosa",
+      "match": "(?<![A-Za-z0-9_])-?\\d+(?:\\.\\d+)?\\b"
+    }
+  }
 }

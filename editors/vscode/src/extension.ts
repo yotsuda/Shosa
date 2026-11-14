@@ -7,14 +7,20 @@ import { LanguageClient, ServerOptions, TransportKind } from 'vscode-languagecli
 // knows how to draw. This file starts the one, opens the other, and carries three kinds of
 // message between editor and preview:
 //   server  -> preview : the solved movement, after every edit           (shosa/clip)
-//   editor  -> preview : where the cursor is, so the preview shows that word's pose
+//   editor  -> preview : where the cursor is, so the preview shows the clip of that section
+//                        and that word's pose
 //   preview -> editor  : which words are being performed (to light them up), and which
 //                        word to go to when a limb is clicked
+// Every position is an offset into the document in UTF-16 code units: what VS Code's
+// offsetAt / positionAt count, and what the server's spans are (a C# string index).
 
 interface ClipMessage {
   uri: string;
   version: number;
+  /** The first clip (an empty one when the file has none). */
   clip: unknown;
+  /** Every clip of the file: without a `form`, one per section. */
+  clips?: unknown[];
 }
 
 let client: LanguageClient | undefined;
@@ -37,18 +43,30 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   }
 
   const serverOptions: ServerOptions = { command: 'dotnet', args: [dll], transport: TransportKind.stdio };
+  const editorFor = (uri: string | undefined) =>
+    vscode.window.visibleTextEditors.find(e => e.document.uri.toString() === uri);
+
+  // The preview is given every clip and where the cursor is; it shows one clip, and uses
+  // the cursor to choose it when it has no clip of its own to stay on.
+  const post = (message: ClipMessage, reset: boolean) => {
+    const editor = editorFor(message.uri);
+    void panel?.webview.postMessage({
+      type: 'clip',
+      clips: message.clips ?? (message.clip ? [message.clip] : []),
+      offset: editor ? editor.document.offsetAt(editor.selection.active) : -1,
+      reset,
+    });
+  };
+
   client = new LanguageClient('shosa', 'Shosa', serverOptions, { documentSelector: [{ language: 'shosa' }] });
   client.onNotification('shosa/clip', (message: ClipMessage) => {
     clips.set(message.uri, message);
     if (panel && panelUri === message.uri) {
-      void panel.webview.postMessage({ type: 'clip', clip: message.clip });
+      post(message, false);
     }
   });
   await client.start();
   context.subscriptions.push({ dispose: () => void client?.stop() });
-
-  const editorFor = (uri: string | undefined) =>
-    vscode.window.visibleTextEditors.find(e => e.document.uri.toString() === uri);
 
   const show = (uri: string) => {
     panelUri = uri;
@@ -58,7 +76,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     panel.title = 'Preview ' + path.basename(vscode.Uri.parse(uri).fsPath);
     const known = clips.get(uri);
     if (known) {
-      void panel.webview.postMessage({ type: 'clip', clip: known.clip, reset: true });
+      post(known, true);
     }
   };
 

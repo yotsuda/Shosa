@@ -1,8 +1,10 @@
 // The preview: the figures of one Shosa file, moving, inside a VS Code webview.
 //
-// It is given the solved movement ("clip": every joint at every frame, plus which source
-// span is performed when) and draws it. It never parses anything. Messages:
-//   in   { type: 'clip', clip, reset? }   a new movement (after every edit)
+// It is given the solved movement (the file's "clips": every joint at every frame, plus
+// which source span is performed when) and draws ONE clip at a time: the one whose section
+// the cursor is in, or the one picked in the selector. It never parses anything. Messages:
+//   in   { type: 'clip', clips, offset, reset? }   the movement (after every edit); offset
+//                                                  is the cursor, -1 if unknown
 //   in   { type: 'cursor', offset }       the editor's cursor moved
 //   out  { type: 'ready' }
 //   out  { type: 'active', spans }        [start, length] of the words being performed
@@ -24,6 +26,12 @@ style.textContent = `
            color: var(--vscode-descriptionForeground, #777); padding: 24px; text-align: center; pointer-events: none; }
   footer { display: flex; gap: 10px; align-items: center; padding: 6px 12px;
            border-top: 1px solid var(--vscode-panel-border, #ccc); }
+  header { display: flex; gap: 8px; align-items: center; padding: 4px 12px; min-height: 22px;
+           border-bottom: 1px solid var(--vscode-panel-border, #ccc); }
+  header[hidden], header [hidden] { display: none; }
+  #name { font-weight: 600; }
+  #kind { font-size: 11px; padding: 0 6px; border-radius: 8px;
+          color: var(--vscode-badge-foreground, #fff); background: var(--vscode-badge-background, #616161); }
   button { font: inherit; padding: 3px 12px; border: 0; border-radius: 3px; cursor: pointer; min-width: 5em;
            color: var(--vscode-button-foreground, #fff); background: var(--vscode-button-background, #0a66c2); }
   button:hover { background: var(--vscode-button-hoverBackground, #0858a8); }
@@ -35,7 +43,12 @@ style.textContent = `
 `;
 document.head.append(style);
 document.body.innerHTML = `
-  <div id="stage"><div id="empty">Nothing to perform yet: the file needs a figure and a phrase.</div></div>
+  <header id="bar" hidden>
+    <select id="clips" aria-label="Clip" hidden></select>
+    <span id="name" hidden></span>
+    <span id="kind" hidden></span>
+  </header>
+  <div id="stage"><div id="empty">Nothing to perform yet: the file needs a section.</div></div>
   <footer>
     <button id="play">Play</button>
     <input id="seek" type="range" min="0" max="1000" value="0" aria-label="Position">
@@ -47,6 +60,8 @@ document.body.innerHTML = `
 const stage = document.getElementById('stage'), empty = document.getElementById('empty');
 const playButton = document.getElementById('play'), seek = document.getElementById('seek');
 const beatLabel = document.getElementById('beat'), speed = document.getElementById('speed'), loop = document.getElementById('loop');
+const bar = document.getElementById('bar'), clipSelect = document.getElementById('clips');
+const nameLabel = document.getElementById('name'), kindLabel = document.getElementById('kind');
 
 // ---- Scene.
 const dark = document.body.classList.contains('vscode-dark') || document.body.classList.contains('vscode-high-contrast');
@@ -78,9 +93,13 @@ const jointGeometry = new THREE.SphereGeometry(0.036, 12, 10);
 const headGeometry = new THREE.SphereGeometry(0.105, 20, 16);
 const yAxis = new THREE.Vector3(0, 1, 0);
 
-let clip = null;
+let clips = [];         // every clip of the file
+let clip = null;        // the one shown: spans, sections and times below are all its own
 let figures = [];       // { data, bones: Mesh[], joints: Mesh[], points: Vector3[] }
-let beat = 0, playing = false, last = 0, lastActive = '';
+let beat = 0, playing = false, last = 0;
+let lastActive = null;  // what the editor was last told is performed; null: tell it again
+let wantLoop = true;    // the Loop box, for a clip that is not itself a loop
+let listed = null;      // the names the selector lists
 
 function channelOfBone(index) {
   // Which track moves this bone: named by the joint at its far end.
@@ -98,6 +117,10 @@ function build() {
       scene.remove(mesh);
       mesh.material.dispose();
     }
+  }
+  if (!clip) {
+    figures = [];
+    return;
   }
   const head = clip.joints.indexOf('head'), nose = clip.joints.indexOf('nose');
   figures = clip.figures.map((data, figureIndex) => {
@@ -146,7 +169,15 @@ function pose(frame) {
 const isActive = span => beat > span.t0 + 1e-9 && beat <= span.t1 + 1e-9;
 
 function show() {
-  if (!clip) return;
+  if (!clip) {
+    if (lastActive !== '') {
+      lastActive = '';
+      vscode.postMessage({ type: 'active', spans: [] });
+    }
+    beatLabel.textContent = '';
+    seek.value = 0;
+    return;
+  }
   pose(beat * 60 * clip.fps / clip.tempo);
 
   const seen = new Set(), spans = [];
@@ -172,6 +203,61 @@ function seekTo(value) {
   beat = Math.max(0, Math.min(clip ? clip.totalBeats : 0, value));
   show();
 }
+
+// ---- Which clip is shown.
+const sectionsOf = c => c.sections ?? [];
+const holds = (c, offset) => sectionsOf(c).some(s => offset >= s.src && offset <= s.src + s.len);
+
+// The clip with a section the cursor is in: the one shown if it has one (a section can be
+// in several clips), else the first. Null when the cursor is in no section.
+function clipAt(offset) {
+  if (typeof offset !== 'number' || offset < 0) return null;
+  return (clip && clips.includes(clip) && holds(clip, offset) ? clip : clips.find(c => holds(c, offset))) ?? null;
+}
+
+const clipLabel = c => c.name || '(form)';
+
+function header() {
+  const names = clips.map(clipLabel);
+  if (listed !== names.join('\n')) {
+    // Only when the names changed: filling it again would close an open list on every edit.
+    listed = names.join('\n');
+    clipSelect.replaceChildren(...names.map((name, i) => new Option(name, String(i))));
+  }
+  clipSelect.hidden = clips.length < 2;
+  clipSelect.value = String(clips.indexOf(clip));
+  nameLabel.hidden = clips.length !== 1 || !clip || !clip.name;
+  nameLabel.textContent = clip ? clip.name : '';
+  const kind = !clip ? '' : clip.loop ? (clip.inplace ? 'loop, in place' : 'loop') : clip.inplace ? 'in place' : '';
+  kindLabel.hidden = !kind;
+  kindLabel.textContent = kind;
+  kindLabel.title = !clip || !clip.loop ? '' : clip.inplace
+    ? 'The end joins the start; the travel over the floor is taken out.'
+    : 'The end joins the start. The figure travels, so each round starts again from where the first began.';
+  bar.hidden = clipSelect.hidden && nameLabel.hidden && kindLabel.hidden;
+  // A loop repeats whatever the box says; the box shows it and comes back afterwards.
+  loop.checked = (clip && clip.loop) || wantLoop;
+  loop.disabled = !!(clip && clip.loop);
+}
+
+function setClip(next, keepBeat) {
+  const rebuild = !next || !clip || figures.length !== next.figures.length;
+  clip = next;
+  if (rebuild) build(); else figures.forEach((figure, i) => { figure.data = clip.figures[i]; });
+  empty.style.display = clip && clip.figures.length && clip.totalBeats > 0 ? 'none' : 'flex';
+  if (!keepBeat) beat = 0;
+  if (!clip) setPlaying(false);
+  lastActive = null;
+  header();
+  seekTo(beat);
+}
+
+clipSelect.addEventListener('change', () => {
+  const picked = clips[Number(clipSelect.value)];
+  if (picked && picked !== clip) setClip(picked, false);
+  clipSelect.blur();   // so that Space plays again instead of opening the list
+});
+loop.addEventListener('change', () => { wantLoop = loop.checked; });
 
 function setPlaying(value) {
   playing = value;
@@ -223,21 +309,24 @@ renderer.domElement.addEventListener('pointerup', event => {
 window.addEventListener('message', event => {
   const message = event.data;
   if (message.type === 'clip') {
-    const rebuild = !clip || clip.figures.length !== message.clip.figures.length;
-    clip = message.clip;
-    if (rebuild) build(); else figures.forEach((figure, i) => { figure.data = clip.figures[i]; });
-    empty.style.display = clip.figures.length && clip.totalBeats > 0 ? 'none' : 'flex';
-    if (message.reset) {
-      beat = 0;
-      setPlaying(false);
-    }
-    // An edit keeps the moment being looked at: change a word and see that pose change.
-    lastActive = '';
-    seekTo(beat);
-  } else if (message.type === 'cursor' && clip && !playing) {
+    const shown = clip && !message.reset ? clip.name : null;
+    clips = message.clips ?? [];
+    // An edit keeps the clip being looked at (by name: the objects are all new), and the
+    // moment: change a word and see that pose change. If the name is gone (it is being
+    // renamed, or the file is another one), the clip the cursor is in, else the first.
+    const same = shown === null ? null : clips.find(c => c.name === shown) ?? null;
+    const under = same ? null : clips.find(c => holds(c, typeof message.offset === 'number' ? message.offset : -1)) ?? null;
+    if (message.reset) setPlaying(false);
+    setClip(same ?? under ?? clips[0] ?? null, !message.reset && (same !== null || under !== null));
+  } else if (message.type === 'cursor' && clip) {
+    // The cursor in a section of another clip shows that clip; in no section (the headers,
+    // a pose or a move) it changes nothing.
+    const under = clipAt(message.offset);
+    if (under && under !== clip) setClip(under, false);
+    if (playing) return;
     const at = clip.spans.filter(s => message.offset >= s.start && message.offset <= s.start + s.length);
     if (at.length) {
-      // A word in a repeated phrase is performed several times: prefer the next one.
+      // A word in a repeated section is performed several times: prefer the next one.
       const next = at.find(s => s.t1 > beat - 1e-9 && s.t0 <= beat + 1e-9) ?? at.find(s => s.t1 > beat) ?? at[0];
       seekTo(next.t1);
     }
@@ -257,7 +346,11 @@ function tick(now) {
   if (playing && clip) {
     beat += (now - last) / 1000 * clip.tempo / 60 * Number(speed.value);
     if (beat >= clip.totalBeats) {
-      if (loop.checked && clip.totalBeats > 0) {
+      if (clip.loop && clip.totalBeats > 0) {
+        // The last frame of a loop IS its first: carry on from there with no stop, keeping
+        // the time left over. A loop that travels starts again from frame 0.
+        beat %= clip.totalBeats;
+      } else if (wantLoop && clip.totalBeats > 0) {
         beat = 0;
       } else {
         beat = clip.totalBeats;

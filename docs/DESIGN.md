@@ -843,6 +843,20 @@ text ──▶ SyntaxTree ──▶ ScoreIr ──▶ MotionClip (クリップ�
 - `score` の `dancer` は「誰が出るか」だけ。`score` の中で `at` などを上書きすることはできない。
 - `form` で並べたときの `section` の `loop` `inplace` は無視する (クリップは `form` 全体)。
 - 走る (両足が離れる移動)、`turn.b` を互いに同時に行うときの厳密な解。
-- 複数アニメーションの glTF を Blender・Godot で開く確認 (往復試験と構造の試験はある)。
+- 複数アニメーションの glTF を Godot で開く確認。Blender 5.3 では確かめた: `fighter.glb` の 7 クリップが 7 つのアクションとして
+  正しい名前と長さで入り、`Idle` の関節位置は `tools/blender_check.py` で 0.05 mm 以内 (スクリプトが比べるのは最初のアクションだけ)。
+  `extras` を Blender・Godot がどう見せるかは見ていない。
 - 「進まない一歩」への情報の診断 (12.11)。ホバーに定義の長さを出すこと。
 
+
+### 13.10 エディター (VS Code)
+
+- 色づけ (`syntaxes/shosa.tmLanguage.json`) を新しい文法に合わせた。
+- 言語サーバーの `shosa/clip` は `clips` (全クリップ) と `clip` (先頭) を送る。プレビューは 1 つだけ見せる:
+  カーソルのある `section` を含むクリップ (`sections` の `src`/`len` で判定)。どの `section` にもいなければ今のクリップのまま。
+  クリップが 2 つ以上あれば選ぶ欄が出る。`loop` のクリップは終わりで止まらずに頭へ戻る。編集の後は同じ名前のクリップを同じ時刻で見せ続ける。
+- **`npm run build` と `npm run check` は通るが、VS Code で動かして見てはいない** (2026-11-14)。選ぶ欄、クリップの切り替え、ループの折り返しは未確認。
+  開発ホストの言語サーバーは `Shosa.Lsp\bin\Debug` のものなので、VS Code を閉じて `dotnet build Shosa.slnx` をしてから見る
+  (この日は VS Code が古い DLL を掴んでいて Debug の言語サーバーをビルドできず、試験は Release で回した)。
+- 分かっている残り: コマンドによるカーソル移動 (定義へ移動など) ではクリップが切り替わらない。印 (`marks`) はプレビューに描いていない。
+  `delay` のある踊り手がいる `loop` のクリップは、長さに遅れが足されるので継ぎ目が合わない。

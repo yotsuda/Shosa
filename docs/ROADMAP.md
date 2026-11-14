@@ -51,7 +51,7 @@ Shosa の価値が出るのは、拍に合った振付、一部だけの修正�
 | 求解器 (閉じた式と 2 関節の逆運動学) | 棒人形として動きが読める。自然さはない。ループ、その場の動き、浮く体、相手への接触を解く |
 | 回転つきの骨格 (`Skeleton.cs`)。関節位置から各骨の回転を求める | 動作。順運動学で位置に戻ることを試験 |
 | BVH の書き出し (`shosa bvh`) | 動作。往復試験あり。Blender 5.3 で読み、位置の一致と描画を確認 (`tools/blender_check.py`) |
-| glTF (`shosa gltf`) と VRM Animation (`shosa vrma`) の書き出し | 動作。往復試験あり。glTF は Blender 5.3 で、`.vrma` は three-vrm で VRoid 製のモデルに載せて確認 (`tools/vrm_check.html`)。glTF は 1 ファイルにクリップの数だけアニメーションを持つ (これを Blender・Godot で開く確認はまだ) |
+| glTF (`shosa gltf`) と VRM Animation (`shosa vrma`) の書き出し | 動作。往復試験あり。glTF は Blender 5.3 で、`.vrma` は three-vrm で VRoid 製のモデルに載せて確認 (`tools/vrm_check.html`)。glTF は 1 ファイルにクリップの数だけアニメーションを持つ (Blender 5.3 で 7 クリップを確認。Godot はまだ) |
 | CLI (`check` `sheet` `preview` `ir` `clip` `bvh` `gltf` `vrma` `grammar`、`--clip` `--score`) | 動作 |
 | AI 向け文法書 (語彙表から生成) | 新しい文法で書き直した。AI による執筆試験は古い文法で 1 回だけ (やり直しが次の一手) |
 | 言語サーバー (診断、補完、ホバー、動きの通知) | 動作。試験あり |
@@ -225,7 +225,7 @@ Shosa が決めた要所の姿勢と接地を条件に、間を学習済みの�
      第 2 段階の判断 (素材集にない固有の動きを 10 本、無理なく書けるか) はこの試験で見る。
    - **第 2 段階の 3 の 6: 曲の参照 (`music`)。** 今は構文だけ読んで情報の診断 (`SH1900`) を出す。
      `LilySharp.Core` の使い方は DESIGN.md 12.8 の「Lily# の口」。GPL の件を先に考える。`samples/dance.shosa` が題材 (`song.lys` はまだない)。
-   - 残っている小さな仕事は DESIGN.md 13.9。複数アニメーションの glTF を Blender・Godot で開く確認を含む。
+   - 残っている小さな仕事は DESIGN.md 13.9。
 
 拡張子 `.shosa` を使う他のソフトウェアは、Web 検索では見つからなかった (2026-11-14)。
 
