@@ -6,7 +6,7 @@ tempo 90
 dancer mage humanoid free
 
 pose hover {
-  steps    { both.high }
+  steps    { lift(0.3) }                    // the feet 0.3 m above the floor
   leftLeg  { fwd.-70@bent }
   arms     { side.low }
 }
