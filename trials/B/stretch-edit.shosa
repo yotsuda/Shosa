@@ -1,0 +1,42 @@
+title "Stretch"
+tempo 72
+time 4/4
+
+figure a "Mover" { rig humanoid }
+
+phrase ArmsUp {
+  a { arms { side:2 up:2 | } }
+}
+
+// Side bends; the arms follow the spine (left arm = side, right arm = across when leaning left).
+phrase SideBends {
+  a {
+    torso    { left.high:2 up:2 | right.high:2 up:2 | }
+    leftArm  { side.high:2 up:2 | across.high:2 up:2 | }
+    rightArm { across.high:2 up:2 | side.high:2 up:2 | }
+  }
+}
+
+phrase Fold {
+  a {
+    torso { fwd:2 hold:2 | up:2 hold:2 | }
+    arms  { fwd:1 down:1 hold:2 | hold:4 | }
+  }
+}
+
+phrase Squat {
+  a {
+    steps { both.low:2 both.mid:2 | }
+    arms  { fwd:2 down:2 | }
+  }
+}
+
+phrase Balance {
+  a {
+    steps    { left.place hold:3 | hold:1 right.place hold:2 | hold:2 together hold:1 | }
+    rightLeg { hold:1 side.low:1 hold:2 | down:1 hold:3 | hold:4 | }
+    leftLeg  { hold:4 | hold:2 fwd.low:1@bent hold:1 | hold:1 down:1 hold:2 | }
+  }
+}
+
+form { ArmsUp SideBends Fold Squat Balance }

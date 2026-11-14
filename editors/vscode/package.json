@@ -1,0 +1,63 @@
+{
+  "name": "shosa",
+  "displayName": "Shosa",
+  "description": "Write human movement as text and watch it performed beside the source.",
+  "version": "0.0.1",
+  "publisher": "shosa-dev",
+  "private": true,
+  "engines": { "vscode": "^1.90.0" },
+  "categories": ["Programming Languages"],
+  "main": "./dist/extension.js",
+  "activationEvents": [],
+  "contributes": {
+    "languages": [
+      {
+        "id": "shosa",
+        "aliases": ["Shosa", "shosa"],
+        "extensions": [".shosa"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      { "language": "shosa", "scopeName": "source.shosa", "path": "./syntaxes/shosa.tmLanguage.json" }
+    ],
+    "commands": [
+      { "command": "shosa.openPreview", "title": "Shosa: Open Preview to the Side", "icon": "$(open-preview)" }
+    ],
+    "menus": {
+      "editor/title": [
+        { "command": "shosa.openPreview", "when": "editorLangId == shosa", "group": "navigation" }
+      ],
+      "commandPalette": [
+        { "command": "shosa.openPreview", "when": "editorLangId == shosa" }
+      ]
+    },
+    "keybindings": [
+      { "command": "shosa.openPreview", "key": "ctrl+k v", "mac": "cmd+k v", "when": "editorLangId == shosa" }
+    ],
+    "configuration": {
+      "title": "Shosa",
+      "properties": {
+        "shosa.server.path": {
+          "type": "string",
+          "default": "",
+          "description": "Path to Shosa.Lsp.dll. Empty uses the server shipped with the extension, or the one built in this repository."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "three": "0.160.0",
+    "vscode-languageclient": "9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "20.14.0",
+    "@types/vscode": "1.90.0",
+    "esbuild": "0.21.5",
+    "typescript": "5.4.5"
+  }
+}

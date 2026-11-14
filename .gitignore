@@ -1,0 +1,7 @@
+bin/
+obj/
+out/
+*.user
+trials/*/*.png
+node_modules/
+dist/

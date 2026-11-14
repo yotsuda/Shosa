@@ -1,0 +1,11 @@
+tempo 72
+time 4/4
+figure a { rig humanoid }
+phrase ArmsUp { a { arms { side:2 up:2 | } } }
+phrase SideBends {
+  a {
+    torso    { left.high:2 up:2 | right.high:2 up:2 | }
+    leftArm  { side.high:2 up:2 | across.high:2 up:2 | }
+    rightArm { across.high:2 up:2 | side.high:2 up:2 | }
+  }
+}

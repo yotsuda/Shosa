@@ -1,0 +1,16 @@
+// Box step — "forward, side, together; back, side, together", as a dancer says it.
+// `together` closes the free foot to the supporting one; `Box*2` plays the phrase twice.
+title "Box step"
+tempo 90
+time 3/4
+
+figure a "Dancer" { rig humanoid }
+
+phrase Box {
+  a {
+    steps { left.fwd right.side together | right.back left.side together }
+    arms  { side.low:3 | hold:3 }
+  }
+}
+
+form { Box*2 }

@@ -1,0 +1,6 @@
+tempo 90
+time 4/4
+figure a { rig humanoid }
+phrase Wave {
+  a { rightArm { side.high:1@bent up:1/2@bent side.high:1/2@bent up:1/2@bent side.high:1/2@bent down:1 | } }
+}

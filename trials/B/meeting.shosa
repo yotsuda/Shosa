@@ -1,0 +1,29 @@
+title "Meeting"
+tempo 90
+time 4/4
+
+// 3 m apart on the x axis, facing each other.
+figure a "A" { rig humanoid at -1.5 0 facing stageLeft }
+figure b "B" { rig humanoid at 1.5 0 facing stageRight }
+
+phrase Approach {
+  a { steps { left.fwd@small right.fwd@small left.fwd@small together | } }
+  b { steps { left.fwd@small right.fwd@small left.fwd@small together | } }
+}
+
+phrase Wave {
+  a { rightArm { side.high:1@bent up:1/2@bent side.high:1/2@bent up:1/2@bent side.high:1/2@bent down:1 | } }
+  b { rightArm { side.high:1@bent up:1/2@bent side.high:1/2@bent up:1/2@bent side.high:1/2@bent down:1 | } }
+}
+
+phrase Bow {
+  a { torso { fwd.high:2 up:2 | } }
+  b { torso { fwd.high:2 up:2 | } }
+}
+
+phrase Retreat {
+  a { steps { left.back@small right.back@small left.back@small together | } }
+  b { steps { left.back@small right.back@small left.back@small together | } }
+}
+
+form { Approach Wave Bow Retreat }

@@ -1,0 +1,34 @@
+title "Boxing combination"
+tempo 120
+time 4/4
+
+figure a "Boxer" { rig humanoid }
+
+// Hands come up to the guard.
+phrase Guard {
+  a {
+    steps    { hold:4 | }
+    leftArm  { hold:2 fwd.high:2@bent | }
+    rightArm { hold:2 fwd.high:2@bent | }
+  }
+}
+
+// Jab (left) lands on 1, cross (right) lands on 2, small step back on 3, close on 4.
+phrase Combo {
+  a {
+    leftArm  { hold:1/2 fwd:1/2@sharp fwd.high:1/2@bent hold:2.5 | }
+    rightArm { hold:1.5 fwd:1/2@sharp fwd.high:1/2@bent hold:1.5 | }
+    steps    { hold:2 right.back@small together | }
+  }
+}
+
+// The same, but the right hand punches forward and up.
+phrase ComboUp {
+  a {
+    leftArm  { hold:1/2 fwd:1/2@sharp fwd.high:1/2@bent hold:2.5 | }
+    rightArm { hold:1.5 fwd.high:1/2@sharp fwd.high:1/2@bent hold:1.5 | }
+    steps    { hold:2 right.back@small together | }
+  }
+}
+
+form { Guard Combo ComboUp }

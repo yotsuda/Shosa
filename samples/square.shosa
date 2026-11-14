@@ -1,0 +1,15 @@
+// Square — three steps and a quarter turn, four times: the figure walks a square and
+// ends where it began. A turn pivots on the foot that took the last step.
+title "Square"
+tempo 110
+time 4/4
+
+figure a "Walker" { rig humanoid }
+
+phrase Side {
+  a {
+    steps { left.fwd right.fwd left.fwd turn.left.quarter }
+  }
+}
+
+form { Side*4 }

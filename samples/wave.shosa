@@ -1,0 +1,16 @@
+// Wave — a gesture is a row of targets, each reached at the END of its duration.
+// `:1/2` is half a beat; `@bent` folds the elbow; `repeat` writes the back-and-forth once.
+title "Wave"
+tempo 96
+time 4/4
+
+figure a "Greeter" { rig humanoid }
+
+phrase Wave {
+  a {
+    rightArm { side.high:1@bent repeat 3 { up:1/2@bent side.high:1/2@bent } | down:2 hold:2 }
+    head     { hold:1 fwd.right:1 hold:2 | fwd:2 hold:2 }
+  }
+}
+
+form { Wave }

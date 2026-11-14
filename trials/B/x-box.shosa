@@ -1,0 +1,9 @@
+tempo 96
+time 3/4
+figure a { rig humanoid }
+phrase Box {
+  a {
+    steps { left.fwd right.side.high left.place.high | right.back left.side.high right.place.high:1/2 turn.left.quarter:1/2 | }
+    arms  { side:1@bent hold:2 | hold:3 | }
+  }
+}

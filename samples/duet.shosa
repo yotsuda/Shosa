@@ -1,0 +1,22 @@
+// Duet — two figures, one phrase. Positions are metres on the floor (x to stage left,
+// z toward the audience); each figure block is that figure's own set of tracks.
+title "Duet"
+tempo 72
+time 4/4
+
+figure a "Lead"   { rig humanoid  at -0.9 0  facing stageLeft }
+figure b "Follow" { rig humanoid  at 0.9 0   facing stageRight }
+
+phrase Greet {
+  a {
+    steps    { left.fwd@small hold:3 | hold:4 }
+    torso    { hold:2 fwd.high hold | up hold:3 }
+  }
+  b {
+    steps    { hold:4 | hold:4 }
+    torso    { hold:4 | fwd.high hold up hold }
+    rightArm { fwd.high:2@bent hold:2 | down:2 hold:2 }
+  }
+}
+
+form { Greet }

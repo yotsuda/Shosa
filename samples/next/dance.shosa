@@ -1,0 +1,33 @@
+// Dance — choreography for a song. Tempo, time and form come from song.lys (4/4, sections
+// Verse and Chorus of 4 bars each); a section here is danced during the song's section of
+// the same name. Three dancers share two figures: carol dances `chorus` mirrored.
+title "Dance"
+music "song.lys"
+
+figure lead
+figure chorus
+dancer alice humanoid on lead    at 0 1
+dancer bob   humanoid on chorus  at -1.5 0
+dancer carol humanoid on chorus  at 1.5 0  mirror
+
+move grapevine { steps { left.side right.back.across left.side together } }
+
+section Verse {
+  lead {
+    steps { grapevine | grapevine@mirror | grapevine | grapevine@mirror }
+    arms  { side:4 | up:4 | side:4 | down:4 }
+  }
+  chorus {
+    steps { repeat 4 { left.side together right.side together | } }
+  }
+}
+
+section Chorus {
+  lead {
+    steps { repeat 4 { left.fwd@turn(left.quarter) right.fwd left.back together | } }
+    arms  { repeat 4 { side.high up side.high down | } }
+  }
+  chorus {
+    arms { repeat 4 { clap:1/2!clap hold:1/2 side.high up:2 | } }
+  }
+}

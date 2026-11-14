@@ -1,0 +1,11 @@
+// Square — three steps, the third one turning a quarter: four times round a square.
+// `@turn(...)` turns during the step; `turn.left.quarter` alone is still a pivot on the spot.
+title "Square"
+tempo 110
+time 3/4
+
+section Side {
+  steps { left.fwd right.fwd left.fwd@turn(left.quarter) }
+}
+
+form { Side*4 }

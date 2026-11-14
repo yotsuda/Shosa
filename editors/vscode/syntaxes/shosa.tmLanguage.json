@@ -1,0 +1,18 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Shosa",
+  "scopeName": "source.shosa",
+  "patterns": [
+    { "name": "comment.line.double-slash.shosa", "match": "//.*$" },
+    { "name": "string.quoted.double.shosa", "match": "\"[^\"\\n]*\"?" },
+    { "name": "keyword.control.shosa", "match": "\\b(title|tempo|time|figure|phrase|form|repeat)\\b" },
+    { "name": "keyword.other.property.shosa", "match": "\\b(rig|at|facing)\\b" },
+    { "name": "entity.name.function.track.shosa", "match": "\\b(steps|arms|leftArm|rightArm|leftLeg|rightLeg|torso|head)\\b(?=\\s*\\{)" },
+    { "name": "entity.name.tag.annotation.shosa", "match": "@[A-Za-z_][A-Za-z0-9_]*" },
+    { "name": "constant.numeric.duration.shosa", "match": ":\\d+(\\.\\d+)?(/\\d+)?" },
+    { "name": "constant.numeric.shosa", "match": "-?\\b\\d+(\\.\\d+)?\\b" },
+    { "name": "keyword.operator.bar.shosa", "match": "\\|" },
+    { "name": "comment.block.hold.shosa", "match": "\\bhold\\b" },
+    { "name": "support.constant.level.shosa", "match": "(?<=\\.)(low|mid|high)\\b" }
+  ]
+}

@@ -1,0 +1,28 @@
+title "Formal bow"
+tempo 66
+time 4/4
+
+figure a "Bower" { rig humanoid }
+
+phrase Approach {
+  a {
+    steps { left.fwd right.fwd together hold | }
+  }
+}
+
+// Bow 45 degrees over two beats, hold two beats, rise over two, stand two.
+// The head is not written: it is measured against the chest, so the face follows the bow.
+phrase Bow {
+  a {
+    steps { hold:4 | hold:4 | }
+    torso { fwd.high:2 hold:2 | up:2 hold:2 | }
+  }
+}
+
+phrase Retire {
+  a {
+    steps { right.back left.back together hold | }
+  }
+}
+
+form { Approach Bow Retire }

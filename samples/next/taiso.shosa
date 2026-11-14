@@ -1,0 +1,17 @@
+// Morning exercise — two sections played one after the other need a `form`.
+// Without it each section would be a clip of its own, starting from neutral.
+title "Morning exercise"
+tempo 80
+time 4/4
+
+section Stretch {
+  arms  { fwd up side down | fwd up side down }
+  steps { both.high:2 both.mid:2 | both.low:2 both.mid:2 }
+}
+
+section Bend {
+  arms  { hip hold:3 | hold:3 down }
+  torso { hold left.high up right.high | up fwd.high up hold }
+}
+
+form { Stretch Bend }

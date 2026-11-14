@@ -1,0 +1,23 @@
+// Duet — a figure owns choreography; a dancer is a body that performs it, and says where
+// it stands. A target `b.hand` is a place on the other figure: the two hands meet.
+title "Duet"
+tempo 72
+time 4/4
+
+figure a "Lead"
+figure b "Follow"
+dancer ann humanoid on a  at -0.9 0  facing stageLeft
+dancer ben humanoid on b  at 0.9 0   facing stageRight
+
+section Greet {
+  a {
+    steps    { left.fwd@small hold:3 | hold:4 }
+    torso    { hold:2 fwd.60 hold | up hold:3 }
+    rightArm { hold:4 | b.hand:2 down:2 }
+  }
+  b {
+    head     { a.head hold:3 | hold:4 }
+    torso    { hold:3 fwd.60 | up hold:3 }
+    rightArm { hold:4 | a.hand:2 down:2 }
+  }
+}

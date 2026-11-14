@@ -1,0 +1,16 @@
+title "Waltz box"
+tempo 96
+time 3/4
+
+figure a "Dancer" { rig humanoid }
+
+// Two bars: forward-side-close, back-side-close, then a quarter turn left
+// squeezed into the last half beat (a step cannot turn).
+phrase Box {
+  a {
+    steps { left.fwd right.side.high left.place.high | right.back left.side.high right.place.high:1/2 turn.left.quarter:1/2 | }
+    arms  { side:1@bent hold:2 | hold:3 | }
+  }
+}
+
+form { Box*4 }

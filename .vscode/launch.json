@@ -1,0 +1,16 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      // F5: a second VS Code window with the extension loaded and the samples open.
+      // Build first: `dotnet build Shosa.slnx`, then `npm install` and `npm run build` in editors/vscode.
+      "name": "Run Shosa extension",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/editors/vscode",
+        "${workspaceFolder}/samples"
+      ]
+    }
+  ]
+}

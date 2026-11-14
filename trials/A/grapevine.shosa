@@ -1,0 +1,32 @@
+title "Grapevine"
+tempo 110
+time 4/4
+
+figure a "Dancer" { rig humanoid }
+
+// One bar to bring the arms out low to the sides.
+phrase Prep {
+  a {
+    steps { hold:4 | }
+    arms  { hold:2 side.low:2 | }
+  }
+}
+
+// To the figure's right: side, cross behind, side, close.
+// The language has no clap: on count 4 the hands only come in front of the chest.
+phrase VineRight {
+  a {
+    steps { right.side left.back.across@small right.fwd.side@small together | }
+    arms  { hold:3 chest:1 | }
+  }
+}
+
+// The same to the left.
+phrase VineLeft {
+  a {
+    steps { left.side right.back.across@small left.fwd.side@small together | }
+    arms  { side.low:1/2 hold:2.5 chest:1 | }
+  }
+}
+
+form { Prep VineRight VineLeft }

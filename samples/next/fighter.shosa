@@ -1,0 +1,60 @@
+// Fighter — the clips of one game character. No figure, no form: each section is a clip.
+// `!name` marks a moment for the engine (a hit, a footstep).
+title "Fighter"
+tempo 120                                   // one beat = 0.5 s
+
+// A pose is a stance: being in it again moves nothing.
+pose guard {
+  steps { left.fwd.low@small }
+  arms  { fwd.high@bent }
+}
+
+// A pose written in a narrower track does only that track's part: `guard` in leftArm
+// is the left arm of the guard.
+move jab       { leftArm  { fwd:1@sharp!hit guard:1 } }
+move cross     { rightArm { fwd:1@sharp!hit guard:1 } }
+move frontKick { rightLeg { fwd.low:1@bent fwd:1@sharp!hit fwd.low:1@bent down:1 } }
+
+// A step is placed from the other foot: the left foot reaches a full stride ahead, then the
+// right foot closes up to a small stride behind it. Both feet end 0.2 m further on, in guard.
+move stepIn    { steps { left.fwd.low!step right.back.low@small!step } }
+
+section Idle loop {
+  body { guard:8 }                          // a loop follows itself: already in guard
+  head { fwd.left:2 fwd:2 fwd.right:2 fwd:2 }
+}
+
+section Advance loop inplace {
+  body  { guard:1 }
+  steps { stepIn:1 }
+}
+
+section Walk loop inplace {
+  steps    { left.fwd!step right.fwd!step }
+  leftArm  { back.-70 fwd.-70 }             // arm swing, 20 degrees from hanging
+  rightArm { fwd.-70 back.-70 }
+}
+
+section Jab {
+  body { guard:0 jab:0.3s }
+}
+
+section Combo {
+  // `&`: the two sides happen together. Punches while stepping in; the weight ends on
+  // the right foot, so the kick is the mirrored one (the left leg).
+  // (The notation is not settled: DESIGN.md 12.3.)
+  body { guard:0 | { jab:1/2 jab:1/2 cross:1 } & { stepIn:2 }  frontKick@mirror:2 | hold:4 }
+}
+
+section Hurt {
+  body  { guard:0 }
+  steps { right.back.low@small:0.2s!stagger hold:0.4s }
+  torso { back.70:0.2s@sharp up:0.4s }
+  head  { fwd.-30:0.2s@sharp fwd:0.4s }
+}
+
+section Victory {
+  body  { guard:0 }
+  steps { together jump jump hold }
+  arms  { down side.high:1/2 up:1/2 hold:2 }
+}

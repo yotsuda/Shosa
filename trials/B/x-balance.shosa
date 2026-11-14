@@ -1,0 +1,10 @@
+tempo 72
+time 4/4
+figure a { rig humanoid }
+phrase Balance {
+  a {
+    steps    { left.place hold:3 | hold:1 right.place hold:2 | hold:2 together hold:1 | }
+    rightLeg { hold:1 fwd.low:1@bent hold:2 | down:1 hold:3 | hold:4 | }
+    leftLeg  { hold:4 | hold:2 fwd.low:1@bent hold:1 | hold:1 down:1 hold:2 | }
+  }
+}
