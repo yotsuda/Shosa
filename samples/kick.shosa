@@ -1,18 +1,15 @@
-// Kick — a leg that carries no weight can gesture like an arm. After `left.fwd` the weight
-// is on the left foot, so the right leg is free; `down` puts it back on the floor.
+// Kick — the kick is a whole-body move (a leg and both arms), written in `body`.
+// `@mirror` swaps left and right, so the second bar kicks with the other leg.
 title "Kick"
 tempo 100
 time 4/4
 
-figure a "Dancer" { rig humanoid }
-
-phrase Kick {
-  a {
-    steps    { left.fwd hold:3 | right.fwd hold:3 }
-    rightLeg { hold fwd.low@sharp down hold | hold:4 }
-    leftLeg  { hold:4 | hold fwd.low@sharp down hold }
-    arms     { hold side down hold | hold side down hold }
-  }
+move kick {
+  rightLeg { hold fwd.low@sharp!hit down hold }
+  arms     { hold side down hold }
 }
 
-form { Kick }
+section Kick {
+  steps { left.fwd hold:3 | right.fwd hold:3 }
+  body  { kick | kick@mirror }
+}

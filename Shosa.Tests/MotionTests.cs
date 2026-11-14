@@ -9,7 +9,7 @@ public class MotionTests
     private static ShosaCompilation Compile(string text) => ShosaCompilation.Compile(text);
 
     private static string Body(string tracks) =>
-        "tempo 100\ntime 4/4\nfigure a { rig humanoid }\nphrase P {\n  a {\n" + tracks + "\n  }\n}\n";
+        "tempo 100\ntime 4/4\nsection P {\n" + tracks + "\n}\n";
 
     [Fact]
     public void A_bar_with_the_wrong_number_of_beats_is_reported_at_its_bar_line()
@@ -80,8 +80,7 @@ public class MotionTests
     [MemberData(nameof(Samples.Names), MemberType = typeof(Samples))]
     public void Limbs_keep_their_length(string name)
     {
-        var clip = Compile(Samples.Read(name)).Clip;
-        foreach (var figure in clip.Figures)
+        foreach (var figure in Compile(Samples.Read(name)).Clips.SelectMany(clip => clip.Figures))
         {
             for (int f = 0; f < figure.Frames.Count; f++)
             {

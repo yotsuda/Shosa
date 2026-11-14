@@ -42,13 +42,12 @@ section Jab {
 section Combo {
   // `&`: the two sides happen together. Punches while stepping in; the weight ends on
   // the right foot, so the kick is the mirrored one (the left leg).
-  // (The notation is not settled: DESIGN.md 12.3.)
   body { guard:0 | { jab:1/2 jab:1/2 cross:1 } & { stepIn:2 }  frontKick@mirror:2 | hold:4 }
 }
 
 section Hurt {
   body  { guard:0 }
-  steps { right.back.low@small:0.2s!stagger hold:0.4s }
+  steps { right.back.low:0.2s!stagger hold:0.4s }   // from guard the right foot goes 0.2 m further back
   torso { back.70:0.2s@sharp up:0.4s }
   head  { fwd.-30:0.2s@sharp fwd:0.4s }
 }

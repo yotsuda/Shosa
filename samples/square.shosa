@@ -1,15 +1,11 @@
-// Square — three steps and a quarter turn, four times: the figure walks a square and
-// ends where it began. A turn pivots on the foot that took the last step.
+// Square — three steps, the third one turning a quarter: four times round a square.
+// `@turn(...)` turns during the step; `turn.left.quarter` alone is still a pivot on the spot.
 title "Square"
 tempo 110
-time 4/4
+time 3/4
 
-figure a "Walker" { rig humanoid }
-
-phrase Side {
-  a {
-    steps { left.fwd right.fwd left.fwd turn.left.quarter }
-  }
+section Side {
+  steps { left.fwd right.fwd left.fwd@turn(left.quarter) }
 }
 
 form { Side*4 }

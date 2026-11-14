@@ -1,9 +1,0 @@
-// Walk — seven steps forward, feet together on the eighth count.
-// One figure, so no `figure` line: the tracks sit directly in the section.
-title "Walk"
-tempo 100
-time 4/4
-
-section Walk {
-  steps { left.fwd right.fwd left.fwd right.fwd | left.fwd right.fwd left.fwd together }
-}

@@ -1,16 +1,10 @@
-// Bow — the torso is one more limb: its target is where the spine points.
-// `up` is upright, `fwd.high` leans 45 degrees forward, `fwd` (= fwd.mid) is horizontal.
+// Bow — a number in the place of the level is degrees above the horizontal:
+// `fwd.60` leans the spine 30 degrees forward of upright (`fwd.high` is fwd.45).
 title "Bow"
 tempo 60
 time 4/4
 
-figure a "Host" { rig humanoid }
-
-phrase Bow {
-  a {
-    torso { hold fwd.high hold up }
-    head  { hold fwd.low hold fwd }
-  }
+section Bow {
+  torso { hold fwd.60 hold up }
+  head  { hold fwd.-20 hold fwd }
 }
-
-form { Bow }

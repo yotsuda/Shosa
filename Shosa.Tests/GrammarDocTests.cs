@@ -24,7 +24,7 @@ public class GrammarDocTests
         // What an AI copies first must itself be right.
         var example = Regex.Match(GrammarDoc.Render(), "```shosa\n(.*?)```", RegexOptions.Singleline).Groups[1].Value;
 
-        Assert.Contains("phrase", example);
+        Assert.Contains("section", example);
         Assert.Empty(ShosaCompilation.Compile(example).Diagnostics);
     }
 }

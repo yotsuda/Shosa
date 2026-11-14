@@ -6,36 +6,56 @@ namespace Shosa.Core;
 
 /// <summary>
 /// The pipeline in one place, each stage an immutable value made from the one before:
-/// text -> SyntaxTree -> MotionIr -> MotionClip. The CLI runs it once per file; a language
-/// server keeps the last one and feeds <see cref="SyntaxTree.WithChange"/> into the next.
+/// text -> SyntaxTree -> ScoreIr (a MotionIr per clip) -> a MotionClip per clip. The CLI runs it
+/// once per file; a language server keeps the last one and feeds
+/// <see cref="SyntaxTree.WithChange"/> into the next.
 /// </summary>
 public sealed class ShosaCompilation
 {
-    private ShosaCompilation(SyntaxTree tree, MotionIr ir, MotionClip clip, List<Diagnostic> diagnostics)
+    private ShosaCompilation(SyntaxTree tree, ScoreIr score, List<MotionClip> clips, List<Diagnostic> diagnostics)
     {
         Tree = tree;
-        Ir = ir;
-        Clip = clip;
+        Score = score;
+        Clips = clips;
         Diagnostics = diagnostics;
     }
 
     public SyntaxTree Tree { get; }
-    public MotionIr Ir { get; }
-    public MotionClip Clip { get; }
+
+    /// <summary>The score that was asked for: one <see cref="MotionIr"/> per clip.</summary>
+    public ScoreIr Score { get; }
+
+    /// <summary>The solved clips, in the order of <see cref="ScoreIr.Clips"/>.</summary>
+    public IReadOnlyList<MotionClip> Clips { get; }
+
+    /// <summary>The first clip; an empty one for a file that has none yet.</summary>
+    public MotionIr Ir => Score.Clips.Count > 0 ? Score.Clips[0] : Empty;
+    public MotionClip Clip => Clips.Count > 0 ? Clips[0] : EmptyClip;
+
+    private static readonly MotionIr Empty = new();
+    private static readonly MotionClip EmptyClip = Solver.Solve(Empty, []);
 
     /// <summary>Syntax, meaning and movement diagnostics together, in source order.</summary>
     public IReadOnlyList<Diagnostic> Diagnostics { get; }
 
     public bool HasErrors => Diagnostics.Any(d => d.Severity == DiagnosticSeverity.Error);
 
-    public static ShosaCompilation Compile(string text) => Compile(SyntaxTree.Parse(text));
+    public static ShosaCompilation Compile(string text, string? score = null) => Compile(SyntaxTree.Parse(text), score);
 
-    public static ShosaCompilation Compile(SyntaxTree tree)
+    public static ShosaCompilation Compile(SyntaxTree tree, string? score = null)
     {
-        var (ir, bound) = Binder.Bind(tree);
-        var diagnostics = tree.Diagnostics.Concat(bound).ToList();
-        var clip = Solver.Solve(ir, diagnostics);
-        return new ShosaCompilation(tree, ir, clip, diagnostics.OrderBy(d => d.Span.Start).ToList());
+        var (bound, found) = Binder.Bind(tree, score);
+        var diagnostics = tree.Diagnostics.Concat(found).ToList();
+        var seen = diagnostics.Select(d => (d.Code, d.Span)).ToHashSet();
+        var clips = new List<MotionClip>();
+        foreach (var ir in bound.Clips)
+        {
+            // A section danced in two clips is solved twice; say each thing once.
+            var solved = new List<Diagnostic>();
+            clips.Add(Solver.Solve(ir, solved));
+            diagnostics.AddRange(solved.Where(d => seen.Add((d.Code, d.Span))));
+        }
+        return new ShosaCompilation(tree, bound, clips, diagnostics.OrderBy(d => d.Span.Start).ToList());
     }
 
     /// <summary>1-based line and column of a position in the text.</summary>

@@ -12,6 +12,7 @@ public static class Vocabulary
     /// <summary>Track names. `arms` and `steps` are spellings; the rest are channels as they are.</summary>
     public static readonly Word[] Tracks =
     [
+        new("body", "The whole body. Takes the poses and moves you have defined, `hold` and `skip`; a narrower track written beside it wins for its own part."),
         new("steps", "The feet on the floor: steps, turns, jumps, changes of height. Where the weight is."),
         new("arms", "Both arms at once, mirrored: `side` is away from the midline for each."),
         new("leftArm", "The left arm: where the hand points from the shoulder, or a place on the body it goes to."),
@@ -51,6 +52,19 @@ public static class Vocabulary
         new("chest", "The hand in front of the chest."),
         new("shoulder", "The hand on its own shoulder."),
         new("head", "The hand beside the head."),
+        new("chin", "The fist in front of the chin: a guard."),
+        new("belly", "The hand on the belly."),
+        new("across.shoulder", "The hand on the opposite shoulder. With `arms`: arms folded."),
+        new("clap", "The hand at the midline in front of the chest. With `arms`: the two hands meet."),
+    ];
+
+    /// <summary>Places on another figure: `b.hand`. For an arm (reach it) or the head (look at it).</summary>
+    public static readonly Word[] Parts =
+    [
+        new("hand", "The other figure's hand of the same side. If it reaches back, the two hands meet half-way."),
+        new("shoulder", "The other figure's shoulder of the same side."),
+        new("head", "The other figure's head."),
+        new("chest", "The other figure's chest."),
     ];
 
     public static readonly Word[] Feet =
@@ -74,6 +88,16 @@ public static class Vocabulary
         new("together", "The free foot closes to the supporting foot; the weight is on both."),
         new("turn", "A pivot on the supporting foot: `turn.left.quarter`, `turn.right.half`."),
         new("jump", "Off the floor, landing on both feet: `jump`, `jump.fwd`, `jump.apart`, `jump.together`."),
+        new("shift", "The weight moves and neither foot leaves the floor: `shift.left`, `shift.right`, `shift.center`."),
+        new("lift", "Only for a free body (`@free`, or `free` on the dancer): the feet hang at a height in metres, `lift(0.4)`. `lift.fwd(0.4)` also travels."),
+        new("land", "Only for a free body: back down to the floor."),
+    ];
+
+    public static readonly Word[] ShiftWords =
+    [
+        new("left", "The weight over the left foot."),
+        new("right", "The weight over the right foot."),
+        new("center", "The weight between the feet."),
     ];
 
     public static readonly Word[] JumpWords =
@@ -102,9 +126,18 @@ public static class Vocabulary
         new("body", "For an arm: measure the direction against the torso instead of the room, so the arm leans when the torso leans."),
         new("small", "A shorter step or jump."),
         new("large", "A longer step or jump."),
+        new("mirror", "Left and right swapped: `kick@mirror` kicks with the other leg."),
+        new("free", "The rules of weight, gravity and speed do not apply to this event. Bones still keep their length."),
+        new("turn", "For a step or a jump: turn while doing it, `left.fwd@turn(left.quarter)`, `jump@turn(right.half)`. The step lands where it would after the turn."),
     ];
 
     public const string Hold = "hold";
+    public const string Skip = "skip";
+
+    /// <summary>Every word that means something on its own, so that a definition cannot take its name.</summary>
+    public static IEnumerable<string> Reserved =>
+        new[] { Tracks, Directions, Levels, Poles, Anchors, Feet, StepDirections, SupportActions, JumpWords, TurnAmounts }
+            .SelectMany(words => words).Select(w => w.Name).Append(Hold).Append(Skip).Append("repeat");
 
     public static double TurnDegrees(string amount) => amount switch
     {

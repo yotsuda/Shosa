@@ -1,24 +1,17 @@
-// Morning exercise — `arms` writes both arms at once: `side` means "away from the body's
-// midline", so one word is right for the left arm and the right arm alike.
-// A half-circle is written through its middle: down -> fwd -> up, never down -> up.
+// Morning exercise — two sections played one after the other need a `form`.
+// Without it each section would be a clip of its own, starting from neutral.
 title "Morning exercise"
 tempo 80
 time 4/4
 
-figure a "Gymnast" { rig humanoid }
-
-phrase Stretch {
-  a {
-    arms  { fwd up side down | fwd up side down }
-    steps { both.high:2 both.mid:2 | both.low:2 both.mid:2 }
-  }
+section Stretch {
+  arms  { fwd up side down | fwd up side down }
+  steps { both.high:2 both.mid:2 | both.low:2 both.mid:2 }
 }
 
-phrase Bend {
-  a {
-    arms  { hip hold:3 | hold:3 down }
-    torso { hold left.high up right.high | up fwd.high up hold }
-  }
+section Bend {
+  arms  { hip hold:3 | hold:3 down }
+  torso { hold left.high up right.high | up fwd.high up hold }
 }
 
 form { Stretch Bend }

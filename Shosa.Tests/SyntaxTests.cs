@@ -32,6 +32,37 @@ public class SyntaxTests
     }
 
     [Fact]
+    public void The_new_shapes_parse_into_their_own_nodes()
+    {
+        const string text = """
+            dancer mage humanoid at 0 1 free
+            pose guard { arms { fwd.high@bent } }
+            move jab { leftArm { fwd.-10:0.3s@sharp!hit guard:12f } }
+            section Idle loop inplace {
+              body  { guard:0 | { jab:1/2 jab:1/2 } & { skip:1 } hold:3 }
+              steps { left.fwd@turn(left.quarter) lift.fwd(0.4)@free land@free hold }
+            }
+            score practice { form short  tempo 80 }
+
+            """;
+        var tree = SyntaxTree.Parse(text);
+
+        Assert.Empty(tree.Diagnostics);
+        Assert.Equal(text, tree.ToFullString());
+        int Count(SyntaxKind kind) => tree.Root.DescendantNodes().Count(n => n.Kind == kind);
+        Assert.Equal(2, Count(SyntaxKind.Clause));          // at 0 1, free; and nothing taken from the next line
+        Assert.Equal(1, Count(SyntaxKind.Overlay));
+        Assert.Equal(2, Count(SyntaxKind.Sequence));
+        Assert.Equal(1, Count(SyntaxKind.Mark));
+        Assert.Equal(2, Count(SyntaxKind.Arguments));       // @turn(left.quarter), lift.fwd(0.4)
+        Assert.Equal(2, Count(SyntaxKind.ScoreItem));
+        // The unit of a length is part of the length; a number can stand where a level does.
+        var durations = tree.Root.DescendantNodes().Where(n => n.Kind == SyntaxKind.Duration).Select(n => n.ToString().Trim()).ToList();
+        Assert.Contains(":0.3s", durations);
+        Assert.Contains(":12f", durations);
+    }
+
+    [Fact]
     public void Characters_removed_from_the_middle_do_not_break_the_parser()
     {
         string text = Samples.Read("taiso");
@@ -48,8 +79,8 @@ public class SyntaxTests
     public void An_unclosed_track_does_not_swallow_the_track_after_it()
     {
         const string text = """
-            figure a { rig humanoid }
-            phrase P {
+            figure a
+            section P {
               a {
                 steps { left.fwd right.fwd
                 arms  { side down }
@@ -66,7 +97,7 @@ public class SyntaxTests
     [Fact]
     public void A_dot_at_the_end_of_a_line_does_not_take_the_next_line_s_word()
     {
-        const string text = "figure a { rig humanoid }\nphrase P { a { arms { side.\n down } } }\n";
+        const string text = "section P { arms { side.\n down } }\n";
         var tree = SyntaxTree.Parse(text);
 
         var events = tree.Root.DescendantNodes().Where(n => n.Kind == SyntaxKind.Event).ToList();
@@ -75,7 +106,7 @@ public class SyntaxTests
     }
 
     [Fact]
-    public void An_edit_inside_one_phrase_reuses_every_other_item()
+    public void An_edit_inside_one_section_reuses_every_other_item()
     {
         string text = Samples.Read("taiso");
         var tree = SyntaxTree.Parse(text);
@@ -85,15 +116,16 @@ public class SyntaxTests
         var full = SyntaxTree.Parse(edited.Text);
 
         Assert.Equal(Samples.Dump(full.Root), Samples.Dump(edited.Root));
-        // title, tempo, time, figure, phrase Stretch before the edit; the form after it.
-        Assert.Equal(6, edited.ReusedItems);
+        // title, tempo, time, section Stretch before the edit; the form after it.
+        Assert.Equal(5, edited.ReusedItems);
     }
 
     [Theory]
     [MemberData(nameof(Samples.Names), MemberType = typeof(Samples))]
     public void Incremental_and_full_parses_agree_through_a_run_of_random_edits(string name)
     {
-        string[] inserts = ["x", " ", "{", "}", "|", ".", ":2", "@", "\n", "\"", "left.fwd ", "phrase Q {", "// c\n", "form"];
+        string[] inserts = ["x", " ", "{", "}", "|", ".", ":2", "@", "\n", "\"", "left.fwd ", "section Q {", "// c\n", "form",
+            "&", "!hit", "(", ")", "dancer x humanoid ", "pose g {", "move m {", "score ", "music \"a\" ", "-3", "s"];
         var random = new Random(name.Length * 31 + 5);
         var tree = SyntaxTree.Parse(Samples.Read(name));
 

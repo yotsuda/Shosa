@@ -17,12 +17,9 @@ internal static class Samples
     public const string Walk = """
         tempo 100
         time 4/4
-        figure a { rig humanoid }
-        phrase Walk {
-          a {
-            steps { left.fwd right.fwd left.fwd right.fwd | left.fwd right.fwd left.fwd together }
-            arms  { side:2 down:2 | hold:4 }
-          }
+        section Walk {
+          steps { left.fwd right.fwd left.fwd right.fwd | left.fwd right.fwd left.fwd together }
+          arms  { side:2 down:2 | hold:4 }
         }
         form { Walk }
         """;

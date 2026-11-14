@@ -57,7 +57,13 @@ public static class Rig
 /// <summary>The solved movement: every joint of every figure at every frame, in world metres.</summary>
 public sealed class MotionClip
 {
+    /// <summary>The section this clip is, or the score or form it was made from ("" if unnamed).</summary>
+    public string Name { get; set; } = "";
     public string Title { get; set; } = "";
+    /// <summary>The last frame is the first one again (moved on by the travel, unless <see cref="Inplace"/>).</summary>
+    public bool Loop { get; set; }
+    /// <summary>The even travel over the floor is taken out; each figure says what it was (<see cref="ClipFigure.Velocity"/>).</summary>
+    public bool Inplace { get; set; }
     public int Fps { get; set; }
     public double Tempo { get; set; }
     public int BeatsPerBar { get; set; }
@@ -68,7 +74,9 @@ public sealed class MotionClip
     public List<ClipFigure> Figures { get; } = [];
     /// <summary>Which source span is being performed when: the link between text and movement.</summary>
     public List<ClipSpan> Spans { get; } = [];
-    public List<PhraseIr> Phrases { get; set; } = [];
+    public List<SectionIr> Sections { get; set; } = [];
+    /// <summary>The moments the author named (`!hit`), in time order.</summary>
+    public List<ClipMark> Marks { get; } = [];
 
     public double BeatOfFrame(int frame) => Math.Min(TotalBeats, frame * Tempo / (60.0 * Fps));
     public int FrameOfBeat(double beat) => (int)Math.Round(Math.Clamp(beat, 0, TotalBeats) * 60.0 * Fps / Tempo);
@@ -80,6 +88,8 @@ public sealed class ClipFigure
 {
     public string Id { get; set; } = "";
     public string Name { get; set; } = "";
+    /// <summary>For an `inplace` clip: the travel that was taken out, in metres per second (x, z).</summary>
+    public double[]? Velocity { get; set; }
     /// <summary>One array per frame: x, y, z of each joint in <see cref="Rig.Joints"/> order.</summary>
     public List<float[]> Frames { get; } = [];
 
@@ -110,5 +120,7 @@ public sealed class ClipFigure
         return Vec3.Lerp(Joint(before, joint), Joint(before + 1, joint), frame - before);
     }
 }
+
+public sealed record ClipMark(double Beat, double Seconds, string Name, string Figure);
 
 public sealed record ClipSpan(double T0, double T1, int Start, int Length, string Figure, string Channel);

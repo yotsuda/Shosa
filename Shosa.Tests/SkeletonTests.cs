@@ -54,7 +54,7 @@ public class SkeletonTests
         // Nothing is twisted that need not be: the hips, torso and head have no rotation at all,
         // and an arm hanging at the side is the T-pose arm turned about the forward axis only.
         var figure = ShosaCompilation.Compile(
-            "tempo 100\ntime 4/4\nfigure a { rig humanoid }\nphrase P {\n  a {\n    steps { hold:4 }\n  }\n}\n").Clip.Figures[0];
+            "tempo 100\ntime 4/4\nsection P {\n  steps { hold:4 }\n}\n").Clip.Figures[0];
 
         foreach (int bone in new[] { Skeleton.Hips, Skeleton.Spine, Skeleton.Head })
             Assert.True(Math.Abs(figure.Rotation(0, bone).W) > 0.9999, $"{Skeleton.Bones[bone].Name} is turned");

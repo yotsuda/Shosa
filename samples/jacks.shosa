@@ -1,16 +1,13 @@
-// Jumping jacks — a jump lands inside its own duration; how high it goes follows from the
-// tempo (the time in the air), not from a number in the source.
+// Jumping jacks — one jack is a move; the section is that move, looped.
 title "Jumping jacks"
 tempo 120
 time 4/4
 
-figure a "Athlete" { rig humanoid }
-
-phrase Jacks {
-  a {
-    steps { repeat 2 { jump.apart jump.together } | repeat 2 { jump.apart jump.together } }
-    arms  { repeat 2 { side.high down } | repeat 2 { side.high down } }
-  }
+move jack {
+  steps { jump.apart!land jump.together!land }
+  arms  { side.high down }
 }
 
-form { Jacks }
+section Jacks loop {
+  body { jack jack }
+}

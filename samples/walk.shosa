@@ -1,15 +1,9 @@
 // Walk — seven steps forward, feet together on the eighth count.
-// A step is written FOOT.DIRECTION and is placed relative to the other (supporting) foot.
+// One figure, so no `figure` line: the tracks sit directly in the section.
 title "Walk"
 tempo 100
 time 4/4
 
-figure a "Walker" { rig humanoid }
-
-phrase Walk {
-  a {
-    steps { left.fwd right.fwd left.fwd right.fwd | left.fwd right.fwd left.fwd together }
-  }
+section Walk {
+  steps { left.fwd right.fwd left.fwd right.fwd | left.fwd right.fwd left.fwd together }
 }
-
-form { Walk }

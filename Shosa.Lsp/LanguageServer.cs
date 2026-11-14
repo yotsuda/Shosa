@@ -168,7 +168,9 @@ public sealed class LanguageServer(Action<string> send)
     {
         uri,
         version = document.Version,
+        // Every clip of the file; `clip` is the first, for a view that shows one.
         clip = document.Compilation.Clip,
+        clips = document.Compilation.Clips,
         reusedItems = document.Tree.ReusedItems,
     };
 
@@ -252,7 +254,7 @@ public sealed class LanguageServer(Action<string> send)
 
         // When is it performed? The IR remembers which event each segment came from.
         var ir = document.Compilation.Ir;
-        var times = ir.Figures.SelectMany(f => f.Tracks.Values).SelectMany(s => s)
+        var times = document.Compilation.Score.Clips.SelectMany(c => c.Dancers).SelectMany(f => f.Tracks.Values).SelectMany(s => s)
             .Where(s => offset >= s.Src && offset <= s.Src + s.Len)
             .Select(s => (s.T0, s.T1)).Distinct().OrderBy(t => t.T0).ToList();
         if (times.Count > 0)

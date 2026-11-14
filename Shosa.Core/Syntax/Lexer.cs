@@ -83,6 +83,8 @@ internal sealed class Lexer(string text)
             case '*': pos++; return SyntaxKind.Star;
             case '(': pos++; return SyntaxKind.OpenParen;
             case ')': pos++; return SyntaxKind.CloseParen;
+            case '&': pos++; return SyntaxKind.Amp;
+            case '!': pos++; return SyntaxKind.Bang;
         }
 
         if (c == '"')

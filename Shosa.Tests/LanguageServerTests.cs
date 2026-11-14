@@ -92,8 +92,8 @@ public class LanguageServerTests
         // The range the editor will underline is the misspelt word.
         int line = Samples.Walk[..Samples.Walk.IndexOf("side:2", StringComparison.Ordinal)].Count(c => c == '\n');
         Assert.Equal(line, diagnostic.GetProperty("range").GetProperty("start").GetProperty("line").GetInt32());
-        // tempo, time and figure before the phrase, the form after it.
-        Assert.Equal(4, session.Last("shosa/clip").GetProperty("reusedItems").GetInt32());
+        // tempo and time before the section, the form after it.
+        Assert.Equal(3, session.Last("shosa/clip").GetProperty("reusedItems").GetInt32());
 
         session.Replace("sid:2", "fwd:2");
         Assert.Empty(session.Last("textDocument/publishDiagnostics").GetProperty("diagnostics").EnumerateArray());
@@ -124,15 +124,39 @@ public class LanguageServerTests
         Assert.Contains("turn", session.Complete("steps { "));
         Assert.DoesNotContain("hip", session.Complete("steps { "));
         Assert.Contains("hip", session.Complete("arms  { "));
-        Assert.Contains("leftLeg", session.Complete("  a {\n"));
-        Assert.Equal(new[] { "a" }, session.Complete("phrase Walk {\n"));
+        Assert.Contains("leftLeg", session.Complete("section Walk {\n"));
         Assert.Equal(new[] { "Walk" }, session.Complete("form { "));
-        Assert.Contains("facing", session.Complete("figure a { "));
 
         session.Replace("down:2", "down:2@");
         var annotations = session.Complete("down:2@");
         Assert.Contains("body", annotations);
         Assert.DoesNotContain("small", annotations);
+    }
+
+    [Fact]
+    public void Completion_knows_the_figures_dancers_and_definitions_of_the_file()
+    {
+        var session = new Session("""
+            figure a "Lead"
+            figure b
+            dancer ann humanoid on a facing front
+            pose guard { arms { fwd.high@bent } }
+            move jab { leftArm { fwd guard } }
+            section Greet loop {
+              a { body { jab } rightArm { b. } }
+            }
+
+            """);
+
+        Assert.Equal(new[] { "humanoid" }, session.Complete("dancer ann "));
+        Assert.Equal(new[] { "a", "b" }, session.Complete("humanoid on "));
+        Assert.Contains("stageLeft", session.Complete("facing "));
+        Assert.Contains("inplace", session.Complete("section Greet "));
+        Assert.Equal(new[] { "a", "b" }, session.Complete("section Greet loop {\n"));
+        Assert.Equal(new[] { "guard", "jab", "hold", "skip", "repeat" }, session.Complete("a { body { "));
+        Assert.Contains("hand", session.Complete("rightArm { b."));
+        Assert.Contains("pose", session.Complete("\n\n"));
+        Assert.Contains("Move of this file", session.Hover("jab }"));
     }
 
     [Fact]

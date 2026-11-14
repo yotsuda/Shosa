@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Shosa.Core;
+using Shosa.Core.Motion;
 using Shosa.Core.Output;
 using Shosa.Core.Syntax;
 
@@ -9,7 +10,7 @@ const string Usage = """
 
       shosa check   FILE            diagnostics only
       shosa sheet   FILE [-o PNG]   a pose per beat and the floor from above, on one image
-                    [--step BEATS] [--from BEAT] [--to BEAT]   closer poses, or part of the piece
+                    [--step BEATS] [--from BEAT] [--to BEAT]   closer poses, or part of the clip
       shosa preview FILE [-o HTML]  a page with the source and the figures moving, linked
       shosa ir      FILE [-o JSON]  the intermediate representation the solver is given
       shosa clip    FILE [-o JSON]  the solved movement: every joint at every frame
@@ -19,6 +20,11 @@ const string Usage = """
                                     (-o NAME.gltf writes text with the data embedded)
       shosa vrma    FILE [-o VRMA]  the same as a VRM Animation, to put on any VRM model
       shosa grammar [-o MD]        the language in one file, for an AI that will write it
+
+    A file without a `form` has one clip per section. Every command writes them all, each to
+    its own file (walk.Idle.png); --clip NAME picks one. --score NAME picks one of the file's
+    scores (the output is then named FILE-NAME). bvh, gltf and vrma also write FILE.events.json
+    when the clips have marks (`!hit`) or an `inplace` velocity.
     """;
 
 if (args.Length >= 1 && args[0] == "grammar")
@@ -39,21 +45,17 @@ if (args.Length < 2 || args[0] is "-h" or "--help")
 }
 
 string command = args[0], path = args[1];
-string? output = null;
-for (int i = 2; i < args.Length - 1; i++)
+
+string? Text(string name)
 {
-    if (args[i] == "-o")
-        output = args[i + 1];
+    int at = Array.IndexOf(args, name, 2);
+    return at >= 0 && at + 1 < args.Length ? args[at + 1] : null;
 }
 
-double? Option(string name)
-{
-    int at = Array.IndexOf(args, name);
-    return at >= 0 && at + 1 < args.Length
-        && double.TryParse(args[at + 1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double value)
-        ? value
-        : null;
-}
+double? Option(string name) =>
+    double.TryParse(Text(name), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double value) ? value : null;
+
+string? output = Text("-o"), scoreName = Text("--score"), clipName = Text("--clip");
 
 if (!File.Exists(path))
 {
@@ -62,13 +64,20 @@ if (!File.Exists(path))
 }
 
 string text = File.ReadAllText(path);
-var compilation = ShosaCompilation.Compile(text);
+var compilation = ShosaCompilation.Compile(text, scoreName);
 
 foreach (var diagnostic in compilation.Diagnostics)
 {
     var (line, column) = ShosaCompilation.LineColumn(text, diagnostic.Span.Start);
     string severity = diagnostic.Severity.ToString().ToLowerInvariant();
     Console.Error.WriteLine($"{path}({line},{column}): {severity} {diagnostic.Code}: {diagnostic.Message}");
+}
+
+var clips = compilation.Clips.Where(c => clipName is null || c.Name == clipName).ToList();
+if (clipName is not null && clips.Count == 0)
+{
+    Console.Error.WriteLine($"shosa: no clip named '{clipName}'. This file has: {string.Join(", ", compilation.Clips.Select(c => c.Name))}");
+    return 2;
 }
 
 var json = new JsonSerializerOptions
@@ -78,57 +87,113 @@ var json = new JsonSerializerOptions
     WriteIndented = command == "ir",
 };
 
-string Target(string extension) => output ?? Path.ChangeExtension(path, extension);
+// walk.shosa -> walk.png; with --score practice -> walk-practice.png.
+string Base(string extension)
+{
+    if (output is not null)
+        return output;
+    string stem = Path.Combine(Path.GetDirectoryName(path) ?? "", Path.GetFileNameWithoutExtension(path));
+    return (string.IsNullOrEmpty(scoreName) ? stem : $"{stem}-{scoreName}") + extension;
+}
+
+// One clip goes to the name as it is; several each get their own (walk.Idle.png).
+string Target(MotionClip clip, string extension, string? figure = null)
+{
+    string file = Base(extension);
+    string suffix = (clips.Count > 1 ? "." + clip.Name : "") + (figure is null ? "" : "." + figure);
+    return suffix == "" ? file : Path.ChangeExtension(file, suffix + Path.GetExtension(file));
+}
+
+void WriteEvents()
+{
+    if (!clips.Any(c => c.Marks.Count > 0 || c.Inplace))
+        return;
+    var events = clips.Select(c => new
+    {
+        clip = c.Name,
+        seconds = Math.Round(c.TotalBeats * 60 / c.Tempo, 4),
+        loop = c.Loop,
+        velocity = c.Inplace ? c.Figures.ToDictionary(f => f.Id, f => f.Velocity) : null,
+        marks = c.Marks,
+    });
+    string file = Path.ChangeExtension(Base(".json"), ".events.json");
+    File.WriteAllText(file, JsonSerializer.Serialize(new { clips = events }, new JsonSerializerOptions(json) { WriteIndented = true }));
+    Console.WriteLine(file);
+}
 
 switch (command)
 {
     case "check":
         if (compilation.Diagnostics.Count == 0)
-            Console.WriteLine($"{path}: no problems ({compilation.Ir.TotalBeats} beats, {compilation.Ir.Figures.Count} figure(s))");
+        {
+            string list = string.Join(", ", compilation.Clips.Select(c => $"{(c.Name == "" ? "clip" : c.Name)} {Math.Round(c.TotalBeats, 3)} beats"));
+            Console.WriteLine($"{path}: no problems ({list}; {compilation.Clip.Figures.Count} dancer(s))");
+        }
         break;
 
     case "sheet":
-        ContactSheet.Render(compilation.Clip, Option("--step"), Option("--from") ?? 0, Option("--to")).SavePng(Target(".png"));
-        Console.WriteLine(Target(".png"));
+        foreach (var clip in clips)
+        {
+            ContactSheet.Render(clip, Option("--step"), Option("--from") ?? 0, Option("--to")).SavePng(Target(clip, ".png"));
+            Console.WriteLine(Target(clip, ".png"));
+        }
         break;
 
     case "preview":
-        File.WriteAllText(Target(".html"), PreviewHtml.Render(compilation.Clip, text));
-        Console.WriteLine(Target(".html"));
+        foreach (var clip in clips)
+        {
+            File.WriteAllText(Target(clip, ".html"), PreviewHtml.Render(clip, text));
+            Console.WriteLine(Target(clip, ".html"));
+        }
         break;
 
     case "bvh":
         // BVH holds one skeleton: with several figures, each gets its own file (walk.a.bvh).
-        foreach (var figure in compilation.Clip.Figures)
+        foreach (var clip in clips)
         {
-            string file = compilation.Clip.Figures.Count == 1 ? Target(".bvh") : Path.ChangeExtension(Target(".bvh"), $".{figure.Id}.bvh");
-            File.WriteAllText(file, Bvh.Render(compilation.Clip, figure, Option("--scale") ?? 1));
-            Console.WriteLine(file);
+            foreach (var figure in clip.Figures)
+            {
+                string file = Target(clip, ".bvh", clip.Figures.Count == 1 ? null : figure.Id);
+                File.WriteAllText(file, Bvh.Render(clip, figure, Option("--scale") ?? 1));
+                Console.WriteLine(file);
+            }
         }
+        WriteEvents();
         break;
 
     case "gltf":
-        // glTF holds any number of skeletons: every figure goes into the one file.
-        File.WriteAllBytes(Target(".glb"), Gltf.Render(compilation.Clip, binary: !Target(".glb").EndsWith(".gltf", StringComparison.OrdinalIgnoreCase)));
-        Console.WriteLine(Target(".glb"));
+        // glTF holds any number of skeletons: every figure of a clip goes into the one file.
+        foreach (var clip in clips)
+        {
+            string file = Target(clip, ".glb");
+            File.WriteAllBytes(file, Gltf.Render(clip, binary: !file.EndsWith(".gltf", StringComparison.OrdinalIgnoreCase)));
+            Console.WriteLine(file);
+        }
+        WriteEvents();
         break;
 
     case "vrma":
         // A VRM Animation is for one humanoid: with several figures, each gets its own file (duet.a.vrma).
-        foreach (var figure in compilation.Clip.Figures)
+        foreach (var clip in clips)
         {
-            string file = compilation.Clip.Figures.Count == 1 ? Target(".vrma") : Path.ChangeExtension(Target(".vrma"), $".{figure.Id}.vrma");
-            File.WriteAllBytes(file, Gltf.RenderVrma(compilation.Clip, figure));
-            Console.WriteLine(file);
+            foreach (var figure in clip.Figures)
+            {
+                string file = Target(clip, ".vrma", clip.Figures.Count == 1 ? null : figure.Id);
+                File.WriteAllBytes(file, Gltf.RenderVrma(clip, figure));
+                Console.WriteLine(file);
+            }
         }
+        WriteEvents();
         break;
 
     case "ir":
-        Write(JsonSerializer.Serialize(compilation.Ir, json), ".ir.json");
+        Write(clipName is null
+            ? JsonSerializer.Serialize(compilation.Score, json)
+            : JsonSerializer.Serialize(compilation.Score.Clips.First(c => c.Name == clipName), json));
         break;
 
     case "clip":
-        Write(JsonSerializer.Serialize(compilation.Clip, json), ".clip.json");
+        Write(clips.Count == 1 ? JsonSerializer.Serialize(clips[0], json) : JsonSerializer.Serialize(clips, json));
         break;
 
     default:
@@ -139,7 +204,7 @@ switch (command)
 
 return compilation.HasErrors ? 1 : 0;
 
-void Write(string content, string extension)
+void Write(string content)
 {
     if (output is null)
     {

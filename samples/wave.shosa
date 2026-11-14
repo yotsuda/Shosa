@@ -1,16 +1,14 @@
-// Wave — a gesture is a row of targets, each reached at the END of its duration.
-// `:1/2` is half a beat; `@bent` folds the elbow; `repeat` writes the back-and-forth once.
+// Wave — the back-and-forth is a `move`: a named row of events. Written without a
+// length it lasts as long as it was defined (3 beats); `wave:2` would squeeze it into 2.
 title "Wave"
 tempo 96
 time 4/4
 
-figure a "Greeter" { rig humanoid }
+move wave { rightArm { repeat 3 { up:1/2@bent side.high:1/2@bent } } }
 
-phrase Wave {
-  a {
-    rightArm { side.high:1@bent repeat 3 { up:1/2@bent side.high:1/2@bent } | down:2 hold:2 }
-    head     { hold:1 fwd.right:1 hold:2 | fwd:2 hold:2 }
-  }
+section Wave {
+  rightArm { side.high:1@bent wave | down:2 hold:2 }
+  head     { hold:1 fwd.right:1 hold:2 | fwd:2 hold:2 }
 }
 
-form { Wave }
+// The same with the left arm: `leftArm { side.high:1@bent wave@mirror | down:2 hold:2 }`.
