@@ -61,7 +61,7 @@ const icons = [
   { name: 'Sound Font', folder: 'LilySharp/editors/vscode-soundfont', hue: 325, d: set(sforzando, [78, 80]) },
   { name: 'Calamo', folder: 'Calamo/extension', hue: 145, d: set([['scripts.ufermata']], [96, 96]) },      // a fermata: an eye, it reads the page
   { name: 'Cantoria', folder: 'Cantoria/editors/vscode', hue: 85, d: set([['clefs.C']], [96, 96]) },
-  { name: 'Shosa', folder: 'Shosa/editors/vscode', hue: 25, d: set([['scripts.turn']], [96, 104]) },        // a turn: a word of the language, and a movement
+  { name: 'Shosa', folder: 'Shosa/editors/vscode', hue: 25, d: set([['scripts.turn']], [88, 96]) },        // a turn: a word of the language, and a movement
   { name: 'Dettato', folder: 'Dettato', hue: 205, d: set([['clefs.F']], [80, 86]) },                        // an F clef: an ear, it listens
 ];
 
