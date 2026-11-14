@@ -2,7 +2,8 @@
 // (owner's decisions 2026-11-14, DESIGN.md 24.1):
 //
 //   - a 128x128 dark rounded tile (#2d2d30 -> #1e1e1e), one symbol of Emmentaler in one colour;
-//   - every glyph from the SAME cut, emmentaler-14, and untouched: only sized and placed. Lily# sets two
+//   - every glyph untouched, only sized and placed, and from one cut, emmentaler-14 — but Shosa's turn,
+//     which is too heavy in that cut and is taken from the standard one, emmentaler-20. Lily# sets two
 //     glyphs as LilyPond engraves them (a G clef and the F sharp of G major: "Lily", then "#");
 //   - six hues 60 degrees apart at one lightness and one strength (OKLCH 0.76, 0.13), so that no two read
 //     as the same colour: Shosa 25, Cantoria 85, Calamo 145, Dettato 205, Lily# 265, Sound Font 325.
@@ -18,9 +19,17 @@ const { Resvg } = require('@resvg/resvg-js');
 
 const Cut = 14;
 const projects = path.resolve(__dirname, '..', '..');
-const font = opentype.loadSync(path.join(projects, 'LilySharp', 'editors', 'vscode', 'server', 'Fonts', `emmentaler-${Cut}.otf`));
-const glyphs = {};
-for (let i = 0; i < font.glyphs.length; i++) glyphs[font.glyphs.get(i).name] = font.glyphs.get(i);
+// The glyphs of a cut of Emmentaler, by name.
+const cuts = {};
+function glyphsOf(cut) {
+  if (!cuts[cut]) {
+    const font = opentype.loadSync(path.join(projects, 'LilySharp', 'editors', 'vscode', 'server', 'Fonts', `emmentaler-${cut}.otf`));
+    cuts[cut] = {};
+    for (let i = 0; i < font.glyphs.length; i++) cuts[cut][font.glyphs.get(i).name] = font.glyphs.get(i);
+  }
+  return cuts[cut];
+}
+const glyphs = glyphsOf(Cut);
 
 // OKLCH -> sRGB; the chroma is lowered until the colour exists on a screen.
 function oklch(L, C, h) {
@@ -37,9 +46,9 @@ const colour = hue => oklch(0.76, 0.13, hue);
 
 // Glyphs set at positions in staff spaces (x to the right, y up; a staff space is a quarter of the em),
 // then the whole fitted into a box (width, height) in the middle of the tile.
-function set(items, box) {
+function set(items, box, cut = Cut) {
   const all = new opentype.Path();
-  for (const [name, x = 0, y = 0] of items) all.commands.push(...glyphs[name].getPath(x * 250, -y * 250, 1000).commands);
+  for (const [name, x = 0, y = 0] of items) all.commands.push(...glyphsOf(cut)[name].getPath(x * 250, -y * 250, 1000).commands);
   const b = all.getBoundingBox(), k = Math.min(box[0] / (b.x2 - b.x1), box[1] / (b.y2 - b.y1));
   const ox = 64 - (b.x1 + b.x2) / 2 * k, oy = 64 - (b.y1 + b.y2) / 2 * k;
   for (const c of all.commands) {
@@ -61,7 +70,7 @@ const icons = [
   { name: 'Sound Font', folder: 'LilySharp/editors/vscode-soundfont', hue: 325, d: set(sforzando, [78, 80]) },
   { name: 'Calamo', folder: 'Calamo/extension', hue: 145, d: set([['scripts.ufermata']], [96, 96]) },      // a fermata: an eye, it reads the page
   { name: 'Cantoria', folder: 'Cantoria/editors/vscode', hue: 85, d: set([['clefs.C']], [96, 96]) },
-  { name: 'Shosa', folder: 'Shosa/editors/vscode', hue: 25, d: set([['scripts.turn']], [88, 96]) },        // a turn: a word of the language, and a movement
+  { name: 'Shosa', folder: 'Shosa/editors/vscode', hue: 25, d: set([['scripts.turn']], [88, 96], 20) },        // a turn: a word of the language, and a movement (the standard cut: 14 is too heavy)
   { name: 'Dettato', folder: 'Dettato', hue: 205, d: set([['clefs.F']], [80, 86]) },                        // an F clef: an ear, it listens
 ];
 
