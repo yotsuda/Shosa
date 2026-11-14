@@ -19,15 +19,26 @@ namespace Shosa.Core.Output;
 public static class Gltf
 {
     /// <summary>Every figure in one file: <c>.glb</c> when binary, else <c>.gltf</c> text with the data embedded.</summary>
-    public static byte[] Render(MotionClip clip, bool binary = true) => Pack(clip, clip.Figures, vrma: false, binary);
+    public static byte[] Render(MotionClip clip, bool binary = true) => Render([clip], binary);
+
+    /// <summary>
+    /// Several clips of the same figures in one file: one skeleton each, one animation per clip,
+    /// named after the clip. An animation's <c>extras</c> carry what the engine needs beside the
+    /// curves: whether it loops, the velocity an `inplace` clip had taken out, and the marks.
+    /// </summary>
+    public static byte[] Render(IReadOnlyList<MotionClip> clips, bool binary = true) =>
+        Pack(clips, clips.Select(c => (IReadOnlyList<ClipFigure>)c.Figures).ToList(), vrma: false, binary);
 
     /// <summary>One figure as a VRM Animation, which is a <c>.glb</c> with the humanoid named.</summary>
-    public static byte[] RenderVrma(MotionClip clip, ClipFigure figure) => Pack(clip, [figure], vrma: true, binary: true);
+    public static byte[] RenderVrma(MotionClip clip, ClipFigure figure) => Pack([clip], [[figure]], vrma: true, binary: true);
 
-    private static byte[] Pack(MotionClip clip, IReadOnlyList<ClipFigure> figures, bool vrma, bool binary)
+    /// <param name="cast">For each clip, its figures: the same ones in the same order in every clip.</param>
+    private static byte[] Pack(IReadOnlyList<MotionClip> clips, IReadOnlyList<IReadOnlyList<ClipFigure>> cast, bool vrma, bool binary)
     {
         var bin = new MemoryStream();
-        JsonArray nodes = [], roots = [], skins = [], accessors = [], views = [], samplers = [], channels = [];
+        JsonArray nodes = [], roots = [], skins = [], accessors = [], views = [], samplers = [], channels = [], animations = [];
+        var figures = cast.Count > 0 ? cast[0] : [];
+        var firstNode = new List<int>();
 
         int Accessor(float[] values, string type, int width, bool bounds = false)
         {
@@ -61,8 +72,6 @@ public static class Gltf
         }
 
         var bones = Skeleton.Bones;
-        int frames = figures.Count == 0 ? 0 : figures.Max(f => f.Rotations.Count);
-        int time = frames == 0 ? -1 : Accessor([.. Enumerable.Range(0, frames).Select(f => (float)((double)f / clip.Fps))], "SCALAR", 1, bounds: true);
         var humanBones = new JsonObject();
 
         var figureRoots = new List<int>();
@@ -70,6 +79,7 @@ public static class Gltf
         foreach (var figure in figures)
         {
             int first = nodes.Count;
+            firstNode.Add(first);
             var rest = new Vec3[bones.Length];
             for (int b = 0; b < bones.Length; b++)
             {
@@ -112,9 +122,40 @@ public static class Gltf
                 });
             }
 
+        }
+
+        // One animation per clip, on the bones made above.
+        for (int c = 0; c < clips.Count; c++)
+        {
+            var clip = clips[c];
+            int frames = cast[c].Count == 0 ? 0 : cast[c].Max(f => f.Rotations.Count);
             if (frames == 0)
                 continue;
+            int time = Accessor([.. Enumerable.Range(0, frames).Select(f => (float)((double)f / clip.Fps))], "SCALAR", 1, bounds: true);
+            samplers = [];
+            channels = [];
+            for (int i = 0; i < cast[c].Count && i < firstNode.Count; i++)
+                Animate(cast[c][i], firstNode[i], frames, time);
 
+            var extras = new JsonObject { ["loop"] = clip.Loop };
+            if (clip.Inplace)
+            {
+                // Metres per second in glTF's axes (y up); the engine moves the character by it.
+                extras["velocity"] = new JsonObject(cast[c].Where(f => f.Velocity is not null)
+                    .Select(f => KeyValuePair.Create(f.Id, (JsonNode?)new JsonArray(f.Velocity![0], 0, f.Velocity[1]))));
+            }
+            var marks = clip.Marks.Where(m => cast[c].Any(f => f.Id == m.Figure)).ToList();
+            if (marks.Count > 0)
+            {
+                extras["marks"] = new JsonArray([.. marks.Select(m =>
+                    (JsonNode)new JsonObject { ["time"] = m.Seconds, ["name"] = m.Name, ["figure"] = m.Figure })]);
+            }
+            string name = clip.Name.Length > 0 ? clip.Name : clip.Title.Length > 0 ? clip.Title : "shosa";
+            animations.Add(new JsonObject { ["name"] = name, ["samplers"] = samplers, ["channels"] = channels, ["extras"] = extras });
+        }
+
+        void Animate(ClipFigure figure, int first, int frames, int time)
+        {
             var moves = new float[frames * 3];
             for (int f = 0; f < frames; f++)
             {
@@ -166,13 +207,8 @@ public static class Gltf
         };
         if (skins.Count > 0)
             json["skins"] = skins;
-        if (frames > 0)
-        {
-            json["animations"] = new JsonArray
-            {
-                new JsonObject { ["name"] = clip.Title.Length > 0 ? clip.Title : "shosa", ["samplers"] = samplers, ["channels"] = channels },
-            };
-        }
+        if (animations.Count > 0)
+            json["animations"] = animations;
         if (bin.Length > 0)
         {
             json["accessors"] = accessors;

@@ -22,9 +22,10 @@ const string Usage = """
       shosa grammar [-o MD]        the language in one file, for an AI that will write it
 
     A file without a `form` has one clip per section. Every command writes them all, each to
-    its own file (walk.Idle.png); --clip NAME picks one. --score NAME picks one of the file's
-    scores (the output is then named FILE-NAME). bvh, gltf and vrma also write FILE.events.json
-    when the clips have marks (`!hit`) or an `inplace` velocity.
+    its own file (walk.Idle.png); --clip NAME picks one. glTF holds them all in one file, an
+    animation per clip. --score NAME picks one of the file's scores (the output is then named
+    FILE-NAME). Marks (`!hit`), loops and `inplace` velocities are in the glTF animations'
+    extras; bvh and vrma write them beside the files as FILE.events.json.
     """;
 
 if (args.Length >= 1 && args[0] == "grammar")
@@ -162,15 +163,14 @@ switch (command)
         break;
 
     case "gltf":
-        // glTF holds any number of skeletons: every figure of a clip goes into the one file.
-        foreach (var clip in clips)
-        {
-            string file = Target(clip, ".glb");
-            File.WriteAllBytes(file, Gltf.Render(clip, binary: !file.EndsWith(".gltf", StringComparison.OrdinalIgnoreCase)));
-            Console.WriteLine(file);
-        }
-        WriteEvents();
+    {
+        // glTF holds any number of skeletons and animations: every figure and every clip go into
+        // the one file, each clip an animation of its name, with its marks in the animation's extras.
+        string file = Base(".glb");
+        File.WriteAllBytes(file, Gltf.Render(clips, binary: !file.EndsWith(".gltf", StringComparison.OrdinalIgnoreCase)));
+        Console.WriteLine(file);
         break;
+    }
 
     case "vrma":
         // A VRM Animation is for one humanoid: with several figures, each gets its own file (duet.a.vrma).

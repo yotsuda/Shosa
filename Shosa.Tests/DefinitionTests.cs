@@ -39,6 +39,26 @@ public class DefinitionTests
     }
 
     [Fact]
+    public void A_gltf_file_holds_every_clip_as_an_animation_with_its_marks()
+    {
+        var compilation = Clean(Fighter + "section Idle loop { body { guard:8 } }\nsection Punch { body { guard:0 jab:2 } }\n"
+            + "section Walk loop inplace { steps { left.fwd right.fwd } }\n");
+        using var gltf = System.Text.Json.JsonDocument.Parse(Shosa.Core.Output.Gltf.Render(compilation.Clips, binary: false));
+        var animations = gltf.RootElement.GetProperty("animations");
+
+        Assert.Equal(new[] { "Idle", "Punch", "Walk" }, animations.EnumerateArray().Select(a => a.GetProperty("name").GetString()).ToArray());
+        Assert.Single(gltf.RootElement.GetProperty("skins").EnumerateArray());   // one skeleton for the three
+        Assert.True(animations[0].GetProperty("extras").GetProperty("loop").GetBoolean());
+        var mark = Assert.Single(animations[1].GetProperty("extras").GetProperty("marks").EnumerateArray());
+        Assert.Equal(("hit", 0.25), (mark.GetProperty("name").GetString(), mark.GetProperty("time").GetDouble()));
+        // Two strides in one second (tempo 120), along z.
+        Assert.Equal(1.0, animations[2].GetProperty("extras").GetProperty("velocity").GetProperty("dancer")[2].GetDouble());
+        // Every animation drives the same bones.
+        int Channels(int i) => animations[i].GetProperty("channels").GetArrayLength();
+        Assert.Equal(Channels(0), Channels(2));
+    }
+
+    [Fact]
     public void A_move_written_with_a_length_is_stretched_to_it_and_without_one_keeps_its_own()
     {
         var compilation = Clean(Fighter + "section A { body { jab jab:1/2 } }\n");

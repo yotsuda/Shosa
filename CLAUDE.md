@@ -30,7 +30,9 @@
 
 ```
 dotnet build Shosa.slnx
-dotnet test Shosa.slnx
+dotnet test Shosa.slnx          # VS Code が Shosa.Lsp\bin\Debug を掴んでいて失敗するときは: dotnet build Shosa.Cli; dotnet test Shosa.slnx -c Release
+Shosa.Cli\bin\Debug\net10.0\shosa.exe check samples\fighter.shosa                    # クリップの一覧と長さ
+Shosa.Cli\bin\Debug\net10.0\shosa.exe sheet samples\fighter.shosa -o out\fighter.png # クリップごとに out\fighter.Idle.png …。--clip 名前 で 1 つ
 Shosa.Cli\bin\Debug\net10.0\shosa.exe sheet samples\walk.shosa -o out\walk.png
 Shosa.Cli\bin\Debug\net10.0\shosa.exe bvh samples\walk.shosa -o out\walk.bvh
 Shosa.Cli\bin\Debug\net10.0\shosa.exe gltf samples\walk.shosa -o out\walk.glb    # blender_check.py は .glb も読む
