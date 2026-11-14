@@ -4,9 +4,10 @@ import * as vscode from 'vscode';
 import { LanguageClient, ServerOptions, TransportKind } from 'vscode-languageclient/node';
 
 // The extension is thin on purpose. The language server knows the language; the preview
-// knows how to draw. This file starts the one, opens the other, and carries three kinds of
+// knows how to draw. This file starts the one, opens the other, and carries four kinds of
 // message between editor and preview:
 //   server  -> preview : the solved movement, after every edit           (shosa/clip)
+//   preview -> server  : the notes of the song a clip is danced to, when the preview asks (shosa/song)
 //   editor  -> preview : where the cursor is, so the preview shows the clip of that section
 //                        and that word's pose
 //   preview -> editor  : which words are being performed (to light them up), and which
@@ -35,14 +36,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   });
   context.subscriptions.push(performed);
 
-  const dll = findServer(context);
-  if (!dll) {
+  const server = findServer(context);
+  if (!server) {
     void vscode.window.showErrorMessage(
-      'Shosa: the language server (Shosa.Lsp.dll) was not found. Build it with "dotnet build", or set shosa.server.path.');
+      'Shosa: the language server was not found. Build it with "dotnet build", or set shosa.server.path.');
     return;
   }
 
-  const serverOptions: ServerOptions = { command: 'dotnet', args: [dll], transport: TransportKind.stdio };
+  const serverOptions: ServerOptions = { ...server, transport: TransportKind.stdio };
   const editorFor = (uri: string | undefined) =>
     vscode.window.visibleTextEditors.find(e => e.document.uri.toString() === uri);
 
@@ -58,7 +59,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     });
   };
 
-  client = new LanguageClient('shosa', 'Shosa', serverOptions, { documentSelector: [{ language: 'shosa' }] });
+  // A dance follows its song: when a .lys is saved, the server compiles the dances again.
+  const songs = vscode.workspace.createFileSystemWatcher('**/*.lys');
+  context.subscriptions.push(songs);
+  client = new LanguageClient('shosa', 'Shosa', serverOptions,
+    { documentSelector: [{ language: 'shosa' }], synchronize: { fileEvents: songs } });
   client.onNotification('shosa/clip', (message: ClipMessage) => {
     clips.set(message.uri, message);
     if (panel && panelUri === message.uri) {
@@ -80,6 +85,32 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }
   };
 
+  // The song of a dance is played through a sound font when this machine has one: the preview
+  // is told where the synthesiser's worklet and the font are, and may read the font's folder.
+  const dist = vscode.Uri.joinPath(context.extensionUri, 'dist');
+  const resourceRoots = () => {
+    const font = soundFontFile();
+    return font ? [dist, vscode.Uri.file(path.dirname(font))] : [dist];
+  };
+  const tellSynth = () => {
+    if (!panel) {
+      return;
+    }
+    const font = soundFontFile();
+    void panel.webview.postMessage({
+      type: 'synth',
+      processor: panel.webview.asWebviewUri(vscode.Uri.joinPath(dist, 'spessasynth_processor.min.js')).toString(),
+      soundFont: font ? panel.webview.asWebviewUri(vscode.Uri.file(font)).toString() : '',
+      name: font ? path.basename(font) : '',
+    });
+  };
+  context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(event => {
+    if (panel && (event.affectsConfiguration('shosa.playback.soundFont') || event.affectsConfiguration('lilysharp.playback.soundFont'))) {
+      panel.webview.options = { enableScripts: true, localResourceRoots: resourceRoots() };
+      tellSynth();
+    }
+  }));
+
   context.subscriptions.push(vscode.commands.registerCommand('shosa.openPreview', () => {
     const editor = vscode.window.activeTextEditor;
     if (!editor || editor.document.languageId !== 'shosa') {
@@ -92,9 +123,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       return;
     }
 
-    const dist = vscode.Uri.joinPath(context.extensionUri, 'dist');
     panel = vscode.window.createWebviewPanel('shosa.preview', 'Preview', { viewColumn: vscode.ViewColumn.Beside, preserveFocus: true },
-      { enableScripts: true, retainContextWhenHidden: true, localResourceRoots: [dist] });
+      { enableScripts: true, retainContextWhenHidden: true, localResourceRoots: resourceRoots() });
     panel.webview.html = previewHtml(panel.webview, vscode.Uri.joinPath(dist, 'preview.js'));
     panelUri = uri;
 
@@ -104,10 +134,21 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       panelUri = undefined;
     });
 
-    panel.webview.onDidReceiveMessage((message: { type: string; spans?: [number, number][]; start?: number; length?: number }) => {
+    panel.webview.onDidReceiveMessage((message: { type: string; spans?: [number, number][]; start?: number; length?: number; key?: string; music?: object }) => {
       const editor = editorFor(panelUri);
       switch (message.type) {
+        case 'song':
+          // The notes of the song the clip is danced to: the server has shosa-music read them.
+          if (panelUri && client) {
+            const key = message.key;
+            client.sendRequest('shosa/song', { ...message.music, uri: panelUri }).then(
+              song => void panel?.webview.postMessage({ type: 'song', key, song }),
+              () => undefined);
+          }
+          break;
+
         case 'ready':
+          tellSynth();
           if (panelUri) {
             show(panelUri);
           }
@@ -159,20 +200,64 @@ export async function deactivate(): Promise<void> {
   await client?.stop();
 }
 
-function findServer(context: vscode.ExtensionContext): string | undefined {
+/**
+ * How to start the language server. The setting first; then the one the package carries — a
+ * program with its own .NET runtime, so nothing but VS Code is needed (tools\pack-extension.ps1 puts it in
+ * `server`, with shosa-music beside it); then, running from the repository, the one
+ * `dotnet build` leaves. A .dll is run with `dotnet`.
+ */
+function findServer(context: vscode.ExtensionContext): { command: string; args: string[] } | undefined {
   const configured = vscode.workspace.getConfiguration('shosa').get<string>('server.path') ?? '';
   const candidates = [
     configured,
+    path.join(context.extensionPath, 'server', process.platform === 'win32' ? 'Shosa.Lsp.exe' : 'Shosa.Lsp'),
     path.join(context.extensionPath, 'server', 'Shosa.Lsp.dll'),
-    // Running from the repository (F5): the server as `dotnet build` leaves it.
     path.join(context.extensionPath, '..', '..', 'Shosa.Lsp', 'bin', 'Debug', 'net10.0', 'Shosa.Lsp.dll'),
   ];
-  return candidates.find(candidate => candidate.length > 0 && fs.existsSync(candidate));
+  const found = candidates.find(candidate => candidate.length > 0 && fs.existsSync(candidate));
+  if (!found) {
+    return undefined;
+  }
+  return found.toLowerCase().endsWith('.dll') ? { command: 'dotnet', args: [found] } : { command: found, args: [] };
+}
+
+/**
+ * The sound font the preview plays a song with, or undefined where there is none (the preview
+ * then plays simple tones). Shosa's own setting first; else what Lily# plays with, in Lily#'s
+ * order: its setting, the font of the Lily# Sound Font extension, the operating system's
+ * General MIDI bank. So a song sounds in the dance's preview as it does in its own.
+ */
+function soundFontFile(): string | undefined {
+  for (const section of ['shosa', 'lilysharp']) {
+    const named = (vscode.workspace.getConfiguration(section).get<string>('playback.soundFont') ?? '').trim();
+    if (named && fs.existsSync(named)) {
+      return named;
+    }
+  }
+  const packaged = vscode.extensions.getExtension('yotsuda.lilysharp-soundfont');
+  if (packaged) {
+    const folder = path.join(packaged.extensionPath, 'soundfont');
+    try {
+      const fonts = fs.readdirSync(folder).filter(name => /\.(sf2|sf3|dls)$/i.test(name)).sort();
+      if (fonts.length > 0) {
+        return path.join(folder, fonts[0]);
+      }
+    } catch {
+      // installed without its font
+    }
+  }
+  const system = process.platform === 'win32' ? path.join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'drivers', 'gm.dls')
+    : process.platform === 'darwin' ? '/System/Library/Components/CoreAudio.component/Contents/Resources/gs_instruments.dls'
+    : '';
+  return system && fs.existsSync(system) ? system : undefined;
 }
 
 function previewHtml(webview: vscode.Webview, script: vscode.Uri): string {
   const nonce = Array.from({ length: 32 }, () => 'abcdefghijklmnopqrstuvwxyz0123456789'[Math.floor(Math.random() * 36)]).join('');
-  const csp = `default-src 'none'; script-src 'nonce-${nonce}'; style-src 'unsafe-inline'; img-src ${webview.cspSource} data:;`;
+  // Beyond the page's own script: the synthesiser's worklet is loaded from the extension (or
+  // from a blob of it), its decoder of compressed fonts is WebAssembly, and the sound font is fetched.
+  const csp = `default-src 'none'; script-src 'nonce-${nonce}' ${webview.cspSource} 'wasm-unsafe-eval' blob:; style-src 'unsafe-inline'; `
+    + `img-src ${webview.cspSource} data:; connect-src ${webview.cspSource};`;
   return `<!doctype html>
 <html lang="en">
 <head>

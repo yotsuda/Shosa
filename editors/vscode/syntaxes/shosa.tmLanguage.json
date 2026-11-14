@@ -40,7 +40,7 @@
         "2": { "name": "entity.name.function.shosa" }
       }
     },
-    { "name": "keyword.control.shosa", "match": "(?<![.@!:\\w])(title|tempo|time|fps|music|repeat)\\b(?!\\.)" },
+    { "name": "keyword.control.shosa", "match": "(?<![.@!:\\w])(title|tempo|time|fps|music|q)\\b(?!\\.)" },
     { "name": "entity.name.function.track.shosa", "match": "\\b(body|steps|arms|leftArm|rightArm|leftLeg|rightLeg|torso|head)\\b(?=\\s*\\{)" },
     {
       "comment": "@turn(left.quarter): an annotation with arguments.",
@@ -67,6 +67,22 @@
         "3": { "name": "keyword.other.unit.shosa" }
       }
     },
+    {
+      "comment": "Repeat signs of a form: |: :| :|: (and :|*4, whose *4 is coloured below). Not `|:2`, a bar line and the rest of a tie.",
+      "name": "keyword.control.repeat.shosa",
+      "match": ":\\|:(?!\\d)|\\|:(?!\\d)|:\\|"
+    },
+    {
+      "comment": "A numbered ending of a form: [1. B] [1-2. B C].",
+      "match": "(\\[)(\\d+(?:-\\d+)?\\.)",
+      "captures": {
+        "1": { "name": "punctuation.section.brackets.begin.shosa" },
+        "2": { "name": "constant.numeric.ending.shosa" }
+      }
+    },
+    { "name": "punctuation.section.brackets.end.shosa", "match": "\\]" },
+    { "comment": "% and %2: the bar(s) before, again.", "name": "keyword.control.repeat.shosa", "match": "%\\d*" },
+    { "comment": "A tie over a bar line: kick:2~ | :1.", "name": "keyword.operator.tie.shosa", "match": "~" },
     { "include": "#number" },
     { "name": "keyword.operator.bar.shosa", "match": "\\|" },
     { "name": "keyword.operator.together.shosa", "match": "&" },

@@ -6,11 +6,19 @@
 //   in   { type: 'clip', clips, offset, reset? }   the movement (after every edit); offset
 //                                                  is the cursor, -1 if unknown
 //   in   { type: 'cursor', offset }       the editor's cursor moved
+//   in   { type: 'song', key, song }      the notes asked for: { error, notes }
+//   in   { type: 'synth', processor, soundFont, name }   where the synthesiser and the sound font are
+//                                                  (URLs the webview may load; no soundFont: there is none)
 //   out  { type: 'ready' }
+//   out  { type: 'song', key, music }     the notes of the song this clip is danced to, please
 //   out  { type: 'active', spans }        [start, length] of the words being performed
 //   out  { type: 'reveal', start, length} a limb was clicked: its word
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { createFontSound } from './fontsound.js';
+import { createSound } from './sound.js';
+import { createSynthPort } from './synth.js';
+import { barAt, beatAt, markText, marksAt, secondsAt, tempoAt } from './time.js';
 
 const vscode = acquireVsCodeApi();
 
@@ -28,14 +36,19 @@ style.textContent = `
            border-top: 1px solid var(--vscode-panel-border, #ccc); }
   header { display: flex; gap: 8px; align-items: center; padding: 4px 12px; min-height: 22px;
            border-bottom: 1px solid var(--vscode-panel-border, #ccc); }
-  header[hidden], header [hidden] { display: none; }
+  header[hidden], header [hidden], footer [hidden] { display: none; }
   #name { font-weight: 600; }
   #kind { font-size: 11px; padding: 0 6px; border-radius: 8px;
           color: var(--vscode-badge-foreground, #fff); background: var(--vscode-badge-background, #616161); }
   button { font: inherit; padding: 3px 12px; border: 0; border-radius: 3px; cursor: pointer; min-width: 5em;
            color: var(--vscode-button-foreground, #fff); background: var(--vscode-button-background, #0a66c2); }
   button:hover { background: var(--vscode-button-hoverBackground, #0858a8); }
-  input[type=range] { flex: 1; min-width: 60px; }
+  input[type=range] { flex: 1; min-width: 60px; margin: 0; }
+  #track { flex: 1; display: flex; position: relative; min-width: 60px; }
+  #ticks i { position: absolute; bottom: -5px; width: 2px; margin-left: -1px; height: 5px; background: var(--mark); pointer-events: none; }
+  #marks { position: absolute; left: 12px; top: 8px; font-weight: 600; color: var(--mark); pointer-events: none; white-space: pre; }
+  body { --mark: #1e8e5a; }
+  body.vscode-dark, body.vscode-high-contrast { --mark: #4fd08f; }
   #beat { font-variant-numeric: tabular-nums; min-width: 13ch; color: var(--vscode-descriptionForeground, #777); }
   label { display: flex; gap: 4px; align-items: center; white-space: nowrap; }
   select { font: inherit; color: var(--vscode-dropdown-foreground, inherit); background: var(--vscode-dropdown-background, transparent);
@@ -48,12 +61,13 @@ document.body.innerHTML = `
     <span id="name" hidden></span>
     <span id="kind" hidden></span>
   </header>
-  <div id="stage"><div id="empty">Nothing to perform yet: the file needs a section.</div></div>
+  <div id="stage"><div id="empty">Nothing to perform yet: the file needs a section.</div><div id="marks"></div></div>
   <footer>
     <button id="play">Play</button>
-    <input id="seek" type="range" min="0" max="1000" value="0" aria-label="Position">
+    <div id="track"><input id="seek" type="range" min="0" max="1000" value="0" aria-label="Position"><div id="ticks"></div></div>
     <span id="beat"></span>
     <label><input id="loop" type="checkbox" checked> Loop</label>
+    <label id="soundLabel" hidden><input id="sound" type="checkbox" checked> Sound</label>
     <label>Speed <select id="speed"><option>0.25</option><option>0.5</option><option selected>1</option></select></label>
   </footer>`;
 
@@ -62,6 +76,8 @@ const playButton = document.getElementById('play'), seek = document.getElementBy
 const beatLabel = document.getElementById('beat'), speed = document.getElementById('speed'), loop = document.getElementById('loop');
 const bar = document.getElementById('bar'), clipSelect = document.getElementById('clips');
 const nameLabel = document.getElementById('name'), kindLabel = document.getElementById('kind');
+const soundLabel = document.getElementById('soundLabel'), soundBox = document.getElementById('sound');
+const ticks = document.getElementById('ticks'), marksLabel = document.getElementById('marks');
 
 // ---- Scene.
 const dark = document.body.classList.contains('vscode-dark') || document.body.classList.contains('vscode-high-contrast');
@@ -106,7 +122,7 @@ function channelOfBone(index) {
   const name = clip.joints[clip.bones[index][1]];
   const side = name.startsWith('left') ? 'left' : name.startsWith('right') ? 'right' : '';
   if (/Elbow|Hand/.test(name)) return [side + 'Arm'];
-  if (/Knee|Ankle|Toe|Hip/.test(name)) return [side + 'Leg', 'support'];
+  if (/Knee|Ankle|Toe|Hip/.test(name)) return [side + 'Leg', 'support', 'height'];
   if (/head|nose/.test(name)) return ['head', 'torso'];
   return ['torso'];
 }
@@ -175,10 +191,14 @@ function show() {
       vscode.postMessage({ type: 'active', spans: [] });
     }
     beatLabel.textContent = '';
+    marksLabel.textContent = '';
     seek.value = 0;
     return;
   }
-  pose(beat * 60 * clip.fps / clip.tempo);
+  pose(secondsAt(clip, beat) * clip.fps);
+  // The moments named for the engine (`!hit`): written over the stage as they arrive.
+  const arrived = markText(clip, marksAt(clip, beat));
+  if (marksLabel.textContent !== arrived) marksLabel.textContent = arrived;
 
   const seen = new Set(), spans = [];
   for (const span of clip.spans) {
@@ -194,8 +214,8 @@ function show() {
     vscode.postMessage({ type: 'active', spans });
   }
 
-  const bar = Math.floor(beat / clip.beatsPerBar - 1e-9) + 1, inBar = beat - (Math.max(1, bar) - 1) * clip.beatsPerBar;
-  beatLabel.textContent = clip.totalBeats ? 'bar ' + Math.max(1, bar) + '  beat ' + (inBar + 1).toFixed(2) : '';
+  const [bar, inBar] = barAt(clip, beat);
+  beatLabel.textContent = clip.totalBeats ? 'bar ' + bar + '  beat ' + (inBar + 1).toFixed(2) : '';
   seek.value = clip.totalBeats ? Math.round(1000 * beat / clip.totalBeats) : 0;
 }
 
@@ -203,6 +223,45 @@ function seekTo(value) {
   beat = Math.max(0, Math.min(clip ? clip.totalBeats : 0, value));
   show();
 }
+
+// ---- Sound: the song the clip is danced to (`music "song.lys"`). Played through the sound
+// font Lily# plays with (synth.js) when there is one; else, and until it is read, by the
+// oscillators of sound.js.
+const songs = new Map();   // key (file, score, order) -> notes
+let songKey = null;        // the key of the shown clip's song; null without one
+let songError = '', fontStatus = { state: 'none' };
+
+// The Sound box says on hover what is wrong with the song, or else what it is played with.
+function soundTitle() {
+  soundLabel.title = songError || (
+    fontStatus.state === 'ready' ? 'Played with the sound font ' + fontStatus.detail + '.'
+    : fontStatus.state === 'loading' ? 'Reading the sound font ' + fontStatus.detail + ' (it is used from the first Play on); simple tones until then.'
+    : fontStatus.state === 'failed' ? 'Simple tones: ' + fontStatus.detail
+    : 'Simple tones: no sound font was found. Set shosa.playback.soundFont, or install the Lily# Sound Font extension.');
+}
+
+const port = createSynthPort(status => {
+  fontStatus = status;
+  soundTitle();
+});
+const player = createFontSound(port, createSound());
+soundTitle();
+
+const keyOf = c => c && c.music ? JSON.stringify([c.music.file, c.music.score ?? null, c.music.order ?? null]) : null;
+
+// Asked again at every Play: the server answers from memory unless the .lys was saved since.
+function askSong() {
+  if (songKey) vscode.postMessage({ type: 'song', key: songKey, music: clip.music });
+}
+
+// What sounds stops, and the notes go on from the beat shown.
+const cue = () => player.cue(beat);
+
+function sound() {
+  if (soundBox.checked) player.play(beat, 60 / (tempoAt(clip, beat) * Number(speed.value)));
+}
+
+soundBox.addEventListener('change', cue);
 
 // ---- Which clip is shown.
 const sectionsOf = c => c.sections ?? [];
@@ -240,6 +299,17 @@ function header() {
   loop.disabled = !!(clip && clip.loop);
 }
 
+// A tick under the slider at every mark of the clip. The slider's knob travels its width less
+// its own (about 16 pixels), and so do the ticks.
+function markTicks() {
+  const beats = clip && clip.totalBeats > 0 ? [...new Set((clip.marks ?? []).map(m => m.beat))] : [];
+  ticks.replaceChildren(...beats.map(at => {
+    const tick = document.createElement('i');
+    tick.style.left = `calc(8px + (100% - 16px) * ${at / clip.totalBeats})`;
+    return tick;
+  }));
+}
+
 function setClip(next, keepBeat) {
   const rebuild = !next || !clip || figures.length !== next.figures.length;
   clip = next;
@@ -249,7 +319,21 @@ function setClip(next, keepBeat) {
   if (!clip) setPlaying(false);
   lastActive = null;
   header();
+  markTicks();
   seekTo(beat);
+
+  // An edit of the dance leaves the song as it is, and the music goes on; another song,
+  // or another moment, starts it again.
+  const key = keyOf(clip);
+  soundLabel.hidden = !key;
+  if (key !== songKey) {
+    songKey = key;
+    player.setSong(key ? songs.get(key) ?? null : null);
+    askSong();
+    cue();
+  } else if (!keepBeat) {
+    cue();
+  }
 }
 
 clipSelect.addEventListener('change', () => {
@@ -263,11 +347,17 @@ function setPlaying(value) {
   playing = value;
   playButton.textContent = playing ? 'Pause' : 'Play';
   last = performance.now();
+  cue();
 }
 
 playButton.addEventListener('click', () => {
   if (!clip) return;
   if (!playing && beat >= clip.totalBeats - 1e-6) beat = 0;
+  if (!playing && songKey) {
+    // A browser lets sound start only from a click or a key: this is the one.
+    player.start();
+    askSong();
+  }
   setPlaying(!playing);
 });
 seek.addEventListener('input', () => {
@@ -318,6 +408,22 @@ window.addEventListener('message', event => {
     const under = same ? null : clips.find(c => holds(c, typeof message.offset === 'number' ? message.offset : -1)) ?? null;
     if (message.reset) setPlaying(false);
     setClip(same ?? under ?? clips[0] ?? null, !message.reset && (same !== null || under !== null));
+  } else if (message.type === 'song') {
+    const notes = message.song && !message.song.error ? message.song.notes ?? [] : [];
+    // The same notes again (the answer to every Play) change nothing that is sounding.
+    const known = songs.get(message.key);
+    const same = known && known.length === notes.length && known.every((n, i) => n.every((value, j) => value === notes[i][j]));
+    if (!same) {
+      songs.set(message.key, notes);
+      if (message.key === songKey) {
+        player.setSong(notes);
+        cue();
+      }
+    }
+    songError = message.key === songKey && message.song && message.song.error ? message.song.error : '';
+    soundTitle();
+  } else if (message.type === 'synth') {
+    port.configure(message);
   } else if (message.type === 'cursor' && clip) {
     // The cursor in a section of another clip shows that clip; in no section (the headers,
     // a pose or a move) it changes nothing.
@@ -344,19 +450,22 @@ resize();
 
 function tick(now) {
   if (playing && clip) {
-    beat += (now - last) / 1000 * clip.tempo / 60 * Number(speed.value);
+    beat = beatAt(clip, secondsAt(clip, beat) + (now - last) / 1000 * Number(speed.value));
     if (beat >= clip.totalBeats) {
       if (clip.loop && clip.totalBeats > 0) {
         // The last frame of a loop IS its first: carry on from there with no stop, keeping
         // the time left over. A loop that travels starts again from frame 0.
         beat %= clip.totalBeats;
+        player.rewind();   // the last notes ring on into the first
       } else if (wantLoop && clip.totalBeats > 0) {
         beat = 0;
+        player.rewind();
       } else {
         beat = clip.totalBeats;
         setPlaying(false);
       }
     }
+    sound();
     show();
   }
   last = now;

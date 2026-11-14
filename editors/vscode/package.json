@@ -3,37 +3,69 @@
   "displayName": "Shosa",
   "description": "Write human movement as text and watch it performed beside the source.",
   "version": "0.0.1",
-  "publisher": "shosa-dev",
+  "publisher": "yotsuda",
+  "author": "Yoshifumi Tsuda",
+  "icon": "icon.png",
+  "keywords": ["motion", "animation", "choreography", "dance", "character animation", "gltf", "vrm", "bvh"],
   "private": true,
-  "engines": { "vscode": "^1.90.0" },
-  "categories": ["Programming Languages"],
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
   "main": "./dist/extension.js",
   "activationEvents": [],
   "contributes": {
     "languages": [
       {
         "id": "shosa",
-        "aliases": ["Shosa", "shosa"],
-        "extensions": [".shosa"],
+        "aliases": [
+          "Shosa",
+          "shosa"
+        ],
+        "extensions": [
+          ".shosa"
+        ],
         "configuration": "./language-configuration.json"
       }
     ],
     "grammars": [
-      { "language": "shosa", "scopeName": "source.shosa", "path": "./syntaxes/shosa.tmLanguage.json" }
+      {
+        "language": "shosa",
+        "scopeName": "source.shosa",
+        "path": "./syntaxes/shosa.tmLanguage.json"
+      }
     ],
     "commands": [
-      { "command": "shosa.openPreview", "title": "Shosa: Open Preview to the Side", "icon": "$(open-preview)" }
+      {
+        "command": "shosa.openPreview",
+        "title": "Shosa: Open Preview to the Side",
+        "icon": "$(open-preview)"
+      }
     ],
     "menus": {
       "editor/title": [
-        { "command": "shosa.openPreview", "when": "editorLangId == shosa", "group": "navigation" }
+        {
+          "command": "shosa.openPreview",
+          "when": "editorLangId == shosa",
+          "group": "navigation"
+        }
       ],
       "commandPalette": [
-        { "command": "shosa.openPreview", "when": "editorLangId == shosa" }
+        {
+          "command": "shosa.openPreview",
+          "when": "editorLangId == shosa"
+        }
       ]
     },
     "keybindings": [
-      { "command": "shosa.openPreview", "key": "ctrl+k v", "mac": "cmd+k v", "when": "editorLangId == shosa" }
+      {
+        "command": "shosa.openPreview",
+        "key": "ctrl+k v",
+        "mac": "cmd+k v",
+        "when": "editorLangId == shosa"
+      }
     ],
     "configuration": {
       "title": "Shosa",
@@ -42,15 +74,23 @@
           "type": "string",
           "default": "",
           "description": "Path to Shosa.Lsp.dll. Empty uses the server shipped with the extension, or the one built in this repository."
+        },
+        "shosa.playback.soundFont": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "The sound font the preview plays a dance's song with: a path to an `.sf2`, `.sf3` or `.dls` file on this machine. Empty: the one Lily# plays with — its `lilysharp.playback.soundFont` setting, else the font of the *Lily# Sound Font* extension when that is installed, else the General MIDI bank of the operating system. Where there is none, the preview plays simple tones."
         }
       }
     }
   },
   "scripts": {
     "build": "node build.mjs",
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "test": "node --test"
   },
   "dependencies": {
+    "spessasynth_core": "4.3.22",
+    "spessasynth_lib": "4.3.14",
     "three": "0.160.0",
     "vscode-languageclient": "9.0.1"
   },
