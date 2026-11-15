@@ -42,6 +42,8 @@ public static class Rig
     public const double Stance = 0.20;
     /// <summary>Distance between the ankles with the heels touching: the feet closed with the legs turned out all the way.</summary>
     public const double HeelsTogether = 0.08;
+    /// <summary>`across` unmeasured: how far the foot goes past the other one's line, and how far in front (or with `back`, behind) of it.</summary>
+    public const double Cross = 0.08, CrossAhead = 0.12;
     /// <summary>Distance between the ankles with the feet side by side, touching (`together`, parallel).</summary>
     public const double Together = 0.10;
     /// <summary>How high a foot left in the air after landing on the other one is held, ankle above the floor.</summary>
@@ -190,7 +192,8 @@ public sealed class ClipFigure
         }
         return new BodyAngles(Degrees(Math.Atan2(Math.Sin(yaw), Math.Cos(yaw))), Line(Rig.LHip, Rig.RHip), Line(Rig.LShoulder, Rig.RShoulder),
             face, Degrees(Math.Atan2(nose.Y, Math.Sqrt(ahead * ahead + aside * aside))),
-            Bend(Rig.LShoulder), Bend(Rig.RShoulder), Bend(Rig.LHip), Bend(Rig.RHip));
+            Bend(Rig.LShoulder), Bend(Rig.RShoulder), Bend(Rig.LHip), Bend(Rig.RHip),
+            ears.Length < 1e-6 ? 0 : Degrees(Math.Asin(Math.Clamp(-ears.Normalized().Dot(Vec3.Up), -1, 1))));
     }
 
     /// <summary>
@@ -225,9 +228,10 @@ public sealed class ClipFigure
 /// Degrees, more to the figure's left. <paramref name="Feet"/> is from the front of the room; the
 /// hips, the shoulders and the face are from the way the feet face; <paramref name="FaceUp"/> is above level.
 /// The elbows and the knees are how far each is bent, 0 straight (as `@bent(N)` counts).
+/// <paramref name="Tilt"/> is how far the line of the eyes is from level, positive with the left ear down (as `tilt(left(N))` counts).
 /// </summary>
 public readonly record struct BodyAngles(double Feet, double Hips, double Shoulders, double Face, double FaceUp,
-    double LeftElbow = 0, double RightElbow = 0, double LeftKnee = 0, double RightKnee = 0);
+    double LeftElbow = 0, double RightElbow = 0, double LeftKnee = 0, double RightKnee = 0, double Tilt = 0);
 
 /// <param name="Section">The section that writes the mark, and <paramref name="Play"/>: which play of it in the score (1 the first). With them an engine tells the first `hit` of a section played twice from the second.</param>
 public sealed record ClipMark(double Beat, double Seconds, string Name, string Figure, string Section = "", int Play = 1);

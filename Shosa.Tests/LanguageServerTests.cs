@@ -164,7 +164,7 @@ public class LanguageServerTests
 
         session.Replace("side:2", "side.");
         var afterSide = session.Complete("arms  { side.");
-        Assert.Equal(new[] { "fwd", "back", "up", "down", "bent", "elbow", "body" }, afterSide);   // not `across`, its opposite; not left / right; then the shape words of an arm
+        Assert.Equal(new[] { "fwd", "back", "up", "down", "bent", "elbow", "body" }, afterSide);   // not `tilt`, the head's   // not `across`, its opposite; not left / right; then the shape words of an arm
     }
 
     [Fact]

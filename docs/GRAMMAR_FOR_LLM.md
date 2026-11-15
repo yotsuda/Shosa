@@ -640,6 +640,14 @@ An arm can also go to a place on the own body instead of a direction:
 
 `arms { clap!clap }` is a clap on its beat (add `@sharp` for a crisp one); `arms { shoulder.across }` folds the arms.
 
+**A hand that stays where it is in the room: `stay`.** Every target above is measured from the
+shoulder, so a hand goes with the body when it leans, bows or sinks. `stay` is timed as `then` and
+keeps the hand where its word before put it, in the room: the elbow bends and unbends to follow it
+(a hand on a counter, on a rail, on a wall):
+`rightArm { fwd.down(40).bent(30):4 stay:1 down }` with `torso { up:2 up.fwd(30):2 up }` keeps the
+hand on the counter through the bow, and lets it go in beat 5. A body that goes farther from the
+hand than the arm is long is a warning (SH2015). `stay` is for an arm only.
+
 An arm or the head can take a place on ANOTHER dancer, by its role:
 `ROLE.PLACE`: `rightArm { b.hand:2 }` reaches for b's right hand, `head { b.head }`
 looks at b.
@@ -708,7 +716,7 @@ parallel, to the side turned out (`turnout`) — or as `knee(...)` says: `otherK
 The place is found on the other leg wherever it is: in a plié, turned out, or in the air.
 The foot is pointed on along the shin, its toe at the place.
 
-### Shapes: `bent`, `elbow`, `knee`, `round`, `body`
+### Shapes: `bent`, `elbow`, `knee`, `round`, `tilt`, `body`
 
 After the direction a target may say the shape the part arrives in, with words of their
 own joined on by dots, **each once and in this order** (SH1012 otherwise):
@@ -719,6 +727,7 @@ own joined on by dots, **each once and in this order** (SH1012 otherwise):
 | `elbow` | For an arm: which way the elbow points, as an arm's direction: `fwd.down(15).bent(40).elbow(side)` holds it out to the side (ballet's rounded arms). Without it the elbow hangs down, back and a little out. Only the part square to the arm counts; on a straight arm it turns the arm about its length. |
 | `knee` | For a leg in the air: which way the knee points, as a leg's direction: `back.up(20).bent.knee(side.up)` (an attitude, the knee above the foot). Without it the knee points where its foot does (`turnout`). |
 | `round` | For the torso: the back is rounded. The direction still says where the chest is from the hips; the spine bows back from that line, and the chest, the shoulders and the head lean further forward (`torso { up.fwd(10).round }` is a fighter's guard, `up.round` a slouch). Without it the back is straight, as in a bow from the hips. |
+| `tilt` | For the head: the line of the eyes tilted from level, an ear toward its shoulder: `fwd.tilt(left(15))` (up to 45; `tilt(left(0))` holds the eyes level on a leaning torso). Without it the head sits square on the neck and leans with the torso. |
 | `body` | For an arm: the direction is measured against the torso instead of the room, so the arm leans when the torso leans: `up.body`. |
 
 ```shosa
@@ -754,6 +763,12 @@ torso    { up.fwd(10).round }                    // a boxer's hunch
   word says. A written head is measured from level, so the rounding does not tip it; an
   unwritten head leans with the chest. The back always rounds forward, whichever way the
   torso leans; there is no word for arching it back.
+- **`tilt`: the head tilted to the side**, an ear toward its shoulder: `head { fwd.tilt(left(15)) }`
+  (the side, then the degrees in brackets, up to 45). It is the line of the eyes **from level, in the
+  room**, as every written direction is, so it is the same on an upright and on a leaning torso. It does
+  not change where the face looks: `fwd.right(30).tilt(right(10))` looks 30° right and tilts 10°.
+  Without `tilt` the head sits square on the neck and leans with the torso (a side bend tips the eyes
+  with it); `tilt(left(0))` holds them level over it. The tilt goes evenly from word to word.
 - **`body`: measured from the chest**, not the room, so the part leans when the torso
   leans (an arm, a leg or the head; `elbow(…)` is measured so too). See "Every written
   direction is measured the same way" above.
@@ -919,7 +934,7 @@ on its direction, in metres: `leftFoot.fwd(0.3m)` (a small step), `leftFoot.side
 | `fwd` | One stride (0.5 m) ahead of the supporting foot, or as far as its bracket says: `fwd(0.3m)`. |
 | `back` | One stride behind the supporting foot: `back(0.3m)`. |
 | `side` | Apart from the supporting foot, to the stepping foot's own side: the feet 0.55 m apart, or `side(0.4m)`. |
-| `across` | Crossing just in front of the supporting foot (0.12 m; with `back`, just behind), or `across(0.2m)`. |
+| `across` | Crossing over the supporting foot's line, 0.08 m past it (`across(0.13m)`: how far the feet cross, as `side` says how far apart), just in front of it (0.12 m; with `back`, just behind). How far in front is said by `fwd`: `fwd(0.08m).across(0.13m)`. |
 | `place` | Beside the supporting foot: a step on the spot. |
 
 - `left` and `right` are never feet: a foot is `leftFoot` / `rightFoot`. `left` and `right`
@@ -940,10 +955,12 @@ on its direction, in metres: `leftFoot.fwd(0.3m)` (a small step), `leftFoot.side
   `leftFoot.fwd stand rightFoot.back stand` goes out and comes home in one bar, and
   `leftFoot.fwd rightFoot.fwd leftFoot.back rightFoot.back stand` does it in walking steps (the
   fourth step leaves the left foot a stride ahead; `stand` brings it home).
-- `across` puts the foot just in front of the other one (0.12 m, or `across(0.2m)`: how far in front),
-  crossed over, 0.08 m past its line (always; that is not written); `back.across` just behind it
-  (`back.across(0.07m)` 0.07 m behind) — the cross-behind of a grapevine. How far is written once:
-  on `across`, or on `fwd` / `back` for a stride that crosses (`fwd(0.5m).across`). A cross is not a
+- `across` puts the foot crossed over the other one's line, 0.08 m past it, and just in front of it
+  (0.12 m); `back.across` just behind it — the cross-behind of a grapevine. Each word measures its
+  own way: `across(0.13m)` is how far the feet CROSS (as `side(0.4m)` is how far apart they are),
+  and how far in front or behind is said by `fwd` / `back`: `fwd(0.08m).across(0.13m)` is a fifth
+  position turned out (the front heel at the back toes), `back(0.07m).across` crosses 0.07 m behind,
+  `fwd(0.5m).across` is a stride that crosses (`fwd.across` too). A cross is not a
   stride. Since the next step is placed from the crossed foot, a line of
   side / cross / side drifts by that 0.12 m; alternate front and behind to cancel it.
 - A step that turns (`leftFoot.place@turn(left(45))`) swivels on the standing foot, not
@@ -1229,14 +1246,14 @@ Do not try to express these; mention them as a limitation instead.
 - A change of tempo or of time in the middle of a section (a section says them where it begins; a dance to a song follows its song).
 - A toe at any place on the other leg but its knee and its ankle; a hand on a leg (the thigh, the knee).
 - A foot that points or flexes when you choose (it points only with its toe on the other leg); standing on pointe.
-- Beating the legs in the air (an entrechat; a changement is `jump.change`); the third and the fifth position told apart.
+- Beating the legs in the air (an entrechat; a changement is `jump.change`).
 
 ## Checking your work
 
 ```
 shosa check FILE            diagnostics, or "no problems"; every score with its length, and each section in it with its beats, bars, seconds, tempo and time, a step or jump the score starts with already made, and where each dancer ends from where it began; then every mark
 shosa check FILE --score Rage   one score only (`--score ""` the unnamed one)
-shosa check FILE --at 3,4.5,0.75s   also how the body is turned at those moments (beats; seconds with an `s`): hips, shoulders, face, in degrees, and how far each elbow and knee is bent (as `bent(N)` counts)
+shosa check FILE --at 3,4.5,0.75s   also how the body is turned at those moments (beats; seconds with an `s`): hips, shoulders, face (and its tilt, when the eyes are off level), in degrees, and how far each elbow and knee is bent (as `bent(N)` counts)
 shosa sheet FILE -o X.png   the movement on one image per score (X.png for the unnamed score, X-Idle.png, X-Punch.png …)
 shosa sheet FILE -o X.png --score Punch --step 0.5 --from 0 --to 4   one score, closer poses (in beats; --from and --to also in seconds with an `s`, as --at: --from 0.5s --to 1s; --step 0.1 for a punch)
 shosa sheet FILE -o X.png --view side   seen from stage left: a role facing front is in profile (one facing stageLeft or stageRight is in profile WITHOUT it)
@@ -1305,10 +1322,10 @@ and, for each of `figures`, `frames`: one row for every frame, x y z for every j
 that order, in metres. The frame of a moment is its seconds × `fps` (0.75 s is frame 22.5: a `@sharp` word
 is still on its way at frame 22 and there at 23, so take the later one). y is up, z is
 toward the audience, x toward stage left — for a dancer facing front, z is forward and
-+x its own left. Beside `frames`, `angles` has a row for every frame too: the nine numbers
++x its own left. Beside `frames`, `angles` has a row for every frame too: the ten numbers
 named in `angleNames` (`feet`, `hips`, `shoulders`, `face`, `faceUp`, `leftElbow`, `rightElbow`,
-`leftKnee`, `rightKnee`), the degrees `check --at`
-says, more to the left (or up) counted positive; `feet` is from the front of the room; an
+`leftKnee`, `rightKnee`, `tilt`), the degrees `check --at`
+says, more to the left (or up) counted positive (`tilt` with the left ear down); `feet` is from the front of the room; an
 elbow or a knee is how far it is bent, 0 straight. (Standing upright, this role's head has its middle at 1.72 m and its shoulders
 are at 1.45 m. In the guard of "The shoulders and the hips" the head is at 1.67 m: a punch at `fwd.up(25)`
 arrives at 1.64 m, nose height, one at `fwd.up(18)` at 1.57 m, the chin.)

@@ -104,9 +104,15 @@ public static class Skeleton
             world[Neck] = Quat.FromBasis(plain, torsoUp, plain.Cross(torsoUp));
         }
 
-        // The head looks along the nose and stays upright in the torso's frame.
+        // A tilted head (`tilt`) bends the neck sideways: the neck turns from the torso's up to the
+        // line from the chest to the head, the least turn that does it. Untilted, that line is the torso's up.
+        var neckUp = (joints[Rig.Head] - joints[Rig.Chest]).Normalized();
+        if (neckUp.Dot(torsoUp) < 1 - 1e-9)
+            world[Neck] = Arc(torsoUp, neckUp) * world[Neck];
+
+        // The head looks along the nose and stays upright on the neck.
         var gaze = (joints[Rig.Nose] - joints[Rig.Head]).Normalized();
-        var headLeft = torsoUp.Cross(gaze);
+        var headLeft = neckUp.Cross(gaze);
         headLeft = headLeft.Length < 1e-6 ? torsoLeft : headLeft.Normalized();
         world[Head] = Quat.FromBasis(headLeft, gaze.Cross(headLeft), gaze);
 
@@ -140,6 +146,15 @@ public static class Skeleton
         for (int i = 0; i < Bones.Length; i++)
             local[i] = Bones[i].Parent < 0 ? world[i] : world[Bones[i].Parent].Inverse * world[i];
         return local;
+    }
+
+    /// <summary>The least rotation that takes one unit vector to another.</summary>
+    private static Quat Arc(Vec3 from, Vec3 to)
+    {
+        var axis = from.Cross(to);
+        double w = 1 + from.Dot(to);
+        double length = Math.Sqrt(axis.X * axis.X + axis.Y * axis.Y + axis.Z * axis.Z + w * w);
+        return length < 1e-9 ? Quat.Identity : new Quat(axis.X / length, axis.Y / length, axis.Z / length, w / length);
     }
 
     private static (Quat Upper, Quat Lower) Limb(Vec3 root, Vec3 mid, Vec3 end, Vec3 restAxis, Vec3 restHinge, Vec3 pole)

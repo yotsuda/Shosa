@@ -154,6 +154,9 @@ public static class Solver
                 if (problems.Overreach)
                     Flag(Channels.Support, t, "SH2002", DiagnosticSeverity.Warning,
                         "The foot is put farther away than the leg is long. Make the step smaller, or bend the knees (a low level).", evenIfFree: true);
+                if (problems.HandShort is { } arm)
+                    Flag(arm, t, "SH2015", DiagnosticSeverity.Warning,
+                        "The hand stays where it was in the room (`stay`), and the arm does not reach it here: the body has moved too far from it. Lean or sink less while it stays, or let the hand go (a word after `stay`).");
                 if (problems.BothFeetOff is { } leg)
                     Flag(leg, t, "SH2004", DiagnosticSeverity.Error,
                         "This leg leaves the floor while the other one is not carrying the weight. Step onto the other foot first.");
@@ -335,6 +338,8 @@ internal struct PoseProblems
     public string? BothFeetOff;
     /// <summary>The shoulders do not get where their row says: degrees from the feet reached and wanted, and the lean.</summary>
     public (double Reached, double Wanted, double Lean)? ShouldersShort;
+    /// <summary>The channel of an arm whose hand `stay` keeps in the room out of its reach.</summary>
+    public string? HandShort;
 }
 
 /// <summary>Shape-preserving cubic through keys: no overshoot, and at rest wherever a value repeats.</summary>
@@ -479,6 +484,9 @@ internal sealed class FigureSolver
     private double _weightTime, _floatTime;
     private readonly List<(double T0, double T1, double From, double To)> _turns = [];
     private readonly List<(double T0, double Up, double Land, double T1, double Height, double Give)> _jumps = [];
+    /// <summary>Where in the room each `stay` keeps its hand (found once), and the ones being found.</summary>
+    private readonly Dictionary<Seg, Vec3> _stayHands = [];
+    private readonly HashSet<Seg> _staying = [];
     private readonly List<Seg> _height, _leftArm, _rightArm, _leftLeg, _rightLeg, _turnout, _hips, _torso, _shoulders, _head;
     private bool _built;
     private int _posing;
@@ -1000,6 +1008,9 @@ internal sealed class FigureSolver
         var seg = segs[index];
         if (seg.Kind == SegKinds.Hold)
             return ChainAt(segs, index - 1, seg.T0, target, blend, depth + 1);
+        // A hand that stays (`stay`) is held where it was from the start of the word: nothing to go to.
+        if (seg.Kind == SegKinds.Stay)
+            return target(seg);
         double u = seg.T1 > seg.T0 ? Math.Clamp((t - seg.T0) / (seg.T1 - seg.T0), 0, 1) : 1;
         double e = Ease(seg.Ease, u);
         return e >= 1 ? target(seg) : blend(ChainAt(segs, index - 1, seg.T0, target, blend, depth + 1), target(seg), e);
@@ -1478,6 +1489,36 @@ internal sealed class FigureSolver
         }
 
         var gaze = Chain(_head, t, Gaze, (a, b, e) => Blend(a, b, e, faceFwd)).Normalized();
+
+        // A tilt (`tilt(left(15))`) is the line of the eyes from level, in the room: the neck bends
+        // sideways about the gaze until the ears' line is that far from level. Unwritten, the head sits
+        // square on the neck, and the eyes lean as the torso leans; between the two the angle goes evenly.
+        var neck = head - chest;
+        var g = gaze;
+        double Roll(Vec3 up)
+        {
+            var ears = up.Cross(g);
+            return ears.Length < 1e-6 ? 0 : Math.Asin(Math.Clamp(-ears.Normalized().Dot(Vec3.Up), -1, 1));
+        }
+        double square = Roll(neck);
+        double roll = Chain(_head, t, seg => seg?.Tilt is { } d ? d * Math.PI / 180 : square, (a, b, e) => a + (b - a) * e);
+        if (Math.Abs(roll - square) > 1e-9 && neck.Cross(g).Length > 1e-6)
+        {
+            // Turn the neck about the gaze by the angle that brings the ears to the roll: the ears go
+            // round with it, e(θ) = e0 cos θ + (g × e0) sin θ, and the roll is -asin(e · up).
+            var e0 = neck.Cross(g).Normalized();
+            double a = e0.Dot(Vec3.Up), b = g.Cross(e0).Dot(Vec3.Up), r = Math.Sqrt(a * a + b * b);
+            if (r > 1e-6)
+            {
+                double phi = Math.Atan2(b, a), spread = Math.Acos(Math.Clamp(-Math.Sin(roll) / r, -1, 1));
+                static double Wrap(double x) => Math.Atan2(Math.Sin(x), Math.Cos(x));
+                double one = Wrap(phi + spread), other = Wrap(phi - spread);
+                double theta = Math.Abs(one) < Math.Abs(other) ? one : other;
+                double cos = Math.Cos(theta), sin = Math.Sin(theta);
+                neck = neck * cos + g.Cross(neck) * sin + g * (g.Dot(neck) * (1 - cos));
+                head = chest + neck;
+            }
+        }
         var nose = head + gaze * 0.12;
 
         var joints = new Vec3[Rig.Joints.Length];
@@ -1630,20 +1671,55 @@ internal sealed class FigureSolver
             // (overhead and a little forward, on the way from `up` to `clap`). `@elbow(...)` sends it
             // its own way.
             var pole = Rig.ElbowPole(c.Left, c.Fwd, side);
+            var armSegs = isLeft ? _leftArm : _rightArm;
             (Vec3 Offset, Vec3 Bend) Posed(Seg? seg)
             {
+                if (seg?.Kind == SegKinds.Stay)
+                {
+                    // The arm as the words before the `stay` have it (when its place is being found), or
+                    // reaching for that place in the room; the elbow pointing as the word before sent it.
+                    var before = armSegs.Take(armSegs.IndexOf(seg)).ToList();
+                    if (_staying.Contains(seg))
+                        return Chain(before, seg.T0, Posed, ArmBlend);
+                    var kept = StayHand(seg) - (shoulder + lifted);
+                    var sent = before.LastOrDefault(s => s.Kind is not (SegKinds.Hold or SegKinds.Stay));
+                    return (kept, Across(sent?.Pole is { } p ? Frame(sent, p) : pole, kept.Normalized()));
+                }
                 var offset = Offset(seg);
-                return (offset, Across(seg?.Pole is { } sent ? Frame(seg, sent) : pole, offset.Normalized()));
+                return (offset, Across(seg?.Pole is { } towards ? Frame(seg, towards) : pole, offset.Normalized()));
             }
 
-            var (reach, bend) = Chain(isLeft ? _leftArm : _rightArm, t, Posed, (a, b, e) =>
+            (Vec3 Offset, Vec3 Bend) ArmBlend((Vec3 Offset, Vec3 Bend) a, (Vec3 Offset, Vec3 Bend) b, double e)
             {
                 var offset = Blend(a.Offset, b.Offset, e, c.Fwd);
                 var axis = offset.Normalized();
                 Vec3? from = Carry(a.Bend, a.Offset.Normalized(), axis), to = Carry(b.Bend, b.Offset.Normalized(), axis);
                 var between = from is null || to is null ? from ?? to ?? pole : Vec3.Slerp(from.Value, to.Value, e);
                 return (offset, Across(between, axis));
-            });
+            }
+
+            // Where a `stay` keeps the hand: where the arm had it as the word began, in the room.
+            Vec3 StayHand(Seg seg)
+            {
+                if (_stayHands.TryGetValue(seg, out var kept))
+                    return kept;
+                _staying.Add(seg);
+                try
+                {
+                    kept = Pose(seg.T0, out _)[isLeft ? Rig.LHand : Rig.RHand];
+                }
+                finally
+                {
+                    _staying.Remove(seg);
+                }
+                _stayHands[seg] = kept;
+                return kept;
+            }
+
+            var (reach, bend) = Chain(armSegs, t, Posed, ArmBlend);
+            if (armSegs.LastOrDefault(s => s.T0 <= t + 1e-9) is { Kind: SegKinds.Stay } staying && !_staying.Contains(staying)
+                && reach.Length > Rig.UpperArm + Rig.Forearm + 0.01)
+                problems.HandShort = isLeft ? Channels.LeftArm : Channels.RightArm;
             var hand = shoulder + reach;
             var (elbow, reachedHand) = TwoBone(shoulder, hand, Rig.UpperArm, Rig.Forearm, bend.Length < 1e-6 ? pole : bend);
 

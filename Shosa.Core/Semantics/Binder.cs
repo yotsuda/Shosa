@@ -2249,6 +2249,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         "elbow" => "fwd.down(15).bent(40).elbow(side)",
         "knee" => "back.up(20).bent.knee(side.up)",
         "round" => "torso { up.fwd(10).round }",
+        "tilt" => "head { fwd.tilt(left(15)) }",
         _ => "arms { up.body }",
     };
 
@@ -2269,6 +2270,22 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         bool isLimb = side != 0;
         bool isLeg = isLimb && !isArm;
 
+        // `stay`: as `then`, but the hand keeps its place in the room, not its place from the shoulder.
+        if (parts is [{ Text: Vocabulary.Stay } stay])
+        {
+            if (!isArm)
+            {
+                Error("SH1010", stay.Word.Span, "'stay' is for an arm: the hand stays where it is in the room (on a counter, a rail) while the body moves. Anything else holds as it is with `then`.");
+                return null;
+            }
+            if (stay.Bracket is not null)
+            {
+                Error("SH1012", stay.Bracket.Span, "'stay' takes no brackets: the hand stays where its word before put it.");
+                return null;
+            }
+            return new Seg { Kind = SegKinds.Stay };
+        }
+
         // The shape words close the target, each once and in their order.
         int split = parts.FindIndex(p => Vocabulary.Has(Vocabulary.Shapes, p.Text));
         var head = split < 0 ? parts : parts.Take(split).ToList();
@@ -2279,7 +2296,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
             return null;
         }
 
-        double? bend = null;
+        double? bend = null, tilt = null;
         double[]? jointPole = null;
         TextSpan poleSpan = default;
         Part? bentPart = null;
@@ -2295,7 +2312,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
             }
             if (order <= last)
             {
-                Error("SH1012", shape.Word.Span, "The shape words come each once, in this order: bent, elbow or knee, round, body. fwd.down(15).bent(40).elbow(side)");
+                Error("SH1012", shape.Word.Span, "The shape words come each once, in this order: bent, elbow or knee, round, tilt, body. fwd.down(15).bent(40).elbow(side)");
                 return null;
             }
             last = order;
@@ -2347,6 +2364,24 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                     }
                     round = true;
                     break;
+                case "tilt":
+                {
+                    if (channel != Channels.Head)
+                    {
+                        Error("SH1010", shape.Word.Span, "'tilt' is for the head: head { fwd.tilt(left(15)) } (the left ear toward the left shoulder). A torso leans sideways with its direction: torso { up.left(10) }.");
+                        return null;
+                    }
+                    const string form = "'tilt' says the side the head tilts to and the degrees from level, in brackets: tilt(left(15)), tilt(right(10)); tilt(left(0)) holds the eyes level. Up to 45.";
+                    if (shape.Inner is not [{ Text: "left" or "right", Bracket: not null } toward])
+                    {
+                        Error("SH1013", shape.Bracket?.Span ?? shape.Word.Span, form);
+                        return null;
+                    }
+                    if (Degrees(toward.Bracket!, Vocabulary.MaxTilt, form) is not { } degrees)
+                        return null;
+                    tilt = (toward.Text == "left") != mirror ? degrees : -degrees;
+                    break;
+                }
                 case "body":
                     if (!isLimb && channel != Channels.Head)
                     {
@@ -2401,7 +2436,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                 Error("SH1012", head[1].Word.Span, $"'{head[1].Text}' is not a place on a dancer.{Hint(head[1].Text, Vocabulary.Parts.Select(w => w.Name))}");
                 return null;
             }
-            return OtherDancer(head[0].Word, ctx) is { } other ? new Seg { Kind = SegKinds.Reach, Target = other, Part = head[1].Text, Level = meet, Pole = jointPole } : null;
+            return OtherDancer(head[0].Word, ctx) is { } other ? new Seg { Kind = SegKinds.Reach, Target = other, Part = head[1].Text, Level = meet, Pole = jointPole, Tilt = tilt } : null;
         }
 
         if (isPlace)
@@ -2434,6 +2469,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
             Pole = jointPole,
             Body = body,
             Round = round,
+            Tilt = tilt,
         };
     }
 
@@ -2796,8 +2832,6 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                     return null;
                 }
                 bool crossed = false, back = false, measured = false;
-                double? crossing = null;
-                Part? crossingPart = null;
                 foreach (var part in rest)
                 {
                     string example = $"{head.Text}.{part.Text}(0.3m)";
@@ -2821,16 +2855,12 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                             seg.Dx = apart;
                             break;
                         case "across":
-                            // How far in front of (or with back, behind) the other foot it crosses.
-                            if (Distance(part, 0.12, $"{head.Text}.across(0.2m) (crossing 0.2 m in front)") is not { } cross)
+                            // How far the feet cross: the foot goes that far past the other one's line, as `side`
+                            // says how far apart they are. Each word measures its own way (DESIGN.md 81.2).
+                            if (Distance(part, Rig.Cross, $"{head.Text}.fwd(0.08m).across(0.13m) (0.08 m in front, crossed 0.13 m)") is not { } cross)
                                 return null;
-                            seg.Dx = -0.08;
+                            seg.Dx = -cross;
                             crossed = true;
-                            if (part.Bracket is not null)
-                            {
-                                crossing = cross;
-                                crossingPart = part;
-                            }
                             break;
                         default:
                             Error("SH1012", part.Word.Span, part.Word.Kind == SyntaxKind.Number
@@ -2840,18 +2870,11 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                     }
                 }
                 // A crossing foot goes just in front of the other one, or with `back` just behind
-                // it: a cross is not a stride. (`fwd.across` is a full stride that crosses.)
-                // How far in front or behind is written once: on `across` (`back.across(0.07m)` crosses 0.07 m
-                // behind) or on `fwd` / `back` (`fwd(0.5m).across`, a stride that crosses).
-                if (crossingPart is not null && measured)
-                {
-                    Error("SH1012", crossingPart.Value.Bracket!.Span, $"How far the foot goes is written once: on across, how far in front (or with back, behind) it crosses: {head.Text}.back.across(0.07m); or on fwd or back for a stride that crosses: {head.Text}.fwd(0.5m).across. The foot always crosses 0.08 m over the other one's line.");
-                    return null;
-                }
-                if (crossed && seg.Dz == 0)
-                    seg.Dz = crossing ?? 0.12;
-                else if (crossed && !measured)
-                    seg.Dz = back ? -(crossing ?? 0.12) : crossing ?? seg.Dz;
+                // it: a cross is not a stride. (`fwd.across` is a full stride that crosses; `fwd(0.08m).across` a fifth.)
+                if (crossed && seg.Dz == 0 && !measured)
+                    seg.Dz = Rig.CrossAhead;
+                else if (crossed && back && !measured)
+                    seg.Dz = -Rig.CrossAhead;
                 return seg;
             }
 

@@ -7,7 +7,8 @@
 pose first   { steps { together }  height { straight } }                 // heels together (the toes should turn out)
 pose second  { steps { rightFoot.side(0.41m) }  height { straight } }         // feet apart, 0.33 m (but the weight is on the right foot)
 pose fourth  { steps { rightFoot.fwd(0.3m) }  height { straight } }          // the right foot a small step ahead
-pose fifth   { steps { rightFoot.across }  height { straight } }             // the right foot crossed in front, 0.12 m (heel to toe, turned out)
+pose third   { steps { rightFoot.fwd(0.08m).across(0.04m) }  height { straight } }   // the right heel at the middle of the left foot (turned out)
+pose fifth   { steps { rightFoot.fwd(0.08m).across(0.13m) }  height { straight } }   // the right heel at the left toes (turned out 80)
 
 // ---- Positions of the arms: rounded with a little @bent, the elbows held out to the side (DESIGN.md 75).
 pose brasBas     { arms { fwd.down(70).bent(30).elbow(side) } }   // low, in front of the thighs, rounded

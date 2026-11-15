@@ -266,6 +266,7 @@ internal static class Words
             "elbow" => IsArm(track),
             "knee" => IsLimb(track) && !IsArm(track),
             "round" => track == "torso",
+            "tilt" => track == "head",
             _ => IsLimb(track) || track == "head",
         }).ToList();
         if (before.Count == 0)
@@ -277,9 +278,11 @@ internal static class Words
                 first = first.Concat(Vocabulary.LegAnchors.Where(a => !a.Name.Contains('.')));
             if (IsArm(track) || track == "head")
                 first = first.Concat(figures);
+            if (IsArm(track))
+                first = first.Append(Vocabulary.StayWord);
             return [.. first, .. definitions, Hold, Skip, Again];
         }
-        if (before[0] is "then" or "skip")
+        if (before[0] is "then" or "skip" or Vocabulary.Stay)
             return [];
         // A place: its `.across` or `.back`, then only which way the joint points.
         if (IsArm(track) && before is ["shoulder"])

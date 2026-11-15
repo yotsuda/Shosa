@@ -254,14 +254,18 @@ public class MotionTests
     {
         // Writing trial 21: back.across(0.07m) took a whole stride back (the bracket was dropped), a second
         // distance on across was dropped without a word, and a sauté in fifth landed with the feet side by side.
-        Assert.Equal("SH1012", Assert.Single(Compile(Samples.Solo("    steps { rightFoot.fwd(0.07m).across(0.17m) }", "tempo 60\ntime 4/4\n")).Diagnostics).Code);
-        var compilation = Compile(Samples.Solo("    steps { then:1 rightFoot.back.across(0.07m):2 then:1 jump:2 }", "tempo 60\ntime 4/4\n"));
+        // Since DESIGN.md 81.2 each word measures its own way: fwd / back how far in front, across how far crossed.
+        var fifth = Compile(Samples.Solo("    steps { rightFoot.fwd(0.07m).across(0.17m) }", "tempo 60\ntime 4/4\n"));
+        Assert.Empty(fifth.Diagnostics);
+        Vec3 Feet(ShosaCompilation c, double beat) => c.Clip.Figures[0].Joint(c.Clip.FrameAt(beat), Rig.LHip + 2) - c.Clip.Figures[0].Joint(c.Clip.FrameAt(beat), Rig.RHip + 2);
+        Assert.Equal(-0.07, Feet(fifth, 0).Z, 2);   // the right foot 0.07 m in front of the left
+        Assert.Equal(-0.17, Feet(fifth, 0).X, 2);   // and 0.17 m past its line
+        var compilation = Compile(Samples.Solo("    steps { then:1 rightFoot.back(0.07m).across:2 then:1 jump:2 }", "tempo 60\ntime 4/4\n"));
         Assert.Empty(compilation.Diagnostics);
-        var figure = compilation.Clip.Figures[0];
-        Vec3 Apart(double beat) => figure.Joint(compilation.Clip.FrameAt(beat), Rig.LHip + 2) - figure.Joint(compilation.Clip.FrameAt(beat), Rig.RHip + 2);
+        Vec3 Apart(double beat) => Feet(compilation, beat);
         var crossed = Apart(3);
         Assert.Equal(0.07, crossed.Z, 2);     // the right foot 0.07 m behind the left
-        Assert.True(crossed.X < 0, crossed.ToString());   // and crossed: the left foot is on the right foot's right
+        Assert.Equal(-Rig.Cross, crossed.X, 2);   // and crossed: the left foot is on the right foot's right
         var landed = Apart(6);
         Assert.Equal(crossed.Z, landed.Z, 2);
         Assert.Equal(crossed.X, landed.X, 2);
@@ -271,7 +275,7 @@ public class MotionTests
     public void A_changement_lands_with_the_feet_mirrored()
     {
         // Writing trial 21 (DESIGN.md 80.3): once a plain jump kept the feet as they stood, nothing changed them.
-        var compilation = Compile(Samples.Solo("    steps { then:1 rightFoot.back.across(0.07m):2 then:1 jump.change:2 }", "tempo 60\ntime 4/4\n"));
+        var compilation = Compile(Samples.Solo("    steps { then:1 rightFoot.back(0.07m).across:2 then:1 jump.change:2 }", "tempo 60\ntime 4/4\n"));
         Assert.Empty(compilation.Diagnostics);
         var figure = compilation.Clip.Figures[0];
         Vec3 Apart(double beat) => figure.Joint(compilation.Clip.FrameAt(beat), Rig.LHip + 2) - figure.Joint(compilation.Clip.FrameAt(beat), Rig.RHip + 2);
@@ -900,8 +904,54 @@ public class MotionTests
         // Over a lean too, the shoulders are where they are seen from above (the chest turns 49° on
         // the hips for 45 on the floor); and a face looking steeply down over them (40° below the chest's own fwd): the line of the
         // ears says the few degrees the head is turned (the nose on the floor said 9).
-        Assert.Equal("  score at beat 4 = 2 s: hips 40° right, shoulders 85° right, face 3.5° left and 69.9° down",
+        // (The head sits square on a chest that is turned and leaning: its eyes are 2° off level.)
+        Assert.Equal("  score at beat 4 = 2 s: hips 40° right, shoulders 85° right, face 3.5° left and 69.9° down, tilted 2° right",
             Line("    torso { up.fwd(30):4 }\n    head { fwd.down(40).body:4 }\n    hips { center:2 right(40):2 }\n    shoulders { center:2 right(85):2 }", (4, false)));
+    }
+
+    [Fact]
+    public void A_head_tilts_from_level_in_the_room()
+    {
+        // Writing trial 21 (DESIGN.md 80.3, 81.3): the head words said only where the face looks.
+        string Line(string tracks, double beat) =>
+            Shosa.Core.Output.CheckReport.At(Compile(Samples.Solo(tracks, "tempo 120\ntime 4/4\n")), [(beat, false)]).Single().Split("; bent:")[0];
+        Assert.Equal("  score at beat 4 = 2 s: hips 0°, shoulders 0°, face 0°, tilted 15° left", Line("    head { fwd:4 fwd.tilt(left(15)) }", 4));
+        Assert.Equal("  score at beat 2 = 1 s: hips 0°, shoulders 0°, face 0°, tilted 7.5° left", Line("    head { fwd:4 fwd.tilt(left(15)) }", 2));
+        Assert.Equal("  score at beat 4 = 2 s: hips 0°, shoulders 0°, face 30° right, tilted 10° right", Line("    head { fwd:4 fwd.right(30).tilt(right(10)) }", 4));
+        // A torso leaning to the side leans the head with it, unless the tilt holds the eyes level.
+        Assert.Contains("tilted 20° right", Line("    torso { up:4 up.right(20) }", 4));
+        Assert.DoesNotContain("tilted", Line("    torso { up:4 up.right(20) }\n    head { fwd:4 fwd.tilt(left(0)) }", 4));
+        // The skeleton bends the neck: forward kinematics puts the head where the solver did.
+        var compilation = Compile(Samples.Solo("    head { fwd:4 fwd.tilt(right(30)) }", "tempo 120\ntime 4/4\n"));
+        var figure = compilation.Clip.Figures[0];
+        var head = figure.Joint(compilation.Clip.FrameAt(4), Rig.Head) - figure.Joint(compilation.Clip.FrameAt(4), Rig.Chest);
+        Assert.True(head.X < -0.05, $"the head goes to the right: {head}");
+
+        Assert.Equal("SH1010", Assert.Single(Compile(Samples.Solo("    rightArm { fwd.tilt(left(15)) }", "tempo 120\ntime 4/4\n")).Diagnostics).Code);
+        Assert.Equal("SH1013", Assert.Single(Compile(Samples.Solo("    head { fwd.tilt(15) }", "tempo 120\ntime 4/4\n")).Diagnostics).Code);
+    }
+
+    [Fact]
+    public void A_hand_that_stays_keeps_its_place_in_the_room()
+    {
+        // Writing trial 21 (DESIGN.md 80.3, 81.4): a hand on a counter went 15 cm with a bow.
+        string Text(string arm) => $"    torso {{ up:2 up.fwd(30):2 up:2 }}\n    rightArm {{ {arm} }}";
+        var staying = Compile(Samples.Solo(Text("fwd.down(40).bent(30):6 then:1 down"), "tempo 60\ntime 4/4\n"));
+        Assert.Equal("SH1012", Assert.Single(Compile(Samples.Solo(Text("fwd.down(40).bent(30):6 stay(2) down"), "tempo 60\ntime 4/4\n")).Diagnostics).Code);
+        Assert.Equal("SH1010", Assert.Single(Compile(Samples.Solo("    head { fwd stay }", "tempo 60\ntime 4/4\n")).Diagnostics).Code);
+        var held = Compile(Samples.Solo(Text("fwd.down(40).bent(30):6 stay:1 down"), "tempo 60\ntime 4/4\n"));
+        Assert.Empty(held.Diagnostics);
+        Vec3 Hand(ShosaCompilation c, double beat) => c.Clip.Figures[0].Joint(c.Clip.FrameAt(beat), Rig.RHand);
+        // Through the bow the hand stays put; held from the shoulder (`then`) it went with the bow.
+        for (double beat = 0; beat <= 6; beat += 0.5)
+            Assert.True((Hand(held, beat) - Hand(held, 0)).Length < 0.005, $"beat {beat}: the hand moved {(Hand(held, beat) - Hand(held, 0)).Length:0.000} m");
+        Assert.True((Hand(staying, 2) - Hand(staying, 0)).Length > 0.05, "held with then, it goes with the bow");
+        // Then it lets go.
+        Assert.True((Hand(held, 7) - Hand(held, 0)).Length > 0.2, "down after the stay");
+
+        // Out of reach: the body goes away from the hand.
+        var far = Compile(Samples.Solo("    steps { then:2 leftFoot.back(0.5m):2 then:2 }\n    rightArm { fwd:6 stay:1 down }", "tempo 60\ntime 4/4\n"));
+        Assert.Contains(far.Diagnostics, d => d.Code == "SH2015");
     }
 
     [Fact]

@@ -91,10 +91,14 @@ public static class Vocabulary
         new("elbow", "For an arm: which way the elbow points, as an arm's direction: `fwd.down(15).bent(40).elbow(side)` holds it out to the side (ballet's rounded arms). Without it the elbow hangs down, back and a little out. Only the part square to the arm counts; on a straight arm it turns the arm about its length."),
         new("knee", "For a leg in the air: which way the knee points, as a leg's direction: `back.up(20).bent.knee(side.up)` (an attitude, the knee above the foot). Without it the knee points where its foot does (`turnout`)."),
         new("round", "For the torso: the back is rounded. The direction still says where the chest is from the hips; the spine bows back from that line, and the chest, the shoulders and the head lean further forward (`torso { up.fwd(10).round }` is a fighter's guard, `up.round` a slouch). Without it the back is straight, as in a bow from the hips."),
+        new("tilt", "For the head: the line of the eyes tilted from level, an ear toward its shoulder: `fwd.tilt(left(15))` (up to 45; `tilt(left(0))` holds the eyes level on a leaning torso). Without it the head sits square on the neck and leans with the torso."),
         new("body", "For an arm: the direction is measured against the torso instead of the room, so the arm leans when the torso leans: `up.body`."),
     ];
 
     /// <summary>The shape words, in the order they are written.</summary>
+    /// <summary>The most a head tilts (`tilt(left(45))`), degrees from level.</summary>
+    public const double MaxTilt = 45;
+
     public static int ShapeOrder(string word) => Array.FindIndex(Shapes, w => w.Name == word);
 
     public static readonly Word[] Anchors =
@@ -141,7 +145,7 @@ public static class Vocabulary
         new("fwd", "One stride (0.5 m) ahead of the supporting foot, or as far as its bracket says: `fwd(0.3m)`."),
         new("back", "One stride behind the supporting foot: `back(0.3m)`."),
         new("side", "Apart from the supporting foot, to the stepping foot's own side: the feet 0.55 m apart, or `side(0.4m)`."),
-        new("across", "Crossing just in front of the supporting foot (0.12 m; with `back`, just behind), or `across(0.2m)`."),
+        new("across", "Crossing over the supporting foot's line, 0.08 m past it (`across(0.13m)`: how far the feet cross, as `side` says how far apart), just in front of it (0.12 m; with `back`, just behind). How far in front is said by `fwd`: `fwd(0.08m).across(0.13m)`."),
         new("place", "Beside the supporting foot: a step on the spot."),
     ];
 
@@ -193,6 +197,9 @@ public static class Vocabulary
     ];
 
     public const string Hold = "then";
+    /// <summary>For an arm: as `then`, but the hand keeps its place in the room.</summary>
+    public const string Stay = "stay";
+    public static readonly Word StayWord = new(Stay, "For an arm: as `then`, but the hand stays where it is in the room (on a counter, a rail) and the arm follows it while the body leans, bows or sinks. It is timed as `then`: in `rightArm { fwd.down(40).bent(30):4 stay:1 down }` the hand stays in the room until beat 4 and goes down in beat 5. Out of reach it is a warning (SH2015).");
     public const string Skip = "skip";
     /// <summary>`q`: the group in braces before it, again.</summary>
     public const string Again = "q";
@@ -200,7 +207,7 @@ public static class Vocabulary
     /// <summary>Every word that means something on its own, so that a definition cannot take its name.</summary>
     public static IEnumerable<string> Reserved =>
         new[] { Tracks, Directions, Levels, Poles, Anchors, LegAnchors, Shapes, Feet, StepDirections, SupportActions, JumpWords, ShouldersWords, HipsWords, TurnoutWords }
-            .SelectMany(words => words).Select(w => w.Name).Append(Hold).Append(Skip).Append(Again);
+            .SelectMany(words => words).Select(w => w.Name).Append(Hold).Append(Stay).Append(Skip).Append(Again);
 
     public static bool Has(Word[] words, string name) => words.Any(w => w.Name == name);
 

@@ -263,6 +263,7 @@ public static class Channels
 public static class SegKinds
 {
     public const string Hold = "hold";          // every channel: stay as you are
+    public const string Stay = "stay";          // arm: the hand stays where it is in the room, the arm following it (`stay`)
     public const string Dir = "dir";            // gesture: point the part along Dir
     public const string Anchor = "anchor";      // arm: bring the hand to a place on the body; leg: the toe to the other leg
     public const string Reach = "reach";        // arm: to a place on another dancer; head: look at it
@@ -304,6 +305,8 @@ public sealed class Seg
     public double[]? Pole { get; set; }
     /// <summary>Dir, arms: the direction is in the torso's frame (it leans with the torso), not the room's.</summary>
     public bool Body { get; set; }
+    /// <summary>Dir and Reach, head: degrees the line of the eyes is tilted from level, positive with the left ear down (`tilt(left(15))`); null: the head sits square on the neck.</summary>
+    public double? Tilt { get; set; }
     /// <summary>Dir, torso: the back is rounded. The direction is still the line from the pelvis to the chest; the spine bows back from it.</summary>
     public bool Round { get; set; }
     /// <summary>Anchor, arms: hip | chest | shoulder | head | chin | belly | shoulder.across | clap. Legs: otherKnee | otherKnee.back | otherAnkle | otherAnkle.back.</summary>
