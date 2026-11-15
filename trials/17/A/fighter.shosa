@@ -1,0 +1,38 @@
+title "Fighter"
+tempo 120          // one beat is 0.5 s
+time 4/4
+
+figure hero
+dancer hero humanoid on hero
+
+// Side-on guard: buckle 20 deg right of the feet, shoulders 35 right (20 + 15), face to the front.
+pose guard {
+  steps { left.fwd.low@small }
+  arms  { fwd.18@bent }          // fists up by the chin
+  hips  { right.20 }
+  twist { right.15 }
+  head  { fwd }
+}
+
+section Idle {
+  hero {
+    body { guard:4 }
+  }
+}
+
+// 2 s = 4 beats. Wind-up at 0.5 s, the left hook lands at 0.8 s, held to 1.1 s,
+// back in guard at 1.9 s (a score cannot end on the instant a word arrives).
+section Hook {
+  hero {
+    body    { guard:4 }
+    hips    { guard:0.5s right.25:0.3s left.30:0.3s then:0.8s guard:0.1s }
+    twist   { guard:0.5s right.25:0.3s left.15:0.3s then:0.8s guard:0.1s }
+    leftArm { guard:0.5s fwd.side(60).18@bent:0.3s fwd.across(18).18@bent!hit:0.3s then:0.8s guard:0.1s }
+  }
+}
+
+form Idle { Idle }
+form Hook { Hook }
+
+score Idle { dancer hero  form Idle  loop  inplace }
+score Hook { dancer hero  form Hook }

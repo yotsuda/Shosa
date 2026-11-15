@@ -133,13 +133,21 @@
           "choreography"
         ],
         "userDescription": "Compiles a .shosa file: its problems, and every score with its length, sections, tempo and marks.",
-        "modelDescription": "Compiles a .shosa file (Shosa: character movement as text) as the editor has it, saved or not, and returns what the compiler says: a line 'FILE(line,column): severity CODE: message' for each problem, or 'no problems'; then every score with its beats, seconds and dancers, each section with its beats, bars, seconds, tempo and time, and every mark (!hit) with its beat and second. Call it after EVERY change to a .shosa file and fix until it says 'no problems'. Take lengths and times from this report instead of computing them. If you have not read the grammar in this conversation, call shosa_grammar first.",
+        "modelDescription": "Compiles a .shosa file (Shosa: character movement as text) as the editor has it, saved or not, and returns what the compiler says: a line 'FILE(line,column): severity CODE: message' for each problem, or 'no problems'; then every score with its beats, seconds and dancers, each section with its beats, bars, seconds, tempo and time, and every mark (!hit) with its beat and second. Call it after EVERY change to a .shosa file and fix until it says 'no problems'. Take lengths and times from this report instead of computing them. To know how the body is turned at a moment (hips, shoulders and face, in degrees from the way the feet face), pass 'at' instead of computing angles from joint positions. If you have not read the grammar in this conversation, call shosa_grammar first.",
         "inputSchema": {
           "type": "object",
           "properties": {
             "file": {
               "type": "string",
               "description": "The .shosa file: its full path, or its path from the workspace folder."
+            },
+            "score": {
+              "type": "string",
+              "description": "The name of the one score to report (as this tool lists them). Without it, every score."
+            },
+            "at": {
+              "type": "string",
+              "description": "Moments to say how each dancer's body is turned at: beats, or seconds with an s, with commas between (\"3,4.5\" or \"0.75s\"). The same as `shosa check FILE --at`."
             }
           },
           "required": [
@@ -177,12 +185,18 @@
               "description": "Beats between two poses. Without it, one beat (three in 6/8, 9/8 and 12/8)."
             },
             "from": {
-              "type": "number",
-              "description": "The beat to begin at. Without it, 0."
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "The beat to begin at, or seconds as a string with an s (\"0.5s\"). Without it, 0."
             },
             "to": {
-              "type": "number",
-              "description": "The beat to end at. Without it, the end of the score."
+              "type": [
+                "number",
+                "string"
+              ],
+              "description": "The beat to end at, or seconds as a string with an s (\"1s\"). Without it, the end of the score."
             },
             "view": {
               "type": [

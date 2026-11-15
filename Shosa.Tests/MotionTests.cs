@@ -558,6 +558,24 @@ public class MotionTests
     }
 
     [Fact]
+    public void Check_says_how_the_body_is_turned_at_a_moment_from_the_way_the_feet_face()
+    {
+        string Line(string tracks, params (double, bool)[] moments) =>
+            Shosa.Core.Output.CheckReport.At(Compile(Samples.Solo(tracks, "tempo 120\ntime 4/4\n")), moments).Single();
+
+        // The numbers written are the numbers read: the shoulders are the hips and the twist together.
+        Assert.Equal("  score at beat 2 = 1 s: hips 20° left, shoulders 45° left, face 30° right and 10° up",
+            Line("    hips { center left.20:3 }\n    twist { center left.25:3 }\n    head { fwd fwd.right(30).10:3 }", (2, false)));
+        // In seconds, and against each other: the hips to the right under shoulders to the left.
+        Assert.Equal("  score at beat 2 = 1 s: hips 20° right, shoulders 10° left, face 0°",
+            Line("    hips { center right.20:3 }\n    twist { center left.30:3 }", (1, true)));
+        // From the feet, not from the room: after a quarter turn nothing is turned on them.
+        Assert.Equal("  score at beat 3 = 1.5 s: hips 0°, shoulders 0°, face 0° (the feet face 90° left of the front)",
+            Line("    steps { then:2 turn.left.quarter then:2 }", (3, false)));
+        Assert.Equal("  score at beat 9: not in the score (4 beats, 2 s)", Line("    steps { then:4 }", (9, false)));
+    }
+
+    [Fact]
     public void Check_says_where_each_dancer_ends_from_where_it_began()
     {
         string Line(string tracks, string score = "") =>

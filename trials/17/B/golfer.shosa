@@ -1,0 +1,24 @@
+// A golf swing. At tempo 60 a beat is one second, so every length here is in seconds.
+// Address 0-1 s, top of the backswing at 2 s, the hips lead at 2.4 s, finish at 3 s, held to 4 s.
+// The face stays down on the ball all the way: the head row never changes, and the head
+// does not turn with the hips or the twist.
+tempo 60
+time 4/4
+
+figure golfer
+dancer golfer humanoid on golfer
+
+section Swing {
+  golfer {
+    steps    { left.side@small:4 }                 // feet a little apart, still
+    torso    { fwd.60:4 }                          // bent forward 30° at the hips
+    head     { fwd.-40:4 }                         // the face down on the ball (70° down)
+    hips     { center:1 then:1 right.40:0.4 left.20:0.6 left.45:1 }
+    twist    { center:1 then:1 right.45:0.4 right.30:0.6 left.45:1 }
+    leftArm  { down:1 then:1 across.high:0.4 down:0.6 side.high@bent:1 }
+    rightArm { down:1 then:1 side.high@bent:0.4 down:0.6 across.high:1 }
+  }
+}
+
+form { Swing }
+score { dancer golfer }

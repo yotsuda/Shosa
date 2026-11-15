@@ -1,0 +1,20 @@
+title "Turner"
+tempo 100
+time 4/4
+
+figure solo
+dancer solo humanoid on solo
+
+// Bar 1: a quarter turn to the left in steps (two eighths), standing on beat 0 first so it is seen.
+// Bar 2: feet still; buckle 30 right, shoulders 45 right (30 + 15) at the middle (beat 6), square at beat 8.
+// Bar 3: standing, so the score does not end on the instant it is square again.
+section Turn {
+  solo {
+    steps { then left.place@turn(left.eighth) right.place@turn(left.eighth) together | then:4 | then:4 | }
+    hips  { center:4 | then:2 right.30:2 | center:4 | }
+    twist { center:4 | then:2 right.15:2 | center:4 | }
+  }
+}
+
+form { Turn }
+score { dancer solo }

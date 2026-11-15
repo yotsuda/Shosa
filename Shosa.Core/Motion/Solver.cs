@@ -129,6 +129,7 @@ public static class Solver
                     data[j * 3 + 2] = (float)Math.Round(pose[j].Z, 4);
                 }
                 clipFigure.Frames.Add(data);
+                clipFigure.Yaws.Add(solver.FacingAt(t));
 
                 var rotations = Skeleton.Rotations(pose);
                 var turns = new float[rotations.Length * 4];

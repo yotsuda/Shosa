@@ -1,0 +1,201 @@
+Writing trial 17, subject B. Notes and predictions.
+
+Counting: the task's "beat 1..4" are a dancer's counts (1-based). In Shosa beats count from 0,
+so count N of bar B (4/4) is beat 4*(B-1) + (N-1) of the section.
+
+============================================================
+TASK 1  song-dance.shosa  -- PREDICTION (written before the first check)
+============================================================
+song.lys: tempo 108, 4/4, Verse 4 bars, Chorus 4 bars, form { Verse Chorus }.
+Predicted check output:
+  song-dance.shosa: no problems
+    score to song.lys: 32 beats, 17.78 s, 1 dancer
+      Verse    0-16    4 bars   8.89 s   at 108   4/4
+      Chorus   16-32   4 bars   8.89 s   at 108   4/4
+      solo starts with `left.place` already made: the first step is not seen (...)
+      solo ends 0.18 m to its left of where it began
+(the end: the left foot steps side 0.55 m from the right at the Chorus, weight centred -> the
+middle of the feet about 0.175 m left. Unsure whether the report uses the middle of the feet.)
+
+Interpretation of the face in the Chorus (ambiguous in the task): the face goes WITH the block
+on count 1 (30° left / right of the feet), and on count 3 turns 30° the other way from the
+block, i.e. back to 0° from the feet.
+
+Predicted answers:
+ Q1a Verse bar 2 count 2 = beat 4+1 = beat 5: hips 20° right, shoulders 0° (square), face 0°.
+ Q1b Chorus bar 1 count 3 = beat 16+2 = beat 18: hips 30° left, shoulders 30° left, face 0°.
+ Q1c time of beat 18 = 18 * 60/108 = 10.0 s.
+
+--- TASK 1 RESULT (check run 1: `shosa check song-dance.shosa --at 5,18`) ---
+No diagnostics. Every line predicted right except: `solo ends 0.17 m to its left` (predicted 0.18 m;
+rounding of my 0.175). The first-step line read exactly as the grammar's long form.
+  at beat 5 = 2.778 s: hips 20° right, shoulders 0°, face 0°           -> Q1a right
+  at beat 18 = 10 s:   hips 30° left, shoulders 30° left, face 0°       -> Q1b, Q1c right
+Further checks (run 2: --at 4,6,7,15,16,17,19,20,22,...,30): beat 7 hips 20° left / shoulders 0°;
+beats 16, 24 face 29.9-30° left with the block; 22, 26, 30 face 0°.
+Found: at beat 19 the face was already 15° right while the block was still 30° left, because
+`fwd:2` drifted the face on toward the next word through two beats. Changed the head row to
+`fwd.left(30):2 fwd:1 then:1 | ...` so the face holds front and turns with the block in the
+bar's last beat (run 3: beat 19 face 0°, beat 19.5 hips 0°/face 15° right, beat 20 all 30° right).
+Sheet out\song-dance.png looked at: Verse pose heads front, from-above view shows hips dots
+moving and the shoulder line square; Chorus from-above shows the block turned and the nose
+turned with it on 16/24, to the front on 18/26, footprints: left foot out to the side once.
+Check runs for song-dance.shosa: 3 (all no problems).
+VERIFIED ANSWERS (by `shosa check song-dance.shosa --at 5,18`):
+  Verse bar 2 count 2 (beat 5, 2.778 s): hips 20° right, shoulders 0°, face 0°.
+  Chorus bar 1 count 3 (beat 18): hips 30° left, shoulders 30° left, face 0°; 10.0 s (check says "= 10 s").
+
+
+============================================================
+TASK 2  pair.shosa  -- PREDICTION (written before the first check)
+============================================================
+a at -0.6 0 facing stageLeft, b at 0.6 0 facing stageRight. Punch at beat 4 (bar 2 count 1),
+square again at beat 6 (count 3). Tempo 96: a beat is 0.625 s.
+Predicted check output (`shosa check pair.shosa --at 4`):
+  pair.shosa: no problems
+    score: 8 beats, 5 s, 2 dancers
+      Main   0-8   2 bars   5 s   at 96   4/4
+      a ends where it began
+      b ends where it began
+    score at beat 4 = 2.5 s: a hips 20° left, shoulders 45° left, face 0° (the feet face 90° left of the front)
+    score at beat 4 = 2.5 s: b hips 30° right, shoulders 30° right, face 0° (the feet face 90° right of the front)
+    score !hit at beat 4 = 2.5 s (a)
+    score !slip at beat 4 = 2.5 s (b)
+(exact layout of the two-dancer --at lines unknown.)
+Predicted answers:
+ a: hips 20° left, shoulders 45° left of its feet; its feet face stage left (+x, toward b), 90° left of the front.
+ b: hips 30° right, shoulders 30° right; feet face stage right (-x, toward a), 90° right of the front.
+ Fist: does NOT reach b's face line. By hand: a's right shoulder ~0.18 m off the spine, 45° round
+ -> ~0.13 m forward; arm 0.6 m -> fist at about x = -0.6+0.13+0.58 = +0.11; b's nose at about
+ x = 0.6-0.1 = 0.5 -> about 40 cm from b's nose.
+
+
+--- TASK 2 RESULT (check run 1: `shosa check pair.shosa --at 4`) ---
+No diagnostics. Wrong in the prediction: the ORDER — the marks come before the --at lines; and
+the --at line has a colon after the dancer's name ("a: hips 20° left, ..."). Numbers all right:
+  score at beat 4 = 2.5 s: a: hips 20° left, shoulders 45° left, face 0° (the feet face 90° left of the front)
+  score at beat 4 = 2.5 s: b: hips 30° right, shoulders 30° right, face 0° (the feet face 90° right of the front)
+Fist: `shosa clip pair.shosa -o scratch\pair.json`, read with scratch\joint.ps1 at frame 75
+(2.5 s x 30 fps; also 74 and 76):
+  a rightHand  x=0.092 y=1.570 z=-0.047   (f74 0.065: still arriving, f76 0.091)
+  b nose       x=0.480 y=1.714 z=0.000    (b head x=0.600; b's nose does not move in the slip:
+                                           the hips turn under a head that stays — the face line is x=0.48)
+  -> fist 0.388 m short of b's face line (in x), 0.144 m below the nose, 0.047 m off the line;
+     straight distance sqrt(0.388²+0.144²+0.047²) = 0.417 m ≈ 42 cm (predicted ~40 cm: right in kind).
+  a's right shoulder at x=-0.466 (0.134 m forward of the spine, predicted 0.13).
+  Fist height 1.57 m = the grammar's chin height of an upright figure ("one at fwd.18 at 1.57 m, the chin").
+Sheet out\pair.png and out\pair-close.png (--step 0.25 --from 3 --to 6.5) looked at: a's right arm
+(red) chambers in beat 3, out on 4 with !hit and !slip in green; from above a's shoulder line
+round, b's hips/shoulders turned; both square on 6. Floor: a left, b right, facing each other.
+Check runs for pair.shosa: 1.
+VERIFIED ANSWERS:
+  a at bar 2 count 1: hips 20° left, shoulders 45° left of its feet; feet face stage left
+     (toward b; check: "the feet face 90° left of the front"; clip angles feet=+90).
+  b: hips 30° right, shoulders 30° right; feet face stage right (toward a; "90° right of the front"; feet=-90).
+  The fist does NOT reach b's face line: 39 cm short of it; 42 cm from b's nose (clip, frame 75).
+
+
+============================================================
+TASK 3  golfer.shosa  -- PREDICTION (written before the first check)
+============================================================
+Tempo 60: beat = second. Rows: hips center:1 then:1 right.40:0.4 left.20:0.6 left.45:1;
+twist center:1 then:1 right.45:0.4 right.30:0.6 left.45:1 (shoulders written = hips + twist:
+85 right at 2 s, 10 right at 2.4 s, 90 left at 3 s). Torso fwd.55 (35° lean), head fwd.-30.
+Predicted check output (`shosa check golfer.shosa --at 1,2,2.2,2.4,3`):
+  golfer.shosa: no problems
+    score: 4 beats, 4 s, 1 dancer
+      Swing   0-4   1 bar   4 s   at 60   4/4
+      golfer starts with `left.side` already made: the first step is not seen (...)
+      golfer ends where it began
+    score at beat 2.2 = 2.2 s: hips 10° right, shoulders ~42° right, face 0° and ~? down
+Possible warning: SH2003 (arms from across.high to down in 0.4 s?) — I think not.
+Predicted answers:
+ Q3a at 2.2 s: hips 10° right (eased midpoint of 40 R -> 20 L), shoulders written 47.5° right,
+     measured less under the 35° lean: guess ~42° right.
+ Q3b the face stays within 10° all the way: the head row never changes and the head does not
+     turn with hips/twist. Guess largest deviation < 3°.
+ Also expect the shoulders at the top and finish to be measured LESS than 85/90 because of the
+ lean ("10° of lean: 38° for 40"), maybe ~75-80; twist cannot go above 45 to make it up.
+
+
+--- TASK 3 RESULT ---
+Check run 1 (`shosa check golfer.shosa --at 1,2,2.2,2.4,3`, torso fwd.55, head fwd.-30): no problems.
+  at 1 s:   hips 0°, shoulders 0°, face 0° and 65° down
+  at 2 s:   hips 40° right, shoulders 77.3° right, face 11.2° left and 64.7° down
+  at 2.2 s: hips 10° right, shoulders 40° right, face 3.6° left and 65° down
+  at 2.4 s: hips 20° left, shoulders 11° right, face 7° right and 64.9° down
+  at 3 s:   hips 45° left, shoulders 83.1° left, face 11.6° right and 64.7° down
+Right: the summary lines, hips 10° right at 2.2 s, shoulders less than written under the lean
+(predicted ~42, got 40; top 77.3 instead of 85, finish 83.1 instead of 90).
+WRONG: the "first step already made" line quotes the whole event: "`left.side@small:4` already made".
+WRONG, and important: the FACE. I predicted <3°; check said up to 11.6° on the floor. The grammar says
+the head "does not turn with a twist ... the face keeps looking where the head row says" and, under a
+lean, "the head ... shifts a few centimetres sideways though the face keeps its direction". It does
+not quite: the face's floor angle moves with the shoulders, and the more the face looks down, the
+bigger that floor angle gets (a short horizontal part swings round).
+Experiments on copies (scratch\g55-30 ... g65-40.shosa, 6 more check+clip runs, torso fwd.55/60/65 x head
+fwd.-30/-40). For each I computed from the clip (scratch\face.ps1: head->nose vector at every frame
+vs frame 30 = address, plus the `angles` face/faceUp columns):
+  fwd.55/-30: floor 11.6°, true 3D 4.9°     fwd.55/-40: floor 16.5°, 3D 4.4°
+  fwd.60/-30: floor 7.1°,  3D 3.5°          fwd.60/-40: floor 9.2°,  3D 3.2°
+  fwd.65/-30: floor 4.2°,  3D 2.4°          fwd.65/-40: floor 5.1°,  3D 2.1°
+  (shoulders at the top: 77.3 / 79.6 / 81.5 for lean 35 / 30 / 25; finish 83.1 / 85.3 / 86.9)
+Chose torso fwd.60 (30° forward), head fwd.-40 (face 70° down, onto the ball).
+Check run 2 of golfer.shosa (`--at 1,2,2.2,2.4,3,3.9`): no problems.
+  at 2 s:   hips 40° right, shoulders 79.6° right, face 8.9° left and 69.9° down
+  at 2.2 s: hips 10° right, shoulders 42.1° right, face 2.9° left and 70° down
+  at 2.4 s: hips 20° left, shoulders 10.9° right, face 5.6° right and 69.9° down
+  at 3 s:   hips 45° left, shoulders 85.3° left, face 9.2° right and 69.8° down
+`shosa clip golfer.shosa -o scratch\golfer.json` + scratch\face.ps1: largest floor deviation 9.2° at
+frame 88 (2.93 s), faceUp at most 0.2°, true 3D angle of the face at most 3.2° (frame 89).
+Sheet out\golfer.png and out\golfer-side.png (--step 0.2) looked at: bent over, arms hanging at
+address; at 2 s both arms up to the picture's left (the dancer's right), shoulder line from above
+nearly side-on; at 3 s the arms over the left shoulder (picture right); the nose glyph from above stays down.
+Could NOT meet: shoulders 85° right at the top and 90° left at the finish with the buckle at 40/45
+and a bent-over torso: twist stops at 45 (SH1013) and the lean takes some off. Got 79.6 and 85.3.
+VERIFIED ANSWERS (shosa check golfer.shosa --at 2.2; face from clip + face.ps1):
+  at 2.2 s: hips 10° right, shoulders 42.1° right.
+  The face stays within 10° of address all the way: largest deviation 9.2° on the floor (what
+  check --at reports; at 2.93 s), 3.2° as a true 3D angle; up/down at most 0.2°.
+Check runs: golfer.shosa 2 (+6 on scratch copies).
+
+
+============================================================
+TASK 4  golfer-edit.shosa  -- PREDICTION (written before the first check)
+============================================================
+Copied golfer.shosa. Changes (6 tokens, all numbers inside events):
+  hips  right.40 -> right.20 ; left.20:0.6 -> left.20:1.1
+  twist right.45 -> right.22.5 ; right.30:0.6 -> right.30:1.1
+  leftArm  down:0.6 -> down:1.1 ; rightArm down:0.6 -> down:1.1
+(the word before the finish is 0.5 longer in every row that has the finish, so the finish lands at
+3.5 s and is held its 1 s to 4.5 s; 2.4 s stays where it was; torso/head/steps rows are 4 long and simply stay.)
+Predicted check output (`shosa check golfer-edit.shosa --at 2,3.5`):
+  golfer-edit.shosa: no problems
+    score: 4.5 beats, 4.5 s, 1 dancer
+      Swing   0-4.5   2 bars   4.5 s   at 60   4/4
+      golfer starts with `left.side@small:4` already made: ...
+      golfer ends where it began
+    score at beat 2 = 2 s: hips 20° right, shoulders ~40.5° right, face ~4° left and 70° down
+    score at beat 3.5 = 3.5 s: hips 45° left, shoulders 85.3° left, face 9.2° right and 69.8° down
+Predicted answers: top hips 20° right, shoulders ~40.5° right (42.5 written); finish 45° left / 85.3° left.
+
+
+--- TASK 4 RESULT (check run 1: `shosa check golfer-edit.shosa --at 2,3.5`; run 2 `--at 2.4,3,4.4`) ---
+No diagnostics. Summary lines all as predicted (4.5 beats, 4.5 s, "Swing 0-4.5 2 bars").
+  at 2 s:   hips 20° right, shoulders 36° right, face 5.6° left and 69.9° down
+  at 3.5 s: hips 45° left, shoulders 85.3° left, face 9.2° right and 69.8° down
+  at 2.4 s: hips 20° left, shoulders 10.9° right (unchanged from golfer.shosa: 2.4 stays)
+  at 3 s:   hips 34.2° left, shoulders 39° left (on the way); at 4.4 s still the finish.
+WRONG: shoulders at the top 36°, not ~40.5. By hand (twist 22.5 about a spine leaning 30°, seen on the
+floor: atan(cos30·tan22.5) = 19.7, + hips 20 = 39.7) I expected about 40; the solver loses more
+than that. Halving the written numbers does not halve the measured angle (79.6 -> 36, not 39.8).
+Face: clip + face.ps1: largest floor deviation 9.2° (3.37 s), 3D 3.2°.
+Sheet out\golfer-edit.png (--step 0.25) looked at: shoulder line from above at 2 s about half as
+round as before; the finish now at 3.5, held to 4.5. (The arms still go all the way over the
+shoulder at the top: the task asked to halve only the buckle and the shoulders.)
+`git diff --no-index --word-diff golfer.shosa golfer-edit.shosa`: 4 lines, 6 numbers changed:
+  right.40->right.20, 0.6->1.1 (hips); right.45->right.22.5, 0.6->1.1 (twist); 0.6->1.1 (leftArm); 0.6->1.1 (rightArm).
+Check runs for golfer-edit.shosa: 2.
+VERIFIED ANSWERS: top (2 s): hips 20° right, shoulders 36° right. Finish (3.5 s): hips 45° left,
+shoulders 85.3° left. 6 tokens changed (6 numbers in 6 events on 4 lines).
+

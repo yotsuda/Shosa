@@ -33,7 +33,8 @@ beside the repository.
 
 **In VS Code, an assistant that uses the editor's tools (Copilot Chat in agent mode) needs
 none of this file's setup**: the extension gives it three tools — `shosa_grammar` (the
-language), `shosa_check` (what `shosa check` prints, for the text as the editor has it)
+language), `shosa_check` (what `shosa check` prints, for the text as the editor has it; `score` and
+`at` as `--score` and `--at`)
 and `shosa_sheet` (the sheet as an image). The rest of this file is for an agent that
 works through the command line.
 
@@ -81,10 +82,13 @@ Movement is written in `anim/*.shosa` and compiled; never edit the `.glb` files.
    Under each pose the figure is drawn from above (hips grey with a dot at each end, shoulders
    blue and red, the nose): which way it faces and which shoulder or hip is ahead in a
    `twist` or under `hips` are read there — the direction, not the degrees.
-   What the image cannot settle (by how many centimetres, how high a fist
+   The degrees are in **`shosa check FILE --at 3,0.75s`** (beats; seconds with an `s`): a line
+   for each moment, ``Punch at beat 3 = 0.75 s: hips 20° left, shoulders 45° left, face 30°
+   right and 10° up``, all from the way the feet face.
+   What is left (by how many centimetres, how high a fist
    arrives, whether the head moved) is in **`shosa clip FILE -o X.json`**: every joint's
-   x y z at every frame (the layout is in the same place of the grammar; one file, an
-   array of the scores when there are several, `--score NAME` for one).
+   x y z at every frame, and the same angles at every frame (the layout is in the same place
+   of the grammar; one file, an array of the scores when there are several, `--score NAME` for one).
 5. **Export** (below). To change the movement later, change the words and run 3 to 5
    again; never touch the output.
 

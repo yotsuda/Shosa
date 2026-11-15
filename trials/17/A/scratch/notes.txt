@@ -1,0 +1,111 @@
+=== Task 1: fighter.shosa — PREDICTION (before first check) ===
+check will print:
+  fighter.shosa: no problems
+    Idle: 4 beats, 2 s, 1 dancer
+      Idle   0-4   1 bar   2 s   at 120   4/4
+      hero loops on the spot
+    Hook: 4 beats, 2 s, 1 dancer
+      Hook   0-4   1 bar   2 s   at 120   4/4
+      hero ends where it began
+    Hook !hit at beat 1.6 = 0.8 s
+Answers predicted:
+ (a) 0.65 s is half way from the wind-up (hips 25R, twist 25R = shoulders 50R) to the landing
+     (hips 30L, twist 15L = shoulders 45L); easing symmetric, so the middle value:
+     hips 2.5 deg left, shoulders 2.5 deg right (twist 5 deg left on top of hips).
+ (b) face 0 deg from the feet (head row fwd, head does not follow hips/twist). Nose: moves a little
+     or not at all (< 1 cm?) — no lean, head sits on the spine over the pelvis. Unsure; will read clip.
+ (c) 1.1 s: held by `then` -> hips exactly 30 left, shoulders exactly 45 left.
+--- Task 1 RESULT (check run 1: `shosa check fighter.shosa --at 0.5s,0.65s,0.8s,1.1s,1.9s`) ---
+Printed lines: exactly as predicted (no problems; Idle 4 beats 2 s, loops on the spot; Hook 4 beats 2 s,
+ends where it began; Hook !hit at beat 1.6 = 0.8 s). Plus the --at lines.
+ (a) RIGHT. check --at 0.65s: "Hook at beat 1.3 = 0.65 s: hips 2.5° left, shoulders 2.5° right, face 0°".
+ (b) face 0° (check --at 0.8s: "face 0°"). Nose: `shosa clip fighter.shosa -o scratch\fighter.json --score Hook`,
+     read joint `nose` frames 15 (0.5 s), 18, 20, 24 (0.8 s): x=0.030 y=1.556 z=0.315 in every frame —
+     does NOT move at all (my "< 1 cm" guess was right in spirit; it is 0).
+ (c) RIGHT. check --at 1.1s: hips 30° left, shoulders 45° left.
+Fist at landing (frame 24 = 0.8 s, same 24..33): leftHand x=0.037 y=1.419 z=0.451; pelvis/chest/nose x=0.030
+  -> fist 0.7 cm left of the body's middle line; head centre y=1.556 (low stance), chin ~0.15 below = ~1.41,
+  fist 1.419 = chin height. leftElbow y=1.154 (below and out from the hand: arm bent). OK with fwd.across(18).18@bent.
+Sheet out\fighter-Idle.png, out\fighter-Hook.png, out\fighter-hook-close.png (--step 0.1 --from 0.8 --to 2.4 beats):
+  top views show red shoulder ahead (down) at the hit, blue ahead in the guard; left foot (blue) forward. OK.
+  (Mistake of mine: I passed --from/--to thinking in seconds; they are beats. Still covered windup->hit.)
+
+
+=== Task 2: lookout.shosa — PREDICTION (before first check) ===
+Reading "beat 3" of bar 2 as the dancer's count 3 = beat index 2 of the bar = absolute beat 6
+(the task's question "beat 6 (counting from 0)" agrees). Bar 3 beat 1 = beat 8; I fill bar 3 so the score is 12 beats.
+check will print:
+  lookout.shosa: no problems
+    score: 12 beats, 8 s, 1 dancer
+      Look   0-12   3 bars   8 s   at 90   4/4
+      solo ends where it began
+Answers predicted:
+  face at beat 6: 50° right, level (shoulders 15+25 = 40 right, no lean so exact, face +10).
+  face at beat 7.5: 3/4 of the way from 50R back to 0 with an ease in/out: smoothstep gives 50*(1-0.844) = 7.8° right
+     (cosine ease would give 7.3°). Predict ~8° right, level.
+  shoulders at beat 7: half way back from 40R: 20° right (hips 7.5 right).
+
+--- Task 2 RESULT (check run 1: `shosa check lookout.shosa --at 3,4,5,6,7,7.5,8`) ---
+Printed lines: exactly as predicted.
+  face at beat 6: RIGHT — "score at beat 6 = 4 s: hips 15° right, shoulders 40° right, face 50° right" (no up/down = level).
+  face at beat 7.5: RIGHT — "face 7.8° right" (so the ease is smoothstep-like; I computed 50*(1-(3t²-2t³)) at t=0.75 by hand).
+  shoulders at beat 7: RIGHT — "shoulders 20° right" (hips 7.5° right).
+  Also seen: beat 4 "face 25° left and 10° up", shoulders 0° — the requirement at beat 4 holds; beat 3 all 0 (bar 1 still).
+  Side note: beat 5 face "12.8° right and 6.3° up" (not 12.5: the head goes as a direction, not angle by angle).
+Sheet out\lookout.png: nose to the image right (dancer's left) at 4, down-left (dancer's right) at 6, shoulder line
+  crossing the hips at 5-7, all square from 8. OK.
+
+
+=== Task 3: turner.shosa — PREDICTION (before first check) ===
+steps bar 1: `then left.place@turn(left.eighth) right.place@turn(left.eighth) together` (a lead beat so the first
+turning step is seen); bar 2 hips/twist out to 30R / 15R at beat 6 and back at beat 8; bar 3 standing.
+check will print:
+  turner.shosa: no problems
+    score: 12 beats, 7.2 s, 1 dancer
+      Turn   0-12   3 bars   7.2 s   at 100   4/4
+      solo ends where it began, turned 90° to its left
+  (unsure whether the place steps with turns leave a few cm of travel: then it would be "ends 0.0x m ... of where it began, turned 90° to its left")
+Answers predicted (beat 6 = 3.6 s):
+  from the feet: hips 30° right, shoulders 45° right.
+  from the front of the room: feet face 90° left of the front, so hips 60° left of the front, shoulders 45° left of the front.
+  check --at should add "(the feet face 90° left of the front)".
+
+--- Task 3 RESULT (check run 1: `shosa check turner.shosa --at 2,4,5,6,7,8`) ---
+WRONG (small): the dancer line is "solo ends 0.04 m back and 0.04 m to its left of where it began, turned 90° to its left"
+  (the turning place-steps drift 4 cm each way; I had guessed "ends where it began" with this as the fallback). Rest as predicted.
+  Also at beat 2 the feet already face 90° left (the two eighths land on beats 1 and 2) — as written.
+Answers: RIGHT. "score at beat 6 = 3.6 s: hips 30° right, shoulders 45° right, face 0° (the feet face 90° left of the front)".
+  From the front of the room: hips 90-30 = 60° left, shoulders 90-45 = 45° left (subtracted by hand, then verified:)
+  `shosa clip turner.shosa -o scratch\turner.json`, `angles` frame 108 (3.6 s x 30): feet 90, hips -30, shoulders -45
+  (feet measured from the room, the others from the feet). Also from joint positions at frame 108:
+  rightShoulder (-0.093, z 0.093) -> leftShoulder (0.176, z -0.176): facing = (0.269, 0.269) = 45° from +z toward +x = 45° left of front;
+  rightHip (-0.009, 0.045) -> leftHip (0.091, -0.128): facing (0.173, 0.100) = atan(0.173/0.100) = 60° left of front. Confirmed.
+Sheet out\turner.png: nose turns to image right (stage left) by beat 2; shoulders/hips swing toward the audience at 5-7; square from 8.
+
+
+=== Task 4: fighter-edit.shosa — PREDICTION (before first check) ===
+Edits (three rows of section Hook, plus one comment): hips `left.30:0.3s then:0.8s` -> `left.30:0.5s then:0.6s`;
+twist `left.15:0.3s then:0.8s` -> `center:0.5s then:0.6s` (shoulders = hips 30 + twist 0); leftArm same lengths
+change, direction untouched. Sum still 0.5+0.3+0.5+0.6+0.1 = 2.0 s.
+check will print: identical to fighter.shosa (Idle and Hook 4 beats 2 s, loops on the spot / ends where it began,
+  Hook !hit at beat 1.6 = 0.8 s), no problems.
+Answers predicted: at 0.8 s hips 30° left, shoulders 30° left, face 0°; held through 1.3 s.
+  Fist: the arm direction is measured against the room, but the left shoulder now comes round only 30° instead of 45°,
+  so it is further out to the left: by hand, shoulder ~0.19 m from the spine axis -> x from 0.164 to ~0.195, and with
+  the same hand-from-shoulder vector as before (-0.127) the fist ends ~x 0.068 against the middle 0.030:
+  about 4 cm to the dancer's LEFT of the middle — no longer quite in front of it.
+
+--- Task 4 RESULT (check run 1: `shosa check fighter-edit.shosa --score Hook --at 0.8s,1.1s,1.3s,1.5s,1.9s`;
+    run 2: `shosa check fighter-edit.shosa` for the whole file) ---
+Printed lines: run 1 printed only the Hook score (my own --score, so the Idle lines I predicted were not there —
+  my prediction was for the whole file); run 2 printed exactly the predicted lines. No problems in either.
+Answers: RIGHT. "Hook at beat 1.6 = 0.8 s: hips 30° left, shoulders 30° left, face 0°", same at 1.1 s and 1.3 s
+  (held 0.5 s), moving at 1.5 s (hips 17° left, shoulders 13.1° left), guard at 1.9 s (20R / 35R).
+Fist: RIGHT. `shosa clip fighter-edit.shosa -o scratch\fighter-edit.json --score Hook`, frames 24 and 39:
+  leftHand x=0.068 y=1.419 z=0.490; leftShoulder x=0.195 z=0.100 (my hand estimate 0.195 / 0.068 exact);
+  middle (pelvis, nose) x=0.030 -> fist 3.8 cm to the dancer's left of the middle (was 0.7 cm in fighter.shosa),
+  at the same chin height 1.419, elbow still bent (leftElbow y 1.154). Not fixed, since the task said change only
+  the shoulders and the hold; a smaller bracket (fwd.across(~25)?) would bring it back — not tried.
+Sheet out\fighter-edit.png (--score Hook --step 0.2): the shoulder line lies on the hips line from 1.6 to 2.6
+  (no twist), red ahead; back into the guard by 3.8. OK.
+

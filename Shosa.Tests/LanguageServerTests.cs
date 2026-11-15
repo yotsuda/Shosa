@@ -100,9 +100,23 @@ public class LanguageServerTests
         Assert.Matches(@"^test\.shosa\(\d+,\d+\): error SH\d+: ", broken);
         Assert.DoesNotContain("no problems", broken);
 
+        // `at`, as `shosa check --at` says it: how the body is turned at each moment, after the report.
+        string at = session.Request("shosa/check", new { uri = Uri, at = "2, 1.5s" }).GetProperty("text").GetString()!;
+        Assert.StartsWith(check, at);
+        Assert.EndsWith("\n" + string.Join("\n", Shosa.Core.Output.CheckReport.At(Shosa.Core.ShosaCompilation.Compile(Samples.Walk, null), [(2, false), (1.5, true)])), at);
+        Assert.Contains("  score at beat 2 = ", at);
+        Assert.Matches(@"'at' takes beats.*not 'x'", session.Request("shosa/check", new { uri = Uri, at = "2,x" }).GetProperty("text").GetString()!);
+
         var sheets = session.Request("shosa/sheet", new { uri = Uri, step = 2 }).GetProperty("sheets");
         byte[] png = Convert.FromBase64String(Assert.Single(sheets.EnumerateArray()).GetProperty("png").GetString()!);
         Assert.Equal(new byte[] { 0x89, 0x50, 0x4E, 0x47 }, png[..4]);
+        // `from` and `to` in seconds, as the command line's `--from 1s`: the same sheet as in beats.
+        string Sheet(object from, object to) => Assert.Single(session.Request("shosa/sheet", new { uri = Uri, step = 0.5, from, to }).GetProperty("sheets").EnumerateArray()).GetProperty("png").GetString()!;
+        var walkClip = Shosa.Core.ShosaCompilation.Compile(Samples.Walk, null).Clips[0];
+        double Beat(double s) => Shosa.Core.Semantics.TempoMap.Beat(Shosa.Core.Semantics.TempoMap.Of(walkClip.Tempos, walkClip.Tempo), s);
+        Assert.Equal(Sheet(Beat(1), Beat(2)), Sheet("1s", "2s"));
+        Assert.NotEqual(1, Beat(1));   // so that seconds read as beats would draw another sheet
+        Assert.NotEqual(Sheet(1, 2), Sheet("1s", "2s"));
 
         // The preview's Export Model: one score as the file asked for, what the CLI writes.
         byte[] Exported(string format) => Convert.FromBase64String(

@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 using Shosa.Core;
+using Shosa.Core.Motion;
 using Shosa.Core.Music;
 using Shosa.Core.Output;
 using Shosa.Core.Semantics;
@@ -232,9 +233,22 @@ public sealed class LanguageServer(Action<string> send)
 
             case "shosa/check":
             {
-                // What `shosa check FILE` prints: the diagnostics, then every score with its sections and marks.
-                Reply(id, Compiled(parameters, null) is var (compilation, text, name)
-                    ? new { text = string.Join("\n", CheckReport.Problems(compilation, text, name).Concat(CheckReport.Scores(compilation, name))) }
+                // What `shosa check FILE [--score NAME] [--at 3,0.75s]` prints: the diagnostics, then every
+                // score (or the one named) with its sections and marks, then how the body is turned at
+                // the moments asked for (`at`, the same text as the command line's).
+                string? Said(string key) => parameters.TryGetProperty(key, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
+                IReadOnlyList<(double, bool)> moments = [];
+                if (Said("at") is { } at)
+                {
+                    if (CheckReport.Moments(at, out string? wrong) is not { } asked)
+                    {
+                        Reply(id, new { text = $"'at' takes beats, or seconds with an s, with commas between (\"3,4.5\" or \"0.75s\"), not '{wrong}'." });
+                        break;
+                    }
+                    moments = asked;
+                }
+                Reply(id, Compiled(parameters, Said("score")) is var (compilation, text, name)
+                    ? new { text = string.Join("\n", CheckReport.Problems(compilation, text, name).Concat(CheckReport.Scores(compilation, name)).Concat(CheckReport.At(compilation, moments))) }
                     : null);
                 break;
             }
@@ -250,6 +264,11 @@ public sealed class LanguageServer(Action<string> send)
                     break;
                 }
                 double view = Said("view") switch { "side" => 90, "back" => 180, _ => Number("view") ?? ContactSheet.FrontView };
+                // `from` and `to`: a number of beats, or the command line's text ("2", "0.8s").
+                double? Moment(string key, MotionClip clip) =>
+                    Number(key) ?? (Said(key) is { } said && CheckReport.Moments(said, out _) is [var (value, seconds)]
+                        ? seconds ? TempoMap.Beat(TempoMap.Of(clip.Tempos, clip.Tempo), value) : value
+                        : null);
                 Reply(id, new
                 {
                     problems = string.Join("\n", CheckReport.Problems(compilation, text, name)),
@@ -257,7 +276,7 @@ public sealed class LanguageServer(Action<string> send)
                     {
                         score = clip.Name,
                         beats = clip.TotalBeats,
-                        png = Convert.ToBase64String(ContactSheet.Render(clip, Number("step"), Number("from") ?? 0, Number("to"), view).ToPng()),
+                        png = Convert.ToBase64String(ContactSheet.Render(clip, Number("step"), Moment("from", clip) ?? 0, Moment("to", clip), view).ToPng()),
                     }),
                 });
                 break;

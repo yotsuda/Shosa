@@ -9,7 +9,8 @@ import type { LanguageClient } from 'vscode-languageclient/node';
 // the compiler's verdict and the picture of the movement, with nothing for the user to set up.
 //
 //   shosa_grammar   the whole language, from the compiler in this extension
-//   shosa_check     what `shosa check FILE` prints: diagnostics, scores, sections, marks
+//   shosa_check     what `shosa check FILE [--score] [--at]` prints: diagnostics, scores, sections,
+//                   marks, and how the body is turned at the moments asked for
 //   shosa_sheet     what `shosa sheet FILE` draws: a pose per beat, as an image the model looks at
 //
 // The language server does the work (shosa/grammar, shosa/check, shosa/sheet) and is sent the
@@ -18,7 +19,8 @@ import type { LanguageClient } from 'vscode-languageclient/node';
 // are in package.json under contributes.languageModelTools.
 
 interface FileInput { file: string }
-interface SheetInput extends FileInput { score?: string; step?: number; from?: number; to?: number; view?: string | number }
+interface CheckInput extends FileInput { score?: string; at?: string | number }
+interface SheetInput extends FileInput { score?: string; step?: number; from?: number | string; to?: number | string; view?: string | number }
 interface Sheet { score: string; beats: number; png: string }
 
 const text = (value: string) => new vscode.LanguageModelToolResult([new vscode.LanguageModelTextPart(value)]);
@@ -74,11 +76,14 @@ export function registerTools(context: vscode.ExtensionContext, client: Language
     },
   }));
 
-  context.subscriptions.push(vscode.lm.registerTool<FileInput>('shosa_check', {
+  context.subscriptions.push(vscode.lm.registerTool<CheckInput>('shosa_check', {
     prepareInvocation: options => ({ invocationMessage: `Checking ${name(options.input.file)}` }),
     invoke: async options => {
-      const document = await open(options.input.file);
-      const report = await client.sendRequest<{ text: string } | null>('shosa/check', { uri: document.uri.toString(), text: document.getText() });
+      const { file, score, at } = options.input;
+      const document = await open(file);
+      // A model may send one beat as a number: the server reads the command line's text.
+      const report = await client.sendRequest<{ text: string } | null>('shosa/check',
+        { uri: document.uri.toString(), text: document.getText(), score, at: at === undefined ? undefined : String(at) });
       if (!report) {
         return text('The Shosa language server gave no answer.');
       }

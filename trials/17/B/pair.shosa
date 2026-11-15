@@ -1,0 +1,25 @@
+// Two dancers face each other 1.2 m apart. a throws a right straight from the hips at
+// b's chin on bar 2 count 1; b slips it by turning hips and shoulders 30° right.
+// Both are square again on count 3.
+tempo 96
+time 4/4
+
+figure a
+figure b
+dancer a humanoid on a  at -0.6 0  facing stageLeft
+dancer b humanoid on b  at 0.6 0   facing stageRight
+
+section Main {
+  a {
+    // the fist comes up close in beat 3, out on bar 2's first beat, back by count 3
+    rightArm { down:2 then:1 fwd.12@bent:1 | fwd.across(18).12@sharp!hit:2 fwd.12@bent:1 down:1 | }
+    hips     { center:4 | left.20@sharp:2 center:2 | }
+    twist    { center:4 | left.25@sharp:2 center:2 | }
+  }
+  b {
+    hips     { center:4 | right.30@sharp!slip:2 center:2 | }
+  }
+}
+
+form { Main }
+score { dancer a  dancer b }

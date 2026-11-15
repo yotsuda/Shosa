@@ -61,6 +61,67 @@ public static class CheckReport
     }
 
     /// <summary>
+    /// The moments of `--at 3,4.5,0.75s` (the language server's `at` is the same text): beats, or
+    /// seconds with an s, with commas between. Null, with what was not a number, if one is not.
+    /// </summary>
+    public static IReadOnlyList<(double Value, bool Seconds)>? Moments(string said, out string? wrong)
+    {
+        var moments = new List<(double, bool)>();
+        wrong = null;
+        foreach (string moment in said.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            bool seconds = moment.EndsWith('s');
+            if (!double.TryParse(seconds ? moment[..^1] : moment, NumberStyles.Float, CultureInfo.InvariantCulture, out double value))
+            {
+                wrong = moment;
+                return null;
+            }
+            moments.Add((value, seconds));
+        }
+        return moments;
+    }
+
+    /// <summary>
+    /// `shosa check --at`: how each dancer's body is turned at the moments asked for (a beat, or
+    /// seconds), a line for each score and dancer. The hips, the shoulders and the face are counted
+    /// as the language counts them — from the way the feet face, on the floor — so what was written
+    /// (`hips { left.20 }`, a `twist` on top, `head { fwd.right(30) }`) is read back as numbers.
+    /// </summary>
+    public static IEnumerable<string> At(ShosaCompilation compilation, IReadOnlyList<(double Value, bool Seconds)> moments)
+    {
+        static string N(double value) => Math.Round(value, 3).ToString(CultureInfo.InvariantCulture);
+        static string Turned(double degrees)
+        {
+            double size = Math.Round(Math.Abs(degrees), 1);
+            return size == 0 ? "0°" : $"{size.ToString(CultureInfo.InvariantCulture)}° {(degrees > 0 ? "left" : "right")}";
+        }
+
+        foreach (var clip in compilation.Clips)
+        {
+            string label = clip.Name == "" ? "score" : clip.Name;
+            foreach (var (value, seconds) in moments)
+            {
+                double beat = seconds ? TempoMap.Beat(TempoMap.Of(clip.Tempos, clip.Tempo), value) : value;
+                if (beat < -1e-9 || beat > clip.TotalBeats + 1e-9)
+                {
+                    yield return $"  {label} at {(seconds ? N(value) + " s" : "beat " + N(value))}: not in the score ({N(clip.TotalBeats)} beats, {N(clip.SecondsAt(clip.TotalBeats))} s)";
+                    continue;
+                }
+                beat = Math.Clamp(beat, 0, clip.TotalBeats);
+                foreach (var figure in clip.Figures)
+                {
+                    var angles = figure.Angles(clip.FrameAt(beat));
+                    string who = clip.Figures.Count > 1 ? figure.Name + ": " : "";
+                    string up = Math.Round(Math.Abs(angles.FaceUp), 1) == 0 ? ""
+                        : $" and {Math.Round(Math.Abs(angles.FaceUp), 1).ToString(CultureInfo.InvariantCulture)}° {(angles.FaceUp > 0 ? "up" : "down")}";
+                    string feet = Math.Round(Math.Abs(angles.Feet), 1) == 0 ? "" : $" (the feet face {Turned(angles.Feet)} of the front)";
+                    yield return $"  {label} at beat {N(beat)} = {N(clip.SecondsAt(beat))} s: {who}hips {Turned(angles.Hips)}, shoulders {Turned(angles.Shoulders)}, face {Turned(angles.Face)}{up}{feet}";
+                }
+            }
+        }
+    }
+
+    /// <summary>
     /// <c>FILE: no problems</c> when there is no diagnostic; then every score: how long it is
     /// and how many dance in it, and a line for each section it plays — where it falls, how long
     /// it takes, the tempo and the time it is played in. A cut of the piece may begin in another

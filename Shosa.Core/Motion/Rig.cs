@@ -115,8 +115,36 @@ public sealed class ClipFigure
     /// </summary>
     [System.Text.Json.Serialization.JsonIgnore]
     public double[] Facing { get; set; } = [0, 0];
+    /// <summary>Which way the feet and the turns face the figure at every frame, radians (0 the front, more to its left).</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public List<double> Yaws { get; } = [];
     /// <summary>One array per frame: x, y, z of each joint in <see cref="Rig.Joints"/> order.</summary>
     public List<float[]> Frames { get; } = [];
+
+    /// <summary>
+    /// How the body is turned at a position between frames, as the language counts it: the hips
+    /// (`hips`), the line of the shoulders (`hips` and `twist` together) and the face, each from
+    /// the way the feet face, measured on the floor.
+    /// </summary>
+    public BodyAngles Angles(double frame)
+    {
+        static double Degrees(double radians) => radians * 180 / Math.PI;
+        int before = (int)Math.Floor(frame);
+        double Yaw(int at) => Yaws.Count == 0 ? Facing[0] : Yaws[Math.Clamp(at, 0, Yaws.Count - 1)];
+        double yaw = Yaw(before) + (Yaw(before + 1) - Yaw(before)) * (frame - before);
+        Vec3 fwd = Vec3.Forward(yaw), left = Vec3.Left(yaw);
+
+        // A line from the right joint to the left one points to the figure's left when it is square over the feet.
+        double Line(int leftJoint, int rightJoint)
+        {
+            var across = Joint(frame, leftJoint) - Joint(frame, rightJoint);
+            return Degrees(Math.Atan2(-across.Dot(fwd), across.Dot(left)));
+        }
+        var nose = Joint(frame, Rig.Nose) - Joint(frame, Rig.Head);
+        double ahead = nose.Dot(fwd), aside = nose.Dot(left);
+        return new BodyAngles(Degrees(Math.Atan2(Math.Sin(yaw), Math.Cos(yaw))), Line(Rig.LHip, Rig.RHip), Line(Rig.LShoulder, Rig.RShoulder),
+            Degrees(Math.Atan2(aside, ahead)), Degrees(Math.Atan2(nose.Y, Math.Sqrt(ahead * ahead + aside * aside))));
+    }
 
     /// <summary>
     /// One array per frame: x, y, z, w of each bone of <see cref="Skeleton.Bones"/>, relative to
@@ -145,6 +173,12 @@ public sealed class ClipFigure
         return Vec3.Lerp(Joint(before, joint), Joint(before + 1, joint), frame - before);
     }
 }
+
+/// <summary>
+/// Degrees, more to the figure's left. <paramref name="Feet"/> is from the front of the room; the
+/// hips, the shoulders and the face are from the way the feet face; <paramref name="FaceUp"/> is above level.
+/// </summary>
+public readonly record struct BodyAngles(double Feet, double Hips, double Shoulders, double Face, double FaceUp);
 
 /// <param name="Section">The section that writes the mark, and <paramref name="Play"/>: which play of it in the score (1 the first). With them an engine tells the first `hit` of a section played twice from the second.</param>
 public sealed record ClipMark(double Beat, double Seconds, string Name, string Figure, string Section = "", int Play = 1);

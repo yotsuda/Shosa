@@ -1,0 +1,31 @@
+// Danced to song.lys: Verse and Chorus, 4 bars of 4/4 each, at the song's tempo.
+music "song.lys"
+
+figure solo
+dancer solo humanoid on solo
+
+// Verse: a step in place on every beat. The belt buckle 20° right on count 2,
+// 20° left on count 4, square on 1 and 3; the twist undoes the hips, so the
+// shoulders stay square to the feet. No head row: the face looks ahead.
+section Verse {
+  solo {
+    steps { left.place right.place left.place right.place | % | % | % | }
+    hips  { center right.20 center left.20 | % | % | % | }
+    twist { center left.20 center right.20 | % | % | % | }
+  }
+}
+
+// Chorus: the feet apart and still. Hips and shoulders as one block (no twist):
+// 30° left on count 1 of bars 1 and 3, 30° right on count 1 of bars 2 and 4,
+// held, and turned in the bar's last beat. The face goes with the block on
+// count 1 and turns back to the front (30° the other way from the block) on count 3.
+section Chorus {
+  solo {
+    steps { left.side shift.center then:2 | then:4 | then:4 | then:4 | }
+    hips  { left.30:3 then:1 | right.30:3 then:1 | %2 | }
+    twist { center:4 | then:4 | then:4 | then:4 | }
+    head  { fwd.left(30):2 fwd:1 then:1 | fwd.right(30):2 fwd:1 then:1 | %2 | }
+  }
+}
+
+score { dancer solo }

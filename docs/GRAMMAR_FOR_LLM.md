@@ -693,9 +693,20 @@ move cross {
   name too (a move that begins `loose:1 left@sharp …` holds the chest for that first beat).
   A `skip` there leaves the chest to the other row. The same for the hips; one warning
   names both when a move loses both.
-- Under a lean the turn is about the leaning spine, so measured on the floor it is a
-  little less than its number (10° of lean: 38° for 40), and the head, which sits on
-  the spine, shifts a few centimetres sideways though the face keeps its direction.
+- A turn is kept until a word changes it, across sections too: hips or a chest turned at
+  the end of the Verse are still turned in the Chorus unless its rows say `center`
+  (`twist { center:4 | … }`). `check --at` at the first beat of a section shows it.
+- Under a lean the turn is about the leaning spine, so measured on the floor it is
+  less than its number, and the more so the deeper the lean, with no simple rule:
+  10° of lean gives 38° for 40; bent forward 30° (`torso { fwd.60 }`), `hips { right.40 }`
+  with `twist { right.45 }` gives shoulders 79.6° and half of each 36°, not 42.5°. Write
+  the number, read it with `shosa check FILE --at` and raise it (45 is the most a
+  twist takes: a deep lean cannot bring the shoulders to 90° from the feet). The head,
+  which sits on the spine, shifts a few centimetres sideways.
+- The face's left or right is the way the nose points over the floor. A face that looks
+  steeply down (a bow, a golfer over the ball) points almost straight at the floor, so
+  a turn of 3° shows as 10° or more there: judge such a face by its `up` / `down`, and
+  do not try to hold its left or right to a few degrees.
 - On the contact sheet a twist is read under each pose, where the figure is drawn from
   above: the shoulder line (left half blue, right half red) lies across the grey line
   of the hips when twisted, and hides it when square (15° shows). In the pose itself it
@@ -1033,8 +1044,9 @@ Do not try to express these; mention them as a limitation instead.
 ```
 shosa check FILE            diagnostics, or "no problems"; every score with its length, and each section in it with its beats, bars, seconds, tempo and time, a step or jump the score starts with already made, and where each dancer ends from where it began; then every mark
 shosa check FILE --score Rage   one score only (`--score ""` the unnamed one)
+shosa check FILE --at 3,4.5,0.75s   also how the body is turned at those moments (beats; seconds with an `s`): hips, shoulders, face, in degrees
 shosa sheet FILE -o X.png   the movement on one image per score (X.png for the unnamed score, X-Idle.png, X-Punch.png …)
-shosa sheet FILE -o X.png --score Punch --step 0.5 --from 0 --to 4   one score, closer poses (all three in beats; --step 0.1 for a punch)
+shosa sheet FILE -o X.png --score Punch --step 0.5 --from 0 --to 4   one score, closer poses (in beats; --from and --to also in seconds with an `s`, as --at: --from 0.5s --to 1s; --step 0.1 for a punch)
 shosa sheet FILE -o X.png --view side   seen from stage left: a figure facing front is in profile (one facing stageLeft or stageRight is in profile WITHOUT it)
 shosa sheet FILE -o X.png --score solo  with `score solo { dancer bea }`, bea alone and larger (with `--score`, the file is X.png itself)
 shosa clip FILE -o X.json   the solved movement as numbers: every joint at every frame (ONE file: with several scores an array of them, each with its `name`; `--score NAME` for that one alone)
@@ -1069,14 +1081,36 @@ The line of a first step already made is longer than quoted above (``guard start
 that a pose places says nothing. A section not written in bars is counted in whole
 bars all the same (5 beats in 4/4 read `2 bars`).
 
-When the sheet cannot settle it — which shoulder is ahead, whether the head moved, how
-high a fist is — read the numbers. `shosa clip` writes `fps` (30), `joints` (their names
+How far something is turned is not read off the sheet (the view from above is good to
+about 10°): ask for it. `shosa check FILE --at 3,0.75s` adds a line for each moment, score
+and dancer:
+
+```
+  Punch at beat 3 = 0.75 s: hips 20° left, shoulders 45° left, face 30° right and 10° up
+```
+
+All three are **from the way the feet face**, measured on the floor, more to the dancer's
+own left or right: `hips` is the number written in the `hips` row, `shoulders` is `hips`
+and `twist` added together (less than the sum over a leaning torso: "The twist"), `face` is
+the bracket of `head { fwd.right(30) }` and `up` / `down` its height. A dancer whose feet
+do not face the front has `(the feet face 90° left of the front)` behind; from the front
+of the room the hips are then that plus their own number (`clip`'s `angles` has both).
+With several dancers, a line for each, the name in front of `hips`
+(`score at beat 4 = 2.5 s: a: hips 20° left, …`). These lines come last, after the marks.
+Between two words a part eases out of the one and into the other (slow, fast, slow), and
+the head moves as a direction, so the halfway moment is near, not at, the halfway angle:
+ask for the moment rather than working it out.
+
+When the sheet cannot settle the rest — whether the head moved, how high a fist is,
+whether it is in front of the middle of the body — read the numbers. `shosa clip` writes `fps` (30), `joints` (their names
 in order: `pelvis`, `chest`, `head`, `nose`, `leftShoulder`, `rightHand`, `leftAnkle` …)
 and, for each of `figures`, `frames`: one row for every frame, x y z for every joint in
 that order, in metres. The frame of a moment is its seconds × `fps` (0.75 s is frame 22.5: a `@sharp` word
 is still on its way at frame 22 and there at 23, so take the later one). y is up, z is
 toward the audience, x toward stage left — for a dancer facing front, z is forward and
-+x its own left. (Standing upright, this figure's head has its middle at 1.72 m and its shoulders
++x its own left. Beside `frames`, `angles` has a row for every frame too: the five numbers
+named in `angleNames` (`feet`, `hips`, `shoulders`, `face`, `faceUp`), the degrees `check --at`
+says, more to the left (or up) counted positive; `feet` is from the front of the room. (Standing upright, this figure's head has its middle at 1.72 m and its shoulders
 are at 1.45 m. In the guard of "The twist" the head is at 1.67 m: a punch at `fwd.25`
 arrives at 1.64 m, nose height, one at `fwd.18` at 1.57 m, the chin.)
 

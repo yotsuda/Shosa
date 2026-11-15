@@ -9,13 +9,16 @@ using Shosa.Core.Syntax;
 const string Usage = """
     shosa — a movement notation compiler (prototype)
 
-      shosa check   FILE            diagnostics only
+      shosa check   FILE            diagnostics, and what each score came to
+                    [--at 3,0.75s]  how the body is turned at those beats (seconds with an s):
+                                    hips, shoulders and face, in degrees from the way the feet face
       shosa sheet   FILE [-o PNG]   a pose per beat and the floor from above, on one image
                     [--step BEATS] [--from BEAT] [--to BEAT]   closer poses, or part of the clip
+                                    (--from and --to take seconds with an s: --from 0.5s --to 1s)
                     [--view side]   from stage left: a figure facing front is seen in profile
       shosa preview FILE [-o HTML]  a page with the source and the figures moving, linked
       shosa ir      FILE [-o JSON]  the intermediate representation the solver is given
-      shosa clip    FILE [-o JSON]  the solved movement: every joint at every frame
+      shosa clip    FILE [-o JSON]  the solved movement: every joint at every frame, and the same angles
       shosa bvh     FILE [-o BVH]   the movement as bone rotations, for Blender and other tools
                     [--scale N]     metres by default; 100 for centimetres
       shosa gltf    FILE [-o GLB]   the same as glTF, for Godot, Blender, Unity and the web
@@ -114,9 +117,22 @@ switch (command)
 {
     case "check":
         // The report is Core's (CheckReport): the language server gives the same one to an AI assistant in the editor.
-        foreach (string line in CheckReport.Scores(compilation, path))
+    {
+        // --at 3,4.5,0.75s: beats, or seconds with an s.
+        IReadOnlyList<(double, bool)> moments = [];
+        if (Text("--at") is { } wanted)
+        {
+            if (CheckReport.Moments(wanted, out string? wrong) is not { } said)
+            {
+                Console.Error.WriteLine($"shosa: --at takes beats, or seconds with an s, with commas between (--at 3,4.5 or --at 0.75s), not '{wrong}'.");
+                return 2;
+            }
+            moments = said;
+        }
+        foreach (string line in CheckReport.Scores(compilation, path).Concat(CheckReport.At(compilation, moments)))
             Console.WriteLine(line);
         break;
+    }
 
     case "sheet":
         if (Text("--view") is { } asked and not ("side" or "back" or "front") && Option("--view") is null)
@@ -128,7 +144,16 @@ switch (command)
         {
             // --view side looks from stage left (a front-facing figure in profile); a number is degrees round from the front.
             double view = Text("--view") switch { "side" => 90, "back" => 180, "front" or null => ContactSheet.FrontView, _ => Option("--view") ?? ContactSheet.FrontView };
-            ContactSheet.Render(clip, Option("--step"), Option("--from") ?? 0, Option("--to"), view).SavePng(Target(clip.Name, ".png"));
+            // --from and --to are beats, or seconds with an s, as --at: a writer checking "0.8 s" should not divide by the tempo.
+            double? Moment(string name)
+            {
+                if (Text(name) is not { } said)
+                    return null;
+                if (CheckReport.Moments(said, out _) is not [var (value, seconds)])
+                    return Option(name);
+                return seconds ? Shosa.Core.Semantics.TempoMap.Beat(Shosa.Core.Semantics.TempoMap.Of(clip.Tempos, clip.Tempo), value) : value;
+            }
+            ContactSheet.Render(clip, Option("--step"), Moment("--from") ?? 0, Moment("--to"), view).SavePng(Target(clip.Name, ".png"));
             Console.WriteLine(Target(clip.Name, ".png"));
         }
         break;
@@ -229,8 +254,30 @@ switch (command)
         break;
 
     case "clip":
-        Write(clips.Count == 1 ? JsonSerializer.Serialize(clips[0], json) : JsonSerializer.Serialize(clips, json));
+    {
+        // With the joints, how the body is turned at every frame (what `check --at` says of one
+        // moment): a writer checking a twist should not have to take an arctangent of two hips.
+        System.Text.Json.Nodes.JsonNode Clip(MotionClip clip)
+        {
+            var node = JsonSerializer.SerializeToNode(clip, json)!;
+            for (int i = 0; i < clip.Figures.Count; i++)
+            {
+                var rows = new System.Text.Json.Nodes.JsonArray();
+                for (int f = 0; f < clip.Figures[i].Frames.Count; f++)
+                {
+                    var a = clip.Figures[i].Angles(f);
+                    rows.Add(new System.Text.Json.Nodes.JsonArray(
+                        Math.Round(a.Feet, 1), Math.Round(a.Hips, 1), Math.Round(a.Shoulders, 1), Math.Round(a.Face, 1), Math.Round(a.FaceUp, 1)));
+                }
+                node["figures"]![i]!["angles"] = rows;
+            }
+            node["angleNames"] = new System.Text.Json.Nodes.JsonArray("feet", "hips", "shoulders", "face", "faceUp");
+            return node;
+        }
+        Write(clips.Count == 1 ? Clip(clips[0]).ToJsonString(json)
+            : new System.Text.Json.Nodes.JsonArray(clips.Select(Clip).ToArray()).ToJsonString(json));
         break;
+    }
 
     default:
         Console.Error.WriteLine($"shosa: unknown command '{command}'");

@@ -65,7 +65,12 @@ public static class ContactSheet
             // Not a multiple of the bar's length when the song begins with an upbeat.
             bool barStart = Semantics.Bars.At(clip.Sections, clip.Meters, beat).Beat < 1e-9;
             canvas.Line(cellX + 6, floorY, cellX + CellWidth - 6, floorY, 1.2, Grid);
-            canvas.Text(cellX + 6, cellY + 4, FormatBeat(beat), TextScale, barStart ? Ink : Faint);
+            // What is written at the top of the cell is drawn after the figures, and out of their way
+            // (a head or a raised hand is up there too): see Write below.
+            var written = new List<(int Line, int Indent, string Text, uint Color)>
+            {
+                (0, 0, FormatBeat(beat), barStart ? Ink : Faint),
+            };
 
             double after = i == 0 ? from - 1e-6 : beats[i - 1] + 1e-6;   // the pose before has what came up to itself
             double upTo = (i == count - 1 ? Math.Max(beat, end) : beat) + 1e-6;
@@ -79,7 +84,7 @@ public static class ContactSheet
                     entered = section;
             }
             if (entered is not null && clip.Sections.Count > 1)
-                canvas.Text(cellX + 6 + (FormatBeat(beat).Length + 1) * Advance, cellY + 4, entered.Name, TextScale, SectionColor);
+                written.Add((0, (FormatBeat(beat).Length + 1) * Advance, entered.Name, SectionColor));
 
             // The tempo, under the beat of the first pose and of the first pose of a section that
             // is played at another: two scores that differ only in speed are not the same picture.
@@ -88,7 +93,7 @@ public static class ContactSheet
             {
                 string tempo = TempoLabel(clip, i == 0 ? beat : entered!.T0 + entered.Pickup);
                 if (tempo != tempoShown)
-                    canvas.Text(cellX + 6, cellY + 4 + ++line * (LineHeight + 2), tempoShown = tempo, TextScale, SectionColor);
+                    written.Add((++line, 0, tempoShown = tempo, SectionColor));
             }
 
             // A mark is written on the first pose at or after its moment (what has arrived is
@@ -98,7 +103,7 @@ public static class ContactSheet
                 if (mark.Beat < after || mark.Beat > upTo)
                     continue;
                 string text = "!" + mark.Name + (Math.Abs(mark.Beat - beat) < 1e-6 ? "" : " " + FormatBeat(mark.Beat));
-                canvas.Text(cellX + 6, cellY + 4 + ++line * (LineHeight + 2), text, TextScale, MarkColor);
+                written.Add((++line, 0, text, MarkColor));
             }
 
             var centre = Centre(clip, frame);
@@ -107,6 +112,21 @@ public static class ContactSheet
                 DrawNames(canvas, clip, frame, centre, cellX, originX, floorY, scale, yaw);
             foreach (var figure in clip.Figures)
                 DrawFigure(canvas, clip, figure, frame, centre, originX, floorY, scale, yaw);
+
+            // A line under the first (the tempo, a mark) goes to the right edge of the cell when a
+            // figure stands in it at the left and not at the right. Where a figure is under it all
+            // the same, the letters are whole: each has a white edge, and the figure gives way.
+            foreach (var (row, indent, text, color) in written)
+            {
+                int width = Canvas.TextWidth(text, TextScale), y = cellY + 4 + row * (LineHeight + 2);
+                int x = cellX + 6 + indent, right = cellX + CellWidth - 6 - width;
+                bool Covered(int at) => clip.Figures.Any(f => Covers(clip, f, frame, centre, originX, floorY, scale, yaw, at - 3, y - 3, width + 6, LineHeight + 4));
+                if (row > 0 && right > x && Covered(x) && !Covered(right))
+                    x = right;
+                foreach (var (dx, dy) in new[] { (-2, 0), (2, 0), (0, -2), (0, 2), (-2, -2), (2, -2), (-2, 2), (2, 2), (-1, 0), (1, 0), (0, -1), (0, 1) })
+                    canvas.Text(x + dx, y + dy, text, TextScale, 0xFFFFFF);
+                canvas.Text(x, y, text, TextScale, color);
+            }
         }
 
         DrawFloor(canvas, clip, Margin, Margin + rows * CellHeight + 8, canvas.Width - Margin * 2, floorHeight - 16);
@@ -283,6 +303,34 @@ public static class ContactSheet
         double tipX = head.X + (nose.X - head.X) * 1.7, tipY = head.Y + (nose.Y - head.Y) * 1.7;
         canvas.Line(nose.X, nose.Y, tipX, tipY, 2.2, Ink);
         canvas.Disc(tipX, tipY, 2.2, Ink);
+    }
+
+    /// <summary>Whether a figure as <see cref="DrawFigure"/> draws it (its bones, its head) comes into a rectangle of the picture.</summary>
+    private static bool Covers(MotionClip clip, ClipFigure figure, double frame, Vec3 centre,
+        double originX, double floorY, double scale, double yaw, int x, int y, int width, int height)
+    {
+        (double X, double Y) At(int joint)
+        {
+            var (px, py, _) = Project(figure.Joint(frame, joint) - centre, yaw);
+            return (originX + px * scale, floorY - py * scale);
+        }
+        bool Inside(double px, double py, double reach) =>
+            px > x - reach && px < x + width + reach && py > y - reach && py < y + height + reach;
+
+        var head = At(Rig.Head);
+        if (Inside(head.X, head.Y, scale * 0.095 + 1))
+            return true;
+        foreach (var (a, b, _) in Rig.Bones)
+        {
+            var (p, q) = (At(a), At(b));
+            int steps = (int)Math.Ceiling(Math.Max(Math.Abs(q.X - p.X), Math.Abs(q.Y - p.Y)) / 3) + 1;
+            for (int i = 0; i <= steps; i++)
+            {
+                if (Inside(p.X + (q.X - p.X) * i / steps, p.Y + (q.Y - p.Y) * i / steps, 2))
+                    return true;
+            }
+        }
+        return false;
     }
 
     private static void DrawFloor(Canvas canvas, MotionClip clip, int x, int y, int width, int height)

@@ -1,0 +1,20 @@
+title "Lookout"
+tempo 90
+time 4/4
+
+figure solo
+dancer solo humanoid on solo
+
+// Bar 1 standing. Bar 2 beat 1 (beat 4): face 25 left, 10 up, shoulders square.
+// Bar 2 beat 3 (beat 6): buckle 15 right, shoulders 40 right (15 + 25), face 50 right, level.
+// Bar 3 beat 1 (beat 8): all square.
+section Look {
+  solo {
+    head  { fwd:3 then:1 | fwd.left(25).10:2 fwd.right(50):2 | fwd:4 | }
+    hips  { center:4 | center:2 right.15:2 | center:4 | }
+    twist { center:4 | center:2 right.25:2 | center:4 | }
+  }
+}
+
+form { Look }
+score { dancer solo }

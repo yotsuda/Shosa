@@ -84,6 +84,10 @@ exports.run = async function run() {
       checked.split('\n').slice(0, 4));
     const relative = (await invoke('shosa_check', { file: 'fighter.shosa' })).map(p => p.value).join('');
     check('shosa_check takes a path from the workspace folder', relative === checked);
+    // One score, and how the body is turned at a moment (`shosa check --score Combo --at 1.5`).
+    const turned = (await invoke('shosa_check', { file, score: 'Combo', at: 1.5 })).map(p => p.value).join('');
+    check('shosa_check takes score and at', /^ +Combo at beat 1\.5 = 0\.75 s: hips [\d.]+° (left|right), shoulders/m.test(turned) && !/^ +Idle:/m.test(turned),
+      turned.split('\n').filter(line => / at beat /.test(line)));
 
     // An edit that is not saved: the check must see it.
     const edit = new vscode.WorkspaceEdit();
