@@ -884,7 +884,39 @@ internal sealed class FigureSolver
                 {
                     var middle = (s.Left + s.Right) * 0.5;
                     s.On = seg.Foot == "left" ? 'L' : seg.Foot == "right" ? 'R' : 'B';
-                    Weight(t0, t1, s.On == 'L' ? Vec3.Lerp(middle, s.Left, 0.85) : s.On == 'R' ? Vec3.Lerp(middle, s.Right, 0.85) : middle);
+                    double share = 0.85;
+                    // The weight goes over the foot only as far as the hips sink 3 cm below where the dancer stands
+                    // (DESIGN.md 86.4). In a wide stance the other leg is all but straight already, and every cm
+                    // toward the foot costs height: `shift.right` 0.7 m apart was a side lunge, the knee at 75°.
+                    // A lunge is written in the height row, and then the hips go on over the foot.
+                    if (s.On != 'B')
+                    {
+                        var hipLeft = Vec3.Left(s.Yaw) * Rig.HipHalf;
+                        double full = Rig.Leg * Rig.StraightLeg;
+                        double Reach(Vec3 hip, Vec3 foot)
+                        {
+                            double d = (new Vec3(hip.X, 0, hip.Z) - new Vec3(foot.X, 0, foot.Z)).Length;
+                            return Math.Sqrt(Math.Max(0.04, full * full - d * d));
+                        }
+                        double StandAt(Vec3 q) => Math.Min(Reach(q + hipLeft, s.Left), Reach(q - hipLeft, s.Right));
+                        // As deep as the height row stands at the end of the shift (soft knees, a `low`), and 3 cm more.
+                        double level = Chain(_height, t1, x => x?.Level ?? 0, (a, b, e) => a + (b - a) * e);
+                        double softness = Chain(_height, t1, x => x is { Straight: true } ? 0.0 : 1.0, (a, b, e) => a + (b - a) * e);
+                        double drop = Math.Max(softness * Rig.Leg * (Rig.StraightLeg - Rig.BentShare(Rig.Thigh, Rig.Shin, Rig.SoftKnee)), Rig.LowDrop * Math.Max(0, -level));
+                        double floor = Math.Min(full - drop, StandAt(middle)) - 0.03;
+                        var foot = s.On == 'L' ? s.Left : s.Right;
+                        if (StandAt(Vec3.Lerp(middle, foot, share)) < floor)
+                        {
+                            double lo = 0, hi = share;
+                            for (int i = 0; i < 20; i++)
+                            {
+                                double mid = (lo + hi) / 2;
+                                if (StandAt(Vec3.Lerp(middle, foot, mid)) < floor) hi = mid; else lo = mid;
+                            }
+                            share = lo;
+                        }
+                    }
+                    Weight(t0, t1, s.On == 'L' ? Vec3.Lerp(middle, s.Left, share) : s.On == 'R' ? Vec3.Lerp(middle, s.Right, share) : middle);
                     break;
                 }
 
@@ -1107,6 +1139,7 @@ internal sealed class FigureSolver
     /// was when it began — the one before may not have arrived, if a narrower track took the
     /// part over — to its own target. A hold keeps the part where it was when the hold began.
     /// </summary>
+
     private static T Chain<T>(List<Seg> segs, double t, Func<Seg?, T> target, Func<T, T, double, T> blend)
     {
         int current = -1;
@@ -1127,6 +1160,20 @@ internal sealed class FigureSolver
             return target(seg);
         double u = seg.T1 > seg.T0 ? Math.Clamp((t - seg.T0) / (seg.T1 - seg.T0), 0, 1) : 1;
         double e = Ease(seg.Ease, u);
+        // A word passed through (`@through`, DESIGN.md 86.4): the way to it arrives at speed, and the way on
+        // from it leaves at that speed. Each side is a cubic whose slope at the word is 1.5, as an eased way
+        // over both would be at its middle; neither overshoots. Only where the next word sets out from it at once.
+        {
+            static bool Joined(Seg a, Seg b) => Math.Abs(a.T1 - b.T0) < 1e-9 && b.Kind is not (SegKinds.Hold or SegKinds.Stay or SegKinds.Release) && b.T1 > b.T0 + 1e-9;
+            bool through = seg.Ease == "through" && index + 1 < segs.Count && Joined(seg, segs[index + 1]);
+            bool fromThrough = index > 0 && segs[index - 1] is { Ease: "through" } before && Joined(before, seg);
+            if (through || fromThrough)
+            {
+                const double m = 1.5;
+                double s0 = fromThrough ? m : 0, s1 = through ? m : 0;
+                e = (u * u * u - 2 * u * u + u) * s0 + (-2 * u * u * u + 3 * u * u) + (u * u * u - u * u) * s1;
+            }
+        }
         return e >= 1 ? target(seg) : blend(ChainAt(segs, index - 1, seg.T0, target, blend, depth + 1), target(seg), e);
     }
 
@@ -1910,6 +1957,8 @@ internal sealed class FigureSolver
                         // The head and the belly are not turned with the chest on the hips: the head is over it, the belly under it.
                         "head" => head + faceLeft * (0.13 * side) + torsoUp * 0.02,
                         "chin" => head + faceFwd * 0.14 - torsoUp * 0.12 + faceLeft * (0.06 * side),
+                        // On the head as it is (looking up, tilted): in front of the brow, a little to its own side.
+                        "forehead" => head + gaze * 0.13 + neck.Normalized() * 0.07 + faceLeft * (0.04 * side),
                         // The belly is on the hips: it goes round with them, and no further.
                         "belly" => pelvis + torsoUp * 0.18
                             + (faceFwd * Math.Cos(c.Hips) + faceLeft * Math.Sin(c.Hips)) * 0.13
@@ -1955,7 +2004,10 @@ internal sealed class FigureSolver
                     return (kept, Across(sent?.Pole is { } p ? Frame(sent, p) : pole, kept.Normalized()));
                 }
                 var offset = Offset(seg);
-                return (offset, Across(seg?.Pole is { } towards ? Frame(seg, towards) : pole, offset.Normalized()));
+                // A hand at the forehead holds its elbow out to the side (a salute), unless told otherwise.
+                var sentTo = seg?.Pole is { } towards ? Frame(seg, towards)
+                    : seg is { Kind: SegKinds.Anchor, Anchor: "forehead" } ? torsoLeft * side : pole;
+                return (offset, Across(sentTo, offset.Normalized()));
             }
 
             (Vec3 Offset, Vec3 Bend) ArmBlend((Vec3 Offset, Vec3 Bend) a, (Vec3 Offset, Vec3 Bend) b, double e)

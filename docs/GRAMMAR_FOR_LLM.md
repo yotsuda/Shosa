@@ -238,7 +238,7 @@ How much of that time depends on the part:
 |---|---|
 | The feet — everything in `steps`: a step, `stand`, a shift, a turn | In the second half of the word before, and no more than 0.5 s before its beat. A foot STANDS on its beat and is carried to the next one late: in `leftFoot.side stand`, the left foot is down on beat 0, and the right closes between beat 0.5 and beat 1. |
 | A jump, a hop, a leap | It LANDS on its beat. The bend and the flight are in the word before it (in up to a second of it). |
-| Arms, legs, torso, head, and the `height` | Through ALL of the word before. `arms { side:4 up:4 }` is at the side on beat 0 and travels the whole four beats to be up on beat 4. A gesture sets out for the next word as soon as it has arrived, unless told to stay (`then`, below); it eases in and out, so it slows at each word (for one unbroken movement through a word, `@linear` on that word and on the one after it: `down side@linear up@linear`). |
+| Arms, legs, torso, head, and the `height` | Through ALL of the word before. `arms { side:4 up:4 }` is at the side on beat 0 and travels the whole four beats to be up on beat 4. A gesture sets out for the next word as soon as it has arrived, unless told to stay (`then`, below); it eases in and out, so it slows at each word (to pass a word without stopping — a point on an arc — `@through` on that word: `down side:1@through up:1` goes from down over the side to up in one sweep). A back-and-forth (`fwd:1 back:1 fwd:1`, a breath, a sway) already moves as a sine wave does: it slows to nothing only at the ends, as a swing does. |
 | Any word with `@sharp` | At the last moment: it waits, then goes in no more than 0.15 s before its beat. A punch, a clap, a pointing finger. |
 
 - **To stay, and then go: `then`.** `then` is a word that brings nothing new on its
@@ -499,7 +499,17 @@ move kick  { rightLeg { fwd.down.bent fwd@sharp!hit fwd.down.bent down } }   // 
   into it, the body stands on both feet, the weight between them, as with a first step
   already made: the same guard stands the same in a loop and out of one. A `hop` straight
   after it needs a `shift` to the foot it hops on, or the other leg thrown out in its row (SH2012).
-- A pose takes `@mirror`, `@free`, `@smooth`, `@sharp`, `@linear`; a move takes `@mirror`
+- **A shape held by several rows at once is a pose, so that its length is in one place.**
+  An attitude held for three bars, written row by row, is three lengths to change when
+  it should be held for two:
+  ```
+  rightLeg { back.bent:4 then:12 }
+  arms     { up.bent(30):4 then:12 }
+  head     { fwd.left(20):4 then:12 }
+  ```
+  As a pose it is one: `pose attitude { rightLeg { back.bent } arms { up.bent(30) } head { fwd.left(20) } }`
+  and `body { attitude:4 then:12 }`. A change of the hold is one number.
+- A pose takes `@mirror`, `@free`, `@smooth`, `@sharp`, `@linear`, `@through`; a move takes `@mirror`
   and `@free`. Definitions take no arguments: a variation is the same word with the
   change written over it (a narrower track, or a later `&` row). A move may hold a
   `body` row of other moves, so a whole pass can be one word:
@@ -643,6 +653,7 @@ An arm can also go to a place on the own body instead of a direction:
 | `shoulder` | The hand on its own shoulder. |
 | `head` | The hand beside the head. |
 | `chin` | The hand in front of the chin: one hand in thought, one fist held close. (Both arms there cross at the elbows: a guard is `fwd.up(25).bent`.) |
+| `forehead` | The hand at the forehead, the elbow out to the side: a salute, a hand shading the eyes, wiping the brow. It goes with the head (a head tilted or looking up takes it along). |
 | `belly` | The hand on the belly. |
 | `shoulder.across` | The hand on the opposite shoulder. With `arms`: arms folded. |
 | `clap` | The hand at the midline in front of the chest. With `arms`: the two hands meet. |
@@ -1036,8 +1047,13 @@ on its direction, in metres: `leftFoot.fwd(0.3m)` (a small step), `leftFoot.side
   word of `steps` is `leftFoot.side` (or `jump.apart`): a first word is already made, and
   stands on both feet.
 - `shift.left`, `shift.right`, `shift.center` — the weight moves over that foot (or
-  between them); no foot leaves the floor, and the height stays as it is. The basis
-  of standing and waiting.
+  between them); no foot leaves the floor. The basis of standing and waiting.
+  **The hips sink no more than 3 cm for it**: with the feet apart, the other leg is all but
+  straight already, and every cm toward the foot costs height. A shoulder-wide stance
+  (0.3 m) goes over the foot; 0.5 m apart the hips go half way, 0.7 m apart a quarter.
+  To go over the foot in a wide stance is a lunge: write its depth in `height`, and the
+  hips go as far as that lets them (`steps { leftFoot.side(0.7m) shift.right:1 }` with
+  `height { mid low(15cm):1 }` is a side lunge over the right foot).
 - `turn.left(90)`, `turn.right(180)` — side, then degrees in brackets (up to 1080: a
   double turn is `turn.right(720)`).
   A turn pivots on the foot that carries the weight: the one that took the last step or
@@ -1177,6 +1193,7 @@ height { straight }                 // a soldier at attention, a ballet dancer: 
 | `@smooth` | The way TO this word eases in and out (the default). |
 | `@sharp` | Go at the last moment: the part waits, then gets there in no more than 0.15 s before its beat. An accent — a punch, a clap. Fast, so it can be too fast (SH2003). |
 | `@linear` | The way TO this word is at constant speed: no slowing as it arrives. |
+| `@through` | Pass this word without stopping: the way to it arrives at speed and the way on to the next word leaves at that speed — a point an arm goes through on an arc (`rightArm { down side:1@through up:1 }`), a wave. On a word the part stops at (the last, or before `then`) it says nothing (SH2017). Not for steps. |
 | `@mirror` | Left and right swapped: `kick:2@mirror` kicks with the other leg. |
 | `@free` | The rules of weight, gravity and speed do not apply to this event. Bones still keep their length. |
 | `@turn` | For a step or a jump: turn while doing it, `leftFoot.fwd@turn(left(90))`, `jump@turn(right(180))`. The step lands where it would after the turn. |

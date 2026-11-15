@@ -477,6 +477,72 @@ public class MotionTests
     }
 
     [Fact]
+    public void A_shift_in_a_wide_stance_sinks_no_more_than_3_cm_and_a_lunge_is_written_in_the_height()
+    {
+        // DESIGN.md 86.4: `shift.right` 0.7 m apart was a side lunge, the hips 18 cm down and the knee at 75°.
+        (double Sink, double Over) Shift(string height)
+        {
+            var compilation = Compile(Samples.Solo("    steps { leftFoot.side(0.7m):1 shift.right:1 then:2 }" + height, "tempo 60\ntime 4/4\n"));
+            Assert.Empty(compilation.Diagnostics);
+            var figure = compilation.Clip.Figures[0];
+            Vec3 Joint(double beat, int joint) => figure.Joint(compilation.Clip.FrameAt(beat), joint);
+            var right = Joint(0, Rig.RHip + 2);
+            var middle = (Joint(0, Rig.LHip + 2) + right) * 0.5;
+            // How far the hips went down, and how much of the way from the middle to the right foot.
+            return (Joint(0, Rig.Pelvis).Y - Joint(2, Rig.Pelvis).Y, (Joint(2, Rig.Pelvis).X - middle.X) / (right.X - middle.X));
+        }
+        var shift = Shift("");
+        Assert.InRange(shift.Sink, 0.02, 0.035);
+        Assert.InRange(shift.Over, 0.15, 0.4);
+        // Narrow, it goes over the foot as before.
+        var narrow = Compile(Samples.Solo("    steps { leftFoot.side(0.3m):1 shift.right:1 then:2 }", "tempo 60\ntime 4/4\n"));
+        var f = narrow.Clip.Figures[0];
+        double Pelvis(double beat) => f.Joint(narrow.Clip.FrameAt(beat), Rig.Pelvis).X;
+        double FootX(int joint) => f.Joint(0, joint).X;
+        Assert.InRange((Pelvis(2) - (FootX(Rig.LHip + 2) + FootX(Rig.RHip + 2)) / 2) / ((FootX(Rig.RHip + 2) - FootX(Rig.LHip + 2)) / 2), 0.8, 0.9);
+        // A lunge, its depth written: over the foot.
+        var lunge = Shift("\n    height { mid low(15cm):1 then:2 }");
+        Assert.True(lunge.Over > 0.75, $"the lunge went {lunge.Over:0.00} of the way over the foot");
+    }
+
+    [Fact]
+    public void A_word_passed_through_is_not_stopped_at()
+    {
+        // DESIGN.md 86.4: `side:1@through` goes from down over the side to up in one sweep.
+        double SpeedAtSide(string arm)
+        {
+            var compilation = Compile(Samples.Solo($"    rightArm {{ {arm} }}", "tempo 60\ntime 4/4\n"));
+            Assert.Empty(compilation.Diagnostics);
+            var figure = compilation.Clip.Figures[0];
+            Vec3 Hand(double beat) => figure.Joint(compilation.Clip.FrameAt(beat), Rig.RHand);
+            return (Hand(1.05) - Hand(0.95)).Length / 0.1;
+        }
+        Assert.True(SpeedAtSide("down:1 side:1 up:1 then:1") < 0.3, "a plain word is stopped at");   // (0.2 m/s on average over the 0.1 s round the stop)
+        Assert.True(SpeedAtSide("down:1 side:1@through up:1 then:1") > 1.2, "a word passed through is not");
+
+        // On a word nothing goes on from at once it says nothing (SH2017); on a step it is not for (SH1010).
+        Assert.Equal("SH2017", Assert.Single(Compile(Samples.Solo("    rightArm { down:1 side:1@through then:1 up:1 }", "tempo 60\ntime 4/4\n")).Diagnostics).Code);
+        Assert.Equal("SH2017", Assert.Single(Compile(Samples.Solo("    rightArm { down:1 side:1 up:1@through }", "tempo 60\ntime 4/4\n")).Diagnostics).Code);
+        Assert.Equal("SH1010", Assert.Single(Compile(Samples.Solo("    steps { then:1 leftFoot.fwd:1@through }", "tempo 60\ntime 4/4\n")).Diagnostics).Code);
+    }
+
+    [Fact]
+    public void A_hand_at_the_forehead_is_in_front_of_the_brow_with_the_elbow_out()
+    {
+        // DESIGN.md 86.4: a salute.
+        var compilation = Compile(Samples.Solo("    rightArm { down:1 forehead:1 then:2 }", "tempo 60\ntime 4/4\n"));
+        Assert.Empty(compilation.Diagnostics);
+        var figure = compilation.Clip.Figures[0];
+        Vec3 Joint(int joint) => figure.Joint(compilation.Clip.FrameAt(2), joint);
+        var head = Joint(Rig.Head);
+        var hand = Joint(Rig.RHand) - head;
+        Assert.InRange(hand.Z, 0.1, 0.16);      // in front of the face
+        Assert.InRange(hand.Y, 0.04, 0.1);      // above the eyes
+        Assert.InRange(hand.X, -0.08, 0);       // a little to its own (right) side
+        Assert.True(Joint(Rig.RElbow).X < Joint(Rig.RShoulder).X - 0.1, "the elbow is out to the side");
+    }
+
+    [Fact]
     public void A_changement_lands_with_the_feet_mirrored()
     {
         // Writing trial 21 (DESIGN.md 80.3): once a plain jump kept the feet as they stood, nothing changed them.

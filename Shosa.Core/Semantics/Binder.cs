@@ -1266,6 +1266,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                 if (sink.TryGetValue(channel, out var raws))
                     ir.Tracks[channel] = Resolve(channel, raws, clip, dancer.Delay);
             }
+            CheckThrough(ir, clip);
             // A mark names an arrival: one whose event lost its part to another track at that moment names nothing.
             clip.Marks.AddRange(_marks.Where(m => m.Raws.Count == 0 || m.Raws.Any(r => Arrives(r.Raw, m.Mark.Beat, sink[r.Channel]))).Select(m => m.Mark));
             _marks.Clear();
@@ -1809,9 +1810,15 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                     Error("SH1010", name.Span, $"'@{name.Text}' is for a step.");
             }
         }
+        else if (ctx.Channels.Length == 1)
+        {
+            // A foot is put down where it goes: it does not pass a place on the floor on its way (DESIGN.md 86.4).
+            foreach (var annotation in annotations.Where(a => a.Token(SyntaxKind.Identifier)!.Text == "through"))
+                Error("SH1010", annotation.Token(SyntaxKind.Identifier)!.Span, "'@through' is for the shape of a part (an arm, a leg, the torso, the head, the height), not a step: a foot lands where it goes.");
+        }
 
         bool mirror = ctx.Mirror ^ Has("mirror"), free = ctx.Free || Has("free");
-        string? ease = ctx.EaseOverride ?? annotations.Select(a => a.Token(SyntaxKind.Identifier)!.Text).LastOrDefault(a => a is "smooth" or "sharp" or "linear");
+        string? ease = ctx.EaseOverride ?? annotations.Select(a => a.Token(SyntaxKind.Identifier)!.Text).LastOrDefault(a => a is "smooth" or "sharp" or "linear" or "through");
         var src = ctx.Src ?? ev.Span;
         var mark = ev.Child(SyntaxKind.Mark)?.Token(SyntaxKind.Identifier);
 
@@ -1918,10 +1925,10 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         foreach (var annotation in annotations)
         {
             var word = annotation.Token(SyntaxKind.Identifier)!;
-            if (word.Text is "mirror" or "free" || (isPose && word.Text is "smooth" or "sharp" or "linear"))
+            if (word.Text is "mirror" or "free" || (isPose && word.Text is "smooth" or "sharp" or "linear" or "through"))
                 continue;
             Error("SH1010", word.Span, isPose
-                ? $"'@{word.Text}' cannot be put on a pose: it takes @mirror, @free and @smooth, @sharp, @linear."
+                ? $"'@{word.Text}' cannot be put on a pose: it takes @mirror, @free and @smooth, @sharp, @linear, @through."
                 : $"'@{word.Text}' cannot be put on a move: it takes @mirror and @free.");
         }
         if (_expanding.Contains(name.Text))
@@ -2050,6 +2057,28 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
     /// its time moves nothing. The height is a part of its own and moves and comes back like a gesture, so a
     /// row of `height` beside a pose or a walk takes the height and leaves the feet where they are.
     /// </summary>
+    /// <summary>
+    /// SH2017: a word passed through (`@through`) with no word going on from it at once: the part stops
+    /// there all the same (the last word, a `then` after it), so the mark says nothing (DESIGN.md 86.4).
+    /// </summary>
+    private void CheckThrough(DancerIr ir, MotionIr clip)
+    {
+        var said = new HashSet<int>();
+        foreach (var (channel, segs) in ir.Tracks)
+        {
+            if (channel == Channels.Support)
+                continue;
+            foreach (var seg in segs.Where(s => s.Ease == "through"))
+            {
+                bool goesOn = segs.Any(next => next != seg && next.Kind is not (SegKinds.Hold or SegKinds.Stay or SegKinds.Release)
+                    && (Math.Abs(next.T0 - seg.T1) < Epsilon || clip.Loop && Math.Abs(next.T0 + clip.TotalBeats - seg.T1) < Epsilon) && next.T1 > next.T0 + Epsilon);
+                if (!goesOn && seg.Src >= 0 && said.Add(seg.Src))
+                    Report("SH2017", DiagnosticSeverity.Warning, new TextSpan(seg.Src, seg.Len),
+                        "'@through' passes a word on to the next one without stopping, and nothing goes on from this one at once (it is the last word, or `then` or `skip` follows): the part stops here all the same. Leave the mark off, or let the next word start here.");
+            }
+        }
+    }
+
     private static List<Seg> Resolve(string channel, List<Raw> raws, MotionIr clip, double origin)
     {
         // The height is timed as a gesture is, over the whole of the word before (a plié over three beats
