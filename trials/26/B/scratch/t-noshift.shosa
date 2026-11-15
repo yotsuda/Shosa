@@ -1,0 +1,18 @@
+title "Transfer in second"
+tempo 80
+time 4/4
+
+role solo
+dancer solo humanoid on solo
+
+section Transfer {
+  solo {
+    turnout { out(80) }
+    arms    { side.fwd(20).down(15).bent(20) }
+    steps   { leftFoot.side(0.7m):2 shift.right:2 | shift.left:2 shift.center:2 | shift.center:2 then:2 | shift.center:4 | }
+    height  { straight:4 | then:2 then:2 | low(15cm):2 then:2 | straight:4 | }
+  }
+}
+
+form { Transfer }
+score { dancer solo }

@@ -503,6 +503,12 @@ public class MotionTests
         // A lunge, its depth written: over the foot.
         var lunge = Shift("\n    height { mid low(15cm):1 then:2 }");
         Assert.True(lunge.Over > 0.75, $"the lunge went {lunge.Over:0.00} of the way over the foot");
+        // DESIGN.md 87: at the depth written (below the wide stance straight), not that and the shift's sink again
+        // (trial 26: 29 cm), the far leg straightening out of the bend.
+        Assert.InRange(lunge.Sink, 0.14, 0.17);
+        var deep = Compile(Samples.Solo("    steps { leftFoot.side(0.7m):1 shift.right:1 then:2 }\n    height { mid low(15cm):1 then:2 }", "tempo 60\ntime 4/4\n"));
+        var knees = deep.Clip.Figures[0].Angles(deep.Clip.FrameAt(2));
+        Assert.True(knees.LeftKnee < 8 && knees.RightKnee > 60, $"knees {knees.LeftKnee:0}° left, {knees.RightKnee:0}° right");
     }
 
     [Fact]
@@ -519,6 +525,18 @@ public class MotionTests
         }
         Assert.True(SpeedAtSide("down:1 side:1 up:1 then:1") < 0.3, "a plain word is stopped at");   // (0.2 m/s on average over the 0.1 s round the stop)
         Assert.True(SpeedAtSide("down:1 side:1@through up:1 then:1") > 1.2, "a word passed through is not");
+
+        // DESIGN.md 87: at ONE speed, though the two ways differ in length (trial 26: a port de bras arrived at first
+        // at 0.78 m/s and left at 1.63). From bras bas a short way to first, and a long way on to fifth.
+        {
+            var compilation = Compile(Samples.Solo("    arms { fwd.across(30).down(70).bent(40):1 fwd.across(15).down(25).bent(50):1@through fwd.up(70).bent(40):1 then:1 }", "tempo 60\ntime 4/4\n"));
+            Assert.Empty(compilation.Diagnostics);
+            var figure = compilation.Clip.Figures[0];
+            double dt = 1.0 / compilation.Clip.Fps;
+            double Speed(double beat) => (figure.Joint(compilation.Clip.FrameAt(beat + dt), Rig.RHand) - figure.Joint(compilation.Clip.FrameAt(beat), Rig.RHand)).Length / dt;
+            double arriving = Speed(1 - dt), leaving = Speed(1);
+            Assert.True(Math.Abs(leaving - arriving) < 0.1 * arriving, $"arrives at {arriving:0.00} m/s, leaves at {leaving:0.00}");
+        }
 
         // On a word nothing goes on from at once it says nothing (SH2017); on a step it is not for (SH1010).
         Assert.Equal("SH2017", Assert.Single(Compile(Samples.Solo("    rightArm { down:1 side:1@through then:1 up:1 }", "tempo 60\ntime 4/4\n")).Diagnostics).Code);

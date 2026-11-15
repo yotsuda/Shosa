@@ -1,0 +1,151 @@
+=== soldier.shosa — BEFORE ===
+Words chosen:
+- steps { together } as first word for "feet together"; height { straight } for attention.
+- Salute: rightArm { down:1/2 then:1/2 forehead:2 then:1/4 down:3/4 }
+  down on 0, still down to 0.5, up to forehead in 0.5-1 (half a beat), held 1-3, dropped in 3-3.25 (quarter beat).
+  head { fwd } for the whole score (level). leftArm unwritten (hangs).
+- LookFar: leftArm { down:1 forehead:8 then:1 down:1 } -> forehead at beat 1, held to 9, down by 10.
+  head { fwd:1 then:2 fwd.left(40):4 fwd.right(40):2 fwd:1 } -> fwd to 1, left(40) at 3, right(40) at 7, fwd at 9.
+Unclear:
+- Is `together` as the FIRST word of steps allowed / does it move feet from neutral (standing width) to touching
+  at beat 0 without being seen? Grammar says a first step is "already made"; it doesn't say so for together.
+- `forehead` "goes with the head": does it also follow a head TURN (left/right), or only a tilt/look up? The text
+  says "a head tilted or looking up takes it along" — I assume a turn too.
+- "drops sharply in a quarter beat": `then:1/4 down` (eased) vs `down@sharp` (0.15 s = 0.3 beat at 120, longer than
+  a quarter beat). I use then:1/4 (0.125 s). May trigger SH2003 too fast? A forehead-to-down drop of ~0.7 m in 0.125 s
+  might be too fast.
+Expected diagnostics: maybe SH2003 (too fast) on the quarter-beat drop. Otherwise none.
+Predictions:
+(a) Salute held: elbow out to the side, i.e. BESIDE the body (lateral, roughly shoulder height, a bit forward), not in front.
+    Right hand to nose: ~10 cm (hand at forehead, above and slightly to the right of the nose).
+(b) LookFar: the hand follows the head turn; relative to the head it moves ~1-2 cm.
+(c) Diagnostic: possibly SH2003 on the quarter-beat drop; otherwise none.
+
+=== soldier.shosa — AFTER ===
+check runs: 5.
+ 1. SH2003 warning (18,54): "Too fast to perform: the hand would move at about 13 m/s" for `then:1/4 down:3/4` (drop in 0.125 s).
+ 2. Tried `down:3/4@linear`: SH2003 again, 11 m/s.
+ 3. `then:1/2 down:1/2` (drop in half a beat, 0.25 s): no problems.
+ 4. Probed `then:1/3 down:2/3`: SH2003, 11 m/s (odd: same number as 1/4 linear).
+ 5. Back to `then:1/2`: no problems.
+ => The quarter-beat drop the task asks for could NOT be written without a warning; final file drops in HALF a beat.
+    The grammar gives no figure for the speed limit, so I had to search by trial.
+Sheet-only answers (written before clip):
+ (a) elbow out to the side (beside the body), hand ~8-10 cm from the nose.
+ (b) the hand rides with the head through the turn; relative drift ~2-3 cm.
+ (c) no diagnostic in the final file (SH2003 was needed to be removed by slowing the drop).
+Measured (clip):
+ (a) held (frames 15-45): right shoulder (-0.190,1.448,0.000), elbow (-0.330,1.685,0.091), hand (-0.040,1.788,0.130).
+     Elbow 14 cm outside the shoulder, 9 cm forward, 24 cm above: beside/out to the side. HIT.
+     Hand-nose 8.1 cm. HIT (predicted ~10).
+     faceUp 0.0 and face 0.0 at every sampled frame: head level. Feet: ankles 10 cm apart centre to centre (together).
+ (b) hand-nose distance 7.8-8.4 cm through the whole turn (face 0 -> 40 L -> 40 R -> 0); hand in the head's yaw frame
+     drifts at most 2.7 cm (at the 40-degree extremes). Follows the head. HIT.
+ (c) final: none. HIT (for the final file; the quarter-beat version gave SH2003, which I did predict as possible).
+Unwanted things seen:
+ - On the way up to `forehead` the hand swings ACROSS THE FRONT of the body: at beat 0.75 (Salute frame 11) the right hand
+   is at x=+0.047 (past the midline onto the left side), 41 cm in front of the chest, elbow in front (z 0.23); the elbow
+   only goes out to the side at arrival. A real salute lifts the elbow out sideways. Same for LookFar's left hand
+   (and the reverse on the way down). There is no word to choose the path (an intermediate `side.bent` might fix it, untried).
+Surprises: the speed check at 0.125 s; the `forehead` follows a head TURN as well, not only a tilt (grammar only promised tilt/look up).
+Could not express: a quarter-beat drop without SH2003.
+
+=== greeter.shosa — BEFORE ===
+Words chosen:
+  rightArm { down:1 side:1@through up:1/2 { up.across(25):1/2 up.side(25):1/2 } up.across(25):1/2 up.side(25):1 side:1@through down:1 }
+  - sweep: down on 0, side passed at 1 without stopping (@through), up (straight overhead) at 2.
+  - wave: up at 2 -> across(25) 2.5 -> side(25) 3 -> across(25) 3.5 -> side(25) 4 = four half-beat swings.
+    The group is written once and the second pair spelled out because the last swing word needs length 1 (see below).
+  - down: from up.side(25) at 4, side passed at 5 (@through), down at 6, held to 7.
+  Single score, unnamed; no bar lines (7 beats).
+Unclear:
+  - Is "one swing" one move between ends (my reading) or a there-and-back?
+  - `q` repeats a group with its lengths; I can't give the last swing word a longer length (the way down must take 2 beats),
+    so I wrote the group once and spelled the last pair out. (q:LEN stretches the whole group, not its last word.)
+  - `@through` "On a word the part stops at (the last, or before then) it says nothing (SH2017)": side is in the middle, fine.
+  - `up.side(25)` : "After up. or down. comes one way only" - side is a way for an arm, I assume OK.
+  - Does the arm at `up` stop between the sweep and the wave? `up` has no @through, so it eases in there: intended.
+Expected diagnostics: none. Maybe SH2001 if down->up is seen as opposite (but side is in between).
+Predictions:
+ (a) hand at the horizontal on the way up ~1.8 m/s (180 deg x 0.6 m / 1.2 s = 1.57 m/s mean, peak a bit above); yes, the fastest point.
+ (b) yes: the wave is a back-and-forth, which per the grammar slows to nothing at the ends: hand stops (speed ~0) at each end.
+ (c) none.
+
+=== greeter.shosa — AFTER ===
+check runs: 1 (no problems on the first run).
+Sheet-only answers (before clip): (a) the poses at 0.75/1/1.25 are the widest apart -> fastest at the horizontal, ~2 m/s.
+ (b) cannot see a stop on a quarter-beat sheet; by the grammar, yes. (c) none.
+Measured (clip, hand speed by central difference, 30 fps; beat = 18 frames):
+ (a) at the horizontal (frame 18, beat 1.00, hand level with the shoulder): 2.26 m/s. Peak of the sweep 2.34 m/s at frame 19
+     (one frame later). So it is the fastest point, give or take one frame (3%); no dip at the horizontal.
+     Number: predicted ~1.8, got 2.26 -> MISS on the value (25% low); "fastest point" HIT.
+     The way down: 1.94 m/s at the horizontal (frame 90), peak 2.19 at 91: no pause either. (A small kink: 1.69 -> 1.94 -> 2.19
+     over frames 89-91, the speed jumps rather than flows across the @through word.)
+ (b) speed at the swing ends: 0.14 (beat 2.5), 0.00 (3.0), 0.00 (3.5), 0.32 (4.0) m/s; 2.53 m/s mid-swing. Yes it stops at each end. HIT.
+ (c) none. HIT.
+Unwanted / surprises:
+ - The first "swing" (up -> across(25), beats 2-2.5) is only half as wide as the others (hand x -0.19 -> +0.06 vs the full
+   +0.06 <-> -0.44): starting from straight up, so 4 swings look like 3.5. Expected from my words, but the grammar has no
+   idiom for a wave "about" a direction.
+ - `q` cannot change the length of the group's last word, so the last pair had to be spelled out.
+Could not express: nothing essential.
+
+=== stance.shosa — BEFORE ===
+Words chosen:
+  steps  { leftFoot.side(0.6m):1 shift.right:1 shift.left:1 shift.center:1 shift.right:2 then:1 shift.center:1 }
+  height { mid:3 then:1 low(15cm):2 then:1 mid:1 }
+  - first step already made = wide stance on both feet; soft knees = `mid` (the default, written anyway).
+  - shifts land on beats 1 (right), 2 (left), 3 (centre); lunge over the right foot at 4, held to 6, back to centre at 7, 8 beats.
+  - The lunge depth goes in `height` (per the grammar line "To go over the foot in a wide stance is a lunge: write its depth in height").
+Unclear:
+  - Feet set out only "in the second half of the word before, and no more than 0.5 s" (0.75 beat at 90), so a 1-beat shift
+    is really a ~half-beat move; there is no way to make a shift take its whole beat.
+  - "low(15cm)": 15 cm lower than standing STRAIGHT on the same (wide) feet. My "standing" is mid, 0.5 cm lower. Close enough.
+  - How far the hips go over the foot at low(15cm) is not stated ("as far as that lets them").
+  - shift.center after a lunge: does the height rise in time? height row rises 6-7 through the `then`; shift moves late (6.25-7).
+Expected diagnostics: none. (The first step already made is reported as a note, not a diagnostic.)
+Predictions:
+ (a) shifts: pelvis drops <= 3 cm (grammar: "sink no more than 3 cm"), ~2.5 cm; sideways ~11 cm from the middle
+     (0.5 m apart -> half way, 0.7 m -> a quarter; 0.6 m -> ~3/8 of 0.3 m = 0.11 m).
+ (b) lunge: ~20 cm toward the right foot (not fully over it: 30 cm), ~15 cm lower than mid standing.
+ (c) yes, the left leg straight or nearly (knee < 10 deg).
+
+=== stance.shosa — AFTER ===
+check runs: 2 (v1 with low(15cm): no problems; final with low(8cm): no problems). Plus two clip-only probes (low(5cm), low(8cm))
+in scratch\ to find the depth. No diagnostics at any time; only the note "starts with leftFoot.side(0.6m):1 already made".
+Sheet-only answers for v1 (before clip): (a) shifts drop ~1-2 cm, move ~5-10 cm. (b) lunge ~15 cm over, ~13 cm low. (c) left leg looks straight.
+Measured on v1 (low(15cm)), feet at x=+0.5 / -0.1, middle 0.2, so the right foot is 0.30 m from the middle; 20 frames per beat:
+ (a) shift right/left: pelvis drop 2.9-3.0 cm, sideways 10.3 cm. Predicted ~2.5 / ~11. HIT, HIT.
+     (Standing knee bends to 39 deg on the weighted side in a shift: "soft knees" ok.)
+ (b) lunge: 25.5 cm toward the right foot (of 30), 24.7 cm lower than standing. Predicted ~20 / ~15. MISS, MISS (depth 65% more than written).
+ (c) left knee 61 deg, right 91 deg: left leg NOT straight. MISS (sheet also misled me: from the front the left leg looked straight).
+Then: low(5cm) -> 17 cm over, 10 cm low, left knee 37; low(8cm) -> 23 cm over, 16 cm low, left knee 45. Final file uses low(8cm)
+ (the task's "about 15 cm lower and over the right foot"). The left leg is never straight in this stance width at that depth.
+Unwanted / surprises:
+ - `low(N)` in a lunge is far from "N cm lower": the grammar says low is "16 cm lower than standing straight in the same place"
+   / "on wide feet, lower than the wide stance straight", and its own lunge example is `height { mid low(15cm):1 }`. In practice
+   low(15cm) + shift over the foot gave 24.7 cm. The "lower" seems to be measured from a stance straight over ONE foot, or the shift
+   adds its own drop on top. The grammar gives no way to predict this.
+ - The height row goes down through all of beat 3-4 while the shift only moves late (3.5-4): at beat 3.5 the pelvis has dropped
+   7 cm straight down before going sideways. The lunge goes down-then-across rather than diagonally.
+ - Feet shifts take only the late half-beat (0.75-1 etc.), and there is no way to make a shift last its whole beat.
+Could not express: a lunge with a straight trailing leg at a chosen depth; a full-beat weight shift.
+
+=== greeter-edit.shosa — BEFORE ===
+Changes planned (from greeter.shosa):
+  down:1 -> down:1/2 ; side:1@through -> side:1/2@through   (sweep 1 beat: side at 0.5, up at 1)
+  up:1/2 -> up:1 and add `then:1/2` after it                (up at 1, still until 2, first swing 2-2.5)
+  add `q` after the group                                   (6 swings: group 2, q 2, spelled pair 2)
+  => 3 tokens changed, 2 added = 5. (title left alone.)
+Unclear: `then` after a word: "stays through the word before the then", so up:1 then:1/2 holds 1-2 and swings 2-2.5. OK.
+Expected diagnostics: none; maybe SH2003 for the faster sweep (hand ~4.5 m/s at the horizontal?).
+Predictions (same questions): (a) speed at the horizontal ~4.5 m/s, fastest point; (b) stops at each end; (c) none (maybe SH2003).
+
+=== greeter-edit.shosa — AFTER ===
+check runs: 1 (no problems).
+Tokens: 3 changed (down:1->down:1/2, side:1@through->side:1/2@through, up:1/2->up:1), 2 added (then:1/2, q). Total 5.
+Sheet-only: sweep 0-1, still overhead 1-2, swings end at 2.5, 3, 3.5, 4, 4.5, 5 (6), down 5-7. Expected fastest at the horizontal.
+Measured: (a) horizontal at frame 9 (beat 0.5): 4.48 m/s; peak 4.58 at frame 10. Predicted ~4.5, fastest: HIT.
+ Overhead hold: speed 0.00 from frame 19 to 35 (beats 1.06-1.94): still for a beat. Good.
+ (b) swing ends 0.14/0.00/0.00/0.00/0.00/0.32 m/s: stops at each end. HIT. (c) none. HIT.
+Unwanted: the same half-width first swing as in greeter.shosa. Nothing else.

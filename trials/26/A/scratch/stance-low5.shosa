@@ -1,0 +1,15 @@
+title "Stance"
+tempo 90
+
+role fighter
+dancer fighter humanoid on fighter
+
+section Shift {
+  fighter {
+    steps  { leftFoot.side(0.6m):1 shift.right:1 shift.left:1 shift.center:1 shift.right:2 then:1 shift.center:1 }
+    height { mid:3 then:1 low(5cm):2 then:1 mid:1 }
+  }
+}
+
+form { Shift }
+score { dancer fighter }

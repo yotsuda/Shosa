@@ -1,0 +1,165 @@
+=== FILE 1: port.shosa === BEFORE
+Words chosen:
+- tempo 72, time 3/4, turnout { out(80) }, steps { together } (first position: heels touch), height { straight }.
+- Arm positions as poses holding an `arms` row (examples from the grammar's Shapes section):
+  bbas   = fwd.across(30).down(70).bent(40).elbow(side)
+  first  -> pose `armsFirst`  = fwd.across(15).down(25).bent(50).elbow(side)
+  fifth  -> pose `armsFifth`  = fwd.up(70).bent(40).elbow(side)
+  second -> pose `armsSecond` = side.fwd(20).down(15).bent(20)   (from the assemble example "arms in second for it")
+- arms row: bbas:1 armsFirst:1@through armsFifth:1 | armsSecond:3 | (x2) then bbas:3 | to end in bras bas.
+  The phrase starts in bras bas at beat 0; first is passed at beat 1, fifth at beat 2, second at 3, bras bas at 6.
+  I add a final bar holding bras bas so the repeat ends in bras bas (15 beats total).
+Unclear in the grammar:
+- Whether a pose name in `arms` with `@through` is fine (grammar says a pose takes @through: line 512).
+- "second" for arms: no named example except inside the assemble paragraph. Should second have elbow(side)? Not said.
+- Whether arms arriving at fifth at beat 2 and leaving immediately "pauses": the grammar says a gesture "eases in and out, so it slows at each word" -> it will stop for an instant at fifth.
+- Whether to end on beat 12 exactly (cannot: no length 0) -> extra held bar.
+Expected diagnostics: none.
+Predictions:
+ (a) hand speed passing first on the way up: NOT zero; about 0.6 m/s (hand travels ~0.9 m bras bas->fifth in 2 beats = 1.67 s).
+ (b) arms do not pause in fifth: they ease to a stop for an instant at beat 2 and set off at once for second (no held stillness).
+ (c) no diagnostic.
+
+--- FILE 1 from the contact sheet alone (port.png, --to 7 --step 0.5)
+ (a) at beat 1 the arms are between bras bas and fifth, clearly moving (hands at chest, big change 0.5->1.5): not zero; sheet guess ~0.8-1 m/s.
+ (b) beat 2 in fifth, beat 2.5 already half way to second: no pause.
+ (c) none.
+--- FILE 1 measured (clip, rightHand, 30 fps, beat = 0.833 s)
+ beat 0.96: 0.78 m/s, beat 1 (frame 25, hand y 1.22 z 0.48): 1.21 m/s (central diff), beat 1.04: 1.63 m/s; peak 1.62 at 1.1.
+ beat 1.9: 0.26, beat 2: 0.07 m/s, beat 2.1: 0.51 -> one-instant stop in fifth, no held stillness.
+ (a) HIT that it is not zero; MISS on the number (predicted ~0.6; measured 0.78 arriving / 1.63 leaving, a jump in speed AT first).
+ (b) HIT (no pause; instantaneous stop only).
+ (c) HIT (no diagnostic).
+=== FILE 1 AFTER
+ check runs: 1 (no diagnostics).
+ Unwanted: the hand's speed jumps at first position from 0.78 m/s to 1.63 m/s within one frame (frames 24->26):
+   @through keeps it moving but does not match the speeds of the two halves; the first half
+   (bras bas -> first, short way) is slow and the second (first -> fifth, long way) is twice as fast. Visible as a kink.
+   The grammar says "the way to it arrives at speed and the way on to the next word leaves at that speed" - it does not.
+ In fifth the arm stops for an instant (0.07 m/s at beat 2): fine for "no pause"; the task wanted that.
+ Arms in second as written (side.fwd(20).down(15).bent(20)) look fine, hand at 1.30 m (shoulder 1.45).
+ Not expressible directly: nothing. Unclear: no named "second" arm example in the Shapes list (only inside the assemble text).
+
+=== FILE 2: attitude.shosa === BEFORE
+Words chosen:
+- tempo 96, time 4/4, turnout { out(80) }, height { straight }, steps { rightFoot.fwd(0.08m).across(0.13m) } as the first
+  word (fifth, right foot front, already made: weight on both).
+- Poses (grammar line 502: a shape held by several rows is a pose):
+  pose closed { arms { bras bas } leftLeg { down } }
+  pose att    { leftLeg { back.up(60).bent.knee(side.up) }  leftArm { fifth }  rightArm { second } }
+- body { closed:1 att:3 | then:4 | then:1 then:2 closed:1 | }  -> att arrives beat 1, still to beat 9 (the last `then` is
+  the way), closes beats 9-11, stands 11-12. Three bars.
+- Thigh angle: the grammar gives back.bent = thigh 30 up, back.up(20).bent = 44 up ("bending lifts the knee above that
+  line"). For a thigh level behind (90 deg from the standing leg) I extrapolate back.up(60).bent (guess) and will read it.
+Unclear:
+- "Thigh 90 degrees behind": the grammar has no way to give the thigh angle directly; "write it and read it off with
+  shosa clip". Guesswork for the foot direction.
+- Whether `leftLeg { down }` as the first word of a pose used at beat 0 is fine when the leg is already down.
+- Whether lifting from fifth (weight on both) shifts weight onto the right foot automatically: grammar line 712 says yes.
+- Whether "then:4 | then:1 then:2" across bars counts the way correctly (only the LAST then is the way).
+Expected diagnostics: none (maybe SH2004 if the steps are considered in motion - they are not).
+Predictions:
+ (a) left knee height during the hold: ~0.90 m (about hip height, thigh level).
+ (b) standing (right) leg straight: yes, ~4 deg (height straight).
+ (c) no diagnostic.
+
+--- FILE 2 run log
+ run 1: no diagnostics, but `check --at` said "left 144 cm up": back.up(60).bent put the knee at 1.32 m and the foot at
+   1.52 m (thigh ~50 deg up and out to the side). My extrapolation was wrong: "back.bent has the thigh 30 deg above level"
+   - I had read the 30/44 as degrees from the standing leg. Changed to back.down(35).bent.knee(side.up).
+ run 2: no diagnostics; foot 53 cm up, knee bent 90.
+--- FILE 2 from the contact sheet alone (attitude-side.png, attitude.png)
+ (a) side view: the thigh is level behind, the knee at about hip height -> ~0.95 m.
+ (b) the red standing leg is a straight line through the hold: yes.
+ (c) none.
+--- FILE 2 measured (clip + check --at 5)
+ beat 5: left thigh -2 deg (level), 33 deg from straight back toward the side (turned out), knee y=0.956 m, hip 0.973,
+   ankle 0.61 m (below the knee), knee bent 90; right knee 4 deg (straight). Leg and arms still from beat 1 to beat 9
+   (speed 0.000), leaving at 9; foot back in fifth behind at 11.
+ (a) predicted 0.90 m (BEFORE) / 0.95 (sheet); measured 0.956 m -> HIT (within 6 cm).
+ (b) HIT (4 deg).
+ (c) HIT (no diagnostic) - but see run 1: a wildly high leg (foot 1.44 m up) is no diagnostic either.
+=== FILE 2 AFTER
+ check runs: 2 (no diagnostic in either; run 2 was to fix the thigh height I read off clip).
+ Unwanted: in run 1 the foot went above the head with no warning. The thigh angle cannot be written directly:
+   only the foot's direction, and the knee lift depends on bent and knee(); I had to read it from clip.
+ The attitude's thigh goes 33 deg out to the side from straight back with turnout out(80) and knee(side.up): plausible
+   for a turned-out attitude, but there is no word to say "thigh straight behind".
+ Foot below the knee (ankle 0.61, knee 0.96): many attitudes have the foot at knee height; writing that needs another
+   guess of direction/bent/knee.
+ Surprise: `then:4 | then:1 then:2 closed:1` worked exactly (hold to beat 9, close 9-11).
+
+=== FILE 3: transfer.shosa === BEFORE
+Words chosen:
+- tempo 80, time 4/4, turnout { out(80) }, arms { side.fwd(20).down(15).bent(20) } (second).
+- steps { leftFoot.side(0.7m):2 shift.right:2 | shift.left:2 shift.center:2 | shift.right:2 then:2 | shift.center:4 | }
+  (the first word is a stance already made: feet 0.7 m apart, weight on both).
+- height { straight:4 | then:2 then:2 | low(15cm):2 then:2 | straight:4 | } -> straight to beat 6, down 6-8 (wait:
+  the plie is to go down WITH the travel over the right foot over beats 6-8), low 8-10, up 10-12.
+Unclear:
+- "Over 2 beats" for a weight transfer: the grammar says the feet, including a shift, set out "in the second half of the
+  word before, and no more than 0.5 s before its beat" (line 239). At tempo 80 a beat is 0.75 s, so a shift can take only
+  0.5 s, not 1.5 s. I see no way to make a shift slow (a `then` only waits for the feet). Expect the transfers to be quick.
+- How far the hips go in a shift: "0.7 m apart a quarter" (line 1053) - a quarter of what? I read: a quarter of the way
+  from the middle to the foot (0.35 m) = ~9 cm.
+- Deep plie over the right foot: the lunge rule "write its depth in height, and the hips go as far as that lets them".
+  Whether low(15cm) is measured from straight on these wide feet: line 1182 says lower than the wide stance straight.
+Expected diagnostics: none.
+Predictions:
+ (a) transfers: pelvis ~9 cm sideways from the middle, drops ~2-3 cm (the cap is 3 cm).
+ (b) deep plie over the right: ~20 cm toward the right foot from the middle, 15 cm lower than the wide stance straight.
+ (c) no diagnostic.
+
+--- FILE 3 run log: run 1 no diagnostics.
+--- FILE 3 from the contact sheet alone (transfer.png)
+ (a) transfers: the torso hardly moves sideways (~10 cm), the standing knee bends a little; drop a few cm.
+ (b) deep plie: a side lunge - right knee deeply bent, left leg almost straight; pelvis clearly lower (~20+ cm) and well
+     toward the right foot (~25 cm).
+ (c) none.
+--- FILE 3 measured (clip, pelvis; feet at x=0.659 and -0.041, middle 0.309; straight wide stance pelvis y=0.944)
+ shift.right: x 0.222 (8.7 cm), y 0.914 (3.0 cm lower); shift.left: x 0.396 (8.7 cm), y 0.914 (3.0 cm).
+   Each transfer moves only between beat ~1.3 and 2 (0.56 s), not over 2 beats: the pelvis stands still 0-1.3.
+ deep plie (beats 8-10): x 0.019 = 29 cm toward the right foot (6 cm from over it), y 0.650 = 29.4 cm lower.
+   The way down: beats 6-7.3 straight down at the middle (y 0.867 at beat 7), then sideways in the last 0.5 s.
+   The way up: straight up 10-11.33 at the right, then sideways back in the last 0.5 s (0.93 m/s at 11.75).
+ Experiments (scratch\t-*.shosa): low(15cm) with no shift -> 15.0 cm lower at the middle (plie in second, as stated);
+   shift.right with low(8cm) -> 15.4 cm lower, 18 cm toward the right.
+ (a) sideways 9 cm predicted / 8.7 measured: HIT; drop 2-3 predicted / 3.0 measured: HIT.
+ (b) predicted 20 cm toward the right and 15 cm lower; measured 29 cm and 29 cm: MISS on both.
+ (c) HIT.
+=== FILE 3 AFTER
+ check runs: 1.
+ Unwanted:
+  - the weight transfers are 0.56 s each, not over 2 beats (1.5 s): a shift sets out at most 0.5 s before its beat.
+    No word slows it. (The grammar does say this in the timing table, but nothing says how to make a slow transfer.)
+  - low(15cm) during shift.right sank 29 cm, not 15: in a lunge the depth word does not give the depth. To get 15 cm
+    lower I would write low(8cm) (measured), but then the hips go only half way (18 cm) to the right foot. "15 cm lower
+    and over the right foot" did not come out together.
+  - descent and travel are not together: down first at the middle, then sideways in the last 0.5 s (and the reverse
+    on the way up), so the pelvis path is an L, not a diagonal.
+  - shape: a side lunge (left leg straight), not a plie in second with both knees bent over the right foot.
+ Kept low(15cm) in the file (the grammar's word for the stated depth) and report the mismatch.
+
+=== FILE 4: attitude-edit.shosa === BEFORE
+Changes planned (copy of attitude.shosa):
+ - body row: one more `then:4 |` bar -> hold beats 1-13 (3 bars): +2 tokens.
+ - arms half a beat late: a narrower row `arms { closed:3/2 }`: the arms are held in bras bas (pose closed's arms) and,
+   by the rule "when the narrower one has ended ... the part follows the wider one again (... having gone there through
+   the narrower track's last word)", travel to att's arms during beats 0-1.5, arriving 1.5. +4 tokens (arms { closed:3/2 }).
+ - steps row left alone (its last `then` just stays; the section is as long as its longest track).
+Unclear: whether "gone there through the narrower track's last word" means the arms move during all of closed:3/2
+ (0-1.5) - I expect so. Alternative would be skip:1/2 then:1 forms, not documented for this.
+Expected diagnostics: none. Expected: leg arrives at beat 1, arms at 1.5, hold to beat 13, close 13-15, stand 15-16.
+
+--- FILE 4 run log: run 1 no diagnostics.
+ Sheet (--to 3 --step 0.25): leg up at beat 1, the arms still on their way at 1-1.25, arrived by 1.5.
+ Measured: left ankle there at beat 1 (0.048 m/s), still to beat 13, leaves at 13, in fifth at 15.
+   left hand 1.94 m/s at beat 1, 0.097 at 1.5, 0 at 1.75 (arrived 1.5); right hand the same (0.059 at 1.5).
+ Tokens changed/added: 6 added, 0 changed: `then:4` `|` in the body row; `arms` `{` `closed:3/2` `}` as a new row.
+=== FILE 4 AFTER
+ check runs: 1. Worked as planned. The arms travel 0-1.5 (1.5 beats), not 0.5-1.5: the task did not say when they set
+ out; to start them at 0.5 too would be `arms { closed:1/2 then:1 }`? - not tried; the grammar documents `then`
+ before a word of the SAME row, not before the wider row taking over, so I am unsure it works.
+ The steps row stayed 3 bars while the section is 4: no warning, the feet just stay (as documented).
+ Note: the leg row in the pose is one place, but "arms later than the leg" had to be written as a second row beside
+ the pose; the pose could not say it.

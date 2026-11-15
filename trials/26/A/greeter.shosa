@@ -1,0 +1,14 @@
+title "Greeter"
+tempo 100
+
+role keeper
+dancer keeper humanoid on keeper
+
+section Greet {
+  keeper {
+    rightArm { down:1 side:1@through up:1/2 { up.across(25):1/2 up.side(25):1/2 } up.across(25):1/2 up.side(25):1 side:1@through down:1 }
+  }
+}
+
+form { Greet }
+score { dancer keeper }

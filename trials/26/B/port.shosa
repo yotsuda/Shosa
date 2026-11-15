@@ -1,0 +1,25 @@
+title "Port de bras"
+tempo 72
+time 3/4
+
+role solo
+dancer solo humanoid on solo
+
+pose bbas       { arms { fwd.across(30).down(70).bent(40).elbow(side) } }
+pose armsFirst  { arms { fwd.across(15).down(25).bent(50).elbow(side) } }
+pose armsFifth  { arms { fwd.up(70).bent(40).elbow(side) } }
+pose armsSecond { arms { side.fwd(20).down(15).bent(20) } }
+
+section Port {
+  solo {
+    turnout { out(80) }
+    height  { straight }
+    steps   { together }
+    arms    { bbas:1 armsFirst:1@through armsFifth:1 | armsSecond:3 |
+              bbas:1 armsFirst:1@through armsFifth:1 | armsSecond:3 |
+              bbas:3 | }
+  }
+}
+
+form { Port }
+score { dancer solo }

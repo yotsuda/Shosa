@@ -1,0 +1,35 @@
+title "Soldier"
+tempo 120
+time 4/4
+
+role soldier
+dancer soldier humanoid on soldier
+
+pose attention {
+  steps  { together }
+  height { straight }
+  arms   { down }
+  head   { fwd }
+}
+
+section Salute {
+  soldier {
+    body     { attention:4 }
+    rightArm { down:1/2 then:1/2 forehead:2 then:1/2 down:1/2 }
+    head     { fwd:4 }
+  }
+}
+
+section LookFar {
+  soldier {
+    body    { attention:11 }
+    leftArm { down:1 forehead:8 then:1 down:1 }
+    head    { fwd:1 then:2 fwd.left(40):4 fwd.right(40):2 fwd:2 }
+  }
+}
+
+form Salute  { Salute }
+form LookFar { LookFar }
+
+score Salute  { dancer soldier  form Salute }
+score LookFar { dancer soldier  form LookFar }

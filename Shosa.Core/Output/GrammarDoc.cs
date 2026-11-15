@@ -774,8 +774,9 @@ public static class GrammarDoc
             arms     { fwd.across(30).down(70).bent(40).elbow(side) }   // ballet's low rounded arms (bras bas): the hands 19 cm apart in front of the hips
             arms     { fwd.across(15).down(25).bent(50).elbow(side) }   // rounded in front of the body (first): the hands 12 cm apart, at the diaphragm
             arms     { fwd.up(70).bent(40).elbow(side) }                // overhead (fifth, en haut)
+            arms     { side.fwd(20).down(15).bent(20) }                 // open to the sides (second)
             arms     { fwd.down(15).bent(40).elbow(side) }              // NOT rounded: the hands go forward, a shoulder's width apart
-            rightLeg { back.bent.knee(side.up) }             // an attitude: the thigh 30° up, the knee out and above the foot
+            rightLeg { back.bent.knee(side.up) }             // an attitude: the thigh 30° above level, the knee out and above the foot
             torso    { up.fwd(10).round }                    // a boxer's hunch
             ```
 
@@ -787,7 +788,9 @@ public static class GrammarDoc
               knee above that line, so a bent leg's thigh is higher than its direction says. Turned
               out with the knee to the side and up (`knee(side.up)`): `back.bent` has the thigh 30°
               above level and the foot at hip height, `back.down(20).bent` the thigh 12° up,
-              `back.up(20).bent` 44° up with the foot above the hip. To give a thigh's angle, write
+              `back.up(20).bent` 44° up with the foot above the hip, `back.down(35).bent` level (the
+              knee at hip height). Turned out (`out(80)`), the thigh of a leg behind points about 30° out to its side
+              (as a turned-out hip lets it). To give a thigh's angle, write
               it and read it off with `shosa clip` (the hip and the knee).
             - **Rounded arms bring the HANDS toward the middle**: the direction is where each hand is from its
               own shoulder, so `fwd` keeps the hands a shoulder's width apart however the elbows are held. Round
@@ -1031,10 +1034,13 @@ public static class GrammarDoc
               between them); no foot leaves the floor. The basis of standing and waiting.
               **The hips sink no more than 3 cm for it**: with the feet apart, the other leg is all but
               straight already, and every cm toward the foot costs height. A shoulder-wide stance
-              (0.3 m) goes over the foot; 0.5 m apart the hips go half way, 0.7 m apart a quarter.
-              To go over the foot in a wide stance is a lunge: write its depth in `height`, and the
-              hips go as far as that lets them (`steps { leftFoot.side(0.7m) shift.right:1 }` with
-              `height { mid low(15cm):1 }` is a side lunge over the right foot).
+              (0.3 m) goes over the foot; 0.5 m apart the hips go half of the way from the middle to
+              the foot, 0.7 m apart a quarter of it.
+              To go over the foot in a wide stance is a lunge: write its depth in `height`. The hips
+              stay at that depth and go on toward the foot as far as the other leg reaches, straightening
+              out of the bend: `steps { leftFoot.side(0.7m) shift.right:1 }` with
+              `height { mid low(15cm):1 }` is a side lunge over the right foot, the hips 15 cm below the
+              wide stance straight, the left leg straight and the right knee at about 75°.
             - `turn.left(90)`, `turn.right(180)` — side, then degrees in brackets (up to 1080: a
               double turn is `turn.right(720)`).
               A turn pivots on the foot that carries the weight: the one that took the last step or
@@ -1395,7 +1401,9 @@ public static class GrammarDoc
 
             Diagnostics are `FILE(line,column): severity CODE: message`. SH0xxx is syntax, SH1xxx is
             a word or a count that does not make sense, SH2xxx is a movement the body cannot do
-            (SH2002 a step longer than the leg, SH2003 too fast, SH2004 both feet off the floor,
+            (SH2002 a step longer than the leg, SH2003 too fast: a hand over 10 m/s (a fast punch), a foot
+            over 12 m/s (a snap kick), at the fastest moment, which in an eased word is about 1.5 times its
+            mean (a hand going 1 m needs 0.15 s at least; `@linear` goes at its mean all the way, 0.1 s), SH2004 both feet off the floor,
             SH2005 a loop that does not join, SH2006 a hand that cannot reach the other dancer,
             SH2007 two dancers whose heads, bodies or standing legs are in the same place,
             SH2009 two rows of an `&` that turn the shoulders, or the hips, at the same time,

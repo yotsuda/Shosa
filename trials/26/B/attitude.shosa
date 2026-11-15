@@ -1,0 +1,25 @@
+title "Attitude"
+tempo 96
+time 4/4
+
+role solo
+dancer solo humanoid on solo
+
+pose closed { arms { fwd.across(30).down(70).bent(40).elbow(side) }  leftLeg { down } }
+pose att {
+  leftLeg  { back.down(35).bent.knee(side.up) }
+  leftArm  { fwd.up(70).bent(40).elbow(side) }
+  rightArm { side.fwd(20).down(15).bent(20) }
+}
+
+section Attitude {
+  solo {
+    turnout { out(80) }
+    height  { straight }
+    steps   { rightFoot.fwd(0.08m).across(0.13m):4 | then:4 | then:4 | }
+    body    { closed:1 att:3 | then:4 | then:1 then:2 closed:1 | }
+  }
+}
+
+form { Attitude }
+score { dancer solo }

@@ -899,11 +899,12 @@ internal sealed class FigureSolver
                             return Math.Sqrt(Math.Max(0.04, full * full - d * d));
                         }
                         double StandAt(Vec3 q) => Math.Min(Reach(q + hipLeft, s.Left), Reach(q - hipLeft, s.Right));
-                        // As deep as the height row stands at the end of the shift (soft knees, a `low`), and 3 cm more.
-                        double level = Chain(_height, t1, x => x?.Level ?? 0, (a, b, e) => a + (b - a) * e);
-                        double softness = Chain(_height, t1, x => x is { Straight: true } ? 0.0 : 1.0, (a, b, e) => a + (b - a) * e);
+                        // The far leg straightens out of the bend the height row stands in at the end of the shift
+                        // (soft knees, a `low`: Core), and then the hips may sink 3 cm more below where they stand.
+                        double level = Chain(_height, t1, x => x?.Level ?? 0, (a, b, e) => a + (b - a) * e, Dist);
+                        double softness = Chain(_height, t1, x => x is { Straight: true } ? 0.0 : 1.0, (a, b, e) => a + (b - a) * e, Dist);
                         double drop = Math.Max(softness * Rig.Leg * (Rig.StraightLeg - Rig.BentShare(Rig.Thigh, Rig.Shin, Rig.SoftKnee)), Rig.LowDrop * Math.Max(0, -level));
-                        double floor = Math.Min(full - drop, StandAt(middle)) - 0.03;
+                        double floor = StandAt(middle) - drop - 0.03;
                         var foot = s.On == 'L' ? s.Left : s.Right;
                         if (StandAt(Vec3.Lerp(middle, foot, share)) < floor)
                         {
@@ -1140,41 +1141,72 @@ internal sealed class FigureSolver
     /// part over — to its own target. A hold keeps the part where it was when the hold began.
     /// </summary>
 
-    private static T Chain<T>(List<Seg> segs, double t, Func<Seg?, T> target, Func<T, T, double, T> blend)
+    private static T Chain<T>(List<Seg> segs, double t, Func<Seg?, T> target, Func<T, T, double, T> blend, Func<T, T, double>? distance = null)
     {
         int current = -1;
         for (int i = 0; i < segs.Count && segs[i].T0 <= t; i++)
             current = i;
-        return ChainAt(segs, current, t, target, blend, 0);
+        return ChainAt(segs, current, t, target, blend, 0, distance);
     }
 
-    private static T ChainAt<T>(List<Seg> segs, int index, double t, Func<Seg?, T> target, Func<T, T, double, T> blend, int depth)
+    private static double Dist(double a, double b) => Math.Abs(b - a);
+
+    private static double Dist(Vec3 a, Vec3 b)
+    {
+        // How far the far end goes when Blend carries one offset to the other: round the arc, and in or out.
+        double la = a.Length, lb = b.Length;
+        if (la < 1e-9 || lb < 1e-9)
+            return Math.Abs(lb - la);
+        double angle = Math.Acos(Math.Clamp(a.Dot(b) / (la * lb), -1, 1));
+        return angle * (la + lb) / 2 + Math.Abs(lb - la);
+    }
+
+    /// <summary>
+    /// The slopes (in each segment's own eased 0..1) at the word passed through between segs[k] and segs[k + 1],
+    /// so that the part goes through it at ONE speed: 1.5 times its mean speed over both segments, as one eased
+    /// way over both would at its middle, but no more than either side can take without overshooting (slope 3).
+    /// </summary>
+    private static (double End, double Start) ThroughSlopes<T>(List<Seg> segs, int k, Func<Seg?, T> target, Func<T, T, double, T> blend, int depth, Func<T, T, double>? distance)
+    {
+        const double m = 1.5;
+        if (distance is null)
+            return (m, m);
+        Seg a = segs[k], b = segs[k + 1];
+        T from = ChainAt(segs, k - 1, a.T0, target, blend, depth + 1, distance), at = target(a), to = target(b);
+        double da = distance(from, at), db = distance(at, to), ta = a.T1 - a.T0, tb = b.T1 - b.T0;
+        if (da < 1e-9 || db < 1e-9)
+            return (0, 0);
+        double v = Math.Min(m * (da + db) / (ta + tb), Math.Min(3 * da / ta, 3 * db / tb));
+        return (v * ta / da, v * tb / db);
+    }
+
+    private static T ChainAt<T>(List<Seg> segs, int index, double t, Func<Seg?, T> target, Func<T, T, double, T> blend, int depth, Func<T, T, double>? distance = null)
     {
         if (index < 0 || depth > 200)
             return target(null);
         var seg = segs[index];
         if (seg.Kind == SegKinds.Hold)
-            return ChainAt(segs, index - 1, seg.T0, target, blend, depth + 1);
+            return ChainAt(segs, index - 1, seg.T0, target, blend, depth + 1, distance);
         // A hand that stays (`stay`) is held where it was from the start of the word: nothing to go to.
         if (seg.Kind == SegKinds.Stay)
             return target(seg);
         double u = seg.T1 > seg.T0 ? Math.Clamp((t - seg.T0) / (seg.T1 - seg.T0), 0, 1) : 1;
         double e = Ease(seg.Ease, u);
-        // A word passed through (`@through`, DESIGN.md 86.4): the way to it arrives at speed, and the way on
-        // from it leaves at that speed. Each side is a cubic whose slope at the word is 1.5, as an eased way
-        // over both would be at its middle; neither overshoots. Only where the next word sets out from it at once.
+        // A word passed through (`@through`, DESIGN.md 86.4, 87): the way to it arrives at speed, and the way on
+        // from it leaves at that same speed (ThroughSlopes). Each side is a cubic; neither overshoots.
+        // Only where the next word sets out from it at once.
         {
             static bool Joined(Seg a, Seg b) => Math.Abs(a.T1 - b.T0) < 1e-9 && b.Kind is not (SegKinds.Hold or SegKinds.Stay or SegKinds.Release) && b.T1 > b.T0 + 1e-9;
             bool through = seg.Ease == "through" && index + 1 < segs.Count && Joined(seg, segs[index + 1]);
             bool fromThrough = index > 0 && segs[index - 1] is { Ease: "through" } before && Joined(before, seg);
-            if (through || fromThrough)
+            if ((through || fromThrough) && u > 0 && u < 1)
             {
-                const double m = 1.5;
-                double s0 = fromThrough ? m : 0, s1 = through ? m : 0;
+                double s0 = fromThrough ? ThroughSlopes(segs, index - 1, target, blend, depth, distance).Start : 0;
+                double s1 = through ? ThroughSlopes(segs, index, target, blend, depth, distance).End : 0;
                 e = (u * u * u - 2 * u * u + u) * s0 + (-2 * u * u * u + 3 * u * u) + (u * u * u - u * u) * s1;
             }
         }
-        return e >= 1 ? target(seg) : blend(ChainAt(segs, index - 1, seg.T0, target, blend, depth + 1), target(seg), e);
+        return e >= 1 ? target(seg) : blend(ChainAt(segs, index - 1, seg.T0, target, blend, depth + 1, distance), target(seg), e);
     }
 
     /// <summary>From one offset to another: the direction swings, the length changes evenly.</summary>
@@ -1243,7 +1275,7 @@ internal sealed class FigureSolver
     private static Vec3 DirOf(Seg? seg, Vec3 neutral) => seg?.Dir is { } d ? new Vec3(d[0], d[1], d[2]) : neutral;
 
     private static Vec3 Direction(List<Seg> targets, double t, Vec3 neutral, Vec3 via) =>
-        Chain(targets, t, seg => DirOf(seg, neutral), (a, b, e) => Blend(a, b, e, via)).Normalized();
+        Chain(targets, t, seg => DirOf(seg, neutral), (a, b, e) => Blend(a, b, e, via), Dist).Normalized();
 
     /// <summary>Which way the figure faces, radians: what its turns have made of where it began.</summary>
     public double FacingAt(double t) => YawAt(t);
@@ -1421,7 +1453,7 @@ internal sealed class FigureSolver
             Vec3? from = Carry(Own(a.Bend, a.Offset), a.Offset.Normalized(), axis), to = Carry(Own(b.Bend, b.Offset), b.Offset.Normalized(), axis);
             var between = from is null || to is null ? from ?? to ?? kneePole : Vec3.Slerp(from.Value, to.Value, e);
             return new LegPose(weight, offset, Across(between, axis), point);
-        });
+        }, (a, b) => Dist(a.Offset, b.Offset) + Math.Abs(b.Weight - a.Weight));
     }
 
     /// <summary>
@@ -1440,7 +1472,7 @@ internal sealed class FigureSolver
     private double Clamp(double t) => _loop ? t : Math.Clamp(t, 0, _length);
 
     /// <summary>How far each leg is turned out in its socket, radians (negative: in).</summary>
-    private double TurnoutAt(double t) => Chain(_turnout, t, seg => (seg?.TurnDeg ?? 0) * Math.PI / 180, (a, b, e) => a + (b - a) * e);
+    private double TurnoutAt(double t) => Chain(_turnout, t, seg => (seg?.TurnDeg ?? 0) * Math.PI / 180, (a, b, e) => a + (b - a) * e, Dist);
 
     /// <summary>
     /// How far apart the ankles stand when the feet close: standing width with the legs parallel,
@@ -1489,10 +1521,10 @@ internal sealed class FigureSolver
 
         var torso = Direction(_torso, t, Vec3.Up, new Vec3(0, 0, 1));
         c.TorsoUp = (c.Left * torso.X + Vec3.Up * torso.Y + c.Fwd * torso.Z).Normalized();
-        c.Round = Chain(_torso, t, seg => seg is { Round: true } ? 1.0 : 0.0, (a, b, e) => a + (b - a) * e);
-        c.Shoulders = Chain(_shoulders, t, seg => (seg?.TurnDeg ?? 0) * Math.PI / 180, (a, b, e) => a + (b - a) * e);
+        c.Round = Chain(_torso, t, seg => seg is { Round: true } ? 1.0 : 0.0, (a, b, e) => a + (b - a) * e, Dist);
+        c.Shoulders = Chain(_shoulders, t, seg => (seg?.TurnDeg ?? 0) * Math.PI / 180, (a, b, e) => a + (b - a) * e, Dist);
         // The hips turn over the feet: the sockets go round the pelvis, the feet stay, and the knees follow.
-        c.Hips = Chain(_hips, t, seg => (seg?.TurnDeg ?? 0) * Math.PI / 180, (a, b, e) => a + (b - a) * e);
+        c.Hips = Chain(_hips, t, seg => (seg?.TurnDeg ?? 0) * Math.PI / 180, (a, b, e) => a + (b - a) * e, Dist);
         c.HipLeft = c.Left * Math.Cos(c.Hips) - c.Fwd * Math.Sin(c.Hips);
         c.HipFwd = c.Fwd * Math.Cos(c.Hips) + c.Left * Math.Sin(c.Hips);
         // A leaning torso is balanced by the hips going the other way. Sideways only as far as it costs the
@@ -1531,12 +1563,12 @@ internal sealed class FigureSolver
         c.P = p;
 
         // The height is a row of its own, read like a gesture: it can be taken over half-way.
-        double level = Chain(_height, t, seg => seg?.Level ?? 0, (a, b, e) => a + (b - a) * e);
+        double level = Chain(_height, t, seg => seg?.Level ?? 0, (a, b, e) => a + (b - a) * e, Dist);
         c.Raise = Math.Max(0, level) * 0.07;
         double reach = Rig.Leg * Rig.StraightLeg;
         double top = Rig.AnkleHeight + reach + c.Raise;
         // `mid` stands on soft knees, `straight` and `high` on straight legs; `low` is measured from straight.
-        double soft = Chain(_height, t, seg => seg is { Straight: true } ? 0.0 : 1.0, (a, b, e) => a + (b - a) * e);
+        double soft = Chain(_height, t, seg => seg is { Straight: true } ? 0.0 : 1.0, (a, b, e) => a + (b - a) * e, Dist);
         double softDrop = soft * Rig.Leg * (Rig.StraightLeg - Rig.BentShare(Rig.Thigh, Rig.Shin, Rig.SoftKnee));
 
         // The pelvis is as high as it can be with both planted feet still in reach.
@@ -1554,8 +1586,19 @@ internal sealed class FigureSolver
         // foot lands, and only this is smoothed (TrunkAt). The height row is smooth already, and is
         // measured down from where the dancer stands: `low` is bent knees, not a squat, the hips
         // 16 cm lower (a deep crouch is `low(40cm)`), and `low(12cm)` is 12 cm below standing straight in the same place.
-        c.Deficit = stand - top;
         c.Drop = Math.Max(softDrop, Rig.LowDrop * Math.Max(0, -level));
+        c.Deficit = stand - top;
+        // The weight carried off the middle of two planted feet (a shift, a lunge, DESIGN.md 87): the far leg
+        // straightens out of the bend the height row has it in before the hips must go lower. `low(15cm)` over
+        // the right foot is 15 cm down with the left leg straight, not 15 cm and the shift's sink again.
+        if (!freeL && !freeR && c.Drop > 0)
+        {
+            var q = (c.LPos + c.RPos) * 0.5;
+            double standMid = Math.Min(top, Math.Min(Cap(q + c.HipLeft * Rig.HipHalf, c.LPos, false, c.Raise, reach),
+                                                     Cap(q - c.HipLeft * Rig.HipHalf, c.RPos, false, c.Raise, reach)));
+            if (stand < standMid)
+                c.Deficit += Math.Min(c.Drop, standMid - stand);
+        }
         c.WantY = top - c.Drop;
         // The most the legs reach at all: the smoothed height may not go over it, or a planted foot would come up.
         c.CeilingY = Math.Min(Cap(p + c.HipLeft * Rig.HipHalf, c.LPos, freeL, c.Raise, (Rig.Leg - 2e-4)),
@@ -1761,7 +1804,7 @@ internal sealed class FigureSolver
             return faceFwd;
         }
 
-        var gaze = Chain(_head, t, Gaze, (a, b, e) => Blend(a, b, e, faceFwd)).Normalized();
+        var gaze = Chain(_head, t, Gaze, (a, b, e) => Blend(a, b, e, faceFwd), Dist).Normalized();
 
         // A tilt (`tilt(left(15))`) is the line of the eyes from level, in the room: the neck bends
         // sideways about the gaze until the ears' line is that far from level. Unwritten, the head sits
@@ -1774,7 +1817,7 @@ internal sealed class FigureSolver
             return ears.Length < 1e-6 ? 0 : Math.Asin(Math.Clamp(-ears.Normalized().Dot(Vec3.Up), -1, 1));
         }
         double square = Roll(neck);
-        double roll = Chain(_head, t, seg => seg?.Tilt is { } d ? d * Math.PI / 180 : square, (a, b, e) => a + (b - a) * e);
+        double roll = Chain(_head, t, seg => seg?.Tilt is { } d ? d * Math.PI / 180 : square, (a, b, e) => a + (b - a) * e, Dist);
         if (Math.Abs(roll - square) > 1e-9 && neck.Cross(g).Length > 1e-6)
         {
             // Turn the neck about the gaze by the angle that brings the ears to the roll: the ears go
@@ -1998,7 +2041,7 @@ internal sealed class FigureSolver
                     // reaching for that place in the room; the elbow pointing as the word before sent it.
                     var before = armSegs.Take(armSegs.IndexOf(seg)).ToList();
                     if (_staying.Contains(seg))
-                        return Chain(before, seg.T0, Posed, ArmBlend);
+                        return Chain(before, seg.T0, Posed, ArmBlend, (a, b) => Dist(a.Offset, b.Offset));
                     var kept = StayHand(seg) - (shoulder + lifted);
                     var sent = before.LastOrDefault(s => s.Kind is not (SegKinds.Hold or SegKinds.Stay));
                     return (kept, Across(sent?.Pole is { } p ? Frame(sent, p) : pole, kept.Normalized()));
@@ -2037,7 +2080,7 @@ internal sealed class FigureSolver
                 return kept;
             }
 
-            var (reach, bend) = Chain(armSegs, t, Posed, ArmBlend);
+            var (reach, bend) = Chain(armSegs, t, Posed, ArmBlend, (a, b) => Dist(a.Offset, b.Offset));
             if (armSegs.LastOrDefault(s => s.T0 <= t + 1e-9) is { Kind: SegKinds.Stay } staying && !_staying.Contains(staying)
                 && reach.Length > Rig.UpperArm + Rig.Forearm + 0.01)
                 problems.HandShort = isLeft ? Channels.LeftArm : Channels.RightArm;
