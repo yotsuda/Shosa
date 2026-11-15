@@ -1,0 +1,5 @@
+role a
+dancer a humanoid on a
+section M { a { turnout { out(80) } height { straight } steps { rightFoot.across(0.12m):1 shift.center:2 } } }
+form { M }
+score { dancer a }

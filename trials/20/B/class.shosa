@@ -1,0 +1,29 @@
+title "Class"
+tempo 90
+time 3/4
+
+role solo
+dancer solo humanoid on solo
+
+pose first {
+  turnout { out(80) }
+  steps   { together }
+  arms    { fwd.down(70).bent(30).elbow(side) }
+}
+pose fifth { arms { fwd.up(70).bent(40).elbow(side) } }
+
+section Class {
+  solo {
+    steps   { first:3 | }
+    turnout { first:3 | }
+    // two demi-pliés (bars 1-4), relevé (bars 5-7)
+    height  { mid:3 | low(12cm):3@linear | mid:3@linear | low(12cm):3@linear | mid:1@linear then:2 | high:3 | then:2 mid:1 | }
+    // passé at 24, attitude at 30, closed in first at 36
+    rightLeg { skip:7bar | then:3 | otherKnee:3 | then:3 | back.bent.knee(side.up):3 | then:3 | down:3 | }
+    arms     { first:3 | then:6bar | then:3 | fifth:3 | then:2bar | then:3 | first:3 | }
+    leftArm  { skip:9bar | then:3 | side:3 | then:3 | first:3 | }
+  }
+}
+
+form { Class }
+score { dancer solo }

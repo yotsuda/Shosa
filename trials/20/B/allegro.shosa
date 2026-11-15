@@ -1,0 +1,27 @@
+title "Allegro"
+tempo 120
+time 2/4
+
+role solo
+dancer solo humanoid on solo
+
+pose first {
+  turnout { out(80) }
+  steps   { together }
+  arms    { fwd.down(70).bent(30).elbow(side) }
+}
+
+section Allegro {
+  solo {
+    turnout { first:2 | }
+    arms    { first:2 | }
+    //         first     weight L       jeté R      jeté L      jeté R      jeté L      hop L    hop L    close      échappé        back to first
+    steps    { first:2 | shift.left:2 | leap.fwd:2 | leap.fwd:2 | leap.fwd:2 | leap.fwd:2 | hop:2 | hop:2 | together:2 | jump.apart:2 | jump.together:2 | }
+    // the back leg comes through low (fwd.down(45)) to the front: straight from back.up(20) to fwd it swings over the top
+    rightLeg { skip:2 | skip:1 then:1/2 fwd:1/2 | down:1 then:1/2 back.up(20):1/2 | then:1 fwd.down(45):1/2 fwd:1/2 | down:1 then:1/2 back.up(20):1/2 | back.down(60):2 | then:2 | then:2 | down:2 | }
+    leftLeg  { skip:2 | skip:1 then:1/2 back.up(20):1/2 | then:1 fwd.down(45):1/2 fwd:1/2 | down:1 then:1/2 back.up(20):1/2 | then:1 fwd.down(45):1/2 fwd:1/2 | down:2 | }
+  }
+}
+
+form { Allegro }
+score { dancer solo }

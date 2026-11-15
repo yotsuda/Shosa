@@ -11,7 +11,7 @@ section Stretch {
   solo {
     arms  { fwd up side down | fwd up side down }
     steps { then then:2 then | then then:2 then }
-    height { mid high:2 mid | mid low:2 mid }   // up on the toes on 2, knees bent on the next 2
+    height { mid high then mid | mid low then mid }   // up on the toes on 2 and held through 3, knees bent likewise in the next bar (`then` holds; each word is reached on its beat)
   }
 }
 

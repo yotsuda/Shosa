@@ -2279,7 +2279,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
             return null;
         }
 
-        double bend = 0;
+        double? bend = null;
         double[]? jointPole = null;
         TextSpan poleSpan = default;
         Part? bentPart = null;
@@ -2416,6 +2416,14 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
             string joint = isArm ? "elbow" : "knee";
             Report("SH2011", DiagnosticSeverity.Warning, poleSpan,
                 $"The {joint} is sent the way the {(isArm ? "arm" : "leg")} itself points, so which way it bends is not said. Point it square to the {(isArm ? "arm" : "leg")}: for a {(isArm ? "hand" : "foot")} out to the side, {joint}(up), {joint}(back) or {joint}(fwd).");
+        }
+
+        // A leg sent (nearly) straight down stands on the floor: the solver gives it to the feet and the
+        // height, and its knee and its bend are not read. (Same bound as the solver's IsDown.)
+        if (isLeg && !body && direction.Y < -0.95 && (bend is > 0 || jointPole is not null))
+        {
+            Report("SH2014", DiagnosticSeverity.Warning, bentPart?.Word.Span ?? poleSpan,
+                "A leg sent down stands on the floor, so its knee is not bent from here. A standing knee bends with the height: height { low(8cm) }. To hold the foot off the floor, send it a little away from down: down.fwd(20).bent.");
         }
 
         return new Seg
@@ -2777,8 +2785,9 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                     Error("SH1012", parts[0].Bracket!.Span, $"How far goes on the way the foot goes: {head.Text}.fwd(0.3m).");
                     return null;
                 }
-                bool crossed = false, back = false;
+                bool crossed = false, back = false, measured = false;
                 double? crossing = null;
+                Part? crossingPart = null;
                 foreach (var part in rest)
                 {
                     string example = $"{head.Text}.{part.Text}(0.3m)";
@@ -2793,6 +2802,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                                 return null;
                             seg.Dz += part.Text == "fwd" ? along : -along;
                             back |= part.Text == "back";
+                            measured |= part.Bracket is not null;
                             break;
                         case "side":
                             // How far apart the feet land.
@@ -2807,7 +2817,10 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                             seg.Dx = -0.08;
                             crossed = true;
                             if (part.Bracket is not null)
+                            {
                                 crossing = cross;
+                                crossingPart = part;
+                            }
                             break;
                         default:
                             Error("SH1012", part.Word.Span, part.Word.Kind == SyntaxKind.Number
@@ -2818,10 +2831,17 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                 }
                 // A crossing foot goes just in front of the other one, or with `back` just behind
                 // it: a cross is not a stride. (`fwd.across` is a full stride that crosses.)
+                // How far in front or behind is written once: on `across` (`back.across(0.07m)` crosses 0.07 m
+                // behind) or on `fwd` / `back` (`fwd(0.5m).across`, a stride that crosses).
+                if (crossingPart is not null && measured)
+                {
+                    Error("SH1012", crossingPart.Value.Bracket!.Span, $"How far the foot goes is written once: on across, how far in front (or with back, behind) it crosses: {head.Text}.back.across(0.07m); or on fwd or back for a stride that crosses: {head.Text}.fwd(0.5m).across. The foot always crosses 0.08 m over the other one's line.");
+                    return null;
+                }
                 if (crossed && seg.Dz == 0)
                     seg.Dz = crossing ?? 0.12;
-                else if (crossed && back && seg.Dz == -Rig.Stride && crossing is null)
-                    seg.Dz = -0.12;
+                else if (crossed && !measured)
+                    seg.Dz = back ? -(crossing ?? 0.12) : crossing ?? seg.Dz;
                 return seg;
             }
 
@@ -2849,15 +2869,15 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
     /// </summary>
     private Seg? BindHeight(List<Part> parts)
     {
-        const string Form = "The height is low (the knees bent, the hips 16 cm lower), low(30cm) for as far down as that, mid, or high (on the toes): height { low mid high }";
-        if (parts is [{ Text: "mid" or "high" } level])
+        const string Form = "The height is low (the knees bent, the hips 16 cm lower), low(30cm) for 30 cm lower, mid (the knees soft), straight (the legs straight), or high (on the toes): height { low mid high }";
+        if (parts is [{ Text: "mid" or "high" or "straight" } level])
         {
             if (level.Bracket is not null)
             {
                 Error("SH1012", level.Bracket.Span, $"Only low says how far: low(30cm). {Form}");
                 return null;
             }
-            return new Seg { Kind = SegKinds.Level, Level = level.Text == "high" ? 1 : 0 };
+            return new Seg { Kind = SegKinds.Level, Level = level.Text == "high" ? 1 : 0, Straight = level.Text != "mid" };
         }
         if (parts is [{ Text: "low" } low])
         {

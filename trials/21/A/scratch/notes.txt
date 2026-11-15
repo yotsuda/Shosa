@@ -1,0 +1,108 @@
+TRIAL 21 A — notes
+
+=== TASK 1: parade.shosa — PLAN (before first check) ===
+Roles: sentry (at 0 0, facing front), slacker (1.5 m to the sentry's right = stage right = x -1.5).
+Sentry:
+  height { straight }            legs straight
+  arms { down.bent(0) }          arms straight at the sides (grammar: down.bent(0) holds it straight)
+  steps: first word `together` (heels together, parallel). Each 4-beat bar:
+    then:2  shift.left:1/2  turn.left(90):1/2  together:1@sharp!stamp
+    i.e. stand 2 beats, weight onto left, pivot left 90 on the left foot, right foot snaps closed (stamp mark).
+  bars: | % | % | ... 4 bars = 16 beats = 9.6 s at 100 bpm; score loops.
+Slacker:
+  steps { shift.left }           weight on the left foot (first word = already there)
+  rightLeg { down.bent(15) } ?   "right knee loose" -- unsure if a leg on the floor can take bent; try it.
+  head { sentry.head }           looks at the sentry (follows him). Interpretation: watching him.
+  Head tilt 10 deg to the side (roll): NO WORD for it in the grammar (head directions are where the face
+  looks; torso lean is not a head tilt). Cannot be said -> leave out, record as limitation.
+Expect check: maybe a warning about the rightLeg row (SH2004? or nothing), "sentry loops on the spot"
+  or tiny wander; score 16 beats, 9.6 s.
+Predicted answers:
+ (a) sentry knees ~4 deg each (straight). Slacker left ~12 deg (mid), right ~15-20 deg if bent works.
+ (b) after 4 quarter turns = 360, grammar says a whole turn ends where it began -> yes, same place facing front.
+
+=== TASK 2: shop.shosa — PLAN ===
+tempo 60 (1 beat = 1 s), Idle 4 beats, loop inPlace. Greet section with `tempo 90`, own form/score.
+pose rest { arms { fwd.across(15).down(50).bent(40) } }  -- hands in front of belly, ~hip height. Will tune via clip.
+Idle:
+  body { rest:4 }
+  head { { fwd:1 then:1/2 fwd.down(12):1/2 } q }   nod at 1.5 and 3.5 (every 2 s)
+  torso { up:1/2 then:3/2 up.fwd(10):2 }           leans in through 0.5-2, back up 2-4
+Greet (90 bpm):
+  body { rest:4 }
+  torso { up:1 up.fwd(30):1!bow then:1 up:1 }     bow at beat 1, hold to 2, up at 3
+Expect: no problems. Greet 4 beats = 2.667 s.
+Predicted answers:
+ (a) knees ~12 deg each (mid, unwritten height)
+ (b) hands ~0.3 m in front of the hips, around hip height (to tune)
+ (c) deepest point at beat 1 = 0.667 s (held until beat 2 = 1.333 s)
+
+=== TASK 1 RESULTS ===
+check run 1 (parade.shosa --at 0,1): no problems. 16 beats, 9.6 s. "sentry loops on the spot", "slacker loops on the spot".
+  !stamp at beats 3,7,11,15 (1.8, 4.2, 6.6, 9 s).
+  sentry knees 4/4; slacker knees 12 left, 12 right -> the rightLeg { down.bent(15) } row had NO effect and NO diagnostic.
+check run 2 (--at 2.5,3,4,8,12,15.9): feet face 90 left at 4, 180 at 8, 90 right at 12, front at 15.9. During the pivot
+  (2.5) right knee 12 (the free foot being carried). Slacker's face 88-92 deg left (follows the sentry's small wander only).
+sheet out\parade.png: sentry turns a quarter each bar (top view nose rotates left), arms straight, feet together;
+  slacker hip shifted over left foot, head turned toward sentry. Right knee not visibly looser.
+check run 3 (scratch\parade-noloop.shosa, loop removed, --at 16): "sentry ends where it began", feet face front (no "turned").
+Changes: none needed to parade.shosa.
+COULD NOT SAY: (1) head tilt (roll, ear toward shoulder) - head words are only where the face looks. Left out.
+  (2) a loose knee of a leg whose foot stays on the floor: rightLeg is "for a leg that carries no weight"; with
+  shift.left the right foot still touches the floor, and the row was silently ignored (no warning). Left the row in
+  the file as written intent; it does nothing.
+  (3) "follow the first guard with the head": sentry.head is a fixed point (he turns on the spot), so the head barely moves
+  (88-92 deg). If the intent was to track which way the sentry faces, there is no word for "look where b faces".
+FINAL ANSWERS 1:
+ (a) sentry: knees 4 deg / 4 deg (straight); slacker: 12 / 12 (mid, the right knee not looser) -- check --at 0.
+ (b) yes: no-loop copy says "sentry ends where it began" with no "turned", and --at 15.9/16 feet face front (no
+     "(the feet face ...)" note). With loop: "loops on the spot", no SH2005.
+
+=== TASK 2 RESULTS ===
+(Small deviation from plan: wrote bar lines `|` after each 4-beat row.)
+check run 1 (shop.shosa --at 0,1): no problems. Idle 4 beats 4 s "loops on the spot"; Greet 4 beats 2.67 s at 90,
+  "ends where it began"; Greet !bow at beat 1 = 0.667 s. Idle knees 12/12, elbows 40/40. Greet at beat 1: face 30 down.
+clip out\shop.json (frames 0,30,60,90 @30fps):
+  Idle f0: pelvis (0,0.98,0); hips x +-0.10; hands (+-0.10, 1.01, 0.35). -> hands 3 cm above the hip joints, 35 cm in front,
+  each in front of its own hip (20 cm apart). During the lean (f60 = 2 s) hands at z 0.40 (pelvis -0.03): the hands slide
+  ~5 cm forward on the "counter". Greet f30 (1 s = beat 1.5, in the hold): hands (+-0.10, 0.95, 0.50) -> 15 cm forward, 6 cm lower.
+sheet --view side out\shop-Idle.png / out\shop-Greet.png: nod visible at 1.5 and 3.5, lean around 2; bow down at 1, held
+  through 2, up at 3. Unwritten head bows with the chest (as the grammar says).
+No changes needed.
+COULD NOT SAY: hands staying put on a counter (a fixed point in the room) while the torso leans/bows: arm directions are
+  measured from the shoulder, so the hands travel with the shoulders. No object/contact words (grammar lists "holding an
+  object / contact" as limitations). Also no counter itself.
+FINAL ANSWERS 2:
+ (a) knees 12 / 12 while idle (check --at 0 and 1, Idle).
+ (b) hands at (+-0.10, 1.01, 0.35) vs hip joints (+-0.10, 0.98, 0.00): each hand 0.35 m in front of its hip, 3 cm higher (clip f0).
+ (c) deepest point at beat 1 = 0.667 s (check: "Greet !bow at beat 1 = 0.667 s"; --at 1 face 30 down); held to beat 2 = 1.333 s.
+
+=== TASK 3 PLAN ===
+parade-edit: turn.left(90) -> turn.right(90); shift.left -> shift.right (pivot on the right foot, as a right turn pivots
+  on the right heel); the closing stamp is then the LEFT foot (it is the free one; `together` closes the free foot, no foot
+  is named). Head tilt to the other side: the tilt was never expressible, so nothing to change (noted).
+  Expect: no problems, ends where it began.
+shop-edit: bow up.fwd(45), held 2 beats: torso { up:1 up.fwd(45):2!bow then:1 up:1 } = 5 beats -> no longer one 4/4 bar,
+  so drop the bar lines in Greet and body { rest:5 }. Expect: no problems, Greet 5 beats = 3.33 s, !bow at beat 1 = 0.667 s.
+
+=== TASK 3 RESULTS ===
+check run 1 parade-edit.shosa (--at 4,15.9): no problems; loops on the spot; !stamp at 3,7,11,15; beat 4 feet face 90 RIGHT
+  of the front; 15.9 front again. sheet out\parade-edit.png (2-4, step 0.25): pivots right, left (blue) foot closes at 3.
+check run 1 shop-edit.shosa (--at 1,2.9): no problems; Greet 5 beats 3.33 s, "2 bars" (not in bars, counted as 2);
+  !bow at beat 1 = 0.667 s; face 45 down at 1 and still at 2.9 (held through beat 3). sheet --view side out\shop-edit.png ok.
+Extra check of the stamp (clip out\parade.json, original): during the pivot (frames 42-45) the free right ankle is carried
+  round to beside the left foot (already closed); at the stamp (beat 3 = frame 54) it lifts 5 cm (frame 51, y 0.13) and comes
+  down in place. So the "stamp" is a small lift-and-set; the foot is already closed by the pivot.
+FINAL ANSWERS 3:
+ (a) parade-edit: shift.left -> shift.right and turn.left(90) -> turn.right(90) in both written bars (the % bars follow).
+     As a consequence the closing/stamping foot is now the LEFT one (together closes whichever foot is free). Head tilt: nothing
+     to change, it could not be written in the first place.
+     shop-edit: up.fwd(30):1 -> up.fwd(45):2 in Greet's torso; Greet became 5 beats, so removed its bar lines and body rest:4 -> rest:5.
+ (b) Nothing failed: both checks clean on the first run. Caveats: the right-turn version stamps the left foot (not the right as
+     in the brief); the lazy guard's tilt mirror is a no-op; the 5-beat Greet is no longer whole 4/4 bars (bar lines dropped
+     instead of padding to 8 beats).
+GRAMMAR NOTES: nothing actively misled me. Missing: head roll/tilt; a loose knee on a leg that still touches the floor
+  (rightLeg row on a weighted/grounded leg is silently ignored - a warning would help); "look where b faces" vs b.head;
+  hands fixed in the room (on a counter) through a lean. Unclear before trying: whether `together` after a turn moves anything
+  (the pivot already carries the free foot beside the standing one; the stamp shows only as a 5 cm lift).
+

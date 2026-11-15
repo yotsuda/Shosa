@@ -1,0 +1,18 @@
+title "Hopscotch"
+tempo 90
+time 4/4
+
+role kid
+dancer kid humanoid on kid
+
+section Play {
+  kid {
+    //      0     1           2       3       4              5          6         9
+    steps    { stand shift.right hop.fwd hop.fwd jump.fwd.apart shift.left hop.fwd:3 shift.center:2 }
+    // the right lower leg lifted behind in the hop that lands on beat 6, put down beside the left on beat 8
+    rightLeg { skip:5 then:1 back.down.bent:1 then:1 down:1 }
+  }
+}
+
+form { Play }
+score { dancer kid }

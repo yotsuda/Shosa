@@ -207,7 +207,10 @@ public class MotionTests
     public void A_standing_leg_is_straight()
     {
         // Writing trial 19: every standing knee was bent 11° (a ballet dancer's standing leg is straight). DESIGN.md 78.4.
-        var compilation = Compile(Samples.Solo("    turnout { out(80) }\n    steps { together:4 then:4 }\n    rightLeg { then:4 otherKnee:4 }", "tempo 120\ntime 4/4\n"));
+        // Since DESIGN.md 79.4 a ballet dancer writes `straight`: a row nobody wrote (`mid`) stands on soft knees, 12°.
+        var soft = Compile(Samples.Solo("    steps { together:4 }", "tempo 120\ntime 4/4\n"));
+        Assert.InRange(soft.Clip.Figures[0].Angles(soft.Clip.FrameAt(2)).LeftKnee, 11, 13);
+        var compilation = Compile(Samples.Solo("    turnout { out(80) }\n    height { straight }\n    steps { together:4 then:4 }\n    rightLeg { then:4 otherKnee:4 }", "tempo 120\ntime 4/4\n"));
         Assert.Empty(compilation.Diagnostics);
         var figure = compilation.Clip.Figures[0];
         double Knee(double beat, int hip)
@@ -219,6 +222,62 @@ public class MotionTests
         Assert.InRange(Knee(0, Rig.LHip), 0, 5);
         Assert.InRange(Knee(0, Rig.RHip), 0, 5);
         Assert.InRange(Knee(7, Rig.LHip), 0, 5);   // the leg it stands on in a retiré
+    }
+
+    [Fact]
+    public void A_height_is_measured_from_standing_and_starts_on_its_beat()
+    {
+        // Writing trial 20: low(12cm) in first position went 11.5 cm down (it was measured from the legs'
+        // full reach, which feet under the hips do not allow), and smoothing the height over five frames
+        // had the hips sink before the first word and spring a frame before the mark.
+        var compilation = Compile(Samples.Solo("    turnout { out(80) }\n    steps { together:8 }\n    height { straight:2 low(12cm):2 then:1!up straight:1 then:2 }", "tempo 60\ntime 4/4\n"));
+        Assert.Empty(compilation.Diagnostics);
+        var figure = compilation.Clip.Figures[0];
+        double Y(double beat) => figure.Joint(compilation.Clip.FrameAt(beat), Rig.Pelvis).Y;
+        Assert.Equal(0.12, Y(0) - Y(2), 3);
+        Assert.Equal(0.06, Y(0) - Y(1), 2);
+        Assert.Equal(Y(0), Y(1.0 / 30), 3);   // a word reached at 0 and left from 0 does not start before it
+        Assert.Equal(Y(2), Y(4), 4);          // still at the mark: the spring starts on it
+    }
+
+    [Fact]
+    public void A_bend_on_a_leg_sent_down_is_a_warning()
+    {
+        // Writing trial 21: `rightLeg { down.bent(15) }` for a loose knee did nothing and said nothing.
+        var compilation = Compile(Samples.Solo("    steps { shift.left:4 }\n    rightLeg { down.bent(15):2 down.fwd(20).bent:2 }", "tempo 60\ntime 4/4\n"));
+        var warning = Assert.Single(compilation.Diagnostics);
+        Assert.Equal(("SH2014", DiagnosticSeverity.Warning), (warning.Code, warning.Severity));
+    }
+
+    [Fact]
+    public void A_cross_says_how_far_once_and_a_plain_jump_keeps_it()
+    {
+        // Writing trial 21: back.across(0.07m) took a whole stride back (the bracket was dropped), a second
+        // distance on across was dropped without a word, and a sauté in fifth landed with the feet side by side.
+        Assert.Equal("SH1012", Assert.Single(Compile(Samples.Solo("    steps { rightFoot.fwd(0.07m).across(0.17m) }", "tempo 60\ntime 4/4\n")).Diagnostics).Code);
+        var compilation = Compile(Samples.Solo("    steps { then:1 rightFoot.back.across(0.07m):2 then:1 jump:2 }", "tempo 60\ntime 4/4\n"));
+        Assert.Empty(compilation.Diagnostics);
+        var figure = compilation.Clip.Figures[0];
+        Vec3 Apart(double beat) => figure.Joint(compilation.Clip.FrameAt(beat), Rig.LHip + 2) - figure.Joint(compilation.Clip.FrameAt(beat), Rig.RHip + 2);
+        var crossed = Apart(3);
+        Assert.Equal(0.07, crossed.Z, 2);     // the right foot 0.07 m behind the left
+        Assert.True(crossed.X < 0, crossed.ToString());   // and crossed: the left foot is on the right foot's right
+        var landed = Apart(6);
+        Assert.Equal(crossed.Z, landed.Z, 2);
+        Assert.Equal(crossed.X, landed.X, 2);
+    }
+
+    [Fact]
+    public void A_leg_swings_about_the_hip()
+    {
+        // Writing trial 20: a straight leg lowered from the front bent its knee to 90° on the way (the ankle went
+        // along the chord from the leg's shape to the floor), and a leg from behind to the front went over the top.
+        var compilation = Compile(Samples.Solo("    height { straight }\n    rightLeg { down:1 fwd:1 down:2 back.up(20):1 fwd:1 down }", "tempo 60\ntime 4/4\n"));
+        Assert.Empty(compilation.Diagnostics);
+        for (double beat = 1; beat <= 3; beat += 0.25)
+            Assert.InRange(compilation.Clip.Figures[0].Angles(compilation.Clip.FrameAt(beat)).RightKnee, 0, 10);
+        double halfway = compilation.Clip.Figures[0].Joint(compilation.Clip.FrameAt(4.5), Rig.RHip + 2).Y;
+        Assert.True(halfway < 0.4, $"the ankle is {halfway:0.00} m up halfway from back to front");
     }
 
     [Fact]
@@ -624,6 +683,16 @@ public class MotionTests
         var hand = At(clip, 2, Rig.RHand) - At(clip, 2, Rig.RShoulder);
         Assert.True(Math.Abs(hand.X) < 0.01 && Math.Abs(hand.Y) < 0.01, hand.ToString());
         Assert.Equal(Rig.BentShare(Rig.UpperArm, Rig.Forearm, 60) * Rig.Arm, hand.Length, 2);
+    }
+
+    [Fact]
+    public void Bent_0_is_a_straight_arm_and_down_alone_hangs()
+    {
+        // `down` hangs with the elbow a little bent, as an arm nobody wrote; `down.bent(0)` is the arm
+        // held straight (a soldier at attention). Trial 20: bent(0) used to be read as not written.
+        var clip = Solve("    rightArm { down:2 down.bent(0):2 }");
+        Assert.True(clip.Figure.Angles(clip.Clip.FrameAt(0)).RightElbow > 8);
+        Assert.True(clip.Figure.Angles(clip.Clip.FrameAt(2)).RightElbow < 6);
     }
 
     [Fact]

@@ -72,9 +72,10 @@ public static class Vocabulary
 
     public static readonly Word[] Levels =
     [
-        new("low", "The knees bent, the hips 16 cm lower; `low(30cm)` as far down as that (a deep crouch is `low(40cm)`)."),
-        new("mid", "Standing straight (the height a row nobody wrote stands at)."),
-        new("high", "On the toes."),
+        new("low", "The knees bent, the hips 16 cm lower than standing straight in the same place; `low(30cm)` 30 cm lower (a deep crouch is `low(40cm)`)."),
+        new("mid", "Standing, the knees soft (bent 12°): the height a row nobody wrote stands at."),
+        new("straight", "Standing on straight legs (a ballet dancer's, a soldier at attention): the hips half a centimetre higher than `mid`."),
+        new("high", "On the toes, the legs straight."),
     ];
 
     public static readonly Word[] Poles =

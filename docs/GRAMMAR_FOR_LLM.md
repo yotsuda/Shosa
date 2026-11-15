@@ -619,6 +619,10 @@ one, the shape it arrives in (see "Shapes" below).
   `fwd` straight to `back`): the way round is then unwritten (warning SH2001). Go through
   a target in between — `arms { fwd up }` raises them through the front, `arms { side up }`
   through the side.
+- **A leg swings about the hip**: lowered from `fwd` to `down` it stays straight all the way.
+  From behind to the front (or the front to behind) it passes under the hip, through `down`
+  (a leg brushing through first position), never over the top. An arm goes the shortest way
+  round: from `back.up(20)` to `fwd` it goes over the top of the shoulder.
 
 
 An arm can also go to a place on the own body instead of a direction:
@@ -936,8 +940,10 @@ on its direction, in metres: `leftFoot.fwd(0.3m)` (a small step), `leftFoot.side
   `leftFoot.fwd stand rightFoot.back stand` goes out and comes home in one bar, and
   `leftFoot.fwd rightFoot.fwd leftFoot.back rightFoot.back stand` does it in walking steps (the
   fourth step leaves the left foot a stride ahead; `stand` brings it home).
-- `across` puts the foot just in front of the other one (0.12 m, or `across(0.2m)`), crossed
-  over; `back.across` just behind it — the cross-behind of a grapevine. A cross is not a
+- `across` puts the foot just in front of the other one (0.12 m, or `across(0.2m)`: how far in front),
+  crossed over, 0.08 m past its line (always; that is not written); `back.across` just behind it
+  (`back.across(0.07m)` 0.07 m behind) — the cross-behind of a grapevine. How far is written once:
+  on `across`, or on `fwd` / `back` for a stride that crosses (`fwd(0.5m).across`). A cross is not a
   stride. Since the next step is placed from the crossed foot, a line of
   side / cross / side drifts by that 0.12 m; alternate front and behind to cancel it.
 - A step that turns (`leftFoot.place@turn(left(45))`) swivels on the standing foot, not
@@ -1015,7 +1021,9 @@ on its direction, in metres: `leftFoot.fwd(0.3m)` (a small step), `leftFoot.side
   `then:2 jump` is a high one and `then:1/2 jump` a little one); it is not written.
   A quarter of a second gives 2 cm of air — the sheet shows bent knees and no flight — and
   half a second 7 cm (how far the body rises; a foot swinging through clears the floor by more): a leap that is to be SEEN in the air needs half a second or more before it. It lands at the
-  height it took off from (the `height` row), and a plain `jump` keeps the feet as far apart as they were.
+  height it took off from (the `height` row), and a plain `jump` lands with the feet as they stood: as far apart, one as far ahead, crossed
+  if they were crossed (a sauté in fifth lands in fifth). The jump bends its own knees before it
+  takes off, on top of any plié the `height` row has written.
   `jump@turn(right(180))` turns in the air. Jumps in a row, each on its beat: `jump jump jump`.
   `left` / `right` go to the dancer's own left and right (a sidestep or a
   dodge: `jump.right(0.25m)`; a dancer `facing stageLeft` has upstage on its left, so two who
@@ -1048,25 +1056,31 @@ changed**, as a turn of the hips is — across steps, jumps and sections:
 
 | Height | Meaning |
 |---|---|
-| `low` | The knees bent, the hips 16 cm lower; `low(30cm)` as far down as that (a deep crouch is `low(40cm)`). |
-| `mid` | Standing straight (the height a row nobody wrote stands at). |
-| `high` | On the toes. |
+| `low` | The knees bent, the hips 16 cm lower than standing straight in the same place; `low(30cm)` 30 cm lower (a deep crouch is `low(40cm)`). |
+| `mid` | Standing, the knees soft (bent 12°): the height a row nobody wrote stands at. |
+| `straight` | Standing on straight legs (a ballet dancer's, a soldier at attention): the hips half a centimetre higher than `mid`. |
+| `high` | On the toes, the legs straight. |
 
 ```shosa
-height { mid:3 low(12cm):3 mid:3 }  // a demi-plié: down through beats 0-3, up through 3-6
+height { straight:3 low(12cm):3 straight:3 }  // a demi-plié from straight legs: down through beats 0-3, up through 3-6
 height { { low(8cm) low } q q q }   // a bounce in a low stance
 height { mid high:2 mid }           // up onto the toes by beat 1, down again through beats 1-3
+height { straight }                 // a soldier at attention, a ballet dancer: straight legs, kept until changed
 ```
 
 - **A height moves as a gesture does: through ALL of the word before** (a plié or a rise
   as slow as you write it). To stay, then go, `then`: `height { mid:2 then:1 low:1 }`
   stands until beat 2 and is down at 3.
 
-- `low` bends the knees, the hips 16 cm lower: a fighter's stance, a plié — not a squat.
+- `mid` stands on soft knees (12°), as a character stands about; `straight` on straight legs
+  (about 4° in `check`), half a centimetre higher. Ballet and a soldier at attention write
+  `height { straight }` once; it is kept until another height is written (after a plié, go
+  back to `straight`, not `mid`). `high` is on the toes, the legs straight.
+- `low` bends the knees, the hips 16 cm lower than standing straight on the same feet (on wide feet, lower than the wide stance straight): a fighter's stance, a plié — not a squat.
   `low(8cm)` is a slight bend, `low(40cm)` a deep crouch (up to `low(60cm)`).
 - The weight stays where it is, and the feet: a `height` row beside a pose or a walk
   changes only how high it stands.
-- A row nobody wrote is `mid`. A pose may hold a height (`pose guard { … height { low(8cm) } }`),
+- A row nobody wrote is `mid` (soft knees). A pose may hold a height (`pose guard { … height { low(8cm) } }`),
   and a pose's name in the row is that pose's height.
 
 ## Annotations
@@ -1274,6 +1288,9 @@ of the room the hips are then that plus their own number (`clip`'s `angles` has 
 With several dancers, a line for each, the name in front of `hips`
 (`score at beat 4 = 2.5 s: a: hips 20° left, …`). These lines come last, after the marks.
 After `bent:` each elbow and knee is how far it is bent, 0 straight: the number `bent(N)` writes.
+A straight limb reads a few degrees (a leg standing at `straight` or stretched in the air about 4°, an arm `bent(0)` about 5°; at `mid` the standing knees read 12°):
+the joint is kept a hair short of its full length so it knows which way it bends. An arm written
+`down` (or not written) hangs with the elbow 10° bent; `down.bent(0)` holds it straight.
 Between two words a part eases out of the one and into the other (slow, fast, slow), and
 the head moves as a direction, so the halfway moment is near, not at, the halfway angle:
 ask for the moment rather than working it out.
@@ -1301,7 +1318,8 @@ SH2007 two dancers whose heads, bodies or standing legs are in the same place,
 SH2009 two rows of an `&` that turn the shoulders, or the hips, at the same time,
 SH2010 shoulders the chest cannot turn to on the hips, SH2011 an elbow or a knee pointed
 along its own limb, SH2012 a hop or a leap from both feet, SH2013 a foot that `steps` puts
-down while its leg's row still holds it up). The message says what to change.
+down while its leg's row still holds it up, SH2014 a bend or a knee written on a leg sent
+down, which stands on the floor). The message says what to change.
 
 The sheet shows poses numbered by beat from 0, read left to right, then down. How far
 apart they are depends on the length shown: every half beat up to 8 beats, every beat up

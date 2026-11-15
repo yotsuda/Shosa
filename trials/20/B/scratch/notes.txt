@@ -1,0 +1,97 @@
+TRIAL 20 / B — notes
+
+=== Task 1: class.shosa ===
+Plan (3/4 at 90, one beat = 0.667 s, bar = 3 beats):
+- pose first: turnout out(80), steps together, arms fwd.down(70).bent(30).elbow(side) (bras bas, rounded, in front of thighs).
+- pose fifth: arms fwd.up(70).bent(40).elbow(side) (grammar's "overhead (fifth, en haut)").
+- height: mid@0, low(12cm)@3 (linear), mid@6, low(12cm)@9, mid@12 (linear) -> two pliés bars 1-4.
+  bar5: mid:1 then:2 -> high @15 (rise over 2 beats 13-15); bar6 high:3 (hold 1 bar); bar7 then:2 mid:1 (down 18-20).
+- passé: rightLeg skip:7bar | then:3 | otherKnee:3 | then:3 | back.bent.knee(side.up):3 | then:3 | down:3 |
+  passé at 24 held to 27; attitude at 30 held to 33; down (first) at 36; end 39.
+- arms: first low until 21, fifth at 24, held, low at 36. leftArm: side at 30, low at 36.
+Expect check: no problems, 39 beats = 26 s, 13 bars. Maybe warning about first word already made.
+Predictions: (a) 6 cm down at beat 1.5 (linear). (b) standing knee ~0 in both. (c) right foot ~hip height in attitude (~0.9 m ankle).
+
+Check run 1 (check class.shosa --at 1.5,24,30): no problems. 39 beats, 26 s, 13 bars, ends where it began.
+  at 1.5: knees 41/41 bent. at 24 (passé): knees left 4°, right 129°. at 30 (attitude): left 4°, right 90°, elbows L5 R40.
+clip (scratch\class.json, scratch\q.ps1): pelvis y f0 0.977, f30 (beat 1.5 = 1 s) 0.920, f60 (beat 3) 0.862, f90 0.919, f180 0.862,
+  f300 (relevé high) 1.048. Attitude f600: rightAnkle y 0.975 (= rightHip y 0.975), rightToe y 0.925; standing ankle y 0.080.
+  Thigh: knee - hip = (-0.225, +0.225, -0.318) -> horizontal 0.39, up 0.225 -> 30° up. Good.
+  Passé f480: right toe (0.102,0.526) = left knee position exactly; right knee x -0.466 (out to the side).
+Sheet out\class.png looked: two pliés, relevé, passé (triangle knee out), attitude behind with left arm side, closed. OK.
+  (The drawing looks nearly in profile because of the turnout; hard to judge "arms in front of thighs" from it.)
+FINAL ANSWERS task 1:
+ (a) 5.7 cm down at beat 1.5 (pelvis 0.977 -> 0.920, frame 30). Note: the full plié is 11.5 cm, not 12 (0.977 -> 0.862).
+ (b) Standing (left) knee bent 3.6° in both passé and attitude (check --at 24,30 says 4°; clip angles 3.6). Nearly but not exactly straight.
+ (c) Right ankle 0.975 m above the floor (0.895 m above its standing height of 0.08); toe 0.925 m. At hip height.
+ One run, no edits.
+
+=== Task 2: allegro.shosa ===
+Plan (2/4 at 120, beat 0.5 s, bar 2 beats):
+ steps: together:2 | shift.left:2 | leap.fwd:2 (4, on R) | leap.fwd:2 (6, L) | leap.fwd:2 (8, R) | leap.fwd:2 (10, L) | hop:2 (12) | hop:2 (14) | together:2 (16) | jump.apart:2 (18) | jump.together:2 (20) |
+ legs: in each air, landing leg fwd (at x.5) then down on landing; takeoff leg back.up(20), held behind, swings forward through a then.
+ rightLeg after leap 4: back.down(60) held low behind through hops, down at 16.
+Expect: maybe SH2004 / SH2013 on leg timing; maybe SH2001 back->fwd. 22 beats, 11 s.
+Predictions: (a) 4 x 0.8 = 3.2 m forward. (b) ~20 cm hip rise. (c) right foot behind the left, ~15 cm off floor, ~25 cm back.
+
+Check run 1: no problems. 22 beats, 11 s, 11 bars, "solo ends 3.2 m forward of where it began".
+  Side sheet --from 2 --to 8 --step 0.25 (out\allegro-jete.png): split in the air OK (3.5: right fwd level, left back.up),
+  BUT after landing the back leg swung from back.up(20) to fwd OVER THE TOP (4.75: the left leg pointing straight up).
+  Reason (my guess): the shorter way from back.up(20) to fwd is over the top (160° vs 200°). No diagnostic said so
+  (SH2001 is only for exact opposites).
+Change: the back leg goes back.up(20) -> fwd.down(45) (through the bottom) -> fwd in the next air.
+  rightLeg/leftLeg bar "then:3/2 fwd:1/2" -> "then:1 fwd.down(45):1/2 fwd:1/2".
+Check run 2: no problems, same lengths, 3.2 m forward. Sheet out\allegro-jete2.png: leg now passes under (foot brushes
+  the floor at 4.75, like a real jeté passing through). out\allegro-side.png whole: hops with right foot behind, close, échappé.
+clip (scratch\allegro.json): pelvis standing 0.975; jeté peak 1.251 (f53 = beat 3.53); hops also peak 1.251.
+  f150-f210 (beats 10-14, through the hops): left ankle (0.041, 0.080, z 3.200); right ankle (-0.059, 0.195, z 2.750), right toe y 0.145.
+  f239 right foot down beside (first). f270 échappé: ankles x ±0.30 (0.6 m apart), toes turned out. f300 back to first.
+FINAL ANSWERS task 2:
+ (a) 3.2 m forward (check: "solo ends 3.2 m forward"; clip z 3.200). = 4 leaps x 0.8 m default.
+ (b) 27.6 cm (pelvis 0.975 -> 1.251 in clip). The leaps each had a 2-beat (1 s) word before them.
+ (c) Held in the air behind the left foot: ankle 0.45 m behind (z 2.75 vs 3.20), 0.195 m up (0.115 m above its standing
+     height), toe 0.145 m off the floor. (That is where MY row put it: back.down(60). I chose to write it, I did not test
+     the default "held low behind".)
+ 2 check runs. Wanted to say: arms in a jeté (not asked), a jeté that is "grand" vs small (only via time).
+
+=== Task 3: adagio.shosa ===
+Plan (4/4 at 60, beat = 1 s):
+ rightLeg { down:1 otherAnkle:1 otherKnee:2 | fwd:2 then:2~ | :2 down:2 | }  -> ankle@1, knee@2, fwd@4 held to 6, lowered 6-10, down@10.
+ height  { mid:4 | then:4 | then:4 | low(40cm):4@linear | mid:4@linear | }  -> down 8-12, up 12-16... (beats: mid@0, low@12? see below)
+   bars 1-3 = 0-12 is the développé (ends at 10, stand to 12); grand plié: low at 16, mid at 20. So:
+   height { mid:4 | then:4 | then:4 | then:4 | low(40cm):4@linear | mid:4@linear | }  -> wait: only the last then is the way: moves 12-16, low@16, mid@20?
+   Final: mid:4 | then:2bar | then:4 | low(40cm):4@linear | mid:4@linear |  => low at 16, mid at 20, total 24 beats.
+ arms { first:4 | then:2bar | then:4 | side.down(15):4 | first:4 | } -> side at 16, low at 20.
+Expect: no problems, 24 beats = 24 s.
+Predictions: (a) ~130° at beat 2 (toe at knee). (b) foot ~0.97 m (hip height). (c) knees ~110-120° at 40 cm. (d) standing knee ~4°.
+
+Check run 1 (--at 2,4,5,16): no problems, 24 beats, 24 s, 6 bars. beat 2 knees L4 R129; beat 4 L4 R4; beat 16 knees 111/111.
+ Side sheet out\adagio-dev.png: développé fine, BUT while lowering (6-10) the knee bent: clip rightKnee f180..300:
+ 3.6 33.5 61.9 82.4 90.2 82.5 62 33.6 3.6 -> 90° bent mid-way. The task says lower the STRAIGHT leg.
+Change 1: fwd -> fwd.down(80) (3.5 beats) -> down. Check run 2: no problems; still bent (up to 87.6°).
+Experiment scratch\exp1.shosa: fwd -> fwd.down(45) stays straight (3.6°), fwd.down(45) -> fwd.down(80) bends to 45°.
+ So big steps of a leg toward the floor bend the knee on the way; nothing in the grammar says why (I guessed: the foot
+ travels on a straight line, as "a hand travels from where it is to the target" says for arms? but then fwd -> fwd.down(45)
+ should bend too, and it does not).
+Change 2: lowered in 20° steps, one beat each: fwd:2 then:1 fwd.down(20):1 | fwd.down(40):1 fwd.down(60):1 fwd.down(80):1 down:1 |
+ Check run 3: no problems. rightKnee 3.6 all the way 6-9, 27° in the last beat (fwd.down(80) -> down, the foot reaching the floor).
+ Cost: the lowering is now 3 beats of steps + 1 to the floor, not one smooth 4-beat word; @linear not used.
+clip: f120 (beat 4): right ankle y 0.975 z 0.900 (hip y 0.975), toe y 0.925. f480 (beat 16): pelvis 0.584 (from 0.978).
+ left (standing) knee 3.5..3.7° through f0-300.
+FINAL ANSWERS task 3:
+ (a) right knee 129° bent at beat 2 (check --at 2; clip 129.4) — the toe at the front of the left knee. (Max of the passage.)
+ (b) right ankle 0.975 m off the floor at beat 4 (= hip height), toe 0.925 m (the foot is not pointed: toe below ankle).
+ (c) both knees 111° bent at the bottom (check --at 16). Hips down 39.4 cm (0.978 -> 0.584), not 40.
+ (d) yes, nearly: standing left knee 3.5-3.7° all through (that is also how the model stands in first: 3.7 at beat 0).
+ 3 check runs + 1 experiment.
+
+=== Task 4: class-edit.shosa ===
+Plan / edits from class.shosa:
+ 1. height: low(12cm) -> low(20cm), twice (2 numbers).
+ 2. relevé over 3 beats: bar 5 "mid:1@linear then:2" -> "mid:3@linear" (rise through all of bar 5, 12-15).
+ 3. passé on the left: new row leftLeg { skip:7bar | then:3 | otherKnee:3 | then:1 down:2 | } (passé 24, held to 27, down 28);
+    rightLeg now only the attitude: "skip:7bar | then:3 | otherKnee:3 | then:3 |" -> "skip:9bar | skip:1 then:2 |" (lifts 28-30).
+    The attitude can no longer grow out of the passé: the standing leg changes, so the left must be down before the right lifts.
+ 4. attitude held 3 bars (30-39): rightLeg + "then:2bar |"; arms "then:2bar" -> "then:4bar"; leftArm + "then:2bar |".
+ Score 39 -> 45 beats (15 bars).
+Expect: no problems, maybe SH2004 if the right lifts while the left is still on its way down (28).

@@ -1,0 +1,27 @@
+title "Guard"
+tempo 60
+time 4/4
+
+role soldier
+role villager
+dancer soldier  humanoid on soldier  at -0.75 0
+dancer villager humanoid on villager at 0.75 0
+
+section Bow {
+  soldier {
+    turnout { out(25):4 | then:4 | }
+    steps   { together:4 | then:4 | }
+    arms    { down.bent(1).body:4 | then:4 | }
+    // still 0-2, bowing 2-4, held 4-5, rising 5-7, upright at 7
+    torso   { up:2 then:2 | up.fwd(45):1 then:2 up:1 | }
+  }
+  villager {
+    // the sigh: 4 cm further down with the bow, back up with the rise
+    height  { low(0.7cm):2 then:2 | low(4.7cm):1 then:2 low(0.7cm):1 | }
+    torso   { up.round:4 | then:4 | }
+    head    { fwd.down(20):4 | then:4 | }
+  }
+}
+
+form { Bow }
+score { dancer soldier  dancer villager }

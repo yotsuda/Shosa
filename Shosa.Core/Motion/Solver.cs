@@ -442,7 +442,7 @@ internal sealed class FigureSolver
         public double Hips;
         public Vec3 HipLeft, HipFwd;
         public Vec3 P;             // pelvis over the floor
-        public double RawY, CeilingY, Raise, Float;
+        public double WantY, Deficit, CeilingY, Raise, Float;
     }
 
     /// <summary>The spine and what hangs on it, before arms and legs.</summary>
@@ -875,15 +875,21 @@ internal sealed class FigureSolver
                     {
                         var middle = (s.Left + s.Right) * 0.5;
                         var landing = middle + travel;
-                        double spread = seg.Spread is -1 ? TouchWidth(t1) : seg.Spread ?? Math.Abs((s.Left - s.Right).Dot(leftward));
+                        // A plain `jump` keeps how the feet stand to each other: apart, one ahead, crossed (a sauté in
+                        // fifth lands in fifth; trial 21: it landed side by side). `apart` and `together` set the width.
+                        var stood = s.Left - s.Right;
+                        var fwdAfter = Vec3.Forward(s.Yaw + angle);
+                        var half = seg.Spread is null
+                            ? (leftAfter * stood.Dot(leftward) + fwdAfter * stood.Dot(fwd)) * 0.5
+                            : leftAfter * ((seg.Spread is -1 ? TouchWidth(t1) : seg.Spread.Value) / 2);
                         Move(true, new FootMove
                         {
-                            T0 = up, T1 = land, From = s.Left, To = landing + leftAfter * (spread / 2),
+                            T0 = up, T1 = land, From = s.Left, To = landing + half,
                             YawFrom = s.LeftYaw, YawTo = s.Yaw + angle, Air = !made, AirHeight = height,
                         });
                         Move(false, new FootMove
                         {
-                            T0 = up, T1 = land, From = s.Right, To = landing - leftAfter * (spread / 2),
+                            T0 = up, T1 = land, From = s.Right, To = landing - half,
                             YawFrom = s.RightYaw, YawTo = s.Yaw + angle, Air = !made, AirHeight = height,
                         });
                         Weight(t0, up, middle);
@@ -1009,6 +1015,34 @@ internal sealed class FigureSolver
         return direction * (lengthA + (lengthB - lengthA) * e);
     }
 
+    /// <summary>
+    /// A leg from one offset from the hip to another: it swings about the hip, the length changing
+    /// evenly (a straight leg stays straight). A leg does not go over the top of the hip from behind
+    /// to the front (or back): where the shortest way rises above both ends, it passes under, through
+    /// down (a ballet dancer's leg brushes through first position).
+    /// </summary>
+    private static Vec3 LegSwing(Vec3 a, Vec3 b, double e)
+    {
+        if (e <= 0)
+            return a;
+        if (e >= 1)
+            return b;
+        double lengthA = a.Length, lengthB = b.Length, length = lengthA + (lengthB - lengthA) * e;
+        if (lengthA < 1e-6 || lengthB < 1e-6)
+            return Vec3.Lerp(a, b, e);
+        Vec3 from = a.Normalized(), to = b.Normalized();
+        bool over = from.Dot(to) < 0 && (from + to).Normalized().Y > Math.Max(from.Y, to.Y) + 0.05
+            || from.Dot(to) < -0.98;
+        if (!over)
+            return Vec3.Slerp(from, to, e) * length;
+        // Through down, each half in time as long as its angle.
+        var down = -Vec3.Up;
+        double first = Math.Acos(Math.Clamp(from.Dot(down), -1, 1)), second = Math.Acos(Math.Clamp(down.Dot(to), -1, 1));
+        double split = first + second > 1e-6 ? first / (first + second) : 0.5;
+        var direction = e < split ? Vec3.Slerp(from, down, e / split) : Vec3.Slerp(down, to, (e - split) / (1 - split));
+        return direction * length;
+    }
+
     /// <summary>The part of a vector square to a unit axis, as a unit vector; zero if there is none.</summary>
     private static Vec3 Across(Vec3 v, Vec3 axis)
     {
@@ -1103,7 +1137,7 @@ internal sealed class FigureSolver
 
     /// <summary>How far a limb reaches, root to end. A straight one a hair short of its length, so the joint still knows which way it bends.</summary>
     private static double Reach(Seg seg, double upper, double lower, double straight) =>
-        (seg.Bend <= 0 ? straight : Math.Min(straight, Rig.BentShare(upper, lower, seg.Bend))) * (upper + lower);
+        (seg.Bend is double bend && bend > 0 ? Math.Min(straight, Rig.BentShare(upper, lower, bend)) : straight) * (upper + lower);
 
     /// <summary>
     /// A free leg: how far it is off the floor (0..1), where its ankle is from the hip, and which way
@@ -1138,7 +1172,7 @@ internal sealed class FigureSolver
                 return b with { Weight = weight, Point = point };
             if (b.Weight < 1e-6)
                 return a with { Weight = weight, Point = point };
-            var offset = Blend(a.Offset, b.Offset, e, fwd);
+            var offset = LegSwing(a.Offset, b.Offset, e);
             if (a.Bend is null && b.Bend is null)
                 return new LegPose(weight, offset, null, point);
             var axis = offset.Normalized();
@@ -1225,8 +1259,10 @@ internal sealed class FigureSolver
         double level = Chain(_height, t, seg => seg?.Level ?? 0, (a, b, e) => a + (b - a) * e);
         c.Raise = Math.Max(0, level) * 0.07;
         double reach = Rig.Leg * Rig.StraightLeg;
-        // `low` is bent knees, not a squat: the hips come down 16 cm (a deep crouch is `low(40cm)`).
-        double y = Rig.AnkleHeight + reach - Rig.LowDrop * Math.Max(0, -level) + c.Raise;
+        double top = Rig.AnkleHeight + reach + c.Raise;
+        // `mid` stands on soft knees, `straight` and `high` on straight legs; `low` is measured from straight.
+        double soft = Chain(_height, t, seg => seg is { Straight: true } ? 0.0 : 1.0, (a, b, e) => a + (b - a) * e);
+        double softDrop = soft * Rig.Leg * (Rig.StraightLeg - Rig.BentShare(Rig.Thigh, Rig.Shin, Rig.SoftKnee));
 
         // The pelvis is as high as it can be with both planted feet still in reach.
         double Cap(Vec3 hip, Vec3 foot, bool free, double raise, double reach)
@@ -1238,9 +1274,14 @@ internal sealed class FigureSolver
         }
 
         bool freeL = c.LAir || c.GwL > 0.05, freeR = c.RAir || c.GwR > 0.05;
-        y = Math.Min(y, Cap(p + c.HipLeft * Rig.HipHalf, c.LPos, freeL, c.Raise, reach));
-        y = Math.Min(y, Cap(p - c.HipLeft * Rig.HipHalf, c.RPos, freeR, c.Raise, reach));
-        c.RawY = y;
+        double stand = Math.Min(top, Math.Min(Cap(p + c.HipLeft * Rig.HipHalf, c.LPos, freeL, c.Raise, reach),
+                                              Cap(p - c.HipLeft * Rig.HipHalf, c.RPos, freeR, c.Raise, reach)));
+        // How far the feet hold the hips under the top (a stance, a stride): this has corners where a
+        // foot lands, and only this is smoothed (TrunkAt). The height row is smooth already, and is
+        // measured down from where the dancer stands: `low` is bent knees, not a squat, the hips
+        // 16 cm lower (a deep crouch is `low(40cm)`), and `low(12cm)` is 12 cm below standing straight in the same place.
+        c.Deficit = stand - top;
+        c.WantY = top - Math.Max(softDrop, Rig.LowDrop * Math.Max(0, -level));
         // The most the legs reach at all: the smoothed height may not go over it, or a planted foot would come up.
         c.CeilingY = Math.Min(Cap(p + c.HipLeft * Rig.HipHalf, c.LPos, freeL, c.Raise, (Rig.Leg - 2e-4)),
                               Cap(p - c.HipLeft * Rig.HipHalf, c.RPos, freeR, c.Raise, (Rig.Leg - 2e-4)));
@@ -1286,8 +1327,9 @@ internal sealed class FigureSolver
     {
         var c = Core(t);
 
-        // Smooth the height over five frames: the reach limit has corners where a foot lands.
-        double y = (Core(Clamp(t - 2 * _dt)).RawY + Core(Clamp(t - _dt)).RawY + c.RawY + Core(Clamp(t + _dt)).RawY + Core(Clamp(t + 2 * _dt)).RawY) / 5;
+        // Smooth over five frames what the feet take off the height: the reach limit has corners where
+        // a foot lands. The height row itself is not smoothed again, so it starts and arrives on its beats.
+        double y = c.WantY + (Core(Clamp(t - 2 * _dt)).Deficit + Core(Clamp(t - _dt)).Deficit + c.Deficit + Core(Clamp(t + _dt)).Deficit + Core(Clamp(t + 2 * _dt)).Deficit) / 5;
         y = Math.Min(y, c.CeilingY);
         y += JumpOffset(t);
 
@@ -1490,7 +1532,9 @@ internal sealed class FigureSolver
             var ankle = new Vec3(floor.X, Rig.AnkleHeight + lift + (air ? 0 : c.Raise), floor.Z);
             if (gesture > 0)
             {
-                ankle = Vec3.Lerp(ankle, hip + offset, gesture);
+                // The leg swings about the hip from the floor to its shape (and back): a straight leg
+                // lowered from the front stays straight on the way down, as it does between two shapes.
+                ankle = hip + LegSwing(ankle - hip, offset, gesture);
                 // In the air of a jump both legs may take a shape (a split leap); standing, one leg carries the weight.
                 bool flight = c.LAir && c.RAir;
                 if (!flight && gesture > 0.5 && (otherLift > 0.01 || otherGesture > 0.5))
@@ -1562,8 +1606,8 @@ internal sealed class FigureSolver
                 }
                 var d = seg.Dir!;
                 // `down` is the arm hanging, the same shape as an arm nobody wrote: on a body with
-                // flesh the hand is not under the shoulder joint. (`down@bent` is still the short arm straight down.)
-                if (d[1] < -0.9999 && seg.Bend == 0 && seg.Pole is null)
+                // flesh the hand is not under the shoulder joint. (`down.bent` is still the short arm straight down, and `down.bent(0)` the straight arm.)
+                if (d[1] < -0.9999 && seg.Bend is null && seg.Pole is null)
                     return seg.Body ? Hang(torsoLeft, torsoUp, torsoFwd) : Hang(c.Left, Vec3.Up, c.Fwd);
                 return Frame(seg, d) * Reach(seg, Rig.UpperArm, Rig.Forearm, 0.999);
             }

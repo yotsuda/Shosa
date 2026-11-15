@@ -1,0 +1,26 @@
+title "Castle gate"
+tempo 100
+time 4/4
+
+role sentry
+role slacker
+dancer sentry  humanoid on sentry  at 0 0
+dancer slacker humanoid on slacker at -1.5 0     // 1.5 m to the sentry's right
+
+section Gate {
+  sentry {
+    height { straight }
+    arms   { down.bent(0) }
+    steps  { together:2 shift.left:1/2 turn.left(90):1/2 together:1@sharp!stamp |
+             then:2     shift.left:1/2 turn.left(90):1/2 together:1@sharp!stamp |
+             % | % | }
+  }
+  slacker {
+    steps    { shift.left }
+    rightLeg { down.bent(15) }
+    head     { sentry.head }
+  }
+}
+
+form { Gate }
+score { dancer sentry  dancer slacker }

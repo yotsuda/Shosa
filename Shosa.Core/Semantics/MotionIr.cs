@@ -297,8 +297,9 @@ public sealed class Seg
 
     /// <summary>Dir: unit vector in the dancer's frame (x left, y up, z forward).</summary>
     public double[]? Dir { get; set; }
-    /// <summary>Dir, limbs: degrees the elbow or the knee is bent, 0 = straight (`@bent(N)`). The hand or foot stays in Dir and comes closer.</summary>
-    public double Bend { get; set; }
+    /// <summary>Dir, limbs: degrees the elbow or the knee is bent, 0 = straight (`bent(N)`). The hand or foot stays in Dir and comes closer.
+    /// Null: not written (an arm `down` then hangs with the elbow a little bent; `down.bent(0)` is straight).</summary>
+    public double? Bend { get; set; }
     /// <summary>Limbs: which way the elbow or the knee points (`@elbow(...)`, `@knee(...)`), in the dancer's frame (in the torso's with Body); null: the solver's own way.</summary>
     public double[]? Pole { get; set; }
     /// <summary>Dir, arms: the direction is in the torso's frame (it leans with the torso), not the room's.</summary>
@@ -320,6 +321,8 @@ public sealed class Seg
     public double Dz { get; set; }
     /// <summary>Level: -1 knees bent, 0 normal, 1 on the toes. Reach: the height two hands meet at.</summary>
     public double? Level { get; set; }
+    /// <summary>Level: standing on straight legs (`straight`, and `high` on the toes) rather than the soft knees of `mid`.</summary>
+    public bool Straight { get; set; }
     /// <summary>Turn: degrees, positive to the left. Step and Jump: the turn made during it. Turned: how far the line of the hips or the shoulders is turned from the feet.</summary>
     public double TurnDeg { get; set; }
     /// <summary>Jump: distance between the feet on landing; null keeps it, -1 touching (as `together` closes). Together: null touching, else the width (`stand`).</summary>

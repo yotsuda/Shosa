@@ -1,0 +1,128 @@
+TASK 1 crouch.shosa — PLAN (before first check)
+tempo 60 so 1 beat = 1 s. No bar lines (game animation in seconds).
+Idle: loop inPlace. arms { down }. height { mid low(2cm) } each 1 beat: in a loop the way back to mid
+  is made in the last word, so it rises over beat 1-2. Default smooth easing.
+Crouch: inPlace. height { mid:1.2s low(35cm):0.5s@linear then:0.2s!spring mid:0.5s }
+  -> low at 1.2 s (linear from 0), still low at 1.7, mid at 1.9 s. Mark on the then (spring starts 1.7 s).
+  Unsure a mark may sit on `then`. Unsure linear also makes the departure from mid linear.
+Expect check: maybe a warning SH2003 (0.2 s spring of 35 cm too fast?) or a complaint about the mark on then.
+Predicted answers: (a) 17.5 cm (linear); (b) knees ~100-110 deg each; (c) instantaneous stop at top and
+  bottom of the breath (turnaround), no held still stretch.
+
+TASK 2 hopscotch.shosa — PLAN (before first check)
+tempo 90 (0.667 s a beat: hops get ~0.67 s to fly). No bar lines (11 beats).
+steps { stand shift.right hop.fwd hop.fwd jump.fwd.apart shift.left hop.fwd:3 shift.center:2 }
+  0 stand, 1 weight to right, 2 & 3 hops land, 4 jump lands apart (assemble from one foot),
+  5 weight to left, 6 hop lands on left, held, 9 weight centred, end 11.
+rightLeg { skip:5 then:1 back.down.bent:1 then:1 down:1 }  foot back-down 45 deg with knee 90 -> foot ~knee height.
+  down at beat 8 puts the right foot beside the left at standing width.
+Unsure: `jump.fwd.apart` (two jump words combined?) ; leg gesture lifting in the word of shift.left.
+Expect: maybe SH2004 for the leg lifting during the shift, or SH1012/1013 for fwd.apart.
+Predicted: (a) right foot 0.2 m to the right of the left, level with it, on the floor.
+ (b) none. (c) ~1.15 m forward (0.25+0.25+0.4+0.25).
+
+GENERAL NOTES (things I could not say / grammar text)
+- Unclear before trying whether a mark may sit on `then` (it can: worked for "the moment the spring starts").
+  The grammar says "Any event that moves something can carry one"; `then` is a wait, so this was a guess.
+- Unclear whether `jump.fwd.apart` combines (it does); the jump-word table lists them separately.
+- `@linear` on the low word: grammar says "for one unbroken movement, @linear on that word and on the one after";
+  I only wanted the way TO it constant, which worked. But corners are rounded ~0.07 s by smoothing, and the
+  score's frame 0 is already 6 mm into the sink; the 0.2 s spring is really ~0.3 s with soft edges and starts one
+  frame before its mark. Not documented in the grammar.
+- `bent(0)` on `down` silently = default 10 deg; the elbow never gets below 5 deg. Grammar says "0 straight".
+- No way to give a standing knee's angle; only the hip drop (low(Ncm)); had to search by trial (0.7cm ~ 15 deg).
+- Sigh: no chest/breath word; only hip height.
+- I used [IO.File]::WriteAllText once in scratch for a test file (tool convention slip, scratch only).
+
+TASK 2 — WHAT HAPPENED
+check #1: "no problems". "kid ends 1.09 m forward and 0.14 m to its left of where it began". 11 beats, 7.33 s.
+`jump.fwd.apart` was accepted (lands feet 0.6 apart, 0.34 ahead of the right foot).
+clip out\hop.json (ankles; x = kid's left, z forward):
+  beats 1.25-3.5 left ankle held up 0.23-0.34 m, a little behind the hopping right foot; right hops land z 0.25, 0.50.
+  beat 4: both down, L x 0.24 / R x -0.36 at z 0.84.  beat 6: left lands z 1.09; right ankle (0.14, 0.52, 0.64):
+  0.45 m behind, at knee height (right knee y 0.53), right knee bent 90 (check --at 6,7).
+  beat 8: right ankle (0.04, 0.080, 1.09) = standing ankle height, 0.20 m to the right of the left (0.24), level.
+  beat 9: pelvis back to 0.980 after shift.center.
+sheets out\hopscotch.png, out\hopscotch-side.png (beats 4-9): side view at 6-7 thigh vertical, shin horizontal back.
+FINAL ANSWERS task 2:
+ (a) 0.20 m to the right of the left foot, level with it (z both 1.09), on the floor (ankle y 0.080 = standing).
+ (b) No: left foot is up only during the two right hops (beats ~1.2-3.6), both down at 4; right foot up only
+     from the take-off before beat 6 until beat 8; nothing stays up at the end.
+ (c) 1.09 m forward (check line; clip pelvis z 1.09), and 0.14 m to its left (the last hop is on the left foot of a
+     wide stance, so the final stance is centred 0.14 left). My 1.15 prediction assumed the jump goes 0.4 m;
+     it went 0.34 m from the right foot.
+
+TASK 3 guard.shosa — PLAN (before first check)
+tempo 60, 8 beats: stand 0-2, bow 2-4, hold 4-5, rise 5-7, stand 7-8.
+soldier at -0.75 0, villager at 0.75 0, both facing front.
+soldier: turnout { out(25) } steps { together } arms { down.bent(0) } torso { up:2 then:2 up.fwd(45):1 then:2 up:1 }
+villager: height { low(1cm):2 then:2 low(5cm):1 then:2 low(1cm):1 } torso { up.round } head { fwd.down(20) }
+  (knees 15 deg: from task 1, 1 cm down gave ~17 deg, so low(1cm). There is no word for a standing knee's angle.)
+Unsure: down.bent(0) (arm straight; grammar says a straight line under the shoulder is inside the hip);
+  `together` as the first word of steps.
+Predicted: (a) soldier ~4 deg, villager ~15; (b) ~1 cm (maybe more with the together stance); (c) ~0.5 m.
+
+TASK 3 — WHAT HAPPENED
+check #1: "no problems". But --at 1: soldier elbows 10 deg (down.bent(0) had no effect: same as plain down),
+  villager knees 17 deg with low(1cm).
+scratch experiments (scratch\g_test.shosa, check --at 1): down.bent(5) -> 5 deg; down.bent(1)/bent(2) -> 5 deg;
+  side.down(85).bent(0) -> 5; down.bent(30) -> 30. So the elbow cannot get below 5 deg, and bent(0) silently
+  means the default 10 deg on a `down` arm (no warning). low(0.8cm)->16, low(0.5cm)->13, low(0.3cm)->10 deg.
+change: down.bent(1), low(0.7cm) and low(4.7cm) (sigh +4 cm). check #2: no problems; knees villager 15, soldier 4.
+sheet side view: soldier's arms stayed vertical (room-measured) in the bow, hanging in front of the thighs;
+  a soldier keeps them at the trouser seams -> changed to down.bent(1).body. check #3: no problems; sheet: arms
+  along the trunk in the bow. head distance unchanged.
+clip out\guard.json (pelvis/head joint):
+  soldier pelvis y 0.9779 standing; villager 0.9726 -> 0.53 cm lower. Villager in the sigh 0.9326 -> 4.0 cm further.
+  soldier at the bow (4-5 s): pelvis z -0.127 (hips go back), head z 0.396 -> head 0.523 m forward of the pelvis;
+  head y 1.718 -> 1.492.
+FINAL ANSWERS task 3:
+ (a) soldier knees 4 deg each (the straightest standing the model gives); villager 15 deg each (check --at 1).
+ (b) 0.5 cm (0.9779 vs 0.9726). "a little lower" and "15 deg knees" conflict in this body: 15 deg costs only
+     ~0.5 cm; I kept the 15 deg. (low(0.7cm) gives 0.53 cm, not 0.7: the soldier's together/turned-out stance
+     stands 1.5 mm lower than plain standing 0.9794.)
+ (c) 0.52 m (head middle z 0.396 minus pelvis z -0.127 at 4 s, clip).
+Could not say: knee angle of a standing leg (only hip drop); a truly straight arm (min 5 deg); a sigh in the
+  chest (only hips height).
+
+TASK 4 — PLAN (before first check)
+crouch-edit: Crouch height mid:0.8s low(25cm):1s@linear then:0.2s!spring mid:0.5s; arms down:2.5s (was 2.4s:
+  the arms row length must follow the total, else the section is still 2.5 s anyway since longest wins).
+  Idle: height mid:1.5 low(2cm):1.5; arms down:3. => numbers changed: 1.2s->0.8s, 35->25, 0.5s->1s, 2.4s->2.5s,
+  Idle 1->1.5 (x2, one implicit length written), 2->3. About 7 edits.
+hopscotch-edit: steps hop.fwd:3 -> hop.fwd:4; rightLeg back.down.bent:1 -> :2. 2 numbers. Ends at 12 beats.
+Expect: no problems; Crouch 2.5 s, !spring at 1.8 s; Idle 3 s; hopscotch 12 beats, same end place,
+  right foot down at beat 9.
+
+TASK 4 — WHAT HAPPENED
+crouch-edit check #1: no problems. Idle 3 s, Crouch 2.5 s, !spring at 1.8 s.
+  clip: Crouch bottom 0.7296 = 25.0 cm below 0.9796, reached ~0.85 s, held to ~1.75, up by ~2.05; Idle 2.0 cm,
+  lowest at 1.5 s.
+hopscotch-edit check #1: no problems, 12 beats, same end (1.09 m fwd, 0.14 m left). clip: right foot held at knee
+  height 6-8, comes down 8-9, at (0.04, 0.080, 1.09) at beat 9 beside the left.
+FINAL ANSWERS task 4:
+ (a) crouch-edit: 6 numbers in 5 words: 1.2s->0.8s, low(35cm)->low(25cm), 0.5s->1s, arms 2.4s->2.5s (only to keep
+     the arms row as long as the section; not needed for correctness), Idle height mid->mid:1.5 and low(2cm)->
+     low(2cm):1.5 (two lengths added: the defaults of 1 beat had been implicit), arms down:2->down:3.
+     hopscotch-edit: 2 numbers: hop.fwd:3->:4 (steps), back.down.bent:1->:2 (rightLeg).
+ (b) Nothing went wrong; both checked clean first time, and clip confirms the new timings.
+ The edit cost would have been lower if the Idle had been written with tempo (e.g. a tempo line per score), but
+ tempo is file-wide; a score's `tempo` would also work. The arms row's length was a hand-kept duplicate.
+
+TASK 1 — WHAT HAPPENED
+check #1: "no problems". Mark on `then` accepted: Crouch !spring at beat 1.7 = 1.7 s. Lengths Idle 2 s, Crouch 2.4 s.
+clip (pelvis y, out\crouch.json):
+  Crouch: standing 0.9796; frame 0 already 0.9737 (the linear sink has begun at frame 0, not a held start);
+  0.6 s 0.8046 -> 17.5 cm down; bottom 0.6296 -> exactly 35.0 cm, reached 1.267 s (corner rounded ~0.07 s
+  each side, at 1.2 s it is 34.4 cm); flat 1.267-1.633; rising starts 1.667 s (one frame BEFORE the mark at 1.7),
+  0.9796 again at 1.967 s; midpoint of the rise at 1.8 s. So the "0.2 s" spring is really ~0.3 s soft-edged.
+  Idle: 0.9794 at 0/2 s, 0.9597 at 1 s -> 2.0 cm; cosine-like, symmetric.
+check --at: Crouch knees 104 deg at 1.2 s, 105 deg at 1.3-1.6 (clip: 104.7 both). Idle standing knee 4 deg, 24 deg at 2 cm down.
+sheet out\crouch.png (Crouch, side, step 0.1): upright torso, knees forward, heels down; spring visible 1.7-2.0. OK.
+FINAL ANSWERS task 1:
+ (a) 17.5 cm at 0.6 s (clip pelvis 0.9796 -> 0.8046).
+ (b) both knees 105 deg (104.7) at the bottom (check --at 1.5s; clip angles).
+ (c) No held stillness: the pelvis velocity is zero only at the instants of the top (0/2 s) and bottom (1 s)
+     turnarounds (clip: 0.9602,0.9597,0.9602 around 1 s) — eased in and out, as any back-and-forth.
+     I could not say "never slow down at the ends"; @linear would give a zig-zag.
+ Note: 2 cm of hip sink gives 20 deg of knee bend - plausible.

@@ -1,0 +1,31 @@
+// Small jumps from fifth.
+title "Jumps"
+tempo 132
+time 2/4
+
+role ballerina
+dancer ballerina humanoid on ballerina
+
+// Fifth: turned out 80°, the right foot crossed just in front of the left.
+// (The language cannot tell fifth from third, nor write "heel against toe".)
+pose fifth {
+  turnout { out(80) }
+  height  { straight }
+  arms    { down.fwd(20).bent(40).elbow(side) }
+}
+
+section Jumps {
+  ballerina {
+    body    { fifth:2 | }
+    // bar 0 stand; sautés land on beats 4, 6, 8, 10; the "changement" lands on 12
+    // (the feet cannot change in the air: it is a sauté); sissonne: weight to the right, hop onto it at 16;
+    // the left leg down beside it at 18, closed behind at 19, weight centred at 20.
+    steps   { rightFoot.across(0.07m):1 shift.center:1 | then:1 then:1 | jump:1 then:1 | % | % | % | jump:1 then:1 | shift.right:1 then:1 | hop:2 | then:1 leftFoot.back(0.07m).across:1 | shift.center:1 then:1 | }
+    // a small plié on the beat before each take-off
+    height  { straight:2 | straight:1 low(8cm):1 | % | % | % | % | straight:2 | straight:1 low(8cm):1 | straight:2 | % | % | }
+    leftLeg { skip:7bar | skip:1 then:1 | back.down(45):1 then:1 | down:2 | then:2 | }
+  }
+}
+
+form { Jumps }
+score { dancer ballerina }

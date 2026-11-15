@@ -1,0 +1,30 @@
+// Pliés and a rise in fifth position, centre.
+title "Barre"
+tempo 84
+time 3/4
+
+role ballerina
+dancer ballerina humanoid on ballerina
+
+// Fifth: turned out 80°, the right foot crossed just in front of the left, weight on both.
+// (The language cannot tell fifth from third, nor write "heel against toe".)
+pose fifth {
+  turnout { out(80) }
+  height  { straight }
+  arms    { down.fwd(20).bent(40).elbow(side) }
+}
+
+section Plies {
+  upbeat 1
+  ballerina {
+    body    { fifth:3 | }
+    steps   { rightFoot.across(0.07m):1 | shift.center:3 | }
+    // demi-plié, demi-plié, grand plié, rise
+    height  { straight:3 | then:3 | low(10cm):3 | straight:3 | then:3 | low(10cm):3 | straight:3 | then:3~ | :3 | low(35cm):3~ | :3 | straight:3 | then:3 | high:3 | then:3 | straight:3 | }
+    // low and rounded; open to the side on the way down of the grand plié, low again on the way up
+    arms    { fifth:3 | then:6bar | then:3~ | :3 | side.down(15).bent(20):3~ | :3 | fifth:3 | then:3 | then:3 | then:3 | then:3 | }
+  }
+}
+
+form { Plies }
+score { dancer ballerina }

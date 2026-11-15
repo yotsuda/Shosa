@@ -1,0 +1,28 @@
+title "Adagio"
+tempo 60
+time 4/4
+
+role solo
+dancer solo humanoid on solo
+
+pose first {
+  turnout { out(80) }
+  steps   { together }
+  arms    { fwd.down(70).bent(30).elbow(side) }
+}
+
+section Adagio {
+  solo {
+    steps    { first:4 | }
+    turnout  { first:4 | }
+    // développé: toe up the standing leg (ankle, knee), unfolds to the front by beat 4, held to 6, lowered 6-10
+    // (straight from fwd to down the knee bent to 90° on the way: lowered straight to fwd.down(80) first, then put down)
+    rightLeg { down:1 otherAnkle:1 otherKnee:2 | fwd:2 then:1 fwd.down(20):1 | fwd.down(40):1 fwd.down(60):1 fwd.down(80):1 down:1 | }
+    // grand plié: down through 12-16, up through 16-20
+    height   { mid:4 | then:2bar | then:4 | low(40cm):4@linear | mid:4@linear | }
+    arms     { first:4 | then:2bar | then:4 | side.down(15):4 | first:4 | }
+  }
+}
+
+form { Adagio }
+score { dancer solo }

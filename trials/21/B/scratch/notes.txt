@@ -1,0 +1,171 @@
+Trial 21, subject B — notes
+
+======================================================================
+TASK 1: barre.shosa
+======================================================================
+PLAN (before first check)
+- 3/4 at 84. role `ballerina` (cannot be `dancer`, a reserved word).
+- Fifth position: grammar says outright (limitations) "the third and the fifth position
+  told apart" cannot be said. Best I can do: turnout { out(80) } and a step
+  `rightFoot.across(...)` from the left foot (crossing just in front), then shift.center
+  so the weight is on both. Unsure whether across's 0.12 m is forward or sideways; will
+  read the ankles in clip. "Heels against toes" cannot be written directly.
+- Arms low and rounded: `down.fwd(20).bent(40).elbow(side)` (bras bas, my guess).
+  Open to the side: `side.down(15).bent(20)`.
+- Height row (bars of 3):
+  straight:3 | then:3 | low(10cm):3 | straight:3 | then:3 | low(10cm):3 | straight:3 |
+  then:3~ | :3 | low(35cm):3~ | :3 | straight:3 | then:3 | high:3 | then:3 | straight:3 |
+  beats: plié1 down 3-6 up 6-9; plié2 down 12-15 up 15-18; grand down 21-27 up 27-33;
+  rise 36-39, hold to 42, down 42-45, stand to 48. Total 48 beats = 16 bars, 34.3 s.
+- Arms: low until 21, side at 27, low again at 33.
+
+EXPECTED check: maybe "starts with `rightFoot.across` already made" line; possibly no
+problems; 48 beats, 16 bars, ~34.29 s at 84 3/4.
+
+PREDICTED ANSWERS
+(a) knees standing at `straight`: about 4° both (grammar: "about 4° in check").
+(b) hips down: 10 cm, 10 cm, 35 cm below the standing height (low(N) is from straight in
+    the same place; straight is 0.5 cm above mid, so maybe 10.0 / 10.0 / 35.0).
+
+LOG
+Check run 1 (barre.shosa, with body/steps padded by `then` bars, across(0.08m)): no problems.
+  48 beats, 34.29 s, 16 bars at 84 3/4. Info line: starts with `rightFoot.across(0.08m):1` already made.
+  --at 0: knees 4° left, 12° right (weight still on the right foot that "stepped"; shift.center lands beat 1).
+  (Then I trimmed body to `fifth:3 |` and steps to two words; a part nobody writes stays.)
+Experiments (scratch\ac_*.shosa, clip, ankles at beat 2):
+  - rightFoot.across(N): N is the FORWARD distance (right ankle z = N); sideways the right ankle is
+    always 0.08 m past the left one (x 0.121 vs 0.041), whatever N. Left toe x 0.208, right heel x 0.121:
+    the heel is NOT at the toe (that would need 0.167 m of cross); it reads more like a third position.
+  - rightFoot.fwd(0.07m).across(0.17m): accepted with NO diagnostic, the 0.17 m silently ignored.
+  - rightFoot.across(0.07m).fwd: accepted, foot goes 0.5 m forward (the fwd stride wins). No diagnostic.
+  => Grammar says fifth cannot be told from third; I used rightFoot.across(0.07m) (heel ~ a foot-width in front).
+  - Tried `upbeat 1` with the across step in the upbeat bar so that beat 0 already has the weight centred:
+    the step is not taken at all (feet side by side, heels at x ±0.041). Not usable. Kept the step as the
+    first word; the weight is centred from beat 1 (bar 0 is a standing bar before the first plié anyway).
+Check run 2 (across(0.07m)): no problems, same lengths.
+clip out\barre.json, pelvis y: stand 0.968 (beats 3, 9, 12, 18, 21, 33, 45, 47.9);
+  bottoms 0.868 (beat 6), 0.868 (15), 0.618 (27); rise 1.038 (39-42).
+check --at 6,15,27,39: knees 54/54, 54/54, 104/104, 4/4; elbows 20 at 27 (side.down(15).bent(20)).
+sheet out\barre.png: plié knees go out over the toes (turned out), arms open at 24-30 and back low at 33,
+  slight rise at 39/42. Left blue / right red as expected.
+
+FINAL ANSWERS task 1
+(a) Knees standing: 4° left, 4° right (check --at 9,18,33,45,47). Exception: at beat 0 the right knee reads 12°
+    because the opening step leaves the weight on the right foot until shift.center at beat 1.
+(b) Hips down: demi-plié 1: 10.0 cm (0.968 -> 0.868); demi-plié 2: 10.0 cm; grand plié: 35.0 cm (0.968 -> 0.618).
+    (clip pelvis y at beats 3/6, 12/15, 21/27.) Matches prediction exactly. Rise: hips +7.0 cm.
+Could not say: a real fifth (heel against toe); a start with the weight already centred in a crossed stance.
+Misleading: `across(Nm)` - the grammar says "Crossing just in front of the supporting foot (0.12 m)"; it does not say
+  the number is the forward gap only and that the sideways cross is fixed. Extra brackets/directions after across
+  are silently dropped (no SH1013 or similar).
+
+
+======================================================================
+TASK 2: jumps.shosa
+======================================================================
+PLAN (before first check)
+- 2/4 at 132 (beat 0.4545 s). Same `fifth` pose and opening step as task 1 (right foot front).
+- Bar 0: stand. Sautés: steps `then:1 jump:1` per bar so each jump lands on the bar's first beat and its
+  take-off word (the `then`) is 0.45 s. Height row per bar `straight:1 low(8cm):1`: a small plié on the
+  second beat, back to straight through the take-off (the jump's own bend is also in that word).
+  Uncertain how the explicit plié and the jump's own bend combine; I'll read the clip.
+- Changement: the grammar says plainly (limitations) "Changing the feet in the air (a changement, an
+  entrechat)" cannot be said, and there is no jump word that swaps the feet. I will write a plain `jump`
+  (a sauté) in its place and say so. No guessing a workaround that would show a step on the floor.
+- Sissonne: hop/leap from both feet is SH2012, so `shift.right` first, then `hop` lands on the right foot,
+  left leg held behind; leftLeg { back.down(45) } shapes it (45° below level = 45° up from hanging).
+  Then leftLeg { down } (beside the right at standing width), then steps `leftFoot.back.across(0.07m)`
+  to close into fifth behind, `shift.center`.
+EXPECTED check: maybe SH2013 or SH2004 around the hop/leg timing on the first try; lengths ~ 9-10 bars.
+PREDICTED ANSWERS
+(a) hips rise in a sauté: ~5-7 cm (0.45 s of take-off: grammar says 0.25 s 2 cm, 0.5 s 7 cm).
+(b) after the changement: RIGHT foot still in front (the swap cannot be written).
+(c) after the close: legs straight (height straight kept), knees ~4°.
+LOG
+
+Check run 1 (jumps.shosa, close written `leftFoot.back.across(0.07m)`): no problems. 22 beats, 10 s, 11 bars,
+  at 132 2/4. But: "ends 0.25 m back and 0.08 m to its right" - suspicious for jumps in place.
+clip out\jumps.json, ankles:
+  - beat 2: left (0.041, z 0.000), right (0.121, z 0.070): crossed, right in front, as written.
+  - beat 4 (after the FIRST sauté) and every beat after until the close: left x 0.121, right x 0.041, both z 0.035.
+    The plain `jump` lands the feet SIDE BY SIDE, uncrossed, level, heels 0.08 m apart: the fifth is lost
+    on the first sauté. No diagnostic. (Grammar: "a plain jump keeps the feet as far apart as they were" -
+    it keeps the distance, but not the crossing / which foot is in front.)
+  - `leftFoot.back.across(0.07m)`: the left foot went 0.5 m back (a full `back` stride; the bracket on `across`
+    ignored). That is the 0.25 m the check line reported.
+Experiment scratch\jumps_close.shosa (ankles at beat 21):
+  leftFoot.back(0.07m).across -> left 0.07 m behind, crossed 0.08 m past the right: a closed position, right in front.
+  leftFoot.across(0.07m).back -> 0.5 m back.   leftFoot.back.across -> 0.12 m behind.
+Experiment scratch\jumps_noplie.shosa (height straight only): the jump's own bend dips to 0.848 (12 cm) and
+  flies to 1.035. With my explicit low(8cm) plié on the beat before: slow plié to 0.888, then the jump's own
+  quick dip on top of it to 0.793, flight peak 1.026. (Two bends stacked; I kept the explicit plié because the
+  task asks for "a small plié before it" and the jump's own bend lasts ~0.15 s.)
+Check run 2 (close as leftFoot.back(0.07m).across): no problems; "ends 0.04 m back and 0.08 m to its right"
+  (the closing step is measured from the right foot, which the sautés had moved 0.04 m sideways).
+clip pelvis max/min around each landing (beats 4,6,8,10,12,16): max 1.025-1.026, min 0.793-0.807.
+  Standing at beat 2 = 0.968; standing uncrossed (beat 13.9) 0.975-0.978.
+Sissonne leg: hip->ankle 45.0° below level, foot 0.64 m behind the hip (beats 16-17). check --at 14: knees 12/3.
+sheet out\jumps.png: crossed feet 0-3, side by side from 4 on; left leg out behind at 16-17; closed at 19-22.
+
+FINAL ANSWERS task 2
+(a) A sauté: hips peak at 1.026 m = 5.8 cm above the standing height in fifth (0.968), about 4.8 cm above the
+    uncrossed stance they actually take off from after the first one (0.978); 23 cm above the bottom of the
+    take-off bend (0.793). All five two-footed jumps the same (clip, max pelvis y per landing window).
+(b) After the "changement": NEITHER foot is in front - both ankles at z 0.035 (clip beat 12-14). The changement
+    cannot be written (grammar limitation), I wrote a plain jump; and a plain jump from fifth already uncrosses
+    the feet. (Predicted "right"; wrong because of the uncrossing.)
+(c) After the close: yes, straight: check --at 21 and 21.9 -> knees 4° left, 4° right. Pelvis back at 0.968.
+    The right foot is in front again (left 0.07 m behind it, clip beat 21).
+Could not say: a changement; landing a jump in fifth (crossed); a sissonne that takes off from both feet
+  (I had to put the weight on the right first, `shift.right`, so it takes off from one foot).
+Misleading: "across ... with back, just behind, or across(0.2m)" - `back.across(0.07m)` gives a 0.5 m back stride;
+  the distance has to go on `back`: `back(0.07m).across`. And no diagnostic for the ignored bracket.
+  "a plain jump keeps the feet as far apart as they were" made me expect the fifth to survive a sauté.
+
+
+======================================================================
+TASK 3: barre-edit.shosa
+======================================================================
+PLAN (before first check)
+- Copy barre.shosa. Changes:
+  1. low(10cm) -> low(14cm), twice (2 numbers).
+  2. Left foot in front: `rightFoot.across(0.07m)` -> `leftFoot.across(0.07m)` (1 word). The weight then starts on
+     the left foot; shift.center unchanged.
+  3. Grand plié 4 + 4 beats: 8 beats instead of 12, which does not fill 3/4 bars, so the height and arms rows
+     must be re-barred from beat 21: a `then` of 4 tied over a bar line (`then:3~ | :1`), `low(35cm):2~ | :2`,
+     `straight:1 |`; to keep whole bars I stand 4 beats (29-33) instead of 3 before the rise (the rise, hold,
+     down and final stand unchanged). Score 45 beats = 15 bars. Arms row re-barred the same way.
+     Expect several tokens changed here (not one number): the 3/4 bars force it.
+EXPECTED check: no problems on the first run if my counting is right; 45 beats, 15 bars, 32.14 s.
+  Risk: SH1002 if I miscount a bar.
+PREDICTED: demi-plié bottoms 14.0 cm down; grand plié 35 cm at beat 25; left foot in front (left ankle z 0.07).
+LOG
+
+Check run 1 (barre-edit.shosa): no problems. 45 beats, 32.14 s, 15 bars at 84 3/4, "ends where it began".
+  --at 0: knees 12° left, 4° right (weight on the left foot that "stepped", mirror of task 1); 9, 18, 29, 42, 44: 4°/4°.
+clip out\barre-edit.json pelvis y: stand 0.968; demi bottoms 0.828 (beats 6, 15) = 14.0 cm; grand bottom 0.618 at
+  beat 25 = 35.0 cm, back at 0.968 at 29 (4 down, 4 up); rise 1.038 at 36-39.
+  Ankles beat 2: left (x -0.121, z 0.070), right (x -0.041, z 0.000): left in front, crossed.
+  Left hand: x 0.109 at 21, 0.680 (side) at 25, 0.109 at 29: arms open on the way down, back on the way up.
+sheet out\barre-edit.png: the blue leg crosses in front; the grand plié bottom (beat 25) falls between the poses
+  drawn every 3 beats (24, 27), so the sheet does not show the deepest point; the clip does.
+
+FINAL ANSWERS task 3
+(a) Changes against barre.shosa:
+   - `low(10cm)` -> `low(14cm)` twice: 2 numbers.
+   - `rightFoot.across(0.07m)` -> `leftFoot.across(0.07m)`: 1 word (plus the comment).
+   - Grand plié 4+4: NOT a number change. 8 beats do not fill 3/4 bars, so I re-barred the rest of both the
+     height row and the arms row:
+       height: `then:3~ | :3 | low(35cm):3~ | :3 | straight:3 | then:3 | high:3 ...`
+            -> `then:3~ | :1 low(35cm):2~ | :2 straight:1 | then:3 | then:3 | high:3 ...`
+            (4 lengths changed, one `then:3` added: the stand before the rise became 4 beats (29-33) instead of 3,
+             to keep whole bars; score 48 -> 45 beats)
+       arms: `then:3~ | :3 | side…:3~ | :3 | fifth:3 | then:3 | then:3 | then:3 | then:3 |`
+          -> `then:3~ | :1 side…:2~ | :2 fifth:1 | then:5bar |`
+     About 10 tokens over two rows, against 2 numbers for the demi-pliés. The bar lines (SH1002) are what forces
+     it: with them off, it would have been `then:6`->`then:4`, `low(35cm):6`->`low(35cm):4` and the same in arms.
+(b) Nothing went wrong: first check clean, the clip numbers match. One decision the task did not specify: where to
+   put the 4 beats freed by the shorter grand plié (I lengthened the stand before the rise by 1 beat and the score
+   got 3 beats shorter).
+
+

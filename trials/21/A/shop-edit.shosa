@@ -1,0 +1,31 @@
+title "Shopkeeper"
+tempo 60          // one beat = 1 s
+time 4/4
+
+role keeper
+dancer keeper humanoid on keeper
+
+// both hands resting on the counter top, in front of the belly at about hip height
+pose rest { arms { fwd.across(15).down(50).bent(40) } }
+
+section Idle {
+  keeper {
+    body  { rest:4 | }
+    head  { { fwd:1 then:1/2 fwd.down(12):1/2 } q | }        // a small nod at 1.5 s and 3.5 s
+    torso { up:1/2 then:3/2 up.fwd(10):2 | }                 // leans in through 0.5-2 s, back up by 4 s
+  }
+}
+
+section Greet {
+  tempo 90
+  keeper {
+    body  { rest:5 }
+    torso { up:1 up.fwd(45):2!bow then:1 up:1 }             // down by beat 1, held to 3, up by 4
+  }
+}
+
+form Idle  { Idle }
+form Greet { Greet }
+
+score Idle  { dancer keeper  form Idle  loop  inPlace }
+score Greet { dancer keeper  form Greet }

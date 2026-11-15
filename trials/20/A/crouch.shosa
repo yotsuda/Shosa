@@ -1,0 +1,28 @@
+title "Crouch"
+tempo 60           // one beat is 1 s
+time 4/4
+
+role hero
+dancer hero humanoid on hero
+
+// Breathing: the hips 2 cm down and back up, a 2-second cycle.
+section Idle {
+  hero {
+    arms   { down:2 }
+    height { mid low(2cm) }
+  }
+}
+
+// Sink evenly 1.2 s to 35 cm lower, stay 0.5 s, spring up in 0.2 s.
+section Crouch {
+  hero {
+    arms   { down:2.4s }
+    height { mid:1.2s low(35cm):0.5s@linear then:0.2s!spring mid:0.5s }
+  }
+}
+
+form Idle   { Idle }
+form Crouch { Crouch }
+
+score Idle   { dancer hero  form Idle  loop  inPlace }
+score Crouch { dancer hero  form Crouch  inPlace }

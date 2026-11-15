@@ -2,11 +2,12 @@
 // A trial, not a sample: what cannot be said, and what is only near, is written beside each word.
 // The working leg is the right one; `@mirror` gives the left.
 
+// Ballet stands on straight legs: the positions hold `height { straight }`, and every height move comes back to it (not `mid`, the soft knees of a row nobody wrote).
 // ---- Positions of the feet. Without turnout: the feet and the knees point forward in all of them.
-pose first   { steps { together } }                 // heels together (the toes should turn out)
-pose second  { steps { rightFoot.side(0.41m) } }         // feet apart, 0.33 m (but the weight is on the right foot)
-pose fourth  { steps { rightFoot.fwd(0.3m) } }          // the right foot a small step ahead
-pose fifth   { steps { rightFoot.across } }             // the right foot crossed in front, 0.12 m (heel to toe, turned out)
+pose first   { steps { together }  height { straight } }                 // heels together (the toes should turn out)
+pose second  { steps { rightFoot.side(0.41m) }  height { straight } }         // feet apart, 0.33 m (but the weight is on the right foot)
+pose fourth  { steps { rightFoot.fwd(0.3m) }  height { straight } }          // the right foot a small step ahead
+pose fifth   { steps { rightFoot.across }  height { straight } }             // the right foot crossed in front, 0.12 m (heel to toe, turned out)
 
 // ---- Positions of the arms: rounded with a little @bent, the elbows held out to the side (DESIGN.md 75).
 pose brasBas     { arms { fwd.down(70).bent(30).elbow(side) } }   // low, in front of the thighs, rounded
@@ -17,9 +18,9 @@ pose demiSeconde { arms { side.down } }
 pose thirdArms   { leftArm { fwd.up(70).bent(40).elbow(side) }  rightArm { side.fwd(20).down(10).bent(15).elbow(back) } }
 
 // ---- At the barre, and in the centre.
-move demiPlie    { height { low(8cm) mid } }
-move grandPlie   { height { low(40cm):2 mid:2 } }
-move releve      { height { high mid } }
+move demiPlie    { height { low(8cm) straight } }
+move grandPlie   { height { low(40cm):2 straight:2 } }
+move releve      { height { high straight } }
 move tenduFwd    { rightLeg { fwd.down(65) down } }      // the foot along the floor to the front, pointed
 move tenduSide   { rightLeg { side.down(65) down } }
 move tenduBack   { rightLeg { back.down(65) down } }
@@ -28,7 +29,7 @@ move rondDeJambe { rightLeg { fwd.down(65) side.down(65) back.down(65) down } } 
 move retire      { rightLeg { otherKnee down } }                        // the toe at the knee of the other leg
 move developpe   { rightLeg { otherKnee fwd.up(15):2 down } }               // up through retiré, unfold to the front
 move grandBattement { rightLeg { fwd.up down } }   // thrown up fast and lowered with control: @sharp would be 15 m/s, too fast
-move fondu       { height { low(8cm) mid }  rightLeg { otherAnkle fwd.down(30) } }   // from sur le cou-de-pied
+move fondu       { height { low(8cm) straight }  rightLeg { otherAnkle fwd.down(30) } }   // from sur le cou-de-pied
 move portDeBras  { arms { brasBas firstArms fifthArms secondArms brasBas } }
 
 pose arabesque {
@@ -45,7 +46,7 @@ move saute       { steps { then:1/2 jump:1/2 }  height { low(8cm):1/2 then:1/2 }
 move echappe     { steps { jump.apart jump.stand } }
 move glissade    { steps { rightFoot.side(0.41m) together }  height { low(8cm) low } }
 move pasDeBourree { steps { rightFoot.back.across leftFoot.side(0.41m) rightFoot.fwd }  height { high high low } }
-move balance     { steps { rightFoot.side leftFoot.back.across rightFoot.place }  height { mid high mid } }
+move balance     { steps { rightFoot.side leftFoot.back.across rightFoot.place }  height { straight high straight } }
 move chasse      { steps { rightFoot.fwd together rightFoot.fwd }  height { low high low } }
 move pique       { steps { rightFoot.side }  height { high }  leftLeg { otherKnee } }
 move pirouette   { steps { shift.left turn.right(360) shift.center }  rightLeg { otherKnee:2 down } }
@@ -53,7 +54,7 @@ move chaines     { steps { rightFoot.side@turn(right(180)) leftFoot.place@turn(r
 
 move reverence {
   steps { rightFoot.side(0.41m) leftFoot.back.across:2 together }
-  height { mid low:2 mid }
+  height { straight low:2 straight }
   torso { up up.fwd(20):2 up }
   head  { fwd fwd.down(40):2 fwd }
   arms  { brasBas secondArms:2 brasBas }

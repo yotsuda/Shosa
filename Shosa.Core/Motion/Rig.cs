@@ -15,6 +15,12 @@ public static class Rig
     /// it bends. Was 0.995 (11.5°, a soft knee everywhere) until writing trial 19 (DESIGN.md 78.4).
     /// </summary>
     public const double StraightLeg = 0.9995;
+    /// <summary>
+    /// Degrees the knees are bent standing at `mid`, the height a row nobody wrote stands at: a soft knee, which
+    /// reads as natural on a game character (the user chose 12° looking at 4°, 10°, 15° and 24° side by side,
+    /// 2026-11-15, DESIGN.md 79.4). `straight` (and `high`, on the toes) stands on the straight leg.
+    /// </summary>
+    public const double SoftKnee = 12;
     public const double HipHalf = 0.10;
     public const double Spine = 0.50;
     public const double ShoulderHalf = 0.19;
