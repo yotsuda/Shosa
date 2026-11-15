@@ -1,0 +1,156 @@
+TRIAL 19 / A — notes
+
+=== Task 1: fighter.shosa ===
+Prediction before first check:
+- check: maybe no problems; possible risks: SH2003 (shoulders 60° swing right(30)->left(30) in 0.15 s
+  with @sharp may be "too fast"), SH2004 if the right leg cannot lift (weight question: I assume the
+  guard pose's `leftFoot.fwd(0.3m)` leaves the weight on the left foot so the right leg is free).
+  Also a possible warning that the score starts with `leftFoot.fwd(0.3m)` already made (grammar says a
+  foot a pose places says nothing).
+- Idle: 4 beats, 2 s, "loops on the spot". Combo: 5 beats, 2.5 s, "ends where it began".
+- Marks: Combo !hit at beat 1 = 0.5 s, beat 2 = 1 s, beat 3.2 = 1.6 s.
+Predicted answers:
+ (a) at 1.0 s: hips 20° left, shoulders 30° left, face 0° (straight to the feet's front), 15° down
+     (head row from the guard is not turned by hips/shoulders).
+ (b) at 1.6 s: face 0° left/right, 15° down (guard's head; unchanged by the kick).
+ (c) at 0.5 s: left fist about 1.5-1.6 m above the floor (aimed at fwd.across(18).up(22) to reach an
+     upright opponent's chin, ~1.6 m), roughly in front of the middle of the body (across 18).
+
+Check runs, task 1:
+ 1. `shosa check fighter.shosa --at 1,2,3.2` -> warning SH2003 at (36,56) "Too fast to perform: the foot would
+    move at about 12 m/s. A @sharp word goes in 0.15 s ..." on the kick `fwd.up(65):0.4@sharp!hit` (chamber was
+    fwd.down.bent(120)). Everything else as predicted (Idle loops on the spot, Combo ends where it began, marks at
+    0.5/1/1.6 s, --at lines: 1.0 s hips 20 left, shoulders 30 left, face 0 and 15 down).
+    Change: took @sharp off the kick and moved the chamber nearer and later: `then:0.8 fwd.bent(120):0.4 fwd.up(65):0.4!hit`
+    (the kick now travels through the 0.4-beat chamber word = 0.2 s, smooth).
+ 2. check -> no problems. Sheets looked at (out\fighter-Idle.png, out\fighter-Combo.png, out\fighter-side.png
+    with --view side --step 0.2). Clip read: guard fists at 1.497 m (below chin ~1.53: head centre 1.635, nose 1.604).
+    Change: guard arms fwd.up(18).bent -> fwd.up(25).bent (fists 1.545 m) so they are at chin height rather than below.
+ 3. check -> no problems (same lines).
+Surprise: the default (front) sheet looks almost like a profile: arms forward and the kick are drawn going to the
+ image's left, legs overlap. Camera "in front and a little to stage left" — it seems more than a little.
+
+Final answers, task 1:
+ (a) at 1.0 s: hips 20° left, shoulders 30° left, face 0° (to the feet's front) and 15° down.
+     [check fighter.shosa --at 2 : "Combo at beat 2 = 1 s: hips 20° left, shoulders 30° left, face 0° and 15° down"]
+ (b) at 1.6 s: face 0° left/right, 15° down (still the guard's chin tuck, at the opponent).
+     [check --at 3.2 : "face 0° and 15° down"]
+ (c) at 0.5 s: left fist 1.59 m above the floor, in front of the middle of the body (x 0.023 vs pelvis x 0.030:
+     0.7 cm off the midline), 0.62 m ahead of the pelvis. [clip -> scratch\fighter.json, Combo frame 15, leftHand
+     y=1.590 x=0.023 z=0.819; pelvis x=0.030 z=0.195]. Elbow 5° bent (check --at 1). Kick: right ankle at 1.71 m
+     at 1.6 s (frame 48) = head height of an upright opponent (head middle 1.72 per grammar).
+
+=== Task 2: runner.shosa ===
+Choices: tempo 120 (0.5 s a beat) because the grammar says a leap needs half a second before it to be SEEN in
+the air (7 cm). Run = stand, rightFoot.fwd, 8 x leap.fwd, leftFoot.fwd rightFoot.fwd, stand:2 (14 beats, 7 s).
+Arms: leftArm/rightArm alternating fwd.down(40).bent / back.down(60).bent, opposite to the feet; smaller
+for the walking steps. Skip = stand, { leftFoot.fwd hop.fwd:1/2 rightFoot.fwd hop.fwd:1/2 } x4, stand:2
+(step word 1 beat = 0.5 s of flight for the hop; 15 beats). Arms in the skip not written (hang).
+Prediction before first check:
+- check: no problems hoped; possible SH2004/SH2002? Possibly a note that `stand` first word... nothing.
+  Run: 14 beats, 7 s; Skip 15 beats, 7.5 s.
+ (a) Run ends ~7.9 m forward (0.5 + 8 x 0.8 + 0.5 + 0.5, stand closes onto the right foot);
+     Skip ends ~6.0 m forward (8 x (0.5 + 0.25)). check might say a bit different (middle of the feet).
+ (b) feet ~7 cm off the floor at best (grammar: half a second gives 7 cm); both feet off ~0.2 s per stride.
+ (c) yes, ~7 cm hop should be visible on the sheet (step word 0.5 s).
+
+Check runs, task 2:
+ 1. check -> errors: (22,12) SH0010 '}' expected; (22,13) SH1004 There is no track 'stand'; (22,74) SH1004 There is no
+    track 'q'; (22,75) SH0010 '{' expected. Cause: `stand { leftFoot.fwd ... } q` — a bare word before a group reads as
+    a track name (the grammar says so, but only in the `&` paragraph: "A word in front of a group has its length
+    written"). Oddly the Run arm rows `fwd.down(40).bent { ... } q` were accepted (dotted word not taken as a track).
+    Change: `stand:1 { ... }`. (Run already said "ends 7.9 m forward", as predicted.)
+ 2. check -> 4 x warning SH2002 "The foot is put farther away than the leg is long. Make the step smaller, or bend the
+    knees (a low level). (In score Skip.)" at (22,62) = the 2nd `hop.fwd:1/2` (the hop on the right foot), and at the
+    three `q`. Not at the first hop on the left. Skip ended 6 m forward (predicted 6.0).
+    I don't know exactly which foot was too far (the trailing foot held behind is 0.75 m back?). Change: steps
+    leftFoot.fwd(0.35m)/rightFoot.fwd(0.35m) (a child's skip is small anyway).
+ 3. check -> no problems. Run 14 beats 7 s, ends 7.9 m forward; Skip 15 beats 7.5 s, ends 4.8 m forward.
+ Then sheets (out\runner-Run.png, out\runner-Skip.png, out\run-side.png --view side, out\skip-close.png --step 0.25)
+ and clip (scratch\runner.json): per frame, each foot's height = min(ankle-0.08, toe-0.02) (rest heights read from
+ frame 0), the lowest foot's height.
+
+Final answers, task 2:
+ (a) Run ends 7.9 m forward; Skip ends 4.8 m forward. [check runner.shosa: "runner ends 7.9 m forward of where it
+     began" / "runner ends 4.8 m forward of where it began"]
+ (b) Run: in each of the 8 strides the lower foot rises to about 0.13 m (pelvis rises ~6 cm, 0.98->1.04);
+     both feet are off the floor for about 6 frames = 0.2 s (e.g. frames 24-29, 0.80-0.97 s; landing on beat 2 = 1.0 s;
+     the first flight, from the plain rightFoot.fwd, peaks 0.11 m). [clip scratch\runner.json, Run, my frame scan]
+     Predicted 7 cm from the grammar's "half a second 7 cm" — the foot clears more than the 7 cm the body rises
+     (the grammar's 7 cm is presumably the body's/feet's rise in a jump, not the swing foot's clearance; unclear).
+ (c) Skip: yes in the numbers — each hop has ~0.2 s with both feet off the floor, lower foot up to 0.07 m
+     (clip, Skip frames 24-29, 46-52, ...). On the sheet, only with a closer look: on the per-beat sheet
+     (runner-Skip.png) the 1.5-beat skip falls between poses; on --step 0.25 (out\skip-close.png) poses 1.75, 3.25,
+     4.75 show the body higher with both feet up (small, but visible).
+
+=== Task 3: slip.shosa ===
+Reading: "keeps looking straight at the opponent in front (level, not tucked)" -> the guard here has `head { fwd }`
+(level); everything else as fighter's guard. Lean: torso up.left(15) / up.right(15); sink: height low(8cm)->low(18cm).
+Timeline in beats (0.6 s): 0 guard, 1 lean L, hold to 2, guard 3, 4 lean R, hold to 5, guard 6, 7 face 40 L,
+hold to 8, front 9, 10 face 40 R, hold to 11, front 12, end 13 (7.8 s). Hold = `then`.
+Expect: the height row sets out only in the 2nd half of the word before (0.3 s), not over the whole beat as asked.
+Prediction before first check:
+- check: no problems; "boxer ends where it began"; 13 beats, 7.8 s.
+ (a) at beat 1 (0.6 s) and 2: face 0° and 0° up/down (level, to the front) — maybe a few degrees less/more because
+     of the lean ("under a lean it is less").
+ (b) during the glances: only the head moves (body row is a pose = shape, held; torso up).
+ (c) no, the feet stay (no steps written; lean and height leave the stance).
+
+Check runs, task 3:
+ 1. `check slip.shosa --at 1,2,7,8,10` -> no problems; 13 beats, 7.8 s; "boxer ends where it began";
+    beat 1/2: "hips 15° right, shoulders 30° right, face 0°" (no up/down part = level, I assume);
+    beat 7/8 "face 40° left", beat 10 "face 40° right". No change needed.
+ Then clip (scratch\slip.json): angles row (face, faceUp) and joint positions; sheet out\slip.png (lean to the
+ dancer's left at beat 1 = image right in the front view, to its right at 4; correct).
+ Surprise: `check --at` prints "face 0°" with no up/down at all when level (the grammar's example always has "and N° up").
+
+Final answers, task 3:
+ (a) Yes. At 0.6 s and 1.2 s (leaning left, held): face 0° and level. [check --at 1,2: "face 0°"; clip angles
+     frames 18, 27, 36: face 0, faceUp 0]. The head itself moves 14.5 cm to the left and 12 cm down with the lean
+     (clip head x 0.030 -> 0.175, y 1.635 -> 1.514), as it should. The pelvis sinks 9.6-10 cm (0.895 -> 0.799/0.795)
+     and shifts 4.7 cm the other way.
+ (b) Practically no: from beat 6 to beat 12 (frames 108-216) the nose moves 8.2 cm; every other joint moves at most
+     3-4 mm (the last of the height settling into low(8cm) at beat 6); hands 3.2 mm. [clip, my max-displacement scan]
+ (c) No: ankles and toes move 0.0000 m over the whole score. [clip scan; check: "boxer ends where it began"]
+ Could not say: the sink "over 1 beat" — the height row is a feet row and only sets out in the second half of the
+ word before (0.3 s here), so the hips sink in the last half-beat while the lean takes the whole beat (as the
+ grammar's table says; I did not try to work around it).
+
+=== Task 4: fighter-edit.shosa ===
+Edits (copy of fighter.shosa): leftArm `skip:1` -> `skip:0.8` (jab at 0.4 s); `rightLeg` -> `leftLeg`;
+kick `fwd.up(65):0.4!hit` -> `fwd.up(65):0.6!hit then:0.4` (held 0.6 beat = 0.3 s, then the way back starts);
+recoil `fwd.down.bent(120):0.6` -> `:0.4`, `down:0.8` -> `down:0.4` (so the row still ends at 5, leg down at 4.6 = 2.3 s).
+Plus the comment above the section rewritten (not counted).
+Open question: the left leg is the front leg. The grammar says for @mirror "out of a one-sided stance, first free
+the other leg (steps { shift.right })", but also "From standing on both feet nothing else is needed: the weight goes
+over the other foot by itself". The right kick worked with no steps row and the clip put the guard's pelvis between
+the feet, so I try with no shift first.
+Prediction before first check:
+- check: no problems (maybe SH2004 if the left leg cannot be freed; maybe SH2003 for the leg's way down in 0.2 s).
+  Marks: !hit at beat 0.8 = 0.4 s, beat 2 = 1 s, beat 3.2 = 1.6 s. Combo ends where it began.
+ (a) changed: 5 numbers/words in place + 1 word inserted (then:0.4) = 6 tokens, in 2 lines.
+ (b) hopefully nothing; to be seen on the sheet.
+
+Check runs, task 4:
+ 1. `check fighter-edit.shosa --score Combo --at 0.8,3.2,3.7,4.6` -> no problems. Marks !hit at beat 0.8 = 0.4 s,
+    beat 2 = 1 s, beat 3.2 = 1.6 s; "hero ends where it began"; at 3.2 and 3.7 knees "11° left, 49° right" (left leg
+    straight up, held); at 4.6 back to guard numbers. No shift was needed: clip shows the weight goes over the right
+    foot by itself (pelvis x 0.030 -> -0.081, z 0.195 -> 0.029 at 1.6 s).
+ Sheets: out\fighter-edit-Combo.png, out\edit-side.png (--view side --step 0.2). Clip scratch\edit.json.
+
+Final answers, task 4:
+ (a) 6 changes in 2 lines: skip:1->skip:0.8; rightLeg->leftLeg; fwd.up(65):0.4 -> :0.6; inserted `then:0.4`;
+     fwd.down.bent(120):0.6 -> :0.4; down:0.8 -> :0.4. (Plus the section comment rewritten.) [Compare-Object of the files]
+ (b) check: no problems. Seen on the sheets / clip:
+     - The kick is held 3.2-3.8 (1.6-1.9 s) and the leg is down at 4.6 (2.3 s): as asked. [edit-side.png poses 3.2-3.8;
+       check --at 3.7 knees 11° left]
+     - The jab at 0.4 s falls between poses of the default half-beat sheet: it shows only at --step 0.2 (pose 0.8);
+       the green "!hit 0.8" is written over pose 1, where the arm is already on its way back. Expected per grammar.
+     - The left leg starts lifting right at beat 2 (1.0 s), so the weight is pulled onto the BACK foot just as the right
+       cross lands (pose 2.2 side view: left foot already up). With the right kick it went onto the front foot, which
+       suits a cross; with the left kick it does not. Nobody warns. (A boxer would want the shift later.)
+     - In both versions the kick's foot reaches head height (ankle 1.71 m) only ~0.4 m in front of the hip: the leg goes
+       up between the fighter's own fists and body (left ankle z 0.434 vs left fist z 0.509; the shin passes ~0.15 m inside
+       the left forearm). An opponent whose head is at punching distance (fist at z 0.82) is not reached — fwd.up(65) from
+       the hip with an upright torso cannot get a foot that high and that far; it would need torso { up.back(..) }.
+       check does not say anything; I left it (the task asked for minimal change).

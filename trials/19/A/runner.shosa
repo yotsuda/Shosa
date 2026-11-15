@@ -1,0 +1,30 @@
+// A background character: a run that slows to a stop, and a child's skip.
+title "Runner"
+tempo 120          // one beat = 0.5 s: each stride gets half a second of flight time
+time 4/4
+
+role runner
+dancer runner humanoid on runner
+
+// Run: stand (beat 0), first step on the right (beat 1), eight running strides (leaps,
+// landing on beats 2..9), two walking steps (10, 11), feet together at standing width (12).
+section Run {
+  runner {
+    steps    { stand rightFoot.fwd leap.fwd leap.fwd leap.fwd leap.fwd leap.fwd leap.fwd leap.fwd leap.fwd leftFoot.fwd rightFoot.fwd stand:2 }
+    leftArm  { down fwd.down(40).bent { back.down(60).bent fwd.down(40).bent } q q q back.down(75).bent(40) fwd.down(70).bent(40) down:2 }
+    rightArm { down back.down(60).bent { fwd.down(40).bent back.down(60).bent } q q q fwd.down(70).bent(40) back.down(75).bent(40) down:2 }
+  }
+}
+
+// Skip: step-hop left, step-hop right, ... eight times (1.5 beats each), then stand.
+section Skip {
+  runner {
+    steps { stand:1 { leftFoot.fwd(0.35m) hop.fwd:1/2 rightFoot.fwd(0.35m) hop.fwd:1/2 } q q q stand:2 }
+  }
+}
+
+form Run  { Run }
+form Skip { Skip }
+
+score Run  { dancer runner  form Run }
+score Skip { dancer runner  form Skip }

@@ -54,7 +54,7 @@ public static class Solver
         foreach (var dancer in ir.Dancers)
             solvers[dancer.Id].Build();
 
-        // Head, chest and pelvis of every dancer at every frame, where they really are (before `inplace`).
+        // Head, chest and pelvis of every dancer at every frame, where they really are (before `inPlace`).
         var bodies = new Dictionary<string, List<Body>>();
         var unreached = new HashSet<int>();
 
@@ -90,8 +90,13 @@ public static class Solver
             foreach (var (seg, code, message) in solver.SupportProblems)
                 if (flagged.Add((seg, code)))
                     diagnostics.Add(new Diagnostic(code, DiagnosticSeverity.Error, new TextSpan(seg.Src, seg.Len), message));
+            // A foot the steps put down and its leg's row holds up: the leg row wins, and the foot stays in the air.
+            foreach (var (seg, leg, at) in solver.FeetHeldUp())
+                if (flagged.Add((seg, "SH2013")))
+                    diagnostics.Add(new Diagnostic("SH2013", DiagnosticSeverity.Warning, new TextSpan(seg.Src, seg.Len), FormattableString.Invariant(
+                        $"This puts the {(leg == Channels.LeftLeg ? "left" : "right")} foot on the floor at beat {at:0.##}, but the {leg} row still holds that leg up, and a leg's own row wins: the foot stays in the air. Put the leg down in its row by then (`down`){(seg.Kind == SegKinds.Jump ? ": the leg a jump lands on, shaped in the air, needs it" : "")}.")));
 
-            // `inplace`: the even part of the travel is taken out and handed to the engine as a velocity.
+            // `inPlace`: the even part of the travel is taken out and handed to the engine as a velocity.
             clipFigure.Facing = [solver.FacingAt(0), solver.FacingAt(ir.TotalBeats)];
             var travel = ir.Inplace && ir.TotalBeats > 0 ? solver.Travel : default;
             if (ir.Inplace && ir.TotalBeats > 0)
@@ -404,6 +409,8 @@ internal sealed class FigureSolver
         public double LiftFrom, LiftTo;
         /// <summary>How much of a stride the step goes the way the foot points: 1 forward, -1 back, 0 sideways.</summary>
         public double Along;
+        /// <summary>The word of the support track that made the move.</summary>
+        public Seg? Seg;
     }
 
     /// <summary>Where the feet and the weight are between two events of the support track.</summary>
@@ -501,6 +508,29 @@ internal sealed class FigureSolver
     public string? LoopProblem { get; private set; }
     /// <summary>Words of the support track that the way the feet stood did not allow, with the error to give.</summary>
     public List<(Seg Seg, string Code, string Message)> SupportProblems { get; } = [];
+
+    /// <summary>
+    /// Words of the support track that put a foot down on the floor while its leg's own row still
+    /// holds it up (the narrower row wins, so the foot stays in the air): the landing leg of a split
+    /// leap that kept its shape, a `together` under a leg still lifted behind (writing trial 19).
+    /// </summary>
+    public IEnumerable<(Seg Seg, string Leg, double At)> FeetHeldUp()
+    {
+        foreach (var (moves, legRow, leg) in new[] { (_leftMoves, _leftLeg, Channels.LeftLeg), (_rightMoves, _rightLeg, Channels.RightLeg) })
+        {
+            foreach (var move in moves)
+            {
+                if (move.Seg is null || move.LiftTo > 0 || move.Orbit)
+                    continue;
+                double at = move.T1;
+                if (_loop && (at < -1e-9 || at > _length + 1e-9))
+                    continue;
+                double yaw = YawAt(at);
+                if (LegShape(legRow, at, Vec3.Left(yaw), Vec3.Forward(yaw), SomewhereBelow, Vec3.Up).Weight > 0.5)
+                    yield return (move.Seg, leg, at);
+            }
+        }
+    }
 
     /// <summary>How far the weight goes over the floor from the first beat to the last.</summary>
     public Vec3 Travel => WeightAt(_length) - WeightAt(0);
@@ -624,10 +654,12 @@ internal sealed class FigureSolver
         }
 
         // A move sets out from as high as the foot is held, and ends on the floor, or held at `held`.
+        Seg? current = null;
         void Move(bool isLeft, FootMove move, double held = 0)
         {
             move.LiftFrom = isLeft ? s.LeftUp : s.RightUp;
             move.LiftTo = held;
+            move.Seg = current;
             if (record)
                 (isLeft ? _leftMoves : _rightMoves).Add(move);
             if (isLeft)
@@ -655,6 +687,7 @@ internal sealed class FigureSolver
 
         foreach (var seg in support)
         {
+            current = seg;
             double t0 = seg.T0 + offset, t1 = seg.T1 + offset;
             var fwd = Vec3.Forward(s.Yaw);
             var leftward = Vec3.Left(s.Yaw);
@@ -837,14 +870,18 @@ internal sealed class FigureSolver
                         // The foot that does not land is held low, behind the way it went, by the landing foot.
                         var way = travel.Length > 1e-6 ? travel.Normalized() : fwd;
                         var held = target - way * 0.12 + (landLeft ? -leftAfter : leftAfter) * 0.08;
+                        // The foot that carries no weight does not wait for the take-off: it leaves the floor as the
+                        // bend begins (the back foot of a skip, the swinging leg of a run). Left on the floor while the
+                        // body went on over the other foot, a stride behind, it was farther than the leg is long (trial 19).
+                        double freeUp = made ? up : t0;
                         Move(landLeft, new FootMove
                         {
-                            T0 = up, T1 = land, From = landLeft ? s.Left : s.Right, To = target,
+                            T0 = landLeft == takeoffLeft ? up : freeUp, T1 = land, From = landLeft ? s.Left : s.Right, To = target,
                             YawFrom = landLeft ? s.LeftYaw : s.RightYaw, YawTo = s.Yaw + angle, Air = !made, AirHeight = height,
                         });
                         Move(!landLeft, new FootMove
                         {
-                            T0 = up, T1 = land, From = landLeft ? s.Right : s.Left, To = held,
+                            T0 = landLeft == takeoffLeft ? freeUp : up, T1 = land, From = landLeft ? s.Right : s.Left, To = held,
                             YawFrom = landLeft ? s.RightYaw : s.LeftYaw, YawTo = s.Yaw + angle, Air = !made, AirHeight = height,
                         }, made ? 0 : Rig.HeldFoot);
                         Weight(t0, up, takeoff);

@@ -188,6 +188,46 @@ public class MotionTests
     }
 
     [Fact]
+    public void The_free_foot_of_a_skip_leaves_the_floor_as_the_hop_bends_and_is_never_too_far()
+    {
+        // Writing trial 19: the grammar's own skip, step 1 beat and hop half a beat at 120, gave SH2002 on the
+        // hops of one foot. The back foot waited on the floor for the take-off, a stride behind the body.
+        string text = Samples.Solo(
+            "    steps { then:1 leftFoot.fwd:1 hop.fwd:1/2 rightFoot.fwd:1 hop.fwd:1/2 leftFoot.fwd:1 hop.fwd:1/2 rightFoot.fwd:1 hop.fwd:1/2 stand:1 }",
+            "tempo 120\ntime 4/4\n");
+        var compilation = Compile(text);
+        Assert.Empty(compilation.Diagnostics);
+
+        // In the bend before the hop on the right foot (it lands at beat 3.5) the left foot is already off the floor.
+        var figure = compilation.Clip.Figures[0];
+        Assert.True(figure.Joint(compilation.Clip.FrameAt(3.05), Rig.LAnkle).Y > Rig.AnkleHeight + 0.02);
+    }
+
+    [Fact]
+    public void A_foot_put_down_while_its_leg_row_holds_it_up_is_a_warning_at_the_step()
+    {
+        // Writing trial 19: the landing leg of a split leap kept its shape and never landed, without a word.
+        string leap = Samples.Solo("""
+                steps    { stand:1 shift.left:1 | then:2 | leap.fwd(1m):2 | then:2 | }
+                leftLeg  { skip:2 | skip:1 then:1/2 back:1/2 | then:2 | then:2 | }
+                rightLeg { skip:2 | skip:1 then:1/2 fwd:1/2 | then:2 | then:2 | }
+            """, "tempo 120\ntime 2/4\n");
+        var warning = Assert.Single(Compile(leap).Diagnostics);
+        Assert.Equal(("SH2013", DiagnosticSeverity.Warning), (warning.Code, warning.Severity));
+        Assert.StartsWith("leap", leap[warning.Span.Start..]);
+
+        // Put down in its row as it lands: nothing to say.
+        Assert.Empty(Compile(leap.Replace("rightLeg { skip:2 | skip:1 then:1/2 fwd:1/2 | then:2 |", "rightLeg { skip:2 | skip:1 then:1/2 fwd:1/2 | down:2 |")).Diagnostics);
+
+        // A `together` under a leg still lifted behind after a hop.
+        string close = Samples.Solo("""
+                steps    { stand:1 shift.left:1 | hop:2 | together:2 | then:2 | }
+                rightLeg { skip:2 | back.down(20):2 | then:2 | then:2 | }
+            """, "tempo 120\ntime 2/4\n");
+        Assert.Equal("SH2013", Assert.Single(Compile(close).Diagnostics).Code);
+    }
+
+    [Fact]
     public void A_planted_foot_does_not_slide()
     {
         var clip = Compile(Samples.Walk).Clip;

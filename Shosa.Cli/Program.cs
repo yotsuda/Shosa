@@ -32,7 +32,7 @@ const string Usage = """
 
     One `score` of the file is one file written. Every command writes every score: the
     unnamed one to the input's name (walk.png), `score Idle` to walk-Idle.png. --score NAME
-    writes that one only (--score "" the unnamed one); gltf --combined puts them all into one. Marks (`!hit`), loops and `inplace`
+    writes that one only (--score "" the unnamed one); gltf --combined puts them all into one. Marks (`!hit`), loops and `inPlace`
     velocities are in the glTF animation's extras; bvh and vrma write them beside the files
     as FILE.events.json.
     """;

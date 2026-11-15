@@ -24,7 +24,7 @@ public static class CheckReport
     /// How far a dancer is at the end from where it began, said in its own first directions:
     /// "ends 1 m forward and 0.35 m to its left of where it began, turned 90° to its left". The
     /// place is the middle between the two ankles (the hips sway with the weight). A loop travels
-    /// that far every time round; `inplace` takes the travel out, and it is said all the same.
+    /// that far every time round; `inPlace` takes the travel out, and it is said all the same.
     /// </summary>
     private static string? Travel(MotionClip clip, ClipFigure figure)
     {

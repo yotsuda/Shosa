@@ -1,0 +1,44 @@
+// A fighting game character: a guard that loops, and a jab, cross, kick combo.
+title "Fighter"
+tempo 120          // one beat = 0.5 s
+time 4/4
+
+role hero
+dancer hero humanoid on hero
+
+// The guard: left foot 0.3 m ahead, hips 8 cm down, belt 15° right, shoulders 30° right,
+// fists up in front of the face at about chin height, chin tucked 15°.
+pose guard {
+  steps     { leftFoot.fwd(0.3m) }
+  height    { low(8cm) }
+  arms      { fwd.up(25).bent }
+  hips      { right(15) }
+  shoulders { right(30) }
+  head      { fwd.down(15) }
+}
+
+// Idle: 2 s = 4 beats, looping.
+section Idle {
+  hero {
+    body { guard:4 }
+  }
+}
+
+// Combo: 2.5 s = 5 beats. Jab lands at beat 1 (0.5 s), cross at beat 2 (1.0 s),
+// kick at beat 3.2 (1.6 s), all back in guard by beat 4.2 and held to 5.
+section Combo {
+  hero {
+    body      { guard:5 }
+    leftArm   { skip:1 fwd.across(18).up(22):1/2@sharp!hit guard:1/2 }
+    rightArm  { skip:2 fwd.across(18).up(22):1/2@sharp!hit guard:1/2 }
+    hips      { skip:2 left(20):1/2@sharp guard:1/2 }
+    shoulders { skip:2 left(30):1/2@sharp guard:1/2 }
+    rightLeg  { skip:2 then:0.8 fwd.bent(120):0.4 fwd.up(65):0.4!hit fwd.down.bent(120):0.6 down:0.8 }
+  }
+}
+
+form Idle  { Idle }
+form Combo { Combo }
+
+score Idle  { dancer hero  form Idle  loop }
+score Combo { dancer hero  form Combo }

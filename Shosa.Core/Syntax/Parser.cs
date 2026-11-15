@@ -167,7 +167,7 @@ internal sealed class Parser
     private GreenNode ParseSection()
     {
         var children = new List<GreenNode> { Next(), Expect(SyntaxKind.Identifier, "A section name") };
-        while (AtName)   // nothing belongs here; the binder says where `loop` and `inplace` went
+        while (AtName)   // nothing belongs here; the binder says where `loop` and `inPlace` went
             children.Add(Next());
         children.Add(Expect(SyntaxKind.OpenBrace, "'{'"));
         // The lines a section begins with: the tempo and the time from here on, and its upbeat.

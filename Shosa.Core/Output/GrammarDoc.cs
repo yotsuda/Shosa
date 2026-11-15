@@ -279,7 +279,7 @@ public static class GrammarDoc
               a role that comes back "on the next bar's 1" has to come back inside the last bar.
               The same for the feet: a step written on beat 0 of a score that does not loop is a
               foot already there. To SEE it land, give the score a lead-in (`steps { then:4 | leftFoot.fwd … }`).
-              `shosa check` says it under the score (``solo starts with `leftFoot.fwd` already made``; a `leftFoot.place` too): count that
+              `shosa check` says it under the score (``solo starts with `leftFoot.fwd` already made``; a `leftFoot.place` or a `shift.left` too): count that
               step out of how far the dancer goes — "two steps forward, two back" from beat 0 ends one step behind.
               `shosa check` also says where each dancer ends (``solo ends 0.5 m back of where it began``,
               ``solo ends where it began``): read it instead of adding the steps up.
@@ -320,7 +320,10 @@ public static class GrammarDoc
               Where two rows write the same part, the LATER row wins:
               `body { { walk:4 } & { wave:4 } }` walks while one arm waves.
               A word in front of a group has its length written (`guard:1 { jab } & { stepIn }`):
-              a bare word followed by `{` would read as the name of a track.
+              a bare word followed by `{` would read as the name of a track. **This is so before
+              any group** — `{ … } q` and `{ … } & { … }` alike: `stand { leftFoot.fwd hop.fwd } q` is
+              read as a track named `stand` (SH1004), `stand:1 { leftFoot.fwd hop.fwd } q` is right.
+              (A word with a dot in it, `fwd.down.bent { … }`, cannot be a track's name and needs no length.)
             - `!name` marks the beat its word is written at: the moment the hand is there, the
               foot lands, the jump comes down. (On a move it is the beat the move is written at:
               the beat of its first word.) It does nothing to the movement; it is written to the output for the engine.
@@ -678,7 +681,8 @@ public static class GrammarDoc
             - After a step the weight is on the foot that stepped, so the OTHER leg is free
               (after `leftFoot.fwd`, the right leg). After a `hop` or a `leap` the foot that did not
               land is already off the floor, held low behind: a leg row can shape it (`rightLeg { back.up(10) }`
-              is a landing in arabesque), and the next word of `steps` that moves it puts it down.
+              is a landing in arabesque), and the next word of `steps` that moves it puts it down
+              (once the leg row has let it go with `down`: a leg's row wins over `steps`, SH2013).
             - While either foot is in the middle of a step, or the other leg is also off the
               floor, a leg gesture is an error (SH2004) — except in the air of a jump, a hop or a
               leap, where both legs may take a shape (a split leap: `leftLeg { fwd }` with `rightLeg { back }`). The leg lifts through the word BEFORE its
@@ -715,7 +719,7 @@ public static class GrammarDoc
             ```shosa
             arms     { fwd.down(15).bent(40).elbow(side) }   // ballet's rounded arms: the elbows held out
             arms     { fwd.up(70).bent(40).elbow(side) }     // the same, overhead (fifth, en haut)
-            rightLeg { back.up(20).bent.knee(side.up) }      // an attitude: the knee out and above the foot
+            rightLeg { back.bent.knee(side.up) }             // an attitude: the thigh 30° up, the knee out and above the foot
             torso    { up.fwd(10).round }                    // a boxer's hunch
             ```
 
@@ -723,6 +727,12 @@ public static class GrammarDoc
               N degrees, from 0 (straight) to 150 (folded tight). The hand or foot stays in the
               direction written and comes closer: `arms { fwd.down(15).bent(40) }` is a little bent,
               `rightLeg { fwd.down.bent(130) }` a knee drawn right up before a kick.
+              **The direction is the FOOT's (from the hip), not the thigh's**: bending lifts the
+              knee above that line, so a bent leg's thigh is higher than its direction says. Turned
+              out with the knee to the side and up (`knee(side.up)`): `back.bent` has the thigh 30°
+              above level and the foot at hip height, `back.down(20).bent` the thigh 12° up,
+              `back.up(20).bent` 44° up with the foot above the hip. To give a thigh's angle, write
+              it and read it off with `shosa clip` (the hip and the knee).
             - **Which way it points**: `elbow(DIRECTION)` / `knee(DIRECTION)`, the direction written
               as an arm's or a leg's (`side`, `side.up`, `back`, `fwd.down`; `side` is the limb's own
               side, so `@mirror` and `arms` are right for both). Without it an elbow hangs down, back
@@ -981,14 +991,25 @@ public static class GrammarDoc
               word gives it (the longer, up to a second, the higher; a `then` counts as that word, so
               `then:2 jump` is a high one and `then:1/2 jump` a little one); it is not written.
               A quarter of a second gives 2 cm of air — the sheet shows bent knees and no flight — and
-              half a second 7 cm: a leap that is to be SEEN in the air needs half a second or more before it. It lands at the
+              half a second 7 cm (how far the body rises; a foot swinging through clears the floor by more): a leap that is to be SEEN in the air needs half a second or more before it. It lands at the
               height it took off from (the `height` row), and a plain `jump` keeps the feet as far apart as they were.
               `jump@turn(right(180))` turns in the air. Jumps in a row, each on its beat: `jump jump jump`.
               `left` / `right` go to the dancer's own left and right (a sidestep or a
               dodge: `jump.right(0.25m)`; a dancer `facing stageLeft` has upstage on its left, so two who
               face each other and both write `jump.left` go to opposite walls); with `fwd` or `back` they go
               diagonally (`jump.back.left`). In the air both legs may take a shape: `leap.fwd(1.2m)` with
-              `leftLeg { fwd }` and `rightLeg { back }` over its flight is a split leap.
+              `leftLeg { fwd }` and `rightLeg { back }` over its flight is a split leap. **A leg's row
+              wins over `steps`**, so the leg the leap lands on must be put `down` in its row on the
+              landing beat, or its foot stays in the air (warning SH2013); the leg it took off from
+              stays as its row holds it (a landing in arabesque) until its row says `down` — and
+              then it is held low behind, as after any leap, until a word of `steps` puts it on the floor:
+              ```shosa
+              steps    { stand:1 shift.left:1 then:2 | leap.fwd(1.2m):2 stand:2 | }  // off the left foot, onto the right at beat 4; both feet down at 6
+              leftLeg  { skip:3 then:1/2 back:1/2 | then:2 down:2 | }               // behind in the air, let go at beat 6 for the `stand`
+              rightLeg { skip:3 then:1/2 fwd:1/2 | down:4 | }                      // in front in the air, down to land on at beat 4
+              ```
+              The same holds after a `hop` or a `leap` for any word of `steps` that moves a foot
+              its leg's row still holds up (`together`, `stand`, a step): the row says `down` first.
             - `lift(0.4m)` — ONLY for a free body (`@free` on the event, or `free` on the dancer line;
               otherwise SH1022): the feet hang 0.4 m above the floor until told otherwise.
               `lift(0.4m).fwd`, `.back`, `.left`, `.right` also travel (0.4 m, or `fwd(0.8m)`).
@@ -1161,6 +1182,11 @@ public static class GrammarDoc
             - A change of tempo or of time in the middle of a section (a section says them where it begins; a dance to a song follows its song).
             - A toe at any place on the other leg but its knee and its ankle; a hand on a leg (the thigh, the knee).
             - A foot that points or flexes when you choose (it points only with its toe on the other leg); standing on pointe.
+            - A slow change of height in one word (a plié over three beats, a slow rise): a height,
+              like a step, sets out no more than 0.5 s before its beat, so `low:3` stands still and
+              then goes down in the last half second. Write it in pieces of half a second or less,
+              each straight on into the next (at 120: `height { mid:1 low(4cm):1@linear low(8cm):1@linear low(12cm):1 }`). A slow rise
+              cannot be written (`high` has no amount).
             - Changing the feet in the air (a changement, an entrechat); the third and the fifth position told apart.
 
             ## Checking your work
@@ -1249,7 +1275,8 @@ public static class GrammarDoc
             SH2007 two dancers whose heads, bodies or standing legs are in the same place,
             SH2009 two rows of an `&` that turn the shoulders, or the hips, at the same time,
             SH2010 shoulders the chest cannot turn to on the hips, SH2011 an elbow or a knee pointed
-            along its own limb, SH2012 a hop or a leap from both feet). The message says what to change.
+            along its own limb, SH2012 a hop or a leap from both feet, SH2013 a foot that `steps` puts
+            down while its leg's row still holds it up). The message says what to change.
 
             The sheet shows poses numbered by beat from 0, read left to right, then down. How far
             apart they are depends on the length shown: every half beat up to 8 beats, every beat up

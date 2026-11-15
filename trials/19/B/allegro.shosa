@@ -1,0 +1,22 @@
+// Allegro: four jetés forward, two hops, an échappé and back.
+title "Allegro"
+tempo 120
+time 2/4
+
+role solo
+dancer solo humanoid on solo
+
+section Allegro {
+  solo {
+    turnout { out(80) }
+    //        bar1                   bar2     bar3 (4)        bar4 (6)        bar5 (8)        bar6 (10)       bar7 (12)   bar8      bar9          bar10            bar11
+    steps   { together:1 shift.left:1 | then:2 | leap.fwd(1m):2 | leap.fwd(1m):2 | leap.fwd(1m):2 | leap.fwd(1m):2 | hop:1 hop:1 | together:2 | jump.apart:2 | jump.together:2 | then:2 | }
+    // In the air of each jeté (half a beat before it lands) the legs split, front and back.
+    // The leg that lands is put down on the landing beat: without it, it stays in the air.
+    rightLeg { skip:2 | skip:1 then:1/2 fwd.down(20):1/2 | down:1 then:1/2 back.down(20):1/2 | then:3/2 fwd.down(20):1/2 | down:1 then:1/2 back.down(20):1/2 | then:2 | then:2 | down:2 | }
+    leftLeg  { skip:2 | skip:1 then:1/2 back.down(20):1/2 | then:3/2 fwd.down(20):1/2 | down:1 then:1/2 back.down(20):1/2 | then:3/2 fwd.down(20):1/2 | down:2 | }
+  }
+}
+
+form { Allegro }
+score { dancer solo }

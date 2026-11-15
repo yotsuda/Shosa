@@ -1,0 +1,10 @@
+tempo 120
+time 2/4
+role solo
+dancer solo humanoid on solo
+section A { solo { turnout { out(80) }
+ steps { together:1 shift.left:1 | then:2 | leap.fwd(1m):2 | then:2 | }
+ 
+} }
+form { A }
+score { dancer solo }

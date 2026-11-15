@@ -1,0 +1,37 @@
+// Part of a ballet class in the centre: pliés, a rise, a passé, an attitude.
+title "Class"
+tempo 90
+time 3/4
+
+role solo
+dancer solo humanoid on solo
+
+// Arms low and rounded in front of the hips (bras bas), the elbows out.
+pose armsLow   { arms { fwd.down(65).bent(40).elbow(side) } }
+// Arms rounded above the head (fifth, en haut).
+pose armsUp    { arms { fwd.up(70).bent(40).elbow(side) } }
+// One arm out to the side, a little rounded (second).
+pose armSide   { arms { side.down(10).bent(20) } }
+
+section Centre {
+  solo {
+    turnout { out(80) }
+    steps   { together }
+    // A height sets out no more than 0.5 s before its beat, so a plié over 3 beats (2 s)
+    // is written in half-beat steps of about 3 cm, each straight on into the next (@linear).
+    //        bars 1-2: one plié (down by beat 3, up by beat 6); bars 3-4: the same again (q)
+    height  { { mid:1/2 low(3cm):1/2@linear low(7cm):1/2@linear low(10cm):1/2@linear low(13cm):1/2@linear low(17cm):1/2@linear |
+                low(20cm):1/2@linear low(17cm):1/2@linear low(13cm):1/2@linear low(10cm):1/2@linear low(7cm):1/2@linear low(3cm):1/2@linear | } q
+    //        bar5    bar6     bar7: up on the toes by bar 6, down by bar 7
+              mid:3 | high:3 | mid:3 | }
+    //        bar1      bars 2-6     bar7              bar8     bar9     bar10    bar11    bar12    bar13
+    arms    { armsLow:3 | then:5bar | then:1 armsUp:2 | then:3 | then:3 | then:3 | then:3 | then:3 | then:1 armsLow:2 | }
+    leftArm { skip:8bar | then:3 | armSide:3 | then:3 | then:3 | then:1 armsLow:2 | }
+    //        bars 1-6   bar7                bar8              bar9        bars 10-12                       bar13
+    leftLeg  { skip:6bar | then:1 otherKnee:2 | then:2 down:1 | }
+    rightLeg { skip:8bar | then:3 | back.bent.knee(side.up):3 | then:3 | then:3 | then:1 down:2 | }
+  }
+}
+
+form { Centre }
+score { dancer solo }

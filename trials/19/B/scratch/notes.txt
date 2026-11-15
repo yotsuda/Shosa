@@ -1,0 +1,172 @@
+TASK 1 class.shosa — before the first check
+=============================================
+Plan: 3/4 at 90 (0.667 s a beat, 2 s a bar). 12 bars = 36 beats = 24 s.
+ turnout { out(80) } + steps { together } = first position, heels touching.
+ height row: mid at 0, low(12cm) at 3, mid at 6, low(12cm) at 9, mid at 12, high at 15, mid at 18.
+ Worry: the grammar says height sets out like the feet: "In the second half of the word before,
+ and no more than 0.5 s before its beat." So a 3-beat (2 s) plié would sit still 1.5 s and then
+ drop in 0.5 s. I expect check to say nothing about that; I will look at it in clip/sheet.
+ Passé: rightLeg { skip:6bar | then:1 otherKnee:2 | then:2 down:1 | ...} toe at the knee at beat 19,
+ down at 23. Knee should point to the side by itself because of turnout.
+ Attitude: back.up(30).bent.knee(side.up) at beat 27, held to 33, down at 34.
+ Could not say: "thigh 30 deg above level" — the leg direction is where the FOOT is from the hip,
+ so I wrote the foot's direction back.up(30) with bent (90). Thigh will be higher than the foot line.
+ Name: I first called the role "dancer" — then remembered `dancer` is a reserved word (SH1003), renamed to solo.
+
+Expected check: no problems; score: 36 beats, 24 s, 1 dancer; Centre 0-36 12 bars 24 s at 90 3/4;
+ "solo starts with `together` already made"? maybe; "solo ends where it began".
+Predicted answers:
+ (a) hips down 12 cm at beat 3; knees bent maybe ~35-45 deg each.
+ (b) right toe at the front of the left knee, ~0-5 cm from it; right knee points to the side (right), turned out 80.
+ (c) right foot ~0.5 m above the floor (hip ~0.9 m, foot at 30 deg up behind but leg bent... guess 0.45 m);
+     standing leg straight (knee ~0-5 deg).
+
+TASK 1 — what happened
+Check run 1 (class.shosa as first written, --at 3,19,27): "no problems"; 36 beats, 24 s; Centre 0-36 12 bars 24 s at 90 3/4;
+  "solo ends where it began". No "starts with `together` already made" line (none expected for a closing word, fine).
+  --at 3: knees 60/60. --at 19: knees 11 left, 128 right. --at 27: knees 11 left, 90 right.
+  clip: pelvis y 0.974 until 1.5 s, then 0.921 at 1.75 s, 0.857 at 2 s: the plié really drops in the last 0.5 s
+  of its 2 s, as I feared (grammar: feet/height "no more than 0.5 s before its beat"). Sitting still 1.5 s then
+  dropping is not a 3-beat plié.
+  clip attitude: right knee y 1.31 (above the hip at 0.97), ankle 1.29: with back.up(30) the FOOT is 30 deg up and
+  bent puts the knee far higher — the thigh about 75 deg up. Not what was asked.
+Experiments in scratch\att.shosa / plie.shosa (no problems each):
+  thigh angle (knee minus hip, from clip at 20 s): back.down(15).bent -> 16.9 deg; back.down(10).bent -> 21.5;
+  back.bent.knee(side.up) -> 30.0 deg. So "thigh 30 deg up, knee 90" = foot direction level behind (the foot
+  direction is 45 deg below the thigh for a right-angle bend... here it came out exactly 30 at level).
+  @linear on the 3-beat height words: still drops only in the last 0.5 s (no real change).
+  Half-beat steps of 2 cm with @linear: a near-even descent (0.974 .. 0.856 over 2 s).
+Changes: height row rewritten as a group of half-beat 2 cm steps (down 6, up 6) + q for the second plié;
+  attitude target -> back.bent.knee(side.up).
+Check run 2: "no problems", same lengths; --at numbers the same (knees 60/60 at 3, 11/128 at 19, 11/90 at 27).
+  Note: the q covering bars 3-4 with no bar line written inside it was accepted.
+  Sheet out\class.png looked at: pliés (knees out), rise at 15, passé triangle at 21, attitude 27-33 with right arm up,
+  left out; arms low at 0 and 36. Side view out\class-side.png: plié shows straight legs from the side (knees go
+  out to the side, turned out) — right.
+Could not say: a slow rise (`high` has no amount, so the rise onto the toes happens in the last 0.5 s of bar 5 and
+  the coming down in the last 0.5 s of bar 6); a pointed foot when chosen (the attitude foot is not pointed).
+FINAL ANSWERS task 1:
+ (a) deepest point of the first plié (beat 3 = 2 s): pelvis 0.974 -> 0.858 m = 11.6 cm down (clip frame 60);
+     knees bent 60 deg each (check --at 3). Knees out over the toes: knee x +-0.294 vs toe x +-0.208 (clip).
+ (b) passé (beat 19, clip frame 380): right toe (0.133,0.521,0.061), left knee (0.133,0.521,0.001): the toe is
+     6 cm in front of the left knee, same height, same x. The right knee is at x=-0.448 (hip at -0.065): it points
+     to the dancer's right, out to the side (and a little forward, z 0.05). Right knee bent 128 (check --at 19).
+ (c) attitude (clip frame 600 = 20 s): right ankle 0.97 m, right toe 0.92 m above the floor (level with the hip);
+     the knee at 1.20 m. Standing (left) leg: check --at 19 and 27 say left knee 11 deg bent, so NOT quite straight
+     (I wrote nothing that asks for a bend; the passé shows the same 11).
+
+
+TASK 2 allegro.shosa — before the first check
+=============================================
+2/4 at 120: 0.5 s a beat, a bar 1 s. Plan (beats): together at 0, shift.left at 1 (weight on the left, needed:
+ a leap from both feet is SH2012), then:2 so the first leap has 1 s before it, leaps at 4 (lands R), 6 (L), 8 (R),
+ 10 (L), each leap.fwd(1m) with 2 beats = 1 s before it (grammar: half a second or more to be seen in the air).
+ Hops at 12 and 13 on the left (right held low behind by itself), together at 14 (right foot down, first position),
+ jump.apart at 16 (échappé, turned out = second), jump.together at 18, then:2 stand. 22 beats, 11 s.
+ Legs in the air: at 3.5, 5.5, 7.5, 9.5 the landing leg fwd.down(20), the other back.down(20). I avoided level
+ fwd/back because the back leg must come through to the front next time and back -> fwd is "the exact opposite"
+ (SH2001). Leg rows use skip + then so the leg lifts only in the half beat before (grammar's advice).
+ Risk: SH2004 if a standing leg's gesture starts lifting before the take-off.
+Expected check: maybe SH2004 warnings on the half-beat lifts; else no problems; "solo ends 4 m forward of where it began".
+Predicted answers: (a) 4 m forward. (b) 1 s before each leap -> the highest jump, maybe 15-25 cm of rise; visible.
+ (c) after the hops: weight on the left foot, right foot off the floor held low behind it, both about 4 m forward.
+
+TASK 2 — what happened
+Check run 1: allegro.shosa(15,105): error SH2004: "This leg leaves the floor while the other one is not carrying the
+  weight. Step onto the other foot first." Points at the right leg's fwd.down(20) at beat 7.5 (3rd jeté).
+  "solo ends 4 m forward and 0.03 m to its left".
+  The clip was still written (with the error): it showed the real problem — after the first jeté BOTH ankles stay
+  0.67 m up at every landing; the leg that was meant to land keeps its leg-row gesture, and the OTHER leg drops to
+  the floor. A scratch test (scratch\leap.shosa, one leap with the split) said "no problems" while the landing
+  foot (right) stayed 0.67-0.85 m in the air for the rest of the score: nobody standing on the floor, no diagnostic.
+  With `down` on the landing leg at the landing beat, it lands where the leap puts it (z 1.00).
+Change 1: landing leg gets `down:1` at each landing beat (4 R, 6 L, 8 R, 10 L) before its next lift.
+Check run 2: "no problems", but "solo ends 3.58 m forward". clip: after the last jeté the right leg stays held
+  behind at 0.66 m for the whole rest of the score — `together` at 14, jump.apart and jump.together did NOT put it
+  down (the grammar says "the next word of steps that moves it puts it down"); the échappé was done on the left foot
+  alone, the right foot hanging at z 3.16. Again no diagnostic.
+Change 2: rightLeg ... then:2 | then:2 | down:2 | — the right leg put down at 14 with the together.
+Check run 3: "no problems"; 22 beats, 11 s; "solo ends 4 m forward of where it began".
+  clip: right foot comes down at z 4.00 at beat 14; échappé feet x +-0.30 at 16; together +-0.04 at 18.
+  Sheet out\allegro.png (every beat) shows no flight at all (the poses are on the landing beats);
+  out\allegro-jete.png (--step 0.25 --from 2 --to 6 --view side): at 3.5 and 5.5 the figure is clearly off the floor
+  with the legs split front and back.
+FINAL ANSWERS task 2:
+ (a) 4 m forward (check run 3: "solo ends 4 m forward of where it began"; clip pelvis z 4.00 at the end).
+ (b) the hips rise from 0.972 to 1.241 m = 27 cm in each jeté (clip, peak near beat 3.6, 5.6 ...), with 1 s before each.
+     On the per-beat sheet it is NOT visible (all poses land on beats where the feet are down); with --step 0.25 it
+     is clearly visible (out\allegro-jete.png). The first hop (1 s before it) rises 27 cm too, the second (0.5 s) 7 cm.
+ (c) after the hops (beat 13): weight on the LEFT foot at 4.00 m forward (x 0.04); the right foot off the floor behind
+     it (clip at 13.2: right ankle y 0.38, z 3.63, sliding forward to close at beat 14). Right after the first hop
+     (beat 12) the right ankle is 0.67 m up and 0.84 m behind (held at my back.down(20)).
+
+
+TASK 3 playground.shosa — before the first check
+================================================
+4/4 at 120 (0.5 s a beat). One role `child` danced by ann (at -2.5 0 facing stageLeft) and ben (at 2.5 0 facing
+ stageRight): 5 m apart, facing, ann on the audience's left (x negative = stage right = the audience's left).
+ Run: shift.left at 0 (first word, already made; a leap from both feet would be SH2012), leap.fwd 0.6/0.65/0.65 m at
+ beats 1,2,3 (1 beat = 0.5 s before each: the grammar's minimum to be seen in the air, ~7 cm), stand at 4 -> each
+ 1.9 m forward, 1.2 m apart. shift.right at 5, hops at 6,7,8,9, turn.right(180) at 10 (on the right foot, left held
+ behind from the hops), skips: leftFoot.fwd(0.7m) 12, hop.fwd(0.25m) 13, rightFoot.fwd(0.7m) 14, hop.fwd(0.25m) 15,
+ stand at 16 held to 20. 20 beats = 10 s.
+Expected check: no problems (maybe SH2007 if they come too close: I expect 1.2 m to be fine);
+ "ann starts with `shift.left` already made"? probably not (a shift is not a step); each "ends ... turned 180°".
+ The half turn on one foot: grammar says "half round in two of 90° ends 0.2 m back"; mine is one turn of 180 on one
+ foot, so they may end ~0.1-0.2 m off.
+Predicted answers: (a) closest at beat 4-9: hips ~1.2 m apart, feet ~1.0 m (front feet); no collision.
+ (b) yes, within ~0.2 m of where they began, facing away from each other (turned 180).
+
+TASK 3 — what happened
+Check run 1: two warnings SH2002 "The foot is put farther away than the leg is long. Make the step smaller, or bend
+  the knees (a low level)." at (17,32) and (17,67): the hop.fwd(0.25m) words after leftFoot.fwd(0.7m) /
+  rightFoot.fwd(0.7m). (The step itself was not flagged; the hop after it was — presumably the held-behind foot is
+  too far behind.) Also the "starts with `shift.left` already made" lines for both (I predicted not: a shift counts).
+  "ann/ben ends 0.2 m to its right of where it began, turned half round".
+Change: steps 0.55 m and hops 0.4 m (same 1.9 m total).
+Check run 2: "no problems"; 20 beats, 10 s, 2 dancers; same "already made" lines; both "ends 0.2 m to its right of
+  where it began, turned half round".
+  clip (scratch\play.json): pelvis x -0.60 / +0.60 from beat 4 to 11 (1.20 m apart); at the end x -2.50 / +2.50
+  (exactly where they started along the line), 0.2 m sideways (from the pivot on the right foot in the half turn,
+  as the grammar warns). Closest extremities over all frames: left hand to left hand 0.73 m at frame 145 (beat 9.7,
+  during the turn); feet farther. Sheet out\playground.png looked at: the floor plan shows both meeting in the middle
+  and the return paths 0.2 m to the side; the hip path zigzags sideways with each running step.
+FINAL ANSWERS task 3:
+ (a) closest: hips 1.20 m apart (clip, beats 3-11); the nearest parts are the hands, 0.73 m (clip frame 145); the
+     toes/ankles never closer than that. No collision (no SH2007 in check run 2).
+ (b) yes: check says "ends 0.2 m to its right of where it began, turned half round" for both; clip pelvis x back at
+     -2.50 / +2.50. They end facing away from each other.
+
+
+TASK 4 class-edit.shosa — before the first check
+================================================
+Copied class.shosa. Changes:
+ 1. plié 20 cm: because the plié is written as half-beat steps (the workaround of task 1), all 11 depth numbers
+    change: 2,4,6,8,10 | 12 | 10,8,6,4,2 -> 3,7,10,13,17 | 20 | 17,13,10,7,3 (10 is already in both: 9 numbers really
+    differ; the q copies the second plié). With a plain `low(12cm)` row it would have been 2 numbers.
+ 2. passé with the LEFT leg: the passé words moved out of the rightLeg row into a new row
+    `leftLeg { skip:6bar | then:1 otherKnee:2 | then:2 down:1 | }`; the rightLeg row now begins `skip:8bar | then:3 |`.
+    Arms: both arms are overhead (symmetric) in the passé, so nothing changes there.
+ 3. attitude held 3 bars: one more `then:3 |` in each of arms, leftArm, rightLeg (3 bar-fillers).
+Expected check: no problems; 39 beats, 26 s; Centre 0-39 13 bars 26 s at 90 3/4; ends where it began.
+Predicted: deepest plié ~ 19-20 cm down, knees ~80 deg; left toe at the right knee at beat 19, left knee pointing to
+ the dancer's left; attitude from 27 to 36, down at 37.
+
+TASK 4 — what happened
+Check run 1 (--at 3,19,27,35): "no problems"; 39 beats, 26 s; Centre 0-39 13 bars 26 s at 90 3/4; "solo ends where
+  it began". --at 3: knees 78/78. --at 19: knees 128 left, 11 right (left leg in passé, right standing, 11 again).
+  --at 27 and 35: right knee 90 (attitude held), left 11.
+  clip: pelvis 0.974 -> 0.779 at beat 3 = 19.5 cm. Passé at 12.667 s: left toe (-0.133,0.521,0.061) at the right
+  knee (-0.132,0.521,0.001), 6 cm in front; left knee at x +0.448: out to the dancer's left. Attitude ankle 0.97 m
+  at 18, 22, 24 s (beats 27-36), down by beat 37.
+  Sheet out\class-edit.png looked at: blue (left) passé at 21; attitude 27, 30, 33, 36; closed at 39.
+Also checked task 3's running steps in clip: both ankles off the floor at beats 0.6-0.8 etc., hips rise ~7 cm.
+FINAL ANSWERS task 4:
+ (a) changed: 11 depth numbers in the plié (my half-beat workaround; it would be 2 with a plain low(12cm) row);
+     the passé: the 3 passé words (then:1 otherKnee:2 / then:2 down:1, with skip:6bar) moved to a new `leftLeg` row,
+     and the rightLeg row's `skip:6bar | ... | then:3 |` became `skip:8bar | then:3 |` (1 number changed, words
+     removed); the hold: 3 inserted `then:3 |` (arms, leftArm, rightLeg). Arms in the passé are symmetric: no change.
+     About 11 + 1 numbers, 1 new row of 4 words, 3 inserted words (plus comments).
+ (b) nothing wrong found: check "no problems"; sheet and clip as intended (plié 19.5 cm, knees 78; left passé; attitude
+     held to beat 36). Same small things as task 1: standing knee 11 deg, rise/fall in the last 0.5 s of its bar.
+

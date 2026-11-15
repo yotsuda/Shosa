@@ -127,7 +127,7 @@ public sealed class ClipFigure
 {
     public string Id { get; set; } = "";
     public string Name { get; set; } = "";
-    /// <summary>For an `inplace` clip: the travel that was taken out, in metres per second (x, z).</summary>
+    /// <summary>For an `inPlace` clip: the travel that was taken out, in metres per second (x, z).</summary>
     public double[]? Velocity { get; set; }
     /// <summary>
     /// Which way the figure faces at the first frame and at the last, radians: where its feet and

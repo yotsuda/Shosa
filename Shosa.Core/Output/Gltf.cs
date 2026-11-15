@@ -24,7 +24,7 @@ public static class Gltf
     /// <summary>
     /// Several clips in one file: one skeleton for each dancer of any of them, one animation per
     /// clip, named after the clip. An animation's <c>extras</c> carry what the engine needs beside the
-    /// curves: whether it loops, the velocity an `inplace` clip had taken out, and the marks.
+    /// curves: whether it loops, the velocity an `inPlace` clip had taken out, and the marks.
     /// </summary>
     public static byte[] Render(IReadOnlyList<MotionClip> clips, bool binary = true) =>
         Pack(clips, clips.Select(c => (IReadOnlyList<ClipFigure>)c.Figures).ToList(), vrma: false, binary);
@@ -32,7 +32,7 @@ public static class Gltf
     /// <summary>One figure as a VRM Animation, which is a <c>.glb</c> with the humanoid named.</summary>
     /// <summary>
     /// What an engine needs of a clip besides the curves, in the one shape both the extras of a
-    /// glTF animation and FILE.events.json have: <c>loop</c>; <c>velocity</c> (only `inplace`:
+    /// glTF animation and FILE.events.json have: <c>loop</c>; <c>velocity</c> (only `inPlace`:
     /// metres a second in glTF's axes, [x, 0, z], for each figure); <c>marks</c> (only if there
     /// are any: <c>time</c> in seconds, <c>beat</c>, <c>name</c>, <c>figure</c>, <c>section</c>, <c>play</c>).
     /// </summary>
@@ -58,7 +58,7 @@ public static class Gltf
     /// <summary>
     /// The text of FILE.events.json, written beside a BVH or a VRM Animation (neither can carry
     /// extras): the score and its length, then <see cref="Extras"/> field for field. Null for a
-    /// clip with nothing to say (no marks, not `inplace`).
+    /// clip with nothing to say (no marks, not `inPlace`).
     /// </summary>
     public static string? EventsJson(MotionClip clip)
     {

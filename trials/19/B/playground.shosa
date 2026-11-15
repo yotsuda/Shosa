@@ -1,0 +1,22 @@
+// Two children run toward each other, hop, turn round and skip back.
+title "Playground"
+tempo 120
+time 4/4
+
+role child
+dancer ann humanoid on child at -2.5 0 facing stageLeft
+dancer ben humanoid on child at 2.5 0 facing stageRight
+
+section Play {
+  child {
+    //      bar1: run (three running steps, 0.6 + 0.65 + 0.65 = 1.9 m)       bar2: stop, onto the right foot, two hops
+    steps { shift.left leap.fwd(0.6m) leap.fwd(0.65m) leap.fwd(0.65m) | stand shift.right hop hop |
+    //      bar3: two more hops, turn round on the right foot
+            hop hop turn.right(180):2 |
+    //      bar4: step-hop, step-hop (0.55 + 0.4 + 0.55 + 0.4 = 1.9 m back)        bar5: feet together, stand
+            leftFoot.fwd(0.55m) hop.fwd(0.4m) rightFoot.fwd(0.55m) hop.fwd(0.4m) | stand:4 | }
+  }
+}
+
+form { Play }
+score { dancer ann  dancer ben }

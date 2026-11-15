@@ -1,0 +1,32 @@
+// A boxer in a guard slips a punch to the left, then to the right, then glances left and right.
+title "Slip"
+tempo 100          // one beat = 0.6 s
+time 4/4
+
+role boxer
+dancer boxer humanoid on boxer
+
+// The guard of fighter.shosa, the face level here.
+pose guard {
+  steps     { leftFoot.fwd(0.3m) }
+  height    { low(8cm) }
+  arms      { fwd.up(25).bent }
+  hips      { right(15) }
+  shoulders { right(30) }
+  head      { fwd }
+}
+
+// Beats: 0 guard; 1 leaning left, 10 cm lower; held to 2; back in guard at 3;
+// 4 leaning right, lower; held to 5; back at 6; 7 face 40° left, held to 8; front at 9;
+// 10 face 40° right, held to 11; front at 12; still to 13.
+section Slip {
+  boxer {
+    body   { guard:13 }
+    torso  { up:1 up.left(15):1 then:1 up:1 up.right(15):1 then:1 up:7 }
+    height { low(8cm):1 low(18cm):1 then:1 low(8cm):1 low(18cm):1 then:1 low(8cm):7 }
+    head   { fwd:6 then:1 fwd.left(40):1 then:1 fwd:1 fwd.right(40):1 then:1 fwd:1 }
+  }
+}
+
+form { Slip }
+score { dancer boxer }

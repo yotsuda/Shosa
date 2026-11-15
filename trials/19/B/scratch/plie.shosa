@@ -1,0 +1,9 @@
+tempo 90
+time 3/4
+role solo
+dancer solo humanoid on solo
+section A { solo { turnout { out(80) } steps { together }
+ height { mid:1/2 low(2cm):1/2@linear low(4cm):1/2@linear low(6cm):1/2@linear low(8cm):1/2@linear low(10cm):1/2@linear | low(12cm):3@linear | }
+} }
+form { A }
+score { dancer solo }

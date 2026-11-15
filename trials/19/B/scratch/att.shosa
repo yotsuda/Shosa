@@ -1,0 +1,31 @@
+// Part of a ballet class in the centre: pliés, a rise, a passé, an attitude.
+title "Class"
+tempo 90
+time 3/4
+
+role solo
+dancer solo humanoid on solo
+
+// Arms low and rounded in front of the hips (bras bas), the elbows out.
+pose armsLow   { arms { fwd.down(65).bent(40).elbow(side) } }
+// Arms rounded above the head (fifth, en haut).
+pose armsUp    { arms { fwd.up(70).bent(40).elbow(side) } }
+// One arm out to the side, a little rounded (second).
+pose armSide   { arms { side.down(10).bent(20) } }
+
+section Centre {
+  solo {
+    turnout { out(80) }
+    steps   { together }
+    //        bar1         bar2           bar3     bar4           bar5    bar6     bar7
+    height  { mid:3@linear      | low(12cm):3@linear  | mid:3  | low(12cm):3  | mid:3 | high:3 | mid:3 | }
+    //        bar1      bars 2-6     bar7              bar8     bar9     bar10    bar11    bar12
+    arms    { armsLow:3 | then:5bar | then:1 armsUp:2 | then:3 | then:3 | then:3 | then:3 | then:1 armsLow:2 | }
+    leftArm { skip:8bar | then:3 | armSide:3 | then:3 | then:1 armsLow:2 | }
+    //        bars 1-6   bar7                bar8              bar9        bars 10-11                       bar12
+    rightLeg { skip:6bar | then:1 otherKnee:2 | then:2 down:1 | then:3 | back.down(10).bent.knee(side.up):3 | then:3 | then:1 down:2 | }
+  }
+}
+
+form { Centre }
+score { dancer solo }
