@@ -1,0 +1,41 @@
+// A fighting-game character: an idle bounce in guard, and an opening hop forward.
+title "Fighter"
+tempo 120          // one beat is 0.5 s
+time 4/4
+
+role fighter
+dancer fighter humanoid on fighter
+
+// The guard: left foot 0.35 m in front of the right, knees a little bent,
+// fists up by the chin, a slight hunch, eyes ahead.
+pose guard {
+  steps  { leftFoot.fwd(0.35m) }
+  height { low(8cm) }
+  arms   { fwd.up(25).bent }
+  torso  { up.fwd(10).round }
+  head   { fwd }
+}
+
+// Idle: 2 s loop. Stays in guard; sinks 4 cm and comes back, twice.
+section Idle {
+  fighter {
+    body   { guard:4 | }
+    height { { low(8cm) low(12cm) } q | }
+  }
+}
+
+// Opening: 2 s. Already in guard at beat 0; weight onto the front foot by 0.5 s,
+// a small hop forward on the left foot landing at 1.0 s, the right foot down and the
+// weight even again by 1.5 s, held to the end.
+section Opening {
+  fighter {
+    body  { guard:4 | }
+    steps { leftFoot.fwd(0.35m):1 shift.left:1 hop.fwd(0.2m):1/2 rightFoot.back(0.35m):1/2 shift.center:1 | }
+  }
+}
+
+form Idle    { Idle }
+form Opening { Opening }
+
+score Idle    { dancer fighter  form Idle  loop }
+score Opening { dancer fighter  form Opening }

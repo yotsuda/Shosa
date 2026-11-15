@@ -1,0 +1,180 @@
+Trial 23, subject A. Notes.
+
+=== 1. fighter.shosa — BEFORE first check ===
+Plan: tempo 120 (beat = 0.5 s), 4/4, so 2 s = 4 beats = 1 bar.
+ pose guard { steps leftFoot.fwd(0.35m); height low(8cm); arms fwd.up(25).bent; torso up.fwd(10).round; head fwd }
+ Idle: body { guard:4 | } + height { { low(8cm) low(12cm) } q | } -> 8 cm, 12 cm at beat 1, 8 at 2, 12 at 3, back to 8 at 4 (loop).
+ Opening: body { guard:4 | } + steps { leftFoot.fwd(0.35m):1 shift.left:1 hop.fwd(0.2m):1/2 rightFoot.back(0.35m):1/2 shift.center:1 | }
+   beat 0 stance already made (weight on both), shift.left at beat 1 = 0.5 s, hop lands beat 2 = 1.0 s,
+   right foot down 0.35 m behind left at 2.5 (1.25 s), shift.center at beat 3 = 1.5 s, held to 4.
+Unsure:
+ - Whether a pose's steps line as the first word of body gives weight on both feet (grammar says a step
+   ALREADY MADE in steps does; for a pose it says "standing as after this step", and after a step the weight
+   is on the stepping foot). In Opening the steps row's first word is a plain step, so that one should be on both.
+ - Whether "fwd(0.35m)" puts the left foot at standing width (0.2 m) sideways -- I assume yes.
+ - The quick rightFoot.back then shift.center in half beats might be too fast (SH2003).
+ - Does the steps row in Opening clash with the pose's stance? Expect not (narrower wins, same stance).
+Expected diagnostics: none, maybe SH2003 on the half-beat step. check will say "starts with `leftFoot.fwd` already made" for Opening.
+Predictions:
+ (a) Opening frame 0: knees bent about the same (within ~3 deg), since weight even and same height.
+ (b) pelvis at frame 0: sideways at the midpoint between the ankles (within 1 cm); front-to-back also at
+     the midpoint (within ~2 cm), maybe slightly back because of the torso hunch... I say at the midpoint.
+ (c) check: "fighter ends 0.2 m forward of where it began".
+
+=== 1. fighter.shosa — AFTER ===
+(One console call failed before shosa ran: the alias was lost, the shared console had moved to ..\B. Not counted.)
+check runs until no diagnostics: 1. Diagnostics: none. check said:
+  Opening: "fighter starts with `leftFoot.fwd(0.35m):1` already made ..." and "fighter ends 0.2 m forward of where it began".
+  Idle: "fighter loops on the spot".
+Verified with check --at 0,... and clip (scratch\joints.ps1 reads out\fighter.json).
+ (a) Opening frame 0 knees: left 48.1, right 52.1 (check --at 0: "knees 48° left, 52° right").
+     Predicted "same within ~3 deg": WRONG by a hair -- 4 deg apart, the back (right) knee more bent.
+ (b) Opening frame 0: pelvis (0.000, 0.876, 0.144); ankles L (0.100,0.080,0.350), R (-0.100,0.080,0.000),
+     midpoint (0.000, 0.175). Sideways: exactly at the midpoint -- RIGHT. Front-back: 3.1 cm BEHIND the midpoint
+     (toward the back foot) -- I said "at the midpoint within ~2 cm": WRONG (3 cm, and behind).
+     Projected on the line between the ankles the pelvis is 43% of the way from the right ankle to the left.
+ (c) "fighter ends 0.2 m forward of where it began" -- RIGHT. Clip: left ankle z 0.35 -> 0.55, right 0.00 -> 0.20.
+Other numbers: 0.5 s pelvis (0.085, 0.292) i.e. over the left foot (0.100, 0.350) -- good.
+ 1.0 s right ankle at y 0.23 (in the air), left landed at z 0.55. 1.27 s right ankle down at z 0.20.
+ 1.5 s to end pelvis (0.000, 0.344) vs midpoint 0.375: again 3 cm behind middle, same as frame 0. Consistent.
+SURPRISE 1: Idle (stance placed by the POSE as body's first word) and Opening (stance placed by the steps row's
+ first word) are not the same standing. Idle frame 0: pelvis (0.000,0.877,-0.031), ankles L (0.070,0.080,0.122)
+ R (-0.130,0.080,-0.228): the pelvis is 3 cm to the LEFT of the ankle midpoint and 2.2 cm IN FRONT of it
+ (58% toward the front foot), and knees read 51 L / 48 R. Opening frame 0 is 43% toward the front foot,
+ knees 48 L / 52 R. So "the same guard" has the weight slightly forward in Idle and slightly back in Opening,
+ and the knee numbers swap. Also the feet are placed differently around the origin (Idle: x 0.07/-0.13,
+ z 0.122/-0.228; Opening: x 0.1/-0.1, z 0.35/0) -- an engine going Idle -> Opening would see a jump of the root
+ unless it aligns them. No diagnostic.
+SURPRISE 2: the default sheet (no --view) does not look like a front view to me: the figure appears nearly side-on,
+ one arm drawn as an "L" out to picture-left. The --view side sheet is clear (guard, left foot forward, right leg up
+ at 1.5-2).
+Idle bounce: pelvis y 0.877 at 0 s, 0.837 at 0.5 s, 0.877 at 1 s -> 4.0 cm. Right.
+
+=== 2. villager.shosa — BEFORE first check ===
+Plan: tempo 60 (beat = 1 s), 4 beats, no bar lines.
+ steps { leftFoot.side(0.5m):2.5 shift.right:1 stand:0.5 }
+   first word already made -> feet 0.5 m apart, weight on both. shift.right at 2.5 (moves 2.0-2.5 s),
+   stand at 3.5 (the free left foot closes to 0.2 m beside the right, moving 3.0-3.5 s), held to 4.
+ head { fwd:2 fwd.left(30).tilt(right(20)):1.5 fwd:0.5 } -> straight at 0, travels 0-2 to turned+tilted,
+   travels 2-3.5 back to fwd (a plain `fwd` has no tilt, so it should come back level), held to 4.
+Unsure: whether `tilt(right(20))` means the right ear down (the grammar: "an ear toward its shoulder",
+ `tilt` angle positive with left ear down, so right = right ear down). Whether `fwd` after a tilted word
+ removes the tilt (assume yes). Whether `stand` after shift.right moves only the left foot (grammar: yes).
+Expected diagnostics: none. check: "starts with `leftFoot.side(0.5m)` already made"; end: the body
+ goes 0.15 m to its right (midpoint from 0.25 m off the right foot to 0.1 m off it) -> "ends 0.15 m to its right".
+Predictions:
+ (a) front sheet at 2 s: the nose points to the PICTURE's right (the villager's left; the figure faces us),
+     and the crown of the head leans to the PICTURE's left (its right ear, on the picture's left, goes down).
+     The from-above glyph should show the nose turned toward picture right.
+ (b) right foot does not move at all in the second half: 0.00 m (under 1 cm). Left foot moves 0.30 m to it.
+
+=== 2. villager.shosa — AFTER ===
+check runs until no diagnostics: 1. Diagnostics: none.
+ check: "villager starts with `leftFoot.side(0.5m):2.5` already made ..." and
+ "villager ends 0.15 m to its right of where it began" -- matches my expected 0.15 m to its right.
+(a) SHEET ONLY (out\villager.png, then out\villager-zoom.png --from 1.5 --to 2.5 --step 0.5), written before any numbers:
+  Face at 2 s: turned to the villager's LEFT. Told by the from-above glyph under the pose: its nose stroke points
+   down and to the picture's RIGHT (audience at the bottom, the villager's left is on the picture's right);
+   at 0 s and 4 s the stroke points straight down.
+  Tilt at 2 s: I can NOT honestly read it from the sheet. The head ring in the pose is ~15 px across; the stroke
+   inside it slants, but I cannot tell a tilt of the eye line from the turn seen by a camera that is off to the side.
+   If forced: the head looks to lean a little toward the picture's left (its right) -- low confidence.
+ Numbers: check --at 2: "face 30° left, tilted 20° right". clip frame 60: angles face 30.0, tilt -20.0 (negative =
+  right ear down, per the grammar). Head centre x 0.079 vs pelvis x 0.150: the head has gone 7 cm to its right,
+  nose (0.139,0.145) relative to head (0.079,0.041) points +x = its left. So prediction (a): face turned left RIGHT
+  (read from the above-glyph); tilt: the sheet did not let me tell -- the low-confidence guess was the right way,
+  but I do not count it as read from the sheet.
+ Back to level: check --at 3.5 "face 0°", tilt 0.0 from frame 105 to the end. Good.
+(b) Right foot in the second half: rightAnkle (-0.100, 0.080, 0.000) and rightToe (-0.100, 0.020, 0.170) in EVERY one of
+  the 121 frames (unique values listed). It moves 0.000 m -- prediction RIGHT. Left ankle 0.400 -> 0.100 (0.30 m),
+  lifted to y 0.154 on the way (frames 95-100), down by frame 105 (3.5 s).
+LOOKED ODD (no diagnostic): shift.right on the 0.5 m stance drops the hips 6 cm (pelvis y 0.963 -> 0.900) and bends
+  the right knee to 48° (check --at 3: "knees 9° left, 48° right") -- a side lunge rather than a villager leaning onto
+  a foot. The pelvis goes to x -0.062, i.e. 3.8 cm PAST the right ankle (-0.100)? no: -0.062 is 3.8 cm short of it,
+  inside. So the whole weight goes over the right foot and the left leg, still 0.46 m away, makes the body sink.
+  Writing `low` nowhere, I did not expect the sink. The height row says nothing; maybe a half shift is not sayable.
+
+=== 3. lineup.shosa — BEFORE first check ===
+Plan: tempo 100, 4/4, 3 bars = 12 beats. Three roles, one dancer each, at x -1, 0, 1 (z 0), facing front.
+ "Left one" taken as the audience/screen sees it: guardL at x -1 (picture left). (Ambiguous in the task.)
+ "Beat 1 of bar 2" = the first beat of bar 2 = beat 4 counted from 0.
+ guardL: steps { together:4 | stand:4 | then:4 | } -- together already made at 0; at beat 4, weight on both, `stand`
+   closes BOTH feet half way to standing width (grammar: "neither is the free one, BOTH close") -- here that means
+   they open, each 5 cm out (0.1 m -> 0.2 m).
+ guardM: steps { rightFoot.fwd(0.3m):3 shift.right:1 | stand:4 | then:4 | } -- weight onto the front (right) foot
+   at beat 3, the back (left) foot comes up beside it at beat 4.
+ guardR: steps { leftFoot.side(0.6m):4 | stand:4 | then:4 | } -- both feet come in, each 0.2 m.
+ Salute: move salute { rightArm { down:4 | down:3 then:1 | head:2 then:1 down:1 | } } -- hand rises in beat 7-8,
+   beside the head at beat 8 (bar 3), held to 10, down by 11. `head` is "the hand beside the head" -- there is no
+   forehead place; that is the nearest word. A real salute has the elbow out; not sure a place takes `.elbow(side)`.
+Unsure: whether `together` as a first word (from neutral) works and what `stand` does from feet touching
+ (open both? or say nothing?). Whether the salute target `head` looks like a salute at all.
+Expected diagnostics: none. Maybe a note that the first steps are already made.
+Predictions (check's end line):
+ guardL "ends where it began"; guardM "ends 0.15 m forward of where it began"; guardR "ends where it began".
+ Feet I might not expect to move: none -- I expect guardL's two feet each 0.05 m out, guardM's left foot 0.3 m
+ forward and right foot still, guardR's feet 0.2 m in each.
+
+=== 3. lineup.shosa — AFTER (run 1) ===
+(Before the first check I caught my own miscount: I had `together:3 stand:1 |`, i.e. stand on beat 3, not beat 4;
+ rewrote the rows to `together:4 | stand:4 | then:4 |` etc. No check had run.)
+check run 1: no problems. Lines: "guardM starts with `rightFoot.fwd(0.3m):3` already made ...", "guardR starts with
+ `leftFoot.side(0.6m):4` already made ...", "guardL ends where it began", "guardM ends 0.15 m forward of where it began",
+ "guardR ends where it began".  All three end-line predictions RIGHT.
+Feet (clip, out\lineup.json): guardL ankles x -0.95/-1.05 -> -0.90/-1.10 (each 5 cm out, as predicted).
+ guardM: L (0.10, z 0.00) -> (0.10, z 0.30); R (-0.10, z 0.30) stays. guardR: L 1.50 -> 1.30, R 0.90 -> 1.10.
+ No foot moved that I did not expect.
+BUT the line is wrong, and no diagnostic says so: `at` is where the NEUTRAL feet stand, and the first step already made
+ moves one foot off it, so guardR's stance (and its end) is centred at x 1.20, not 1.00 (pelvis 1.200), and guardM is
+ centred at z 0.15 at the start and z 0.30 at the end -- 0.3 m in front of the other two when they should be side by side.
+ The grammar does say "`at` is where the feet stand together" (in the face-to-face fighters paragraph); I overlooked
+ what it means for a first step: it is placed from the foot that stays on the neutral spot.
+Fix: guardM `at 0 -0.3` (front foot on the line, the back foot comes up to it, all end at z 0), guardR `at 0.8 0`
+ (feet 0.7 / 1.3, centre 1.0). Predict: same end lines; final pelvis x -1, 0, 1, all z 0.
+
+=== 3. AFTER run 2 (positions fixed) ===
+check run 2: no problems, the same three end lines. Final pelvis: (-1, 0), (0, 0), (1, 0) -- RIGHT. guardM starts with
+ feet at z -0.30 / 0.00, pelvis z -0.15. Spacing at the start: L -1.0, M 0.0 (0.15 behind), R 1.0.
+SALUTE looks wrong (no diagnostic): with `head` the right hand is at (-0.13, 1.735, 0.00) relative to guardM -- beside the
+ ear, level with the head centre, NOT in front of the forehead -- and the right elbow is at z -0.254, i.e. 25 cm BEHIND
+ the body (pointing backward and down). --view side (out\lineup-salute.png) shows the elbow out behind the back: it reads
+ as "hand behind the ear / scratching the head", not a salute. On the way (beat 7.5) the arm swings forward first.
+ There is no forehead place, and `head` is the only word near it. Trying a direction instead:
+ `fwd.across(55).up(60).bent(105).elbow(side)` -- worked out: forehead about 0.14 m across, 0.30 up, 0.10 forward from
+ the right shoulder, 0.34 m away; bent(105) puts the hand ~0.35 m from the shoulder. Predict: hand near (-0.05, 1.75, +0.10),
+ elbow out to the side (x about -0.4), no diagnostic.
+=== 3. AFTER run 3 (salute by direction) ===
+check run 3: no problems. Clip frame 145 (beat ~8), guardM: right hand (-0.040, 1.762, 0.105) -- 4 cm right of the midline,
+ 5 cm above the head centre (1.715), 10.5 cm forward: at the forehead. RIGHT within ~1 cm (predicted -0.05, 1.75, 0.10).
+ Elbow (-0.339, 1.681, 0.078): out to the side and up, 15 cm outside the shoulder -- I predicted x ~ -0.4, it is -0.34;
+ close enough. check --at would say rightElbow 105. Sheet out\lineup.png: the three salute at beats 8-10, down by 11.
+Total check runs for lineup: 3 (no diagnostics in any; runs 2 and 3 fixed things I saw in the numbers/pictures).
+
+=== 4. villager-edit.shosa — BEFORE first check ===
+Copied villager.shosa. Changes (code tokens, comments not counted):
+ head: `tilt(right(20))` -> `tilt(left(10))`: 2 tokens (right->left, 20->10).
+ steps: `leftFoot.side(0.5m):2.5 shift.right:1 stand:0.5` -> `leftFoot.side(0.5m):3.5 stand:0.5`:
+   the length 2.5 -> 3.5 (1 token) and the event `shift.right:1` deleted (1 event = 5 lexical tokens: shift . right : 1).
+ Total: 3 tokens changed + 1 event deleted (8 lexical tokens touched if counted finely). Plus 2 comment lines reworded.
+ The length change is needed only to keep the bar at 4 beats with the stand landing at 3.5.
+Plan: with weight on both feet, `stand` closes BOTH feet each half the way (grammar).
+Unsure: how two feet can both move in 0.5 s (3.0-3.5) without a hop -- one after the other? at once (sliding)?
+Expected diagnostics: none (maybe SH2003 too fast?).
+Predictions: each foot moves 0.15 m: right ankle x -0.10 -> +0.05, left 0.40 -> 0.25; the feet end 0.20 m apart
+ centred at 0.15 (the pelvis's start x). check: "villager ends where it began".
+ check --at 2: "face 30° left, tilted 10° left"; clip tilt +10.
+
+=== 4. villager-edit.shosa — AFTER ===
+check runs until no diagnostics: 1. Diagnostics: none. "villager ends where it began" -- RIGHT.
+check --at 2: "face 30° left, tilted 10° left" -- RIGHT; clip frame 60 tilt +10.0, face 30.0.
+Feet (clip): right ankle x -0.100 -> 0.050 (0.150 m), left 0.400 -> 0.250 (0.150 m), final gap 0.20 m, centred at 0.15.
+ Each foot 0.15 m -- RIGHT.
+LOOKS WRONG (no diagnostic): the two feet move AT THE SAME TIME, both off the floor together from 3.03 s to 3.47 s
+ (14 frames, 91-104): both ankles y 0.086-0.110 (rest 0.080), both toes y 0.036-0.060 (rest 0.020), while the pelvis
+ does not rise (0.963 -> 0.975, never above standing) and the knees bend to 32° each. So the body hangs in the air on two
+ lifted feet for half a second with no jump -- the thing SH2004 says is an error for a leg gesture. A person would
+ shuffle one foot then the other, or hop (jump.stand). The grammar's sentence "BOTH close, each half the way" is
+ what I asked for, but I expected one foot after the other or sliding feet on the floor.
+ Went back to lineup: the same happens to guardL (together -> stand) and guardR (wide -> stand): both feet off the floor
+ together in frames 58-71 (1.93-2.37 s), ankles up to y 0.110. guardM (shift.right then stand) is fine. I had not seen it
+ in lineup because the per-beat sheet does not show the 0.4 s between poses.

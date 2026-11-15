@@ -1,0 +1,40 @@
+// Three town guards in a line, 1 m apart, facing the front. "Left" is as the
+// audience (the player's screen) sees them: guardL at x -1 is on the left of the picture.
+title "Lineup"
+tempo 100
+time 4/4
+
+role guardL      // feet together at the start
+role guardM      // walking stance: right foot 0.3 m in front of the left
+role guardR      // feet 0.6 m apart sideways
+dancer guardL humanoid on guardL at -1 0
+// `at` is where the feet stand before the first step: guardM's right foot steps 0.3 m ahead
+// of it (its front foot on the line), guardR's left foot 0.6 m out from a right foot at 0.7.
+dancer guardM humanoid on guardM at 0 -0.3
+dancer guardR humanoid on guardR at 0.8 0
+
+// Right hand to the forehead in bar 3 (raised through the last beat of bar 2), held, then down.
+// There is no forehead place (`head` puts the hand beside the ear, the elbow behind the back),
+// so the hand is aimed from the shoulder: across, up, bent, the elbow out to the side.
+move salute { rightArm { down:4 | down:3 then:1 | fwd.across(55).up(60).bent(105).elbow(side):2 then:1 down:1 | } }
+
+section Line {
+  guardL {
+    // together -> normal width: both feet slide out a little, each half the way.
+    steps    { together:4 | stand:4 | then:4 | }
+    rightArm { salute }
+  }
+  guardM {
+    // the back (left) foot comes up beside the front one.
+    steps    { rightFoot.fwd(0.3m):3 shift.right:1 | stand:4 | then:4 | }
+    rightArm { salute }
+  }
+  guardR {
+    // wide -> normal width: both feet come in, each half the way.
+    steps    { leftFoot.side(0.6m):4 | stand:4 | then:4 | }
+    rightArm { salute }
+  }
+}
+
+form { Line }
+score { dancer guardL  dancer guardM  dancer guardR }

@@ -1,0 +1,21 @@
+// Port de tete in fifth, arms in first: right and tilt, straight, left and tilt, straight.
+title "Port de tete"
+tempo 60
+time 4/4
+
+role solo
+dancer solo humanoid on solo
+
+section PortDeTete {
+  solo {
+    turnout { out(80) }
+    height  { straight }
+    steps   { rightFoot.fwd(0.08m).across(0.13m):4 | then:4 | }
+    arms    { fwd.across(15).down(25).bent(50).elbow(side) }
+    // beat 1: 30 deg right, right ear 10 deg down; beat 3 straight; beat 5: 30 left, left ear down; beat 7 straight
+    head    { fwd:1 fwd.right(30).tilt(right(10)):2 fwd:1~ | :1 fwd.left(30).tilt(left(10)):2 fwd:1 | }
+  }
+}
+
+form { PortDeTete }
+score { dancer solo }

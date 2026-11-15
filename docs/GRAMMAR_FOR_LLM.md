@@ -495,7 +495,10 @@ move kick  { rightLeg { fwd.down.bent fwd@sharp!hit fwd.down.bent down } }   // 
   (`steps { shift.right }` puts the weight on the right foot).
 - **A pose is a shape, not a movement.** A body already in it does not move. Its `steps`
   line means "standing as after this step": `guard` from neutral steps into the stance,
-  `guard` again moves nothing. (A step written directly in `steps` always steps.)
+  `guard` again moves nothing. (A step written directly in `steps` always steps.) Stepping
+  into it, the body stands on both feet, the weight between them, as with a first step
+  already made: the same guard stands the same in a loop and out of one. A `hop` straight
+  after it needs a `shift` to the foot it hops on (SH2012).
 - A pose takes `@mirror`, `@free`, `@smooth`, `@sharp`, `@linear`; a move takes `@mirror`
   and `@free`. Definitions take no arguments: a variation is the same word with the
   change written over it (a narrower track, or a later `&` row). A move may hold a
@@ -1010,7 +1013,8 @@ on its direction, in metres: `leftFoot.fwd(0.3m)` (a small step), `leftFoot.side
   a `shift.left`: `together` closes it touching (turned out, heel to heel), `stand` to
   standing width. Where the weight is on both feet (after `jump.apart`, after
   `shift.center`, after a first step already made) neither is the free one, and BOTH close,
-  each half the way, to under the weight: `jump.apart:1 then:1 stand:2` slides the feet back
+  each half the way, to under the weight, sliding on the floor (neither foot lifts: lifting
+  both at once would leave the body on nothing): `jump.apart:1 then:1 stand:2` slides the feet back
   in (`jump.stand` jumps them in). To STAND with the feet apart from the start, the first
   word of `steps` is `leftFoot.side` (or `jump.apart`): a first word is already made, and
   stands on both feet.
@@ -1172,6 +1176,10 @@ score { dancer alice  dancer bob  dancer carol }
   `free` (weight, gravity and speed limits never apply), `in SECTION …` (dances only there;
   in the other sections the dancer is still on the floor, standing as they were left).
 - Not written, a dancer stands at the origin (`at 0 0`) and faces the audience (`facing front`).
+- `at` is where the feet stand TOGETHER before anything is written, and a first step
+  already made moves one foot off it: `rightFoot.fwd(0.3m)` from `at 0 0` stands with the
+  middle of the feet at 0.15 m forward, `leftFoot.side(0.6m)` with it 0.3 m to the left. To
+  line up dancers who begin in different stances, move each one's `at` back by half its stance.
 - `delay N` makes the score N beats longer: the others stand still while the late dancer
   finishes. `mirror` mirrors turns as well, so after a quarter turn a mirrored dancer faces
   the opposite way to the others.

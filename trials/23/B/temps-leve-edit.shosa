@@ -1,0 +1,22 @@
+// Temps leves on the left foot, the right at the front of the ankle; close to fifth, right foot front.
+title "Temps leve"
+tempo 96
+time 2/4
+
+role solo
+dancer solo humanoid on solo
+
+section TempsLeve {
+  solo {
+    turnout { out(80) }
+    height  { straight }
+    arms    { fwd.across(30).down(70).bent(40).elbow(side) }
+    // fifth, right front (already standing); weight onto the left; three hops; close fifth right front
+    steps   { rightFoot.fwd(0.08m).across(0.13m):1/2 shift.left:3/2 | hop:1 hop:1 | hop:1 then:1 | rightFoot.fwd(0.08m).across(0.13m):1 shift.center:1 | then:2 | }
+    // sur le cou-de-pied in front, from beat 1 through the hops; down at beat 5
+    rightLeg { skip:1/2 then:1/2 otherAnkle:1 | then:2 | then:1 down:1 | skip:2 | skip:2 | }
+  }
+}
+
+form { TempsLeve }
+score { dancer solo }

@@ -304,10 +304,11 @@ public static class ContactSheet
         var ears = (headAt - figure.Joint(frame, Rig.Chest)).Normalized().Cross((figure.Joint(frame, Rig.Nose) - headAt).Normalized());
         if (ears.Length > 1e-6)
         {
-            ears = ears.Normalized() * 0.06;
+            // Out past the ring on both sides, like ears: inside it alone a tilt of 10° or 20° was not read (trial 23).
+            ears = ears.Normalized() * 0.14;
             var (ex, ey, _) = Project(ears, yaw);
             if (ex * ex + ey * ey > 1e-6)
-                canvas.Line(head.X - ex * scale, head.Y + ey * scale, head.X + ex * scale, head.Y - ey * scale, 1.6, Ink);
+                canvas.Line(head.X - ex * scale, head.Y + ey * scale, head.X + ex * scale, head.Y - ey * scale, 2.2, Ink);
         }
         var nose = At(Rig.Nose);
         // Drawn longer than it is: a nod or a glance has to be readable at this size.

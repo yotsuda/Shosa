@@ -1,0 +1,200 @@
+Trial 23, subject B. Notes kept as I go. "BEFORE" sections written before the first check of each file.
+
+==================================================================
+1. fourth.shosa — BEFORE
+==================================================================
+Plan:
+- tempo 66, time 3/4. turnout { out(80) } (first word, so from frame 0). height straight.
+- Fourth crossed, right front: steps first word `rightFoot.fwd(0.3m).across(0.13m)`.
+  Justification: the grammar says `fwd(0.08m).across(0.13m)` is a fifth turned out with
+  "the front heel at the back toes", and that `across(N)` is how far the feet CROSS while `fwd`
+  says how far in front. So keeping across(0.13m) keeps the same sideways relation (front heel
+  in line with back toes) and only the distance in front changes to 0.30 m.
+- A step already made is a way of standing => weight on both legs, no shift.center needed.
+- Arms: bras bas from the grammar: `fwd.across(30).down(70).bent(40).elbow(side)`.
+- Height row (9 bars of 3):
+  straight:3 | then:3 | low(10cm):3 | straight:3 | low(10cm):3 | straight:3 | high:3 | then:3 | straight:3 |
+  bar1 still; bar2 down (beats 3-6); bar3 up (6-9); bar4 down; bar5 up; bar6 rising onto toes (15-18);
+  bar7 held high (18-21); bar8 down to straight (21-24); bar9 stands.
+  Note: I read "low(10cm)" as 10 cm lower than standing straight (grammar: low = hips N lower than
+  standing straight in the same place). Plie down over 3 beats = the `then:3` / `straight:3` before low.
+- Steps: the stance for 9 bars: `stance:3 | then:3 | ...`.
+Unsure:
+- whether `across(0.13m)` together with fwd(0.3m) really puts the heel in line with the toes
+  (depends on foot length & 80 deg turnout) — I will measure ankles in clip.
+- whether the rise (high) is reached over a whole bar; the task does not say how fast the rise is.
+- whether the first bar is really still (turnout heels "drawn in" at start? arms first word is held).
+Expected diagnostics: none, except possibly an info line "starts with `rightFoot...` already made".
+Predictions:
+(a) frame 0: both knees bent the same, about 4 deg (straight legs), within ~1 deg of each other.
+(b) pelvis directly above the midpoint between the ankles (x and z within ~1 cm), since weight is even.
+(c) nothing moves in the first bar (beats 0-3): height held by `straight:3` before `then`, the steps
+    and arms are first words that stay, turnout is a first word.
+
+1. fourth.shosa — AFTER
+(Before the first check I noticed I had named the role and dancer `dancer`, which is a reserved
+word of the skeleton; renamed to `solo` before running check. Not counted as a check run.)
+check runs until no diagnostics: 1 (first run: "no problems", 27 beats, 24.55 s, 9 bars at 66 3/4,
+plus the info line "solo starts with `rightFoot.fwd(0.3m).across(0.13m):3` already made", "ends where it began").
+Expected diagnostics: none + the "already made" line -> right.
+(a) predicted both knees ~4 deg, equal. check --at 0: "knees 4 left, 4 right"; clip angles 3.6/3.6. RIGHT.
+(b) predicted pelvis over the ankle midpoint. clip frame 0: pelvis (0.106, 0.952, 0.150);
+    ankles left (0.041,0.080,0.000), right (0.171,0.080,0.300) -> midpoint (0.106, 0.150). Exactly over it. RIGHT.
+(c) predicted nothing moves in bar 1. clip frames 0, 40, 81, 82 (beat 3 = 2.727 s = frame 81.8): every
+    joint identical to the mm. RIGHT. The plie: pelvis 0.952 -> 0.852 at beat 6 (exactly 10 cm), knees 54 deg;
+    releve: ankles up 0.080 -> 0.150, pelvis 1.021 at beat 18; frame 600 (beat 22) on the way down.
+Crossing check: right ankle x=0.171 is 0.13 m to the dancer's left of the left ankle (x=0.041), z 0.30 ahead.
+    Left toe x=0.208 (foot pointing to the dancer's left), right toe x=0.004. Taking the heel ~5 cm behind
+    the ankle along the foot, the right heel is at x~0.22, the left toes at 0.208: heel in line with toes
+    within ~1-2 cm. Justification holds.
+Sheet: front view poses 0-3 identical; plie knees go out over the toes. Surprise/looks wrong: in the
+    FRONT view the fourth does not look crossed at all — the red (right) foot is drawn on the picture-left of
+    the blue foot, as in an open fourth. The numbers say it is crossed by 0.13 m; I think the camera
+    "in front and a little to stage left" turns the 0.30 m of depth into a sideways shift that cancels
+    the cross. The floor plan shows the two footprints one behind the other, overlapping sideways, which
+    is right. Side view: right leg in front, fine.
+
+==================================================================
+2. temps-leve.shosa — BEFORE
+==================================================================
+Plan (tempo 96, 2/4, turnout out(80), height straight):
+  steps   { rightFoot.fwd(0.08m).across(0.13m):1/2 shift.right:3/2 | hop:1 hop:1 | hop:1 then:1 | leftFoot.fwd(0.08m).across(0.13m):1 shift.center:1 | then:2 | }
+  leftLeg { skip:1/2 then:1/2 otherAnkle.back:1 | then:2 | then:1 down:1 | skip:2 | skip:2 | }
+- Fifth already made (both feet). shift.right lands at beat 0.5 (weight onto the front foot).
+- Left leg lifts in beat 0.5-1 (after the shift is done) to the back of the right ankle, held.
+- Hops land at beats 2, 3 (bar 2) and 4 (bar 3 beat 1). A hop lands on the foot it stands on: right.
+- Left leg `down` at beat 5 (put beside the right foot at standing width, weight stays on right),
+  then at beat 6 `leftFoot.fwd(0.08m).across(0.13m)` steps it into fifth in front (measured from the right
+  foot; across = over the right foot's line), `shift.center` at 7 puts the weight on both. Stand to the end (5 bars).
+- Arms low rounded (bras bas) for something to hold; not asked.
+Unsure:
+- whether the shift at 0.5 and the leg lifting 0.5-1 conflict (SH2004 "while a foot is in the middle of a step").
+- whether the leg row has to say `down` before the step (I put it in, per the SH2013 text) and whether the
+  `down` + step makes two visible movements (down beside, then cross to front). Probably yes.
+- whether "beat 1" counting in the task means Shosa beat index; I read "each beat of bar 2" = beats 2 and 3.
+Expected diagnostics: none (maybe SH2004 if the leg lift overlaps the shift).
+Predictions:
+(a) hops land on the right foot at beats 2, 3, 4 (left ankle stays off the floor, at the right ankle).
+(b) final front foot: left (left ankle z greater than right ankle z, and crossed: left ankle x < right ankle x? —
+    left foot crossed to the dancer's right means smaller x).
+(c) Yes: `shift.right` before the first hop. A hop from both feet is SH2012 (which foot?); the first word
+    (a step already made) stands on both feet, so the weight must be put on the right first. The hops
+    themselves name no foot; the leg row names the left leg, which is also only possible on the other foot.
+
+2. temps-leve.shosa — AFTER
+check runs until no diagnostics: 1 ("no problems", 10 beats, 6.25 s, 5 bars at 96 2/4, "starts with
+`rightFoot.fwd(0.08m).across(0.13m):1/2` already made", "ends 0.08 m forward of where it began").
+Expected: none -> right (no SH2004 for the leg lifting right after the shift).
+(a) predicted right foot at 2, 3, 4. clip: right ankle y=0.080 (floor) at frames 38, 57/58, 76 (beats 2.03,
+    3.09, 4.05) and in the air between (0.320 at b1.6, 0.191 at b2.77, 0.189 at b3.73); left ankle never below
+    0.25 m from b1 to b4.4 (its toe at (0.171,0.130,0.020) vs right ankle (0.171,0.080,0.080): at the back of
+    the right ankle). check --at 2/3/4: knees left 78/77/76 (held), right 15/10/2. RIGHT.
+(b) predicted left front. frame 186: left ankle (0.041,0.080,0.160), right (0.171,0.080,0.080): left 0.08 m
+    in front and 0.13 m to the dancer's right of the right ankle (crossed). Sheet poses 6-10 show the blue leg
+    crossed over in front. RIGHT. ("ends 0.08 m forward" = the step into fifth front is measured from the
+    right foot, so the stance moves by the fifth's 0.08 m. Sensible.)
+(c) right: `shift.right` was needed (hop from both feet = SH2012).
+Looks wrong / surprises (no diagnostic):
+ - The FIRST hop is much bigger than the others: pelvis up to 1.214 (standing 0.963, +25 cm), right ankle
+   0.32 m off the floor, versus about +12 cm / 0.19 m for hops 2 and 3. Cause, per the grammar: the flight
+   comes from the time of the word before; `shift.right:3/2` gives 0.94 s, the plain hops 0.625 s. For
+   "three small hops" a teacher would want them alike. Fix would be to time the word before the first hop
+   to one beat (e.g. `shift.right:1/2 then:1`? — a then counts as that word too, so probably `shift.right:1`
+   at beat 1). I left it as written, to report it.
+ - Preparation dip at beat ~1: pelvis 0.855 (knee 59) — fine, the hop's own bend.
+ - The `down` of the left leg at beat 5 puts the foot down 0.20 m OUT TO THE SIDE (left ankle x=0.371,
+   z=0.080), then the step at 6 lifts it again (y 0.171 at b5.76) and crosses it in front. A dancer closing
+   from cou-de-pied derriere to fifth front would not go out to second first. Grammar did say down puts it
+   "beside the foot it stands on, at standing width", so it is as documented, but it is not what I wanted.
+ - Experiment (scratch\tl-nodown.shosa): leg row `then:1 skip:1` instead of `then:1 down:1`, hoping the
+   step would take the foot from the air. Got warning SH2013 at (15,101): "This puts the left foot on the
+   floor at beat 6, but the leftLeg row still holds that leg up ... Put the leg down in its row by then".
+   So `skip` in a leg row does NOT give the leg back to steps here, although the Tracks section says a
+   narrower row that says `skip` lets the part follow the wider one. Surprise. There seems to be no way to
+   go straight from the ankle into fifth in front in one movement.
+
+==================================================================
+3. port-de-tete.shosa — BEFORE
+==================================================================
+Plan (tempo 60, 4/4, 2 bars; turnout out(80), height straight, fifth right front already made, arms first
+`fwd.across(15).down(25).bent(50).elbow(side)`):
+  head { fwd:1 fwd.right(30).tilt(right(10)):2 fwd:1~ | :1 fwd.left(30).tilt(left(10)):2 fwd:1 | }
+- Beat numbering: the grammar counts beats from 0 ("here, on the sheet and in check"), so I take the task's
+  beats 1, 3, 5, 7 as Shosa beats 1, 3, 5, 7: the head straight at 0, turned+tilted at 1, straight at 3,
+  left at 5, straight at 7 held to 8. (If the teacher meant counts 1,3,5,7 = Shosa 0,2,4,6 the file would
+  start already turned. I note the ambiguity.) The `fwd` at 3 crosses the bar line: tied `fwd:1~ | :1`.
+- "Straight and level" = `fwd` without tilt (upright torso, so square on the neck = level).
+Unsure: whether going from tilt(right(10)) to a plain `fwd` untilts smoothly (grammar: "the tilt goes evenly
+  from word to word"); whether tie syntax `:1` after `|` is right as written.
+Expected diagnostics: none.
+Predictions (sheet, front view):
+ - beat 1: the face turns to the dancer's right, which the camera (in front) shows on the PICTURE LEFT: the
+   nose line on the head points to picture left; in the from-above figure under the pose (audience at the
+   bottom), the nose points down and to the picture left. The head tilts with its top to picture left
+   (right ear down toward the red shoulder).
+ - beat 5: the mirror: nose to picture right, top of head toward picture right (blue side).
+ - numbers: check --at 1: face 30 right, tilt 10 (right ear down); at 5: face 30 left, tilt 10 left.
+ - (b) side view (from stage left): the tilt is sideways, in the plane facing the camera's line of sight,
+   so it should NOT be readable from the side; only the turn changes the nose length a little.
+
+3. port-de-tete.shosa — AFTER
+check runs until no diagnostics: 1 ("no problems", 8 beats, 8 s, 2 bars at 60 4/4, fifth "already made",
+"ends where it began"). Expected none -> right; the tie `fwd:1~ | :1` was accepted.
+(a) SHEET READING, written before any numbers (out\port-de-tete.png, plus out\pdt-b1.png / pdt-b5.png
+    enlarged x4 into scratch\pdt-b1-zoom.png, pdt-b5-zoom.png):
+  beat 1: FACE turns to the dancer's RIGHT. Evidence: in the from-above figure under the pose the nose
+    line points down and to the picture LEFT (audience at bottom, dancer's right on picture left); in the
+    pose the nose line sticks out further to picture left than at beat 0. TILT: I cannot read it from the
+    front view. The short eye-line dash inside the head ring looks level to me at beat 1 (it is 2-3 px long
+    at the sheet's size). If I have to guess: none visible.
+  beat 5: FACE turns to the dancer's LEFT: from above the nose points down and to the picture RIGHT; in the
+    pose the nose is drawn inside the ring pointing down/right instead of out to picture left. TILT: the
+    eye dash looks slightly slanted, but I cannot tell which way with confidence; I would not have known it
+    was a tilt (vs. the turn) without having written it.
+  So from the front sheet: the turn is readable (from-above figure is the clear one), the tilt is not.
+(b) side view (out\port-de-tete-side.png, zoom scratch\side-zoom.png): at beat 0 the eye mark is a dot
+    (eye line end-on); at beat 1 it is a level dash; at beat 5 a clearly slanted dash "\" . So something
+    changes, but at beat 1 (right ear down, face turned away from the camera) it looks level, and at beat 5
+    the slant mixes the turn toward the camera with the tilt. I would not say the tilt is readable from the
+    side either; my prediction "not readable" mostly right, with the caveat that beat 5 shows a slant.
+  NUMBERS (after the sheet): check --at 1: "face 30° right, tilted 10° right"; --at 5: "face 30° left,
+    tilted 10° left"; at 3, 7, 7.9: "face 0°" (no tilt shown); at 2 / 4 / 6: 15° and 5° (halfway).
+    clip frame 30: head (0.070,1.700,0.019), nose (0.010,1.700,0.123): nose toward -x = dancer's right;
+    angles face -30, tilt -10 (tilt is + for left ear down, so right ear down). Frame 150: nose x 0.202,
+    face +30, tilt +10. Frames 90, 210, 239 back to (0.106,1.703,0.040), all zero.
+  Prediction about the turn from the sheet: RIGHT both beats. Tilt: predicted numbers right; from the
+    sheet I could not read the direction of the tilt (I said so before looking at numbers).
+  Side note: the head's middle moves 3.6 cm toward the tilt side and 2 cm back at beats 1/5 — natural.
+
+==================================================================
+4. temps-leve-edit.shosa — BEFORE
+==================================================================
+Plan: copy temps-leve.shosa and change these tokens:
+  1. steps: `shift.right:3/2` -> `shift.left:3/2`  (weight onto the back (left) foot; hops then land on the left)
+  2. `leftLeg` -> `rightLeg` (the track name)
+  3. `otherAnkle.back` -> `otherAnkle` (right toe at the FRONT of the left ankle, since the right foot is in front)
+  4. steps: `leftFoot.fwd(0.08m).across(0.13m)` -> `rightFoot.fwd(0.08m).across(0.13m)` (close fifth, right front)
+  Count: 4 tokens (counting `shift.right:3/2` etc. as one word each; only the foot/side part changes).
+  The comments and title are also edited to match, but they are not tokens of the language; not counted.
+Unsure: whether the right foot sur le cou-de-pied devant sits correctly in front of the left ankle (the left
+  is the back foot of the fifth, so the right toe should be at the front of the left ankle);
+  whether the right leg's `down` again goes out to the side (expected yes, to the dancer's right).
+Expected diagnostics: none.
+Predictions: hops land on the LEFT foot at beats 2, 3, 4 (left ankle y=0.080 there, right foot up);
+  final: right foot in front (right ankle z greater than left by 0.08, and crossed: right ankle x greater
+  than left's, i.e. to the dancer's left of it). check "ends 0.08 m forward" again. The first hop again
+  higher than the others.
+
+4. temps-leve-edit.shosa — AFTER
+check runs until no diagnostics: 1 ("no problems", 10 beats, 6.25 s, "ends where it began").
+Tokens changed: 4, as planned (Compare-Object shows only the steps line, the leg line and 3 comment lines differ).
+Hops: left ankle y=0.080 at frames 38, 57, 76 (beats 2, 3, 4), in the air at 30, 52, 71 (0.320, 0.191, 0.190);
+  check --at 2/3/4: knees left 15/10/2, right 78/77/76 (held at the ankle). Right toe (0.041,0.130,0.060)
+  vs left ankle (0.041,0.080,0.000): 6 cm in front of it, 5 cm up = front of the ankle. RIGHT.
+Final front foot: frame 186 right ankle (0.171,0.080,0.080), left (0.041,0.080,0.000): right 0.08 m in front,
+  crossed 0.13 m to the dancer's left. RIGHT (sheet poses 6-10 show the red leg crossing in front).
+Prediction "ends 0.08 m forward" WRONG: it ends where it began. Afterthought: the left foot never moved here
+  (the right closes in front of it, giving back the starting fifth), whereas in the original the left stepped
+  0.08 in front of the right. Correct by the rule "a step is placed from the other foot".
+First hop again higher (pelvis 1.214) — RIGHT. Right leg `down` again goes out to the side first
+  (right ankle x=-0.159 at beat 5, 0.2 m to the dancer's right), then crosses in front at 6. As expected.

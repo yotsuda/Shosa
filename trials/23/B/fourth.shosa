@@ -1,0 +1,21 @@
+// Fourth position (crossed, right foot front): two demi-plies, a releve held a bar, down.
+title "Fourth"
+tempo 66
+time 3/4
+
+role solo
+dancer solo humanoid on solo
+
+section Fourth {
+  solo {
+    turnout { out(80) }
+    // already standing in fourth: right foot 0.30 m in front, crossed as in fifth (front heel at back toes)
+    steps   { rightFoot.fwd(0.3m).across(0.13m):3 | then:3 | then:3 | then:3 | then:3 | then:3 | then:3 | then:3 | then:3 | }
+    arms    { fwd.across(30).down(70).bent(40).elbow(side) }
+    // bar 1 still; plie down bar 2, up bar 3; again bars 4-5; rise bar 6, held bar 7, down bar 8
+    height  { straight:3 | then:3 | low(10cm):3 | straight:3 | low(10cm):3 | straight:3 | high:3 | then:3 | straight:3 | }
+  }
+}
+
+form { Fourth }
+score { dancer solo }

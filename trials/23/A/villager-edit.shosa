@@ -1,0 +1,20 @@
+// An RPG villager, puzzled: the head turns and tilts, then the feet close.
+title "Villager"
+tempo 60           // one beat is 1 s
+time 4/4
+
+role villager
+dancer villager humanoid on villager
+
+section Puzzled {
+  villager {
+    // feet 0.5 m apart, weight on both, from the first frame. In the second half both feet
+    // close in equally to standing width, meeting in the middle (3-3.5 s).
+    steps { leftFoot.side(0.5m):3.5 stand:0.5 }
+    // straight ahead; turned 30 deg left with the left ear down 10 deg by 2 s; straight and level by 3.5 s.
+    head  { fwd:2 fwd.left(30).tilt(left(10)):1.5 fwd:0.5 }
+  }
+}
+
+form { Puzzled }
+score { dancer villager }

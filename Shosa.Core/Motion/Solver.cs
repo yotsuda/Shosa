@@ -773,11 +773,12 @@ internal sealed class FigureSolver
                         YawFrom = isLeft ? s.LeftYaw : s.RightYaw, YawTo = s.Yaw, Lift = StepLift(from, target),
                         Along = Math.Clamp((target - from).Dot(fwd) / Rig.Stride, -1, 1),
                     });
-                    if (t1 - t0 <= 1e-9)
+                    if (t1 - t0 <= 1e-9 || seg.Stance)
                     {
-                        // A step already made (the first word of a score) is a way of standing, and one
-                        // stands on both feet: the weight is between them (DESIGN.md 82.6). To begin on the
-                        // foot it stepped onto, a `shift` follows.
+                        // A step already made (the first word of a score) is a way of standing, and so is a
+                        // pose's step: one stands on both feet, the weight between them (DESIGN.md 82.6; trial 23:
+                        // the same guard stood 58% and 43% toward the front foot in a loop and out of one). To
+                        // stand on the foot it stepped onto, a `shift` follows.
                         s.On = 'B';
                         Weight(t0, t1, (s.Left + s.Right) * 0.5);
                         break;
@@ -819,7 +820,8 @@ internal sealed class FigureSolver
                                 Move(isLeft, new FootMove
                                 {
                                     T0 = t0, T1 = t1, From = from, To = middle + (isLeft ? leftward : -leftward) * (closed / 2),
-                                    YawFrom = isLeft ? s.LeftYaw : s.RightYaw, YawTo = s.Yaw, Lift = 0.03,
+                                    // Slid on the floor: lifted both at once, the body would hang on nothing (trial 23).
+                                    YawFrom = isLeft ? s.LeftYaw : s.RightYaw, YawTo = s.Yaw, Lift = 0,
                                 });
                             }
                         }
@@ -850,16 +852,16 @@ internal sealed class FigureSolver
                     var newLeft = pivot + (s.Left - pivot).RotateY(angle);
                     var newRight = pivot + (s.Right - pivot).RotateY(angle);
                     var weight = pivot + (s.Weight - pivot).RotateY(angle);
-                    // A foot held in the air goes round held.
+                    // A foot held in the air goes round held. On both feet they swivel on the floor (lifted together, the body hung: trial 23).
                     Move(true, new FootMove
                     {
                         T0 = t0, T1 = t1, From = s.Left, To = newLeft, YawFrom = s.LeftYaw, YawTo = s.LeftYaw + angle,
-                        Orbit = true, Pivot = pivot, Angle = angle, Lift = s.On == 'L' || s.LeftUp > 0 ? 0 : 0.03,
+                        Orbit = true, Pivot = pivot, Angle = angle, Lift = s.On is 'L' or 'B' || s.LeftUp > 0 ? 0 : 0.03,
                     }, s.LeftUp);
                     Move(false, new FootMove
                     {
                         T0 = t0, T1 = t1, From = s.Right, To = newRight, YawFrom = s.RightYaw, YawTo = s.RightYaw + angle,
-                        Orbit = true, Pivot = pivot, Angle = angle, Lift = s.On == 'R' || s.RightUp > 0 ? 0 : 0.03,
+                        Orbit = true, Pivot = pivot, Angle = angle, Lift = s.On is 'R' or 'B' || s.RightUp > 0 ? 0 : 0.03,
                     }, s.RightUp);
                     Turn(t0, t1, angle);
                     Weight(t0, t1, weight);

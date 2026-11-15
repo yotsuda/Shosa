@@ -311,6 +311,22 @@ public class MotionTests
             Assert.Equal(between.Z, hips.Z, 2);
         }
 
+        // Writing trial 23: the same guard as a pose in a loop stood 58% toward the front foot, and 43% as a first step.
+        string guard = Samples.Solo("    body { guard:4 }", "tempo 60\ntime 4/4\npose guard { steps { leftFoot.fwd(0.35m) } }\n", "loop");
+        var looped = Compile(guard).Clip;
+        Assert.Empty(Compile(guard).Diagnostics);
+        Assert.True(looped.Loop);
+        var stance = looped.Figures[0];
+        var at = looped.FrameAt(2);
+        Assert.Equal(((stance.Joint(at, Rig.LHip + 2) + stance.Joint(at, Rig.RHip + 2)) * 0.5).Z, stance.Joint(at, Rig.Pelvis).Z, 2);
+
+        // Both feet closing under a weight on both slide on the floor: lifted together, the body hung on nothing.
+        var slid = Compile(Samples.Solo("    steps { leftFoot.side(0.5m):2 stand:2 }", "tempo 60\ntime 4/4\n"));
+        Assert.Empty(slid.Diagnostics);
+        double highest = Enumerable.Range(0, 41).Max(i => Math.Max(slid.Clip.Figures[0].Joint(slid.Clip.FrameAt(2 + i * 0.05), Rig.LHip + 2).Y,
+            slid.Clip.Figures[0].Joint(slid.Clip.FrameAt(2 + i * 0.05), Rig.RHip + 2).Y));
+        Assert.True(highest < 0.081, $"an ankle rose to {highest:0.000} m");
+
         // To begin on the foot it stepped onto, a shift follows; a hop then knows its foot.
         Assert.Equal("SH2012", Assert.Single(Compile(Samples.Solo("    steps { rightFoot.fwd hop }", "tempo 60\ntime 4/4\n")).Diagnostics).Code);
         Assert.Empty(Compile(Samples.Solo("    steps { rightFoot.fwd shift.right:1/4 hop:3/4 }", "tempo 60\ntime 4/4\n")).Diagnostics);
