@@ -87,6 +87,7 @@ public static class Solver
                 diagnostics.Add(new Diagnostic("SH2005", DiagnosticSeverity.Warning, new TextSpan(ir.Sections[0].Src, "section".Length), problem));
 
             // `inplace`: the even part of the travel is taken out and handed to the engine as a velocity.
+            clipFigure.Facing = [solver.FacingAt(0), solver.FacingAt(ir.TotalBeats)];
             var travel = ir.Inplace && ir.TotalBeats > 0 ? solver.Travel : default;
             if (ir.Inplace && ir.TotalBeats > 0)
             {
@@ -394,6 +395,9 @@ internal sealed class FigureSolver
         public double Round;
         /// <summary>How far the chest is turned on the hips about the spine, radians, positive to the left.</summary>
         public double Twist;
+        /// <summary>How far the hips are turned over the feet about the vertical, radians, positive to the left; and their own left and forward.</summary>
+        public double Hips;
+        public Vec3 HipLeft, HipFwd;
         public Vec3 P;             // pelvis over the floor
         public double RawY, Raise, Float;
     }
@@ -425,7 +429,7 @@ internal sealed class FigureSolver
     private double _weightTime, _floatTime;
     private readonly List<(double T0, double T1, double From, double To)> _turns = [];
     private readonly List<(double T0, double Up, double Land, double T1, double Height, double Give)> _jumps = [];
-    private readonly List<Seg> _height, _leftArm, _rightArm, _leftLeg, _rightLeg, _torso, _twist, _head;
+    private readonly List<Seg> _height, _leftArm, _rightArm, _leftLeg, _rightLeg, _hips, _torso, _twist, _head;
     private bool _built;
     private int _posing;
 
@@ -447,6 +451,7 @@ internal sealed class FigureSolver
         _rightLeg = Row(Channels.RightLeg);
         _torso = Row(Channels.Torso);
         _twist = Row(Channels.Twist);
+        _hips = Row(Channels.Hips);
         _head = Row(Channels.Head);
     }
 
@@ -866,6 +871,9 @@ internal sealed class FigureSolver
     private static Vec3 Direction(List<Seg> targets, double t, Vec3 neutral, Vec3 via) =>
         Chain(targets, t, seg => DirOf(seg, neutral), (a, b, e) => Blend(a, b, e, via)).Normalized();
 
+    /// <summary>Which way the figure faces, radians: what its turns have made of where it began.</summary>
+    public double FacingAt(double t) => YawAt(t);
+
     private double YawAt(double t)
     {
         double yaw = _yawStart;
@@ -980,6 +988,10 @@ internal sealed class FigureSolver
         c.TorsoUp = (c.Left * torso.X + Vec3.Up * torso.Y + c.Fwd * torso.Z).Normalized();
         c.Round = Chain(_torso, t, seg => seg is { Round: true } ? 1.0 : 0.0, (a, b, e) => a + (b - a) * e);
         c.Twist = Chain(_twist, t, seg => (seg?.TurnDeg ?? 0) * Math.PI / 180, (a, b, e) => a + (b - a) * e);
+        // The hips turn over the feet: the sockets go round the pelvis, the feet stay, and the knees follow.
+        c.Hips = Chain(_hips, t, seg => (seg?.TurnDeg ?? 0) * Math.PI / 180, (a, b, e) => a + (b - a) * e);
+        c.HipLeft = c.Left * Math.Cos(c.Hips) - c.Fwd * Math.Sin(c.Hips);
+        c.HipFwd = c.Fwd * Math.Cos(c.Hips) + c.Left * Math.Sin(c.Hips);
         // A leaning torso is balanced by the hips going the other way.
         p -= new Vec3(c.TorsoUp.X, 0, c.TorsoUp.Z) * 0.18;
         c.P = p;
@@ -1000,8 +1012,8 @@ internal sealed class FigureSolver
             return Rig.AnkleHeight + raise + Math.Sqrt(Math.Max(0.04, reach * reach - distance * distance));
         }
 
-        y = Math.Min(y, Cap(p + c.Left * Rig.HipHalf, c.LPos, c.LAir || c.GwL > 0.05, c.Raise));
-        y = Math.Min(y, Cap(p - c.Left * Rig.HipHalf, c.RPos, c.RAir || c.GwR > 0.05, c.Raise));
+        y = Math.Min(y, Cap(p + c.HipLeft * Rig.HipHalf, c.LPos, c.LAir || c.GwL > 0.05, c.Raise));
+        y = Math.Min(y, Cap(p - c.HipLeft * Rig.HipHalf, c.RPos, c.RAir || c.GwR > 0.05, c.Raise));
         c.RawY = y;
         return c;
     }
@@ -1052,19 +1064,23 @@ internal sealed class FigureSolver
         // the chest comes a little nearer the pelvis.
         var trunk = new Trunk { C = c, Pelvis = new Vec3(c.P.X, y, c.P.Z) };
         var line = c.TorsoUp;
-        trunk.Left = (c.Left - line * c.Left.Dot(line)).Normalized();
-        var ahead = trunk.Left.Cross(line);
+        // The spine stands on the hips: across is the hips' own left (wherever they are turned
+        // to over the feet), square to the line, and the back rounds forward of that.
+        var across = (c.HipLeft - line * c.HipLeft.Dot(line)).Normalized();
+        var ahead = across.Cross(line);
         double bow = c.Round * Rig.RoundAngle * Math.PI / 180, cos = Math.Cos(bow), sin = Math.Sin(bow);
         trunk.Waist = trunk.Pelvis + (line * cos - ahead * sin) * (Rig.Spine / 2);
         trunk.Chest = trunk.Pelvis + line * (Rig.Spine * cos);
         trunk.Up = line * cos + ahead * sin;
-        trunk.Fwd = trunk.Left.Cross(trunk.Up);
-        // A twist turns the chest about its own up: the shoulders, and what is said against the
-        // chest (`@body`, a hand on the chest), go round with it. The head does not.
-        (trunk.FaceLeft, trunk.FaceFwd) = (trunk.Left, trunk.Fwd);
-        double turnCos = Math.Cos(c.Twist), turnSin = Math.Sin(c.Twist);
-        trunk.Left = trunk.FaceLeft * turnCos - trunk.FaceFwd * turnSin;
-        trunk.Fwd = trunk.FaceFwd * turnCos + trunk.FaceLeft * turnSin;
+        var before = across.Cross(trunk.Up);
+        // A twist turns the chest about its own up, on from where the hips have it: the shoulders,
+        // and what is said against the chest (`@body`, a hand on the chest), go round with it.
+        // The head does not, with the twist or with the hips: its frame is the hips' turned back.
+        double hipsCos = Math.Cos(c.Hips), hipsSin = Math.Sin(c.Hips), turnCos = Math.Cos(c.Twist), turnSin = Math.Sin(c.Twist);
+        trunk.FaceLeft = across * hipsCos + before * hipsSin;
+        trunk.FaceFwd = before * hipsCos - across * hipsSin;
+        trunk.Left = across * turnCos - before * turnSin;
+        trunk.Fwd = before * turnCos + across * turnSin;
         trunk.Head = trunk.Chest + trunk.Up * Rig.HeadUp;
         return trunk;
     }
@@ -1171,7 +1187,7 @@ internal sealed class FigureSolver
         for (int side = 1; side >= -1; side -= 2)
         {
             bool isLeft = side == 1;
-            var hip = pelvis + c.Left * (Rig.HipHalf * side);
+            var hip = pelvis + c.HipLeft * (Rig.HipHalf * side);
             var floor = isLeft ? c.LPos : c.RPos;
             double lift = isLeft ? c.LLift : c.RLift;
             bool air = isLeft ? c.LAir : c.RAir;
@@ -1233,12 +1249,15 @@ internal sealed class FigureSolver
                 {
                     var place = seg.Anchor switch
                     {
-                        "hip" => pelvis + c.Left * (0.17 * side) + Vec3.Up * 0.06 + c.Fwd * 0.02,
+                        "hip" => pelvis + c.HipLeft * (0.17 * side) + Vec3.Up * 0.06 + c.HipFwd * 0.02,
                         "chest" => chest + torsoFwd * 0.13 - torsoUp * 0.14 + torsoLeft * (0.04 * side),
                         // The head and the belly are not turned by a twist: the head is over it, the belly under it.
                         "head" => head + faceLeft * (0.13 * side) + torsoUp * 0.02,
                         "chin" => head + faceFwd * 0.14 - torsoUp * 0.12 + faceLeft * (0.06 * side),
-                        "belly" => pelvis + torsoUp * 0.18 + faceFwd * 0.13 + faceLeft * (0.03 * side),
+                        // The belly is on the hips: it goes round with them, and no further.
+                        "belly" => pelvis + torsoUp * 0.18
+                            + (faceFwd * Math.Cos(c.Hips) + faceLeft * Math.Sin(c.Hips)) * 0.13
+                            + (faceLeft * Math.Cos(c.Hips) - faceFwd * Math.Sin(c.Hips)) * (0.03 * side),
                         "across.shoulder" => chest - torsoLeft * (Rig.ShoulderHalf * 0.8 * side) - torsoUp * Rig.ShoulderDrop + torsoFwd * 0.09,
                         "clap" => chest + torsoFwd * 0.28 - torsoUp * 0.12 + torsoLeft * (0.012 * side),
                         _ => shoulder + torsoUp * 0.06 + torsoFwd * 0.05,

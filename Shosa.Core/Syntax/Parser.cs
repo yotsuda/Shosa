@@ -422,19 +422,32 @@ internal sealed class Parser
 
     private GreenNode ParseTarget(bool arguments)
     {
+        // Brackets belong to the word they follow, and the target may go on after them:
+        // lift.fwd(0.4), fwd.left(30).10.
         var children = new List<GreenNode> { Next() };
-        while (Kind == SyntaxKind.Dot)
+        bool bracketed = false;
+        while (true)
         {
-            children.Add(Next());
-            // A dot at the end of a line is a word still being typed: do not reach into
-            // the next line for it (this is the place completion offers the next word).
-            if (SameLine && (AtName || Kind == SyntaxKind.Number))
+            if (Kind == SyntaxKind.Dot)
+            {
                 children.Add(Next());
+                // A dot at the end of a line is a word still being typed: do not reach into
+                // the next line for it (this is the place completion offers the next word).
+                if (SameLine && (AtName || Kind == SyntaxKind.Number))
+                    children.Add(Next());
+                else
+                    children.Add(Missing(SyntaxKind.Identifier, "A word after '.'"));
+            }
+            else if (arguments && !bracketed && Kind == SyntaxKind.OpenParen)
+            {
+                children.Add(ParseArguments());
+                bracketed = true;
+            }
             else
-                children.Add(Missing(SyntaxKind.Identifier, "A word after '.'"));
+            {
+                break;
+            }
         }
-        if (arguments && Kind == SyntaxKind.OpenParen)
-            children.Add(ParseArguments());
         return new GreenInner(SyntaxKind.Target, children);
     }
 

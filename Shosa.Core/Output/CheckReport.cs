@@ -32,11 +32,8 @@ public static class CheckReport
             return null;
         int last = figure.Frames.Count - 1;
         Vec3 Feet(int frame) => (figure.Joint(frame, Rig.LAnkle) + figure.Joint(frame, Rig.RAnkle)) * 0.5;
-        Vec3 Facing(int frame)
-        {
-            var across = figure.Joint(frame, Rig.LHip) - figure.Joint(frame, Rig.RHip);
-            return new Vec3(across.X, 0, across.Z).Cross(Vec3.Up).Normalized();
-        }
+        // Where the feet and the turns put it, not the line of the hips: the hips can be turned over the feet.
+        Vec3 Facing(int frame) => Vec3.Forward(figure.Facing[frame == 0 ? 0 : 1]);
 
         var moved = Feet(last) - Feet(0);
         if (clip.Inplace && figure.Velocity is [var vx, var vz])

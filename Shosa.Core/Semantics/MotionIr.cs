@@ -226,6 +226,11 @@ public static class Channels
     public const string RightArm = "rightArm";
     public const string LeftLeg = "leftLeg";
     public const string RightLeg = "rightLeg";
+    /// <summary>
+    /// The hips turned on the feet, about the vertical: the feet stay where they stand, and the
+    /// chest (with its own twist on top) goes round with the hips.
+    /// </summary>
+    public const string Hips = "hips";
     public const string Torso = "torso";
     /// <summary>
     /// The chest turned on the hips, about the spine. A part of its own, beside the torso's lean:
@@ -234,7 +239,7 @@ public static class Channels
     public const string Twist = "twist";
     public const string Head = "head";
 
-    public static readonly string[] All = [Support, Height, LeftArm, RightArm, LeftLeg, RightLeg, Torso, Twist, Head];
+    public static readonly string[] All = [Support, Height, LeftArm, RightArm, LeftLeg, RightLeg, Hips, Torso, Twist, Head];
 
     public static string Mirror(string channel) => channel switch
     {
@@ -252,7 +257,7 @@ public static class SegKinds
     public const string Dir = "dir";            // gesture: point the part along Dir
     public const string Anchor = "anchor";      // arm: bring the hand to a place on the body
     public const string Reach = "reach";        // arm: to a place on another dancer; head: look at it
-    public const string Twist = "twist";        // twist: the chest turned TurnDeg on the hips
+    public const string Twist = "twist";        // twist: the chest turned TurnDeg on the hips; hips: the hips turned TurnDeg on the feet
     public const string Step = "step";          // support: move Foot, then carry the weight on it
     public const string Together = "together";  // support: close the free foot to the supporting one
     public const string Level = "level";        // height: stand at Level (from `both.low`, or the level a step arrives at)

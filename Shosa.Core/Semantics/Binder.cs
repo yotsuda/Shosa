@@ -57,7 +57,9 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
     /// the part; <see cref="Resolve"/> makes the way there of it. A word that a loop wraps over its
     /// end is two of these with one Order; Start is where the word itself begins.
     /// </summary>
-    private sealed record Raw(Seg Seg, int[] Priority, int Order, double Start, double Since);
+    /// <param name="Stance">A pose's own word: where a part is kept, not something done.</param>
+    /// <param name="Rows">The `&amp;` groups it is in, and its row in each.</param>
+    private sealed record Raw(Seg Seg, int[] Priority, int Order, double Start, double Since, bool Stance = false, (int Group, int Row)[]? Rows = null);
 
     /// <summary>
     /// How long before its beat a part sets out (DESIGN.md 50.2). The feet in the second half of
@@ -96,7 +98,8 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         string? EaseOverride = null,
         TextSpan? Src = null,
         double Since = double.NegativeInfinity,    // where the word before the next one in the row begins: the next sets out no earlier
-        bool After = false);                       // done again by a `%`, the first word has another word before it than where it was written: Since is that one's
+        bool After = false,                        // done again by a `%`, the first word has another word before it than where it was written: Since is that one's
+        (int Group, int Row)[]? Rows = null);      // the `&` groups the walk is inside, and the row of each
 
     private readonly List<Diagnostic> _diagnostics = [];
     private readonly HashSet<(string, int, int)> _reported = [];
@@ -104,6 +107,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
     private string _playing = "";   // the section being bound
     private int _verse = 1;   // which play of its section, in this score, is being bound: what a `verse N` asks
     private int _order;
+    private int _groups;   // the `&` groups bound so far: each has a number of its own
     private double _inner = double.NaN;   // set by a move just bound: where the last word inside it begins (NaN: it is one word)
     private readonly List<(MarkIr Mark, List<(string Channel, Raw Raw)> Raws)> _marks = [];   // of the dancer being bound
 
@@ -960,7 +964,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         "body" => Channels.All,
         "steps" => [Channels.Support, Channels.Height],
         "arms" => [Channels.LeftArm, Channels.RightArm],
-        Channels.LeftArm or Channels.RightArm or Channels.LeftLeg or Channels.RightLeg or Channels.Torso or Channels.Twist or Channels.Head => [trackName],
+        Channels.LeftArm or Channels.RightArm or Channels.LeftLeg or Channels.RightLeg or Channels.Hips or Channels.Torso or Channels.Twist or Channels.Head => [trackName],
         _ => null,
     };
 
@@ -1169,6 +1173,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                 before = Math.Max(last, LastBar(clip.Sections[i]) + dancer.Delay);
             }
             Place(null);
+            CheckTwistsAtOnce(sink);
             foreach (string channel in Channels.All)
             {
                 if (sink.TryGetValue(channel, out var raws))
@@ -1491,11 +1496,11 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
     private double Overlay(SyntaxNode overlay, Ctx ctx, ref double time, ref double barStart)
     {
         double start = time, end = time, bars = barStart, since = double.PositiveInfinity;
-        int row = 0;
+        int row = 0, group = _groups++;
         foreach (var sequence in overlay.ChildNodes(SyntaxKind.Sequence))
         {
             double t = start, b = barStart;   // the rows share the track's bars
-            since = Math.Min(since, Walk(sequence, ctx with { Priority = [.. ctx.Priority, row] }, ref t, ref b));
+            since = Math.Min(since, Walk(sequence, ctx with { Priority = [.. ctx.Priority, row], Rows = [.. ctx.Rows ?? [], (group, row)] }, ref t, ref b));
             if (row++ == 0 || t > end + Epsilon)
                 (end, bars) = (Math.Max(end, t), b);
         }
@@ -1747,7 +1752,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
             var seg = isHold ? new Seg { Kind = SegKinds.Hold }
                 : channel == Channels.Support ? feet
                 : channel == Channels.Height ? height
-                : channel == Channels.Twist ? BindTwist(words, arguments, annotations, mirror)
+                : channel is Channels.Twist or Channels.Hips ? BindTwist(channel, words, arguments, annotations, mirror)
                 : BindGesture(channel, words, arguments, annotations, mirror, ctx);
             if (seg is null)
                 continue;
@@ -1764,7 +1769,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                 var piece = seg.Clone();
                 (piece.T0, piece.T1) = (pieces[i].T0, pieces[i].T1);
                 double moved = pieces[i].Wrapped ? wrap : 0;
-                list.Add(new Raw(piece, pieces[i].Wrapped ? [int.MaxValue, .. ctx.Priority.Skip(1)] : ctx.Priority, order, t0 + moved, ctx.Since + moved));
+                list.Add(new Raw(piece, pieces[i].Wrapped ? [int.MaxValue, .. ctx.Priority.Skip(1)] : ctx.Priority, order, t0 + moved, ctx.Since + moved, ctx.Stance, ctx.Rows));
                 if (i == 0)
                     raws.Add((channel, list[^1]));
             }
@@ -1851,6 +1856,36 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
     }
 
     private static bool Beats(Raw a, Raw b) => Compare(a.Priority, b.Priority) is var c && (c > 0 || (c == 0 && a.Order > b.Order));
+
+    /// <summary>
+    /// SH2009. Two rows of an `&amp;` that both twist at the same time. Any part two rows write goes
+    /// to the later row, and for an arm that is what was meant: one move over another. The chest
+    /// is the one part two moves that look apart — a punch of each arm — both need, so the
+    /// twist of one is lost without a word of the source saying so. A pose's own twist is where
+    /// the chest is kept, not something done: a move that comes back to it, or a row that only
+    /// stands in it, loses nothing.
+    /// </summary>
+    private void CheckTwistsAtOnce(Dictionary<string, List<Raw>> sink)
+    {
+        foreach (string channel in new[] { Channels.Twist, Channels.Hips })
+        {
+            if (sink.TryGetValue(channel, out var raws))
+                CheckTurnsAtOnce(raws, channel == Channels.Hips ? "turn the hips" : "twist the chest", channel == Channels.Hips ? "the hips go" : "the chest goes");
+        }
+    }
+
+    private void CheckTurnsAtOnce(List<Raw> raws, string both, string goes)
+    {
+        foreach (var lost in raws.Where(r => r is { Stance: false, Rows: not null }))
+        {
+            var over = raws.FirstOrDefault(o => o is { Stance: false, Rows: not null } && o.Order != lost.Order && Beats(o, lost)
+                && Math.Min(o.Seg.T1, lost.Seg.T1) - Math.Max(o.Seg.T0, lost.Seg.T0) > Epsilon
+                && o.Rows.Any(a => lost.Rows.Any(b => a.Group == b.Group && a.Row != b.Row)));
+            if (over is not null)
+                Report("SH2009", DiagnosticSeverity.Warning, new TextSpan(lost.Seg.Src, lost.Seg.Len),
+                    $"This row and a later row of the `&` both {both} at the same time, and {goes} with the later one: what is written here is not seen. Write it in one of the rows only, or put the two one after the other.");
+        }
+    }
 
     /// <summary>Whether an event still has its part at the moment it arrives (the same rules as <see cref="Resolve"/>).</summary>
     private static bool Arrives(Raw raw, double beat, List<Raw> all)
@@ -2006,9 +2041,17 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
     /// A word of the `twist` track: `left`, `right.20`, `center`. How far the chest is turned on the
     /// hips, about the spine; the hips do not come along, so it is no more than <see cref="Vocabulary.MaxTwist"/> degrees.
     /// </summary>
-    private Seg? BindTwist(List<SyntaxToken> words, SyntaxNode? arguments, List<SyntaxNode> annotations, bool mirror)
+    /// <remarks>
+    /// The `hips` track says the same of the hips over the feet: the feet stay where they stand, so
+    /// that too is no more than 45 degrees.
+    /// </remarks>
+    private Seg? BindTwist(string channel, List<SyntaxToken> words, SyntaxNode? arguments, List<SyntaxNode> annotations, bool mirror)
     {
-        const string Form = "A twist is `left`, `right` (30 degrees), `left.N` / `right.N` for N degrees up to 45, or `center`: twist { right.20 left center }";
+        bool hips = channel == Channels.Hips;
+        string what = hips ? "a turn of the hips" : "a twist";
+        string Form = hips
+            ? "The hips turn `left`, `right` (30 degrees), `left.N` / `right.N` for N degrees up to 45, or `center`: hips { right.20 left center }"
+            : "A twist is `left`, `right` (30 degrees), `left.N` / `right.N` for N degrees up to 45, or `center`: twist { right.20 left center }";
         foreach (var annotation in annotations)
         {
             var name = annotation.Token(SyntaxKind.Identifier)!;
@@ -2021,10 +2064,10 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                 _ => null,
             };
             if (belongs is not null)
-                Error("SH1010", name.Span, $"'@{name.Text}' is for {belongs}. How far a twist goes is its number: left.20");
+                Error("SH1010", name.Span, $"'@{name.Text}' is for {belongs}. How far {what} goes is its number: left.20");
         }
         if (arguments is not null)
-            Error("SH1012", arguments.Span, "Only lift takes a number in brackets: steps { lift(0.4) }");
+            Error("SH1012", arguments.Span, $"There are no brackets in {what}: how far it goes is the number after the dot, left.20");
 
         if (words.Count == 1 && words[0].Text == "center")
             return new Seg { Kind = SegKinds.Twist, TurnDeg = 0 };
@@ -2041,7 +2084,9 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                 degrees = Number(words[1]);
                 if (degrees is < 0 or > Vocabulary.MaxTwist)
                 {
-                    Error("SH1013", words[1].Span, "The chest turns up to 45 degrees on the hips. To face another way, the feet turn: steps { turn.left.quarter }");
+                    Error("SH1013", words[1].Span, hips
+                        ? "The hips turn up to 45 degrees over feet that stay where they stand (the chest can twist 45 more on them: twist { left.45 }). To face another way, the feet turn: steps { turn.left.quarter }"
+                        : "The chest turns up to 45 degrees on the hips (the hips can turn 45 more over the feet: hips { left.45 }). To face another way, the feet turn: steps { turn.left.quarter }");
                     return null;
                 }
             }
@@ -2049,7 +2094,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         }
 
         var known = Vocabulary.TwistWords.Select(w => w.Name).Append(Vocabulary.Hold).Append(Vocabulary.Skip).Concat(_defs.Keys);
-        Error("SH1012", words[0].Span, $"'{words[0].Text}' is not a twist. {Form}{Hint(words[0].Text, known)}");
+        Error("SH1012", words[0].Span, $"'{words[0].Text}' is not {what}. {Form}{Hint(words[0].Text, known)}");
         return null;
     }
 
@@ -2073,8 +2118,14 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
             if (name.Text == "round" && channel != Channels.Torso)
                 Error("SH1010", name.Span, "'@round' is for the torso: torso { fwd.80@round }");
         }
-        if (arguments is not null)
-            Error("SH1012", arguments.Span, "Only lift takes a number in brackets: steps { lift(0.4) }");
+        // Brackets after the second of two directions: how far round from the first toward it.
+        const string Between = "Brackets say how many degrees a direction is from the first word toward the second: fwd.left(30) is 30 degrees to the left of straight ahead, an arm's fwd.across(15) a little across (0 to 90; without brackets it is 45).";
+        if (arguments is not null && (words.Any(w => w.Kind == SyntaxKind.Identifier && _figures.ContainsKey(w.Text))
+            || isArm && Vocabulary.Has(Vocabulary.Anchors, string.Join('.', words.Select(w => w.Text)))))
+        {
+            Error("SH1012", arguments.Span, "A place takes no number. " + Between);
+            return null;
+        }
 
         if (words.Count is 2 or 3 && words[0].Kind == SyntaxKind.Identifier && _figures.ContainsKey(words[0].Text))
         {
@@ -2109,8 +2160,10 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         double x = 0, z = 0;
         double? elevation = null;
         string? pole = null;
+        var flats = new List<(SyntaxToken Word, double X, double Z)>();   // the horizontal directions, as written
         foreach (var word in words)
         {
+            (double beforeX, double beforeZ) = (x, z);
             if (word.Kind == SyntaxKind.Number)
             {
                 // A number where the level goes: degrees above the horizontal.
@@ -2164,6 +2217,22 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                     Error("SH1012", word.Span, $"'{word.Text}' is not a direction, a level, or a pose or move of this file.{Hint(word.Text, known)}");
                     return null;
             }
+            if (x != beforeX || z != beforeZ)
+                flats.Add((word, x - beforeX, z - beforeZ));
+        }
+
+        if (arguments is not null)
+        {
+            var degrees = Tokens(arguments, SyntaxKind.Number);
+            int bracketed = words.Where(w => w.Span.End <= arguments.Span.Start).Select(w => w.Span.Start).DefaultIfEmpty(-1).Last();
+            bool between = flats.Count == 2 && bracketed == flats[1].Word.Span.Start &&Math.Abs(flats[0].X * flats[1].X + flats[0].Z * flats[1].Z) < 1e-9;
+            if (!between || degrees.Count != 1 || arguments.ChildNodes().Any() || Number(degrees[0]) is < 0 or > 90)
+            {
+                Error("SH1013", arguments.Span, Between);
+                return null;
+            }
+            double round = Number(degrees[0]) * Math.PI / 180;
+            (x, z) = (flats[0].X * Math.Cos(round) + flats[1].X * Math.Sin(round), flats[0].Z * Math.Cos(round) + flats[1].Z * Math.Sin(round));
         }
 
         Vec3 direction;

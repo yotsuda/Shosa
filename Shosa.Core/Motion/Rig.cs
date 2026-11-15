@@ -109,6 +109,12 @@ public sealed class ClipFigure
     public string Name { get; set; } = "";
     /// <summary>For an `inplace` clip: the travel that was taken out, in metres per second (x, z).</summary>
     public double[]? Velocity { get; set; }
+    /// <summary>
+    /// Which way the figure faces at the first frame and at the last, radians: where its feet and
+    /// its turns put it. The line of the hips does not say it (the hips can be turned over the feet).
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public double[] Facing { get; set; } = [0, 0];
     /// <summary>One array per frame: x, y, z of each joint in <see cref="Rig.Joints"/> order.</summary>
     public List<float[]> Frames { get; } = [];
 

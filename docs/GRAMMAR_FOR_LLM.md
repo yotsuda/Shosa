@@ -176,6 +176,7 @@ the tracks alone; in a file each of them stands inside a figure's block.
 | `rightArm` | The right arm. |
 | `leftLeg` | The left leg when it carries no weight: where it points from the hip. |
 | `rightLeg` | The right leg when it carries no weight. |
+| `hips` | The hips turned over feet that stay where they stand: `left` (30 degrees), `right.20`, `center`. The chest goes round with them; the head does not. |
 | `torso` | The spine: `up` is upright, `fwd.high` leans forward 45 degrees. |
 | `twist` | The chest turned on the hips, about the spine: `left` (30 degrees), `right.20`, `center`. The feet and the hips stay. |
 | `head` | Where the face looks: `fwd` is straight ahead. It nods with the chest's lean, but does not turn with a `twist`. |
@@ -488,7 +489,7 @@ move kick  { rightLeg { fwd.low@bent fwd@sharp!hit fwd.low@bent down } }   // kn
 
 ## Gesture targets (arms, legs, torso, head)
 
-(The `twist` track has words of its own: see "The twist" below.)
+(The `twist` and `hips` tracks have words of their own: see "The twist" and "The hips" below.)
 
 A target is a direction, written as words joined by dots: any of the direction words, and
 at most one level.
@@ -514,6 +515,16 @@ at most one level.
 | `down` | Down: an arm hanging at the side as an arm nobody wrote does (the hand by the thigh, a little forward), a free leg back on the floor. |
 
 - Two direction words make a diagonal: `fwd.side`, `back.side.low`, `fwd.left.high`.
+- **Degrees in brackets after the second direction say how far round from the first
+  toward it**, 0 to 90, where the plain diagonal is 45: `head { fwd.left(30) }` looks 30°
+  to the left of straight ahead, `rightArm { fwd.across(18) }` reaches a little across
+  (the fist ends in front of the middle of the body: on the face of someone who stands straight ahead), `fwd.side(70)` is
+  nearly out to the side. `fwd.left(0)` is `fwd`, `fwd.left(90)` is `left`. A level goes after
+  the brackets as after any direction: `fwd.left(30).10` (30° left, 10° up),
+  `torso { fwd.left(20).70 }`, `fwd.across(15).high`. With `@mirror` the sides swap as
+  they do without brackets. The brackets need two directions that are square to each
+  other, and stand after the second: `left(30)` (from where?), `fwd.back(30)` and
+  `fwd(30).left` are errors (SH1013).
 - No level means `mid`. A level with no direction is not a target; use `up` or `down`.
 - **A number in the place of the level is degrees above the horizontal**, from -90 to 90:
   `fwd.30`, `side.-30`, `back.70`. (`high` is 45, `low` is -45.) An arm swinging while
@@ -653,7 +664,7 @@ twist { center:2 left:2 center:2 right.20:2 }   // square, 30° left on beat 2, 
   under the head**, so the face keeps looking where the `head` row says (ahead, if there
   is none) — a fighter's eyes stay on the target. To look over the shoulder, turn the
   head as well: `head { fwd.left }` is 45° from where the feet point, `head { left }`
-  90° (the head turns in those steps only: it has no degrees of turn).
+  90°, and `head { fwd.left(60) }` any number between (a little past a chest twisted 45°).
 - It goes like a gesture: through all of the word before, `@sharp` for the snap of a
   punch, `then` to stay. A twist nobody wrote is `center`.
 - In a pose it is the stance's own twist (`twist { right.20 }`: the left shoulder
@@ -669,13 +680,66 @@ move cross {
 }
 ```
 
-- Two rows of an `&` that both write `twist` at the same time: the later row has it
-  (as with any part), and nothing is said. Give the twist to one of them.
-- On the contact sheet a twist shows from the side (`--view side`): the two shoulders,
-  one point when square, come apart, and the arm of the shoulder that came forward is
-  the one nearer the nose (30° is plain, 15° only just; from the front the shoulder
-  line only gets shorter, and the floor plan does not show it). For the number, read
-  the two shoulders in `shosa clip` (below).
+- Two rows of an `&` that both twist at the same time: the later row has the chest
+  (as with any part), and the earlier one is warned that its twist is not seen
+  (SH2009) — two punches look apart, but they share the one chest. Give the twist to
+  one of them, or write them one after the other. Coming back to a pose's twist
+  (`guard` above) while the other row twists is not that: it loses nothing.
+- On the contact sheet a twist is read under each pose, where the figure is drawn from
+  above: the shoulder line (left half blue, right half red) lies across the grey line
+  of the hips when twisted, and hides it when square (15° shows). In the pose itself it
+  shows only from the side (`--view side`: the two shoulders come apart); from the front
+  the shoulder line only gets shorter. For the number, read the two shoulders in
+  `shosa clip` (below).
+
+## The hips: `hips`
+
+**`hips` turns the hips over feet that stay where they stand** — the hip a punch comes
+from, the wind-up of a throw, a twist dance. It is written exactly as a twist is, one
+storey down:
+
+| Hips | Meaning |
+|---|---|
+| `left` | The hips turn to the figure's left, the right hip comes forward: 30 degrees, or `left.N` for N degrees (up to 45). The chest and the shoulders go round with them. |
+| `right` | The hips turn to the figure's right, the left hip comes forward: 30 degrees, or `right.N`. |
+| `center` | The hips square over the feet. |
+
+```shosa
+hips  { center:2 left:2 center:2 right.20:2 }   // square, 30° left on beat 2, square on 4, 20° right on 6
+```
+
+- `left` is the way `turn.left` and `twist { left }` go: the hips face left, the RIGHT
+  hip comes forward. The number is degrees (0 to 45; `left` alone is 30); more is an
+  error (SH1013), because the feet do not move: to face another way they turn (`steps { turn.left.quarter }`).
+- **The chest stands on the hips and goes round with them.** `hips { left.30 }` alone
+  turns the hips, the chest and the shoulders 30°. A `twist` is on top of that:
+  `hips { left.30 }` with `twist { left.30 }` puts the shoulders 60° from the feet (a
+  punch from the hip; with 45 and 45 the shoulders are side-on), and with
+  `twist { right.30 }` the shoulders stay square over hips that swing (a twist dance:
+  `hips { left right }` over `twist { right left }`, the same beats).
+- What does not turn: the feet (they stay planted; the knees give), **the head** (as
+  under a twist, the face looks where the `head` row says), and what an arm or a leg
+  says (`fwd` is still where the feet point). An `@body` arm goes with the chest; a
+  hand on the `hip` or the `belly` goes with the hips.
+- Everything else is as for a twist: it goes through all of the word before, `@sharp`
+  snaps, `then` stays; nobody wrote it means `center`; in a pose it is the stance's
+  own (`hips { right.10 }`), and a move comes back to it with the pose's name in its
+  `hips` row (so the pose needs a `hips` row, as it needs a `twist` row for `twist`);
+  two rows of an `&` that both turn the hips at the same time are warned (SH2009).
+
+```shosa
+pose guard { arms { fwd.25@bent }  torso { fwd.80@round }  hips { right.10 }  twist { right.10 }  head { fwd.25 } }
+move cross {
+  rightArm { fwd.low@bent fwd.25@sharp!hit guard }   // elbow back, fist out, back to guard
+  hips     { right.20     left.15@sharp       guard }   // the hip back, and through
+  twist    { right.20     left.20@sharp       guard }   // the shoulder as far again on top
+}
+```
+
+- On the contact sheet, from above: the grey line of the hips turns away from where
+  the feet point, and the shoulder line with it (crossing it only if there is a twist too).
+  `shosa check` still says which way the dancer faces by its feet: hips turned at the
+  end are not "turned 30° to its left".
 
 ## The feet: `steps`
 
@@ -999,7 +1063,8 @@ Diagnostics are `FILE(line,column): severity CODE: message`. SH0xxx is syntax, S
 a word or a count that does not make sense, SH2xxx is a movement the body cannot do
 (SH2002 a step longer than the leg, SH2003 too fast, SH2004 both feet off the floor,
 SH2005 a loop that does not join, SH2006 a hand that cannot reach the other dancer,
-SH2007 two dancers whose heads, bodies or standing legs are in the same place). The message says what to change.
+SH2007 two dancers whose heads, bodies or standing legs are in the same place,
+SH2009 two rows of an `&` that twist the chest, or turn the hips, at the same time). The message says what to change.
 
 The sheet shows poses numbered by beat from 0, read left to right, then down. How far
 apart they are depends on the length shown: every half beat up to 8 beats, every beat up
@@ -1012,7 +1077,12 @@ standing still: look closer there too. Bold numbers start a bar.
 In a score of several sections, a section's name stands in purple beside the first pose in it.
 Under the first beat are the tempo, by the note that is felt, and the time (`4=120 4/4`; in 6/8 `4.=96 6/8`), and again
 under the first pose of a section played at another tempo or in another time: two scores that differ only in speed differ there.
-With more than one dancer, each one's name is under where it stands, and at its ring on the floor.
+**Under each pose the figure is drawn again from above**, audience at the bottom (so a figure facing front
+has its nose down and its left, blue, on the right): the grey line is the hips, the blue and red line over it the
+shoulders, the ring the head with its nose. Read there which way the figure faces, how far the chest is
+twisted on the hips (the two lines cross), where the face looks, and a lean (the shoulders ahead of the hips).
+With more than one dancer each has its own place in that row, left to right as in the pose, with its name under it (and at its ring on the floor);
+how far apart they stand is on the floor plan, not there.
 **Left limbs are blue, right limbs are red**; the torso and shoulder line are dark. The camera stands
 in front and a little to stage left, so a figure facing front shows its left on the right
 of the picture; the short line on the head is the nose. From there a punch or a kick
@@ -1032,7 +1102,8 @@ no diagnostics can still be the wrong movement (a mirrored arm, a step the wrong
 - A score starts IN its first words: `body { guard jab }` starts in guard, the jab lands on beat 1. There is no `:0`.
 - A definition without a length takes its defined length; write the length when counting.
 - Limbs: `side` / `across`. Torso and head: `left` / `right`.
-- `torso` leans, `twist` turns the shoulders (`left.20`: degrees of turn). Neither turns the feet, and a twist does not turn the head.
+- `torso` leans, `twist` turns the shoulders on the hips, `hips` turns the hips (and all above them) over the feet (`left.20`: degrees of turn). None turns the feet or the head.
+- Degrees round, between two directions, are in brackets: `fwd.left(30)`. A number after a dot is the level.
 - Degrees are from the horizontal, for the torso too.
 - A step is measured from the other foot.
 - Opposite targets need one in between.

@@ -12,7 +12,8 @@ pose guard {
   steps { left.fwd.low@small }
   arms  { fwd.25@bent }
   torso { fwd.80@round }                    // leaning 10 degrees forward, the back rounded
-  twist { right.20 }                        // the left shoulder ahead: the chest turned on the hips
+  hips  { right.10 }                        // half sideways: the hips turned over the feet,
+  twist { right.10 }                        // and the chest as far again on the hips: the left shoulder ahead
   head  { fwd.25 }                          // the face up again (a twist does not turn the head)
 }
 
@@ -28,7 +29,8 @@ pose guard {
 move jab       { leftArm  { fwd.25@sharp!hit guard } }
 move cross     {
   rightArm { fwd.low@bent fwd.25@sharp!hit guard }
-  twist    { right.35     left@sharp          guard }
+  hips     { right.20     left.15@sharp       guard }
+  twist    { right.20     left.20@sharp       guard }
 }
 move frontKick { rightLeg { fwd.low@bent fwd@sharp!hit fwd.low@bent down } }
 

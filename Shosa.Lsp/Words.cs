@@ -222,10 +222,10 @@ internal static class Words
             };
         }
 
-        if (track == "twist")
+        if (track is "twist" or "hips")
         {
             if (before.Count == 0)
-                return [.. Vocabulary.TwistWords, .. definitions, Hold, Skip, Again];
+                return [.. track == "hips" ? Vocabulary.HipsWords : Vocabulary.TwistWords, .. definitions, Hold, Skip, Again];
             return [];   // after left / right comes a number of degrees
         }
 

@@ -433,6 +433,104 @@ public class MotionTests
     }
 
     [Fact]
+    public void The_hips_turn_over_feet_that_stay_and_the_chest_goes_round_with_them()
+    {
+        var clip = Solve("    hips { center:2 left:2 left:2 right.20@mirror:2 }\n    twist { center:3 then:1 right:2 left.25:2 }");
+        double Line(double beat, int left, int right) => Math.Asin((At(clip, beat, right) - At(clip, beat, left)).Normalized().Z) * 180 / Math.PI;
+
+        // 30 degrees to the left: the right hip comes forward, and the shoulders with it.
+        Assert.Equal(0, Line(0, Rig.LHip, Rig.RHip), 0);
+        Assert.Equal(30, Line(2, Rig.LHip, Rig.RHip), 0);
+        Assert.Equal(30, Line(2, Rig.LShoulder, Rig.RShoulder), 0);
+        // A twist is on top of it: the other way it leaves the shoulders square over turned hips (a twist dance).
+        Assert.Equal(30, Line(4, Rig.LHip, Rig.RHip), 0);
+        Assert.Equal(0, Line(4, Rig.LShoulder, Rig.RShoulder), 0);
+        Assert.Equal(20, Line(6, Rig.LHip, Rig.RHip), 0);
+        Assert.Equal(45, Line(6, Rig.LShoulder, Rig.RShoulder), 0);
+
+        // The feet, the pelvis, the head and the nose are where they were.
+        foreach (int joint in new[] { Rig.LAnkle, Rig.RAnkle, Rig.LToe, Rig.RToe, Rig.Pelvis, Rig.Chest, Rig.Head, Rig.Nose })
+            Assert.True((At(clip, 2, joint) - At(clip, 0, joint)).Length < 0.005, Rig.Joints[joint]);
+
+        // The bones: the hips turn 30, the spine and the chest add nothing, and the neck gives it back under a head that looks ahead.
+        var turns = clip.Figure.Rotations[clip.Clip.FrameOfBeat(2)];
+        double Yaw(int bone) => 2 * Math.Atan2(turns[bone * 4 + 1], turns[bone * 4 + 3]) * 180 / Math.PI;
+        Assert.Equal(30, Yaw(Skeleton.Hips), 0);
+        Assert.Equal(0, Yaw(Skeleton.Spine), 0);
+        Assert.Equal(0, Yaw(Skeleton.Chest), 0);
+        Assert.Equal(-30, Yaw(Skeleton.Neck) + Yaw(Skeleton.Head), 0);
+
+        Assert.Empty(Compile(Body("    hips { right.20:2 left.45@sharp center }")).Diagnostics);
+        Assert.Equal("SH1013", Assert.Single(Compile(Body("    hips { left.60:4 }")).Diagnostics).Code);
+        Assert.Equal("SH1012", Assert.Single(Compile(Body("    hips { fwd:4 }")).Diagnostics).Code);
+        Assert.Equal("SH1010", Assert.Single(Compile(Body("    hips { left@round:4 }")).Diagnostics).Code);
+    }
+
+    [Fact]
+    public void Degrees_in_brackets_say_how_far_round_from_the_first_direction_toward_the_second()
+    {
+        // The face 30 degrees to the left of straight ahead; with a level after the brackets, 10 degrees up as well.
+        var clip = Solve("    head { fwd:2 fwd.left(30):2 fwd.left(30).10:2 fwd.left(30)@mirror:2 }\n    rightArm { fwd:2 fwd.across(15):2 fwd.side(90):2 then:2 }");
+        Vec3 Face(double beat) => (At(clip, beat, Rig.Nose) - At(clip, beat, Rig.Head)).Normalized();
+        double Round(Vec3 v) => Math.Atan2(v.X, v.Z) * 180 / Math.PI;   // to the figure's left of straight ahead
+        Assert.Equal(0, Round(Face(0)), 1);
+        Assert.Equal(30, Round(Face(2)), 1);
+        Assert.Equal(0, Face(2).Y, 2);
+        Assert.Equal(30, Round(Face(4)), 1);
+        Assert.Equal(Math.Sin(10 * Math.PI / 180), Face(4).Y, 2);
+        Assert.Equal(-30, Round(Face(6)), 1);
+
+        // An arm: 15 degrees across is toward the midline (the right arm's across is the figure's left), 90 to the side is `side`.
+        Vec3 Arm(double beat) => (At(clip, beat, Rig.RHand) - At(clip, beat, Rig.RShoulder)).Normalized();
+        Assert.Equal(15, Round(Arm(2)), 1);
+        Assert.Equal(-90, Round(Arm(4)), 1);
+
+        // What has no brackets is as it was, and 45 in brackets is the same thing.
+        var plain = Solve("    head { fwd:2 fwd.left:2 }");
+        var written = Solve("    head { fwd:2 fwd.left(45):2 }");
+        Assert.True((At(plain, 2, Rig.Nose) - At(written, 2, Rig.Nose)).Length < 1e-9);
+
+        // From where is not said by one word, nor by two along one line; a place takes no number.
+        foreach (string wrong in new[] { "left(30)", "fwd.back(30)", "fwd(30).left", "fwd.left(120)", "fwd.left(left)", "up(30)" })
+            Assert.Equal("SH1013", Assert.Single(Compile(Body($"    head {{ {wrong}:4 }}")).Diagnostics).Code);
+        Assert.Equal("SH1012", Assert.Single(Compile(Body("    rightArm { chest(30):4 }")).Diagnostics).Code);
+        Assert.Equal("SH1012", Assert.Single(Compile(Body("    twist { left(30):4 }")).Diagnostics).Code);
+    }
+
+    [Fact]
+    public void Two_rows_of_an_and_that_twist_at_the_same_time_are_told_the_first_is_not_seen()
+    {
+        const string Definitions = """
+            tempo 100
+            pose guard { arms { fwd.25@bent }  twist { right.20 } }
+            move jab { leftArm { fwd@sharp guard }  twist { right.30@sharp guard } }
+            move cross { rightArm { fwd.low@bent fwd@sharp guard }  twist { right.35 left@sharp guard } }
+            move reach { rightArm { side guard } }
+
+            """;
+        ShosaCompilation Of(string body) => Compile(Samples.Solo("    body { guard:1 " + body + " then }", Definitions));
+
+        // The jab's shoulder and the cross's drawn-back shoulder are both wanted in the same half beat.
+        string text = Samples.Solo("    body { guard:1 { jab:1 } & { cross:3/2 } then }", Definitions);
+        var diagnostic = Assert.Single(Compile(text).Diagnostics);
+        Assert.Equal("SH2009", diagnostic.Code);
+        Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity);
+        Assert.Equal("jab:1", text.Substring(diagnostic.Span.Start, diagnostic.Span.Length));
+
+        // One after the other they share nothing: the jab is back in the guard's twist (a pose's own
+        // word, which loses nothing) while the cross draws back.
+        Assert.Empty(Of("{ jab:1 skip:3/2 } & { skip:1/2 cross:3/2 }").Diagnostics);
+        // A row that only stands in the pose is not a twist done, and an arm two rows write is as it was.
+        Assert.Empty(Of("{ guard:3/2 } & { cross:3/2 }").Diagnostics);
+        Assert.Empty(Of("{ reach:3/2 } & { cross:3/2 }").Diagnostics);
+        // The hips are one too.
+        const string Hips = "tempo 100\nmove a { hips { left center } }\nmove b { hips { right center } }\n";
+        Assert.Equal("SH2009", Assert.Single(Compile(Samples.Solo("    body { { a:2 } & { b:2 } then }", Hips)).Diagnostics).Code);
+        // Written as rows of the section, a narrower track over a wider one is the way to take a part over.
+        Assert.Empty(Compile(Samples.Solo("    body { guard:1 jab:1 then }\n    twist { skip:1 left:1 then }", Definitions)).Diagnostics);
+    }
+
+    [Fact]
     public void A_jump_to_the_left_lands_to_the_left_and_mirrored_to_the_right()
     {
         var left = Solve("    steps { then:2 jump.left then }");

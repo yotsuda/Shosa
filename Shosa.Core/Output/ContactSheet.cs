@@ -13,8 +13,8 @@ public static class ContactSheet
     private const uint Ink = 0x30343A, LeftColor = 0x2F6FDF, RightColor = 0xD9482B, Grid = 0xD8DCE2, Faint = 0x9AA1AB, MarkColor = 0x1E8E5A, SectionColor = 0x7A4FBF;
     private const int CellWidth = 190, CellHeight = 264, Columns = 8, Margin = 14;
     // The text: two pixels a dot, so a character is 12 wide and a line 16 high. Under the floor
-    // line of a cell there is room for two lines of names.
-    private const int TextScale = 2, Advance = Canvas.GlyphAdvance * TextScale, LineHeight = Canvas.GlyphHeight * TextScale, UnderFloor = 40;
+    // line of a cell there is each figure from above, and room for two lines of names.
+    private const int TextScale = 2, Advance = Canvas.GlyphAdvance * TextScale, LineHeight = Canvas.GlyphHeight * TextScale, Above = 60, UnderFloor = 40 + Above;
 
     /// <summary>The default distance between poses, in beats, for a stretch of this length.</summary>
     public static double DefaultStep(double beats) => beats <= 8 ? 0.5 : beats <= 32 ? 1 : 2;
@@ -102,6 +102,7 @@ public static class ContactSheet
             }
 
             var centre = Centre(clip, frame);
+            DrawAbove(canvas, clip, frame, centre, cellX, originX, floorY, scale, yaw);
             if (clip.Figures.Count > 1)
                 DrawNames(canvas, clip, frame, centre, cellX, originX, floorY, scale, yaw);
             foreach (var figure in clip.Figures)
@@ -201,7 +202,54 @@ public static class ContactSheet
             double left = Math.Clamp(x - width / 2.0, cellX + 4, Math.Max(cellX + 4, cellX + CellWidth - 4 - width));
             int row = left > rowEnds[0] + 8 ? 0 : left > rowEnds[1] + 8 ? 1 : rowEnds[0] <= rowEnds[1] ? 0 : 1;
             rowEnds[row] = left + width;
-            canvas.Text((int)Math.Round(left), (int)floorY + 5 + row * (LineHeight + 1), name, TextScale, Faint);
+            canvas.Text((int)Math.Round(left), (int)floorY + 5 + Above + row * (LineHeight + 1), name, TextScale, Faint);
+        }
+    }
+
+    // Each figure from above, under where it stands, with the audience at the bottom as on the
+    // floor plan: the line of the hips (grey), the line of the shoulders over it (left half blue,
+    // right half red), the head and the nose. What the pose beside it cannot say is read here:
+    // how far the chest is turned on the hips, which way the figure faces, where the face looks.
+    // Every figure has a place of its own in the row; where they stand is on the floor plan.
+    private static void DrawAbove(Canvas canvas, MotionClip clip, double frame, Vec3 centre,
+        int cellX, double originX, double floorY, double scale, double yaw)
+    {
+        int count = clip.Figures.Count;
+        double slot = Math.Min(Above, (CellWidth - 8.0) / count), size = 120 * slot / Above;
+        var placed = clip.Figures
+            .Select(f => (Figure: f, X: originX + Project(f.Joint(frame, Rig.Pelvis) - centre, yaw).X * scale))
+            .OrderBy(f => f.X).ToList();
+        var xs = new double[count];
+        for (int i = 0; i < count; i++)
+            xs[i] = Math.Max(placed[i].X, i == 0 ? cellX + 4 + slot / 2 : xs[i - 1] + slot);
+        for (int i = count - 1; i >= 0; i--)
+            xs[i] = Math.Min(xs[i], i == count - 1 ? cellX + CellWidth - 4 - slot / 2 : xs[i + 1] - slot);
+
+        double middleY = floorY + 3 + Above / 2.0;
+        for (int i = 0; i < count; i++)
+        {
+            var figure = placed[i].Figure;
+            // Centred between the hips and the chest, so that a lean stays in its row.
+            var origin = (figure.Joint(frame, Rig.Pelvis) + figure.Joint(frame, Rig.Chest)) * 0.5;
+            (double X, double Y) At(Vec3 p) => (xs[i] + (p.X - origin.X) * size, middleY + (p.Z - origin.Z) * size);
+            (double X, double Y) Joint(int joint) => At(figure.Joint(frame, joint));
+
+            var (leftHip, rightHip) = (Joint(Rig.LHip), Joint(Rig.RHip));
+            canvas.Line(leftHip.X, leftHip.Y, rightHip.X, rightHip.Y, 3, Faint);
+            var middle = At((figure.Joint(frame, Rig.LShoulder) + figure.Joint(frame, Rig.RShoulder)) * 0.5);
+            var (leftShoulder, rightShoulder) = (Joint(Rig.LShoulder), Joint(Rig.RShoulder));
+            canvas.Line(middle.X, middle.Y, leftShoulder.X, leftShoulder.Y, 3, LeftColor);
+            canvas.Line(middle.X, middle.Y, rightShoulder.X, rightShoulder.Y, 3, RightColor);
+
+            var head = Joint(Rig.Head);
+            var nose = Joint(Rig.Nose);
+            double radius = size * 0.06;
+            canvas.Disc(head.X, head.Y, radius, 0xFFFFFF);
+            canvas.Ring(head.X, head.Y, radius, 1.6, Ink);
+            double length = Math.Sqrt((nose.X - head.X) * (nose.X - head.X) + (nose.Y - head.Y) * (nose.Y - head.Y));
+            if (length > 1)
+                canvas.Line(head.X + (nose.X - head.X) / length * radius, head.Y + (nose.Y - head.Y) / length * radius,
+                    head.X + (nose.X - head.X) / length * radius * 2.4, head.Y + (nose.Y - head.Y) / length * radius * 2.4, 2, Ink);
         }
     }
 

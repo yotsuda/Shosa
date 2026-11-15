@@ -138,7 +138,8 @@ function channelOfBone(index) {
   const name = clip.joints[clip.bones[index][1]];
   const side = name.startsWith('left') ? 'left' : name.startsWith('right') ? 'right' : '';
   if (/Elbow|Hand/.test(name)) return [side + 'Arm'];
-  if (/Knee|Ankle|Toe|Hip/.test(name)) return [side + 'Leg', 'support', 'height'];
+  if (/Hip/.test(name)) return ['hips', side + 'Leg', 'support', 'height'];   // the line of the hips is what `hips` turns
+  if (/Knee|Ankle|Toe/.test(name)) return [side + 'Leg', 'support', 'height'];
   if (/head|nose/.test(name)) return ['head', 'torso'];
   if (/Shoulder/.test(name)) return ['twist', 'torso'];   // the shoulder line is what a twist turns
   return ['torso'];
