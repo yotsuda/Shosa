@@ -268,6 +268,26 @@ public class MotionTests
     }
 
     [Fact]
+    public void A_changement_lands_with_the_feet_mirrored()
+    {
+        // Writing trial 21 (DESIGN.md 80.3): once a plain jump kept the feet as they stood, nothing changed them.
+        var compilation = Compile(Samples.Solo("    steps { then:1 rightFoot.back.across(0.07m):2 then:1 jump.change:2 }", "tempo 60\ntime 4/4\n"));
+        Assert.Empty(compilation.Diagnostics);
+        var figure = compilation.Clip.Figures[0];
+        Vec3 Apart(double beat) => figure.Joint(compilation.Clip.FrameAt(beat), Rig.LHip + 2) - figure.Joint(compilation.Clip.FrameAt(beat), Rig.RHip + 2);
+        var crossed = Apart(3);
+        var landed = Apart(6);
+        Assert.Equal(-crossed.Z, landed.Z, 2);   // the right foot, behind, lands as far in front
+        Assert.Equal(crossed.X, landed.X, 2);    // still crossed
+        // It lands on beat 4: the flight is in the beat before it.
+        double widest = Enumerable.Range(0, 21).Max(i => Apart(3 + i * 0.05).X);
+        Assert.True(widest > 0.15, $"the feet pass each other apart in the air: {widest:0.00} m");
+
+        Assert.Equal("SH1012", Assert.Single(Compile(Samples.Solo("    steps { jump.change.apart }", "tempo 60\ntime 4/4\n")).Diagnostics).Code);
+        Assert.Equal("SH1012", Assert.Single(Compile(Samples.Solo("    steps { shift.left hop.change }", "tempo 60\ntime 4/4\n")).Diagnostics).Code);
+    }
+
+    [Fact]
     public void A_leg_swings_about_the_hip()
     {
         // Writing trial 20: a straight leg lowered from the front bent its knee to 90° on the way (the ankle went

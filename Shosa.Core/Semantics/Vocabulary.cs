@@ -175,6 +175,7 @@ public static class Vocabulary
         new("apart", "For a jump: land with the feet 0.6 m apart, or `apart(0.8m)`."),
         new("stand", "For a jump: land with the feet at standing width."),
         new("together", "For a jump: land with the feet touching (turned out, the heels)."),
+        new("change", "For a jump: land with the feet as they stood, mirrored left for right: the foot that was behind lands in front, as far ahead and as crossed (a changement: fifth, right foot front, lands in fifth, left foot front)."),
     ];
 
     /// <summary>The most a turn says in one word, degrees: a triple turn.</summary>

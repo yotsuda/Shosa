@@ -2709,11 +2709,21 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                                 seg.Spread = part.Text == "stand" ? Rig.Stance : -1;   // -1: touching, as `together` closes
                             }
                             break;
+                        case "change" when head.Text == "jump":
+                            if (part.Bracket is not null && !BracketsOnly())
+                                return null;
+                            seg.Change = true;
+                            break;
                         default:
-                            var ways = head.Text == "jump" ? new[] { "place", "fwd", "back", "left", "right", "apart", "stand", "together" } : ["place", "fwd", "back", "left", "right"];
+                            var ways = head.Text == "jump" ? new[] { "place", "fwd", "back", "left", "right", "apart", "stand", "together", "change" } : ["place", "fwd", "back", "left", "right"];
                             Error("SH1012", part.Word.Span, $"A {head.Text} goes {string.Join(", ", ways)}.{Hint(part.Text, ways)}");
                             return null;
                     }
+                }
+                if (seg.Change && seg.Spread is not null)
+                {
+                    Error("SH1012", head.Span, "'change' lands the feet as they stood, mirrored; 'apart', 'stand' and 'together' set them side by side. Write one of them.");
+                    return null;
                 }
                 return seg;
             }

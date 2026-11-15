@@ -1001,7 +1001,9 @@ public static class GrammarDoc
               A quarter of a second gives 2 cm of air — the sheet shows bent knees and no flight — and
               half a second 7 cm (how far the body rises; a foot swinging through clears the floor by more): a leap that is to be SEEN in the air needs half a second or more before it. It lands at the
               height it took off from (the `height` row), and a plain `jump` lands with the feet as they stood: as far apart, one as far ahead, crossed
-              if they were crossed (a sauté in fifth lands in fifth). The jump bends its own knees before it
+              if they were crossed (a sauté in fifth lands in fifth); `jump.change` lands with them mirrored, the foot
+              that was behind now in front (a changement: fifth with the right foot front lands in fifth with the left
+              front; the feet open past each other in the air). The jump bends its own knees before it
               takes off, on top of any plié the `height` row has written.
               `jump@turn(right(180))` turns in the air. Jumps in a row, each on its beat: `jump jump jump`.
               `left` / `right` go to the dancer's own left and right (a sidestep or a
@@ -1201,7 +1203,7 @@ public static class GrammarDoc
             - A change of tempo or of time in the middle of a section (a section says them where it begins; a dance to a song follows its song).
             - A toe at any place on the other leg but its knee and its ankle; a hand on a leg (the thigh, the knee).
             - A foot that points or flexes when you choose (it points only with its toe on the other leg); standing on pointe.
-            - Changing the feet in the air (a changement, an entrechat); the third and the fifth position told apart.
+            - Beating the legs in the air (an entrechat; a changement is `jump.change`); the third and the fifth position told apart.
 
             ## Checking your work
 

@@ -321,6 +321,12 @@ internal static class Words
             else if (taken.Contains(b))
                 taken.Add(a);
         }
+        // A jump's landing: mirrored as they stood (`change`), or side by side (`apart`, `stand`, `together`).
+        string[] widths = ["apart", "stand", "together"];
+        if (taken.Contains("change"))
+            taken.UnionWith(widths);
+        else if (widths.Any(taken.Contains))
+            taken.Add("change");
         return words.Where(w => !taken.Contains(w.Name));
     }
 

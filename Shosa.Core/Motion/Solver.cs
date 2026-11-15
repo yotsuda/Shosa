@@ -405,6 +405,8 @@ internal sealed class FigureSolver
         public double Angle;
         public bool Air;
         public double AirHeight;
+        /// <summary>Air: how far the foot opens to the side at the top of the flight and back (the feet of a changement pass each other apart).</summary>
+        public Vec3 Open;
         /// <summary>How high the foot is held off the floor when the move begins and when it ends (a foot left in the air after a hop or a leap stays at LiftTo).</summary>
         public double LiftFrom, LiftTo;
         /// <summary>How much of a stride the step goes the way the foot points: 1 forward, -1 back, 0 sideways.</summary>
@@ -879,18 +881,22 @@ internal sealed class FigureSolver
                         // fifth lands in fifth; trial 21: it landed side by side). `apart` and `together` set the width.
                         var stood = s.Left - s.Right;
                         var fwdAfter = Vec3.Forward(s.Yaw + angle);
+                        // `jump.change` mirrors it left for right: each foot keeps its side, and the one behind lands as
+                        // far in front (a changement: fifth, right front, lands in fifth, left front; still crossed).
                         var half = seg.Spread is null
-                            ? (leftAfter * stood.Dot(leftward) + fwdAfter * stood.Dot(fwd)) * 0.5
+                            ? (leftAfter * stood.Dot(leftward) + fwdAfter * (seg.Change ? -1 : 1) * stood.Dot(fwd)) * 0.5
                             : leftAfter * ((seg.Spread is -1 ? TouchWidth(t1) : seg.Spread.Value) / 2);
+                        // Changing, the feet open in the air to pass each other at standing width, each to its own side.
+                        double open = seg.Change ? Math.Max(0, (Rig.Stance - stood.Dot(leftward)) / 2) : 0;
                         Move(true, new FootMove
                         {
                             T0 = up, T1 = land, From = s.Left, To = landing + half,
-                            YawFrom = s.LeftYaw, YawTo = s.Yaw + angle, Air = !made, AirHeight = height,
+                            YawFrom = s.LeftYaw, YawTo = s.Yaw + angle, Air = !made, AirHeight = height, Open = leftward * open,
                         });
                         Move(false, new FootMove
                         {
                             T0 = up, T1 = land, From = s.Right, To = landing - half,
-                            YawFrom = s.RightYaw, YawTo = s.Yaw + angle, Air = !made, AirHeight = height,
+                            YawFrom = s.RightYaw, YawTo = s.Yaw + angle, Air = !made, AirHeight = height, Open = leftward * -open,
                         });
                         Weight(t0, up, middle);
                         Weight(up, land, landing);
@@ -1115,7 +1121,7 @@ internal sealed class FigureSolver
             }
             else if (move.Air)
             {
-                pos = Vec3.Lerp(move.From, move.To, u);
+                pos = Vec3.Lerp(move.From, move.To, u) + move.Open * Math.Sin(Math.PI * u);
                 yaw = move.YawFrom + (move.YawTo - move.YawFrom) * s;
                 lift = move.AirHeight * 4 * u * (1 - u) + move.LiftFrom + (move.LiftTo - move.LiftFrom) * u;
                 air = true;

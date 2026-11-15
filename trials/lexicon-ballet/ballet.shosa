@@ -43,6 +43,7 @@ pose attitude { rightLeg { back.up(20).bent.knee(side.up) }  arms { fifthArms } 
 
 // ---- Steps and jumps.
 move saute       { steps { then:1/2 jump:1/2 }  height { low(8cm):1/2 then:1/2 } }
+move changement  { steps { then:1/2 jump.change:1/2 }  height { low(8cm):1/2 then:1/2 } }   // from fifth, lands in fifth with the other foot in front
 move echappe     { steps { jump.apart jump.stand } }
 move glissade    { steps { rightFoot.side(0.41m) together }  height { low(8cm) low } }
 move pasDeBourree { steps { rightFoot.back.across leftFoot.side(0.41m) rightFoot.fwd }  height { high high low } }

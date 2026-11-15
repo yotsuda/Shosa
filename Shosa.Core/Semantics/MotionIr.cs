@@ -327,6 +327,8 @@ public sealed class Seg
     public double TurnDeg { get; set; }
     /// <summary>Jump: distance between the feet on landing; null keeps it, -1 touching (as `together` closes). Together: null touching, else the width (`stand`).</summary>
     public double? Spread { get; set; }
+    /// <summary>Jump (`jump.change`): the feet land as they stood mirrored left for right: the one behind lands in front (a changement).</summary>
+    public bool Change { get; set; }
     /// <summary>Jump: the foot it lands on. both (`jump`), same — the one it took off from (`hop`), other — the one that carried no weight (`leap`).</summary>
     public string? Lands { get; set; }
     /// <summary>Lift: metres between the floor and the feet.</summary>
