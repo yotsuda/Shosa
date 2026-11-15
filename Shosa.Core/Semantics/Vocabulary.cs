@@ -176,6 +176,7 @@ public static class Vocabulary
         new("back", "Land behind, as far as `fwd` goes ahead: `back(0.3m)`."),
         new("left", "Land to the dancer's left (0.4 m; a leap 0.6 m): a dodge is `jump.left(0.25m)`."),
         new("right", "Land to the dancer's right."),
+        new("up", "How high the body rises, always with the height: `hop.up(5cm)`, `jump.fwd(0.3m).up(20cm)`. It takes the time that height needs and waits on the floor through the rest of the word before. Not written, the time before it decides."),
         new("apart", "For a jump: land with the feet 0.6 m apart, or `apart(0.8m)`."),
         new("stand", "For a jump: land with the feet at standing width."),
         new("together", "For a jump: land with the feet touching (turned out, the heels)."),

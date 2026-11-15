@@ -717,6 +717,15 @@ public static class GrammarDoc
             - A leg put `down` lands where it stood before the gesture. A foot held in the air after a
               `hop` or a `leap` is put on the floor by `down` beside the foot it stands on, at standing
               width; the weight stays on the standing foot.
+            - **`skip` in a leg's row lets the leg go back to `steps`** over the time of the `skip`: its
+              foot goes to where the steps have it, and a step of that foot in that time carries it there
+              straight from the air. So a foot closes from the ankle into fifth without passing out to the
+              side (where `down` would put it): `leftLeg { otherAnkle.back:4 skip:1 }` with
+              `steps { … leftFoot.fwd(0.08m).across(0.13m) }` landing as the `skip` ends. With no step, the
+              foot goes back to where it stood before the leg lifted (or, after a hop, stays held in the
+              air until a step or a `down` puts it on the floor). To keep a leg as it is, write `then`.
+              (The foot goes the straight way: closing from behind to in front, it passes close by the
+              standing leg.)
 
             A leg in the air can also send its toe to a place on the other leg:
 
@@ -1034,9 +1043,15 @@ public static class GrammarDoc
               A jump LANDS on its beat; the bend and the flight are in the word before it, and the
               knees give a little after. How high it goes follows from the time that
               word gives it (the longer, up to a second, the higher; a `then` counts as that word, so
-              `then:2 jump` is a high one and `then:1/2 jump` a little one); it is not written.
+              `then:2 jump` is a high one and `then:1/2 jump` a little one).
               A quarter of a second gives 2 cm of air — the sheet shows bent knees and no flight — and
-              half a second 7 cm (how far the body rises; a foot swinging through clears the floor by more): a leap that is to be SEEN in the air needs half a second or more before it. It lands at the
+              half a second 7 cm (how far the body rises; a foot swinging through clears the floor by more): a leap that is to be SEEN in the air needs half a second or more before it.
+              **To make jumps alike whatever comes before them, write the height**: `hop.up(5cm)`,
+              `jump.fwd(0.3m).up(20cm)`. A written height takes the time it needs (5 cm about 0.34 s, 10 cm
+              0.49 s, 20 cm 0.69 s, bend and air) and the body stands through the rest of the word before:
+              `shift.right:3/2 hop.up(5cm):1 hop.up(5cm):1 hop.up(5cm):1` is three hops of the same
+              5 cm, where without `up` the first, after the longer word, would go twice as high. With
+              less time than that before it, it rises what the time gives (warning SH2016). It lands at the
               height it took off from (the `height` row), and a plain `jump` lands with the feet as they stood: as far apart, one as far ahead, crossed
               if they were crossed (a sauté in fifth lands in fifth); `jump.change` lands with them mirrored, the foot
               that was behind now in front (a changement: fifth with the right foot front lands in fifth with the left

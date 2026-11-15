@@ -333,6 +333,46 @@ public class MotionTests
     }
 
     [Fact]
+    public void A_height_written_on_a_jump_is_the_height_whatever_comes_before()
+    {
+        // Writing trial 23 (DESIGN.md 83.4): of three "small hops" the first, after a longer word, went 25 cm and the others 12 cm.
+        double Peak(ShosaCompilation c, double from, double to) =>
+            Enumerable.Range(0, 41).Max(i => c.Clip.Figures[0].Joint(c.Clip.FrameAt(from + (to - from) * i / 40), Rig.Pelvis).Y);
+        var plain = Compile(Samples.Solo("    steps { shift.right:3 hop:1 hop:1 hop:1 then:2 }", "tempo 96\ntime 4/4\n"));
+        Assert.Empty(plain.Diagnostics);
+        Assert.True(Peak(plain, 2, 3) > Peak(plain, 3, 4) + 0.05);
+
+        var written = Compile(Samples.Solo("    steps { shift.right:3 hop.up(5cm):1 hop.up(5cm):1 hop.up(5cm):1 then:2 }", "tempo 96\ntime 4/4\n"));
+        Assert.Empty(written.Diagnostics);
+        double standing = written.Clip.Figures[0].Joint(written.Clip.FrameAt(0), Rig.Pelvis).Y;
+        foreach (var (from, to) in new[] { (2.0, 3.0), (3.0, 4.0), (4.0, 5.0) })
+            Assert.InRange(Peak(written, from, to) - standing, 0.045, 0.065);
+
+        Assert.Equal("SH2016", Assert.Single(Compile(Samples.Solo("    steps { shift.right:1/4 hop.up(30cm):1 }", "tempo 120\ntime 4/4\n")).Diagnostics).Code);
+        Assert.Equal("SH1012", Assert.Single(Compile(Samples.Solo("    steps { jump.up }", "tempo 120\ntime 4/4\n")).Diagnostics).Code);
+    }
+
+    [Fact]
+    public void Skip_in_a_leg_row_gives_the_leg_back_to_the_steps()
+    {
+        // Writing trial 23 (DESIGN.md 83.4): from the back of the ankle to fifth in front, `down` went out to the
+        // side first, and a `skip` kept the leg up (SH2013).
+        var compilation = Compile(Samples.Solo("""
+                turnout { out(80) }
+                steps   { rightFoot.fwd(0.08m).across(0.13m):1 shift.right:3 | then:4 | leftFoot.fwd(0.08m).across(0.13m):4 }
+                leftLeg { skip:2 otherAnkle.back:2 | then:3 skip:1 | }
+            """, "tempo 60\ntime 4/4\n"));
+        Assert.Empty(compilation.Diagnostics);
+        var figure = compilation.Clip.Figures[0];
+        Vec3 Left(double beat) => figure.Joint(compilation.Clip.FrameAt(beat), Rig.LHip + 2);
+        Vec3 Right(double beat) => figure.Joint(compilation.Clip.FrameAt(beat), Rig.RHip + 2);
+        double widest = Enumerable.Range(0, 21).Max(i => Left(7 + i * 0.05).X - Right(7 + i * 0.05).X);
+        Assert.True(widest < Left(7).X - Right(7).X + 0.01, $"the foot went out to the side: {widest:0.000} m");
+        Assert.Equal(Right(9).Z + 0.08, Left(9).Z, 2);    // in fifth, in front
+        Assert.Equal(0.08, Left(9).Y, 2);                 // on the floor
+    }
+
+    [Fact]
     public void A_changement_lands_with_the_feet_mirrored()
     {
         // Writing trial 21 (DESIGN.md 80.3): once a plain jump kept the feet as they stood, nothing changed them.

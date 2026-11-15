@@ -89,7 +89,7 @@ public static class Solver
             // What the feet were asked to do that the way they stood does not allow (a hop from both feet).
             foreach (var (seg, code, message) in solver.SupportProblems)
                 if (flagged.Add((seg, code)))
-                    diagnostics.Add(new Diagnostic(code, DiagnosticSeverity.Error, new TextSpan(seg.Src, seg.Len), message));
+                    diagnostics.Add(new Diagnostic(code, code == "SH2016" ? DiagnosticSeverity.Warning : DiagnosticSeverity.Error, new TextSpan(seg.Src, seg.Len), message));
             // A foot the steps put down and its leg's row holds up: the leg row wins, and the foot stays in the air.
             foreach (var (seg, leg, at) in solver.FeetHeldUp())
                 if (flagged.Add((seg, "SH2013")))
@@ -878,6 +878,14 @@ internal sealed class FigureSolver
                     // The time in the air fixes the height: h = g T^2 / 8.
                     double airSeconds = TempoMap.Seconds(_tempos, land) - TempoMap.Seconds(_tempos, up);
                     double height = 9.81 * airSeconds * airSeconds / 8;
+                    // A height written (`hop.up(5cm)`) was given the time it needs (Binder), unless there was not so much.
+                    if (seg.Rise is { } rise && duration > 1e-9)
+                    {
+                        if (record && height < rise - 0.005)
+                            SupportProblems.Add((seg, "SH2016", FormattableString.Invariant(
+                                $"There is not time enough before this {seg.Lands switch { "same" => "hop", "other" => "leap", _ => "jump" }} to rise {rise * 100:0.#} cm: it rises {height * 100:0.#} cm. Give the word before it more time.")));
+                        height = Math.Min(height, rise);
+                    }
                     // A jump that takes no time (in the upbeat a score starts with) has been made: the body stands as it landed.
                     bool made = duration <= 1e-9;
                     var travel = fwd * seg.Dz + leftward * seg.Dx;

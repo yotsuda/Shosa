@@ -264,6 +264,7 @@ public static class SegKinds
 {
     public const string Hold = "hold";          // every channel: stay as you are
     public const string Stay = "stay";          // arm: the hand stays where it is in the room, the arm following it (`stay`)
+    public const string Release = "release";    // leg: `skip` in a leg's row gives the leg back to `steps` over its time (DESIGN.md 83.4)
     public const string Dir = "dir";            // gesture: point the part along Dir
     public const string Anchor = "anchor";      // arm: bring the hand to a place on the body; leg: the toe to the other leg
     public const string Reach = "reach";        // arm: to a place on another dancer; head: look at it
@@ -336,6 +337,8 @@ public sealed class Seg
     public string? Lands { get; set; }
     /// <summary>Lift: metres between the floor and the feet.</summary>
     public double Height { get; set; }
+    /// <summary>Jump (`hop.up(5cm)`): metres the body rises; null: as high as the time before it gives.</summary>
+    public double? Rise { get; set; }
     /// <summary>Jump: how far through the segment (0..1) the feet come down; 0.85 if not said. Before it the bend and the air, after it the give.</summary>
     public double? Land { get; set; }
     /// <summary>Step: a stance, not a movement (it came from a `pose`). Already standing so, nothing moves.</summary>

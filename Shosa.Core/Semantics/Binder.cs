@@ -76,6 +76,8 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
     /// give, the rest of as much of its own time: two jumps one after the other just fit.
     /// </summary>
     private const double JumpSeconds = 1.0, JumpBefore = 0.8;
+    /// <summary>The most a jump's written height (`jump.up(0.6m)`) says, metres.</summary>
+    private const double MaxRise = 0.6;
 
     /// <summary>
     /// Where the walk is. Channels are the parts of the body the enclosing track may write (a
@@ -1813,8 +1815,13 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         var src = ctx.Src ?? ev.Span;
         var mark = ev.Child(SyntaxKind.Mark)?.Token(SyntaxKind.Identifier);
 
-        if (words.Count == 1 && words[0].Text == Vocabulary.Skip)
-            return;   // this track says nothing: a wider one may
+        // This track says nothing: a wider one may. A leg's row gives the leg back to `steps`, the row that
+        // has the foot otherwise: a leg held up is let go, and its foot goes where the steps have it, carried by
+        // a step in that time if there is one (DESIGN.md 83.4). It loses to any other row that has the leg.
+        bool release = words.Count == 1 && words[0].Text == Vocabulary.Skip
+            && ctx.Channels.Length > 0 && ctx.Channels.All(c => c is Channels.LeftLeg or Channels.RightLeg);
+        if (words.Count == 1 && words[0].Text == Vocabulary.Skip && !release)
+            return;
 
         double wrap = Wrap(ctx, t0);
         if (definition is not null)
@@ -1859,7 +1866,8 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         var raws = new List<(string Channel, Raw Raw)>();
         foreach (string channel in ctx.Channels)
         {
-            var seg = isHold ? new Seg { Kind = SegKinds.Hold }
+            var seg = release ? new Seg { Kind = SegKinds.Release }
+                : isHold ? new Seg { Kind = SegKinds.Hold }
                 : channel == Channels.Support ? feet
                 : channel == Channels.Height ? height
                 : channel is Channels.Shoulders or Channels.Hips ? BindTurned(channel, parts, mirror)
@@ -1880,7 +1888,8 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                 var piece = seg.Clone();
                 (piece.T0, piece.T1) = (pieces[i].T0, pieces[i].T1);
                 double moved = pieces[i].Wrapped ? wrap : 0;
-                list.Add(new Raw(piece, pieces[i].Wrapped ? [int.MaxValue, .. ctx.Priority.Skip(1)] : ctx.Priority, order, t0 + moved, ctx.Since + moved, ctx.Stance, ctx.Rows));
+                int[] priority = release ? [int.MinValue] : pieces[i].Wrapped ? [int.MaxValue, .. ctx.Priority.Skip(1)] : ctx.Priority;
+                list.Add(new Raw(piece, priority, order, t0 + moved, ctx.Since + moved, ctx.Stance, ctx.Rows));
                 if (i == 0)
                     raws.Add((channel, list[^1]));
             }
@@ -2118,10 +2127,17 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                 // A jump needs its time — the time in the air is how high it is — so it has what there is of the
                 // word before, less what a jump before it needs to come down in, and of its own time as much after.
                 double before0 = Math.Min(room, JumpSeconds * perSecond) * JumpBefore;
+                // A height written takes the time it needs, and the rest of the word before is stood (DESIGN.md 83.4):
+                // the air is 0.5 / 0.85 of the time before the landing (the rest is the bend), h = g T^2 / 8.
+                if (seg.Rise is { } rise)
+                    before0 = Math.Min(room, Math.Sqrt(8 * rise / 9.81) * 0.85 / 0.5 * perSecond);
                 double after = Math.Min(run.End - run.Start, JumpSeconds * perSecond) * (1 - JumpBefore);
                 (t0, t1) = (run.Start - before0, run.Start + after);
                 seg.Land = before0 / (before0 + after);
             }
+            // A leg let go (`skip` in its row) goes back to the steps over the time of the skip itself.
+            if (seg.Kind == SegKinds.Release)
+                (t0, t1) = (run.Start, run.End);
             if (loop && t0 < -Epsilon)
                 (t0, t1) = (t0 + total, t1 + total);
             (seg.T0, seg.T1) = (t0, t1);
@@ -2731,6 +2747,22 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                                 return null;
                             seg.Dx = Side(part.Text) == "left" ? aside : -aside;
                             break;
+                        case "up":
+                            // How high it rises is the time it takes (DESIGN.md 83.4): written, it takes that time.
+                            if (part.Bracket is null)
+                            {
+                                Error("SH1012", part.Word.Span, $"How high is written with it: {head.Text}.up(5cm). Without `up` the time before the {head.Text} decides.");
+                                return null;
+                            }
+                            if (Metres(part.Bracket, $"How high is written in metres: {head.Text}.up(5cm).") is not { } rise)
+                                return null;
+                            if (rise <= 0 || rise > MaxRise)
+                            {
+                                Error("SH1012", part.Bracket.Span, FormattableString.Invariant($"A {head.Text} rises more than nothing and at most {MaxRise:0.##} m: {head.Text}.up(5cm)."));
+                                return null;
+                            }
+                            seg.Rise = rise;
+                            break;
                         case "apart" or "together" or "stand" when head.Text == "jump":
                             if (part.Text == "apart")
                             {
@@ -2751,7 +2783,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                             seg.Change = true;
                             break;
                         default:
-                            var ways = head.Text == "jump" ? new[] { "place", "fwd", "back", "left", "right", "apart", "stand", "together", "change" } : ["place", "fwd", "back", "left", "right"];
+                            var ways = head.Text == "jump" ? new[] { "place", "fwd", "back", "left", "right", "up", "apart", "stand", "together", "change" } : ["place", "fwd", "back", "left", "right", "up"];
                             Error("SH1012", part.Word.Span, $"A {head.Text} goes {string.Join(", ", ways)}.{Hint(part.Text, ways)}");
                             return null;
                     }
