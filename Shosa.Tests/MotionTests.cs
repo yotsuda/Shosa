@@ -289,6 +289,34 @@ public class MotionTests
     }
 
     [Fact]
+    public void A_step_already_made_stands_on_both_feet()
+    {
+        // Writing trial 22 (DESIGN.md 82.6): a score that began in fifth stood on the front foot at beat 0
+        // (knees 16° and 4°), and a `shift.center` moved the hips to stand on both.
+        var compilation = Compile(Samples.Solo("""
+                height  { straight }
+                turnout { out(80) }
+                steps   { rightFoot.fwd(0.08m).across(0.13m):4 }
+            """, "tempo 60\ntime 4/4\n"));
+        Assert.Empty(compilation.Diagnostics);
+        var figure = compilation.Clip.Figures[0];
+        foreach (double beat in new[] { 0.0, 2.0 })
+        {
+            var frame = compilation.Clip.FrameAt(beat);
+            var angles = figure.Angles(frame);
+            Assert.Equal(angles.LeftKnee, angles.RightKnee, 0);
+            var between = (figure.Joint(frame, Rig.LHip + 2) + figure.Joint(frame, Rig.RHip + 2)) * 0.5;
+            var hips = (figure.Joint(frame, Rig.LHip) + figure.Joint(frame, Rig.RHip)) * 0.5;
+            Assert.Equal(between.X, hips.X, 2);
+            Assert.Equal(between.Z, hips.Z, 2);
+        }
+
+        // To begin on the foot it stepped onto, a shift follows; a hop then knows its foot.
+        Assert.Equal("SH2012", Assert.Single(Compile(Samples.Solo("    steps { rightFoot.fwd hop }", "tempo 60\ntime 4/4\n")).Diagnostics).Code);
+        Assert.Empty(Compile(Samples.Solo("    steps { rightFoot.fwd shift.right:1/4 hop:3/4 }", "tempo 60\ntime 4/4\n")).Diagnostics);
+    }
+
+    [Fact]
     public void A_changement_lands_with_the_feet_mirrored()
     {
         // Writing trial 21 (DESIGN.md 80.3): once a plain jump kept the feet as they stood, nothing changed them.
@@ -1040,8 +1068,9 @@ public class MotionTests
 
         // Two hands that reach for each other from too far: each is told.
         Assert.Equal(2, Compile(Two(2, "rightArm { b.hand:2 }", "rightArm { a.hand:2 }")).Diagnostics.Count(d => d.Code == "SH2006"));
-        // A step toward it is enough.
-        Assert.Empty(Compile(Two(1.0, "steps { leftFoot.fwd then }\n rightArm { then b.chest }")).Diagnostics);
+        // A step toward it is enough (a step taken: one already made stands between the feet, DESIGN.md 82.6).
+        Assert.Empty(Compile(Two(1.0, "steps { then leftFoot.fwd }\n rightArm { then b.chest }")).Diagnostics);
+        Assert.Empty(Compile(Two(1.0, "steps { leftFoot.fwd shift.left }\n rightArm { then b.chest }")).Diagnostics);
     }
 
     [Fact]

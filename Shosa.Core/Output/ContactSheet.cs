@@ -298,6 +298,17 @@ public static class ContactSheet
         var head = At(Rig.Head);
         canvas.Disc(head.X, head.Y, scale * 0.095, 0xFFFFFF);
         canvas.Ring(head.X, head.Y, scale * 0.095, 2, Ink);
+        // The line of the eyes, ear to ear inside the head (as BodyAngles finds it: square to the neck and
+        // the nose), so that a tilted head is seen from the front (DESIGN.md 82.6). From the side it is a dot.
+        var headAt = figure.Joint(frame, Rig.Head);
+        var ears = (headAt - figure.Joint(frame, Rig.Chest)).Normalized().Cross((figure.Joint(frame, Rig.Nose) - headAt).Normalized());
+        if (ears.Length > 1e-6)
+        {
+            ears = ears.Normalized() * 0.06;
+            var (ex, ey, _) = Project(ears, yaw);
+            if (ex * ex + ey * ey > 1e-6)
+                canvas.Line(head.X - ex * scale, head.Y + ey * scale, head.X + ex * scale, head.Y - ey * scale, 1.6, Ink);
+        }
         var nose = At(Rig.Nose);
         // Drawn longer than it is: a nod or a glance has to be readable at this size.
         double tipX = head.X + (nose.X - head.X) * 1.7, tipY = head.Y + (nose.Y - head.Y) * 1.7;

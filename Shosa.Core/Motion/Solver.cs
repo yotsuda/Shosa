@@ -773,6 +773,15 @@ internal sealed class FigureSolver
                         YawFrom = isLeft ? s.LeftYaw : s.RightYaw, YawTo = s.Yaw, Lift = StepLift(from, target),
                         Along = Math.Clamp((target - from).Dot(fwd) / Rig.Stride, -1, 1),
                     });
+                    if (t1 - t0 <= 1e-9)
+                    {
+                        // A step already made (the first word of a score) is a way of standing, and one
+                        // stands on both feet: the weight is between them (DESIGN.md 82.6). To begin on the
+                        // foot it stepped onto, a `shift` follows.
+                        s.On = 'B';
+                        Weight(t0, t1, (s.Left + s.Right) * 0.5);
+                        break;
+                    }
                     s.On = isLeft ? 'L' : 'R';
                     // At the landing the weight is between the feet, a little toward the new one.
                     // Keyed only at landings, the pelvis passes over the standing foot in mid-step.

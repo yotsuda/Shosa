@@ -281,6 +281,11 @@ public static class GrammarDoc
               foot already there. To SEE it land, give the score a lead-in (`steps { then:4 | leftFoot.fwd … }`).
               `shosa check` says it under the score (``solo starts with `leftFoot.fwd` already made``; a `leftFoot.place` or a `shift.left` too): count that
               step out of how far the dancer goes — "two steps forward, two back" from beat 0 ends one step behind.
+              **A step already made is a way of standing, so the weight is on both feet**:
+              `steps { rightFoot.fwd(0.08m).across(0.13m):4 }` stands in fifth on both legs, with no
+              `shift.center`. To begin on the foot it stepped onto, shift to it next
+              (`rightFoot.fwd shift.right:1/4 hop:3/4`; a `hop` or a `leap` straight after does not know its foot, SH2012),
+              and a `together` or `stand` straight after closes both feet to the middle.
               `shosa check` also says where each dancer ends (``solo ends 0.5 m back of where it began``,
               ``solo ends where it began``): read it instead of adding the steps up.
             - **The last word of a row stays for its length**: the score ends with the body there.
@@ -987,11 +992,11 @@ public static class GrammarDoc
             - `together` and `stand` move the foot that does not carry the weight, so after a step or
               a `shift.left`: `together` closes it touching (turned out, heel to heel), `stand` to
               standing width. Where the weight is on both feet (after `jump.apart`, after
-              `shift.center`) neither is the free one, and BOTH close, each half the way, to under the
-              weight (to STAND with the feet apart and the weight between them from the start,
-              `jump.apart` is the first word of `steps`: a first word is already made, so no jump is
-              seen; `leftFoot.side` instead leaves the weight over the left foot):
-              `jump.apart:1 then:1 stand:2` slides the feet back in (`jump.stand` jumps them in).
+              `shift.center`, after a first step already made) neither is the free one, and BOTH close,
+              each half the way, to under the weight: `jump.apart:1 then:1 stand:2` slides the feet back
+              in (`jump.stand` jumps them in). To STAND with the feet apart from the start, the first
+              word of `steps` is `leftFoot.side` (or `jump.apart`): a first word is already made, and
+              stands on both feet.
             - `shift.left`, `shift.right`, `shift.center` — the weight moves over that foot (or
               between them); no foot leaves the floor, and the height stays as it is. The basis
               of standing and waiting.
