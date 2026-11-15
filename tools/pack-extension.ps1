@@ -50,7 +50,7 @@ foreach ($rid in $Targets) {
     foreach ($item in 'package.json', 'README.md', 'icon.png', 'language-configuration.json', 'syntaxes') { Copy-Item "$ext\$item" $stage -Recurse }
     Copy-Item "$root\LICENSE" $stage   # MIT: everything but shosa-music (its own licence goes beside it, below)
     New-Item -ItemType Directory -Force "$stage\dist" | Out-Null
-    Copy-Item "$ext\dist\*" "$stage\dist" -Exclude *.map
+    Copy-Item "$ext\dist\*" "$stage\dist" -Exclude *.map, *.packages.json
     # Everything in the stage ships: an ignore file that leaves out only itself says so to vsce.
     [IO.File]::WriteAllText("$stage\.vscodeignore", ".vscodeignore`n")
 
@@ -62,6 +62,8 @@ foreach ($rid in $Targets) {
         Get-ChildItem $server -Recurse -Filter *.pdb | Remove-Item
     }
     Copy-Item "$root\Shosa.Music\LICENSE" "$server\LICENSE-shosa-music.txt"   # GPL-3.0-or-later; its source is Shosa.Music in the repository
+    # The third-party software in dist and server, each with its licence (DESIGN.md 87.7).
+    & "$PSScriptRoot\third-party-notices.ps1" -Server $server -Out "$stage\THIRD-PARTY-NOTICES.txt" -Extension $ext
     $suffix = if ($rid.StartsWith('win')) { '.exe' } else { '' }
     foreach ($program in "Shosa.Lsp$suffix", "shosa-music$suffix", "shosa$suffix") { if (-not (Test-Path "$server\$program")) { throw "$server\$program is missing$(if ($SkipPublish) { ': run without -SkipPublish' })" } }
     '{0}: server {1:F1} MB' -f $rid, ((Get-ChildItem $server -Recurse -File | Measure-Object Length -Sum).Sum / 1MB)

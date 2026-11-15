@@ -47,3 +47,10 @@ PATH of VS Code's terminals: `shosa check FILE`, `shosa sheet FILE -o X.png`, `s
 
 MIT. One program in the package is not: `shosa-music`, which reads Lily# songs and links Lily#, is under the
 GPL (version 3 or later; `server/LICENSE-shosa-music.txt`). Its source is `Shosa.Music` in Shosa's repository.
+The third-party software the package carries (three.js, the synthesiser, the .NET runtime and others) is listed,
+each with its licence, in `THIRD-PARTY-NOTICES.txt`.
+
+**What you write and export is yours.** The `.shosa` files you write, and the animations, videos and images
+Shosa makes from them (glTF, VRM Animation, BVH, MP4, PNG), are your work: no licence of Shosa's applies to
+them, and you may use them in a game or anything else, sold or not, without credit. (A song you dance to, and
+heard in an MP4, keeps its own rights, as does a sound font it is played through.)

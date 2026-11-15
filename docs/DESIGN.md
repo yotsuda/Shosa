@@ -5587,3 +5587,15 @@ B: (1) `@through` で速さが跳ぶ、(2) 腿の角度が読みにくく、高�
 - **3**: `forehead` へ向かう語の間だけ、手の左右の量を時間の 2 乗で遅らせ、肘の向きを語の 3 分の 1 で横にする (`FigureSolver.ArmBlend`)。文法書の `forehead` の説明は変えない (道は書き手の言葉に出ていないので)。
 - 確かめたこと: サンプルと `trials/` の 250 本の `check` は前と同じ。`transfer` と `Salute` の絵は 87.5 の試作の絵とバイトまで同じ。`npc.shosa` の `LookAround` (4 拍かけて左右に寄る) と `Wait` (右に乗ったまま) の絵を見た (`out\c87c\`)。試験を 2 件足した (2 拍の `shift` が 1 拍で 3〜7 割、0.5 拍で 1 cm 以上動く。敬礼へ上がる手が胸の真ん中を 1 cm 以上越えない)。試験 328 件、落ちるのは前からの 1 件 (78.5)。
 
+### 87.7 第三者の表示と、出力は書いた人のもの (2026-11-16。ユーザー: 「入れて」)
+
+会話で見つけた公開の前の 2 つ (ユーザーは、Shosa を個人のゲーム開発者が使いやすいものにしたい。ライセンスは MIT のまま。43.2)。
+
+- **THIRD-PARTY-NOTICES.txt** を vsix の根に入れる。`tools\pack-extension.ps1` が `tools\third-party-notices.ps1` で毎回作る (手で書くと、依存が変わったときに古くなるので)。
+  - dist (拡張とプレビュー): `build.mjs` が esbuild の metafile から、束ねた npm パッケージを `dist\bundled.packages.json` に書く (vsix には入れない)。いまは 13: three.js、spessasynth_core と _lib と stb-vorbis (Apache-2.0)、mp4-muxer、vscode-languageclient とその依存 (MIT、ISC)。
+  - server (言語サーバー、コンパイラー、shosa-music): 各 `*.deps.json` の `package` と `runtimepack` を NuGet のキャッシュで引く。.NET の実行環境 (LICENSE.TXT と THIRD-PARTY-NOTICES.TXT)、Lily# が使う 9 つ (SkiaSharp、HarfBuzzSharp、Markdig (BSD-2-Clause)、MeltySynth、PdfSharpCore、SharpZipLib、SixLabors.Fonts (Apache-2.0) など)。
+  - それぞれ、パッケージ自身のライセンスのファイルを載せる。ファイルを持たないもの (Markdig、SharpZipLib、SixLabors.Fonts) は、名乗るライセンスの標準の文に nuspec の著作権の行を添える。知らないライセンスでファイルもないものが来たら、パッケージ作りを止める。
+  - Lily# (LilySharp.Core) は shosa-music と同じ GPL-3.0-or-later、源の URL。楽譜のフォントは `server/Fonts` にライセンスのファイルごと入っている (Lily# の出力が写す) ので、その一覧を書く。
+- **拡張の README の License に**: 第三者のものは `THIRD-PARTY-NOTICES.txt` にあること。そして「書いて出力したものはあなたのもの」: `.shosa` と、そこから作るアニメーション、動画、画像 (glTF、VRM Animation、BVH、MP4、PNG) に Shosa のライセンスはかからず、ゲームなどに売り物でも表示なしで使える。踊りに使った曲 (MP4 に入る) と、それを鳴らす音源は、それぞれの権利のまま。
+- 確かめたこと: 拡張を作り直して入れ、vsix の中に `THIRD-PARTY-NOTICES.txt` (24 件、561 KB。大半は .NET の表示) があり、`bundled.packages.json` がないこと。
+
