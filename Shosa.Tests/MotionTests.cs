@@ -353,6 +353,29 @@ public class MotionTests
     }
 
     [Fact]
+    public void A_jump_bends_from_standing_straight_and_a_little_one_is_quick_off_the_floor()
+    {
+        // Writing trial 24 (DESIGN.md 84.5): a plié written before a jump was a second bend under it (8 cm, then
+        // 20 cm below standing), and a rope skipped every half beat at 120 could go up 2.7 cm at most.
+        double Pelvis(ShosaCompilation c, double beat) => c.Clip.Figures[0].Joint(c.Clip.FrameAt(beat), Rig.Pelvis).Y;
+        double Lowest(ShosaCompilation c, double from, double to) => Enumerable.Range(0, 81).Min(i => Pelvis(c, from + (to - from) * i / 80));
+        double Highest(ShosaCompilation c, double from, double to) => Enumerable.Range(0, 81).Max(i => Pelvis(c, from + (to - from) * i / 80));
+
+        var plie = Compile(Samples.Solo("""
+                height { straight:1 low(8cm):1 }
+                steps  { together:2 jump.up(10cm):1 then:1 }
+            """, "tempo 80\ntime 2/4\n"));
+        Assert.Empty(plie.Diagnostics);
+        double straight = Pelvis(plie, 0);
+        Assert.InRange(straight - Lowest(plie, 1, 3), 0.075, 0.095);         // one bend: the plié, and 1 cm more for 10 cm
+        Assert.InRange(Highest(plie, 1, 3) - straight, 0.09, 0.11);          // in the air from straight legs
+        Assert.Equal(straight - 0.08, Pelvis(plie, 4), 2);                   // and down into the plié again
+
+        var rope = Compile(Samples.Solo("    steps { together:2 { jump.up(4cm):1/2 } q q q then:1 }", "tempo 120\ntime 4/4\n"));
+        Assert.Empty(rope.Diagnostics);
+    }
+
+    [Fact]
     public void Skip_in_a_leg_row_gives_the_leg_back_to_the_steps()
     {
         // Writing trial 23 (DESIGN.md 83.4): from the back of the ankle to fifth in front, `down` went out to the

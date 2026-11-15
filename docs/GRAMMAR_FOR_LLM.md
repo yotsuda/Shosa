@@ -1069,15 +1069,15 @@ on its direction, in metres: `leftFoot.fwd(0.3m)` (a small step), `leftFoot.side
   knees give a little after. How high it goes follows from the time that
   word gives it (the longer, up to a second, the higher; a `then` counts as that word, so
   `then:2 jump` is a high one and `then:1/2 jump` a little one).
-  A quarter of a second gives 2 cm of air — the sheet shows bent knees and no flight — and
-  half a second 7 cm (how far the body rises; a foot swinging through clears the floor by more): a leap that is to be SEEN in the air needs half a second or more before it.
+  A quarter of a second gives 3 cm of air — the sheet shows bent knees and no flight — and
+  half a second 10 cm (how far the body rises; a foot swinging through clears the floor by more): a leap that is to be SEEN in the air needs half a second or more before it.
   **To make jumps alike whatever comes before them, write the height**: `hop.up(5cm)`,
-  `jump.fwd(0.3m).up(20cm)`. A written height takes the time it needs (5 cm about 0.34 s, 10 cm
-  0.49 s, 20 cm 0.69 s, bend and air) and the body stands through the rest of the word before:
+  `jump.fwd(0.3m).up(20cm)`. A written height takes the time it needs (5 cm about 0.28 s, 10 cm
+  0.44 s, 20 cm 0.69 s, bend and air) and the body stands through the rest of the word before:
   `shift.right:3/2 hop.up(5cm):1 hop.up(5cm):1 hop.up(5cm):1` is three hops of the same
   5 cm, where without `up` the first, after the longer word, would go twice as high. With
   less time than that before it, it rises what the time gives (warning SH2016, which says how
-  high it gets): jumps every half beat at 120 go up 2.7 cm at most, every beat 10.6 cm. It lands at the
+  high it gets): jumps every half beat at 120 go up 4 cm at most, every beat 12 cm. It lands at the
   height it took off from (the `height` row), and a plain `jump` lands with the feet as they stood: as far apart, one as far ahead, crossed
   if they were crossed (a sauté in fifth lands in fifth); `jump.change` lands with them mirrored, the foot
   that was behind now in front (a changement: fifth with the right foot front lands in fifth with the left
@@ -1087,13 +1087,14 @@ on its direction, in metres: `leftFoot.fwd(0.3m)` (a small step), `leftFoot.side
   out in its row and is let go (`skip`) over the landing, and `jump.change` brings it down in front:
   `steps { rightFoot.fwd(0.08m).across(0.13m):2 then:1 jump.change.up(12cm):1 }` with
   `leftLeg { skip:1 then:1 side.down(45):1/2 skip:3/2 }` (arms in second for it: `side.fwd(20).down(15).bent(20)`).
-  The jump bends its own knees before it
-  takes off, on top of any plié the `height` row has written. **So the plié before a jump is not
-  written**: `jump` already sinks as deep as it will go high (5 cm for a little jump of 2 cm, 8 cm for
-  half a second before it, 12 cm for 16 cm of air and more) and gives on landing.
-  A `low` written in the `height` row on the beat before adds to it — the body sinks, comes up a
-  little and sinks again deeper (a double bob). Write a `height` plié only where the dancer stands in
-  it, not on the way into a jump.
+  The jump bends its own knees before it takes off, as deep as it will go high, measured down
+  from standing straight (5 cm below it for a little jump of 3 cm, 7 cm for 6 cm of air, 12 cm for
+  16 cm and more; a little one bends quickly and is soon off the floor). A plié the `height` row
+  already stands in is part of that bend: the jump sinks only as much deeper as it needs, pushes
+  up onto straight legs and goes up from there, and lands on straight legs and gives back into the
+  row's plié. So the plié before a jump may be written or not, and there is one bend either way:
+  `height { straight:1 low(8cm):1 }` with `steps { together:2 jump.up(10cm):1 }` goes down into
+  the plié through beat 1, stays, sinks 1 cm more, jumps 10 cm, lands at beat 2 and gives back into the plié.
   `jump@turn(right(180))` turns in the air. Jumps in a row, each on its beat: `jump jump jump`.
   `left` / `right` go to the dancer's own left and right (a sidestep or a
   dodge: `jump.right(0.25m)`; a dancer `facing stageLeft` has upstage on its left, so two who

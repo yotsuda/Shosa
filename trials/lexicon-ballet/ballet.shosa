@@ -43,7 +43,7 @@ pose arabesque {
 pose attitude { rightLeg { back.up(20).bent.knee(side.up) }  arms { fifthArms } }   // the knee out and above the foot
 
 // ---- Steps and jumps.
-move saute       { steps { then:1/2 jump:1/2 } }          // the jump makes its own plié (a height row's would add to it)
+move saute       { steps { then:1/2 jump:1/2 } }          // the jump makes its own plié (one written in a height row before it is part of it)
 move changement  { steps { then:1/2 jump.change:1/2 } }   // from fifth, lands in fifth with the other foot in front
 move echappe     { steps { jump.apart jump.stand } }
 move glissade    { steps { rightFoot.side(0.41m) together }  height { low(8cm) low } }

@@ -450,6 +450,8 @@ internal sealed class FigureSolver
         public Vec3 HipLeft, HipFwd;
         public Vec3 P;             // pelvis over the floor
         public double WantY, Deficit, CeilingY, Raise, Float;
+        /// <summary>How far the height row stands below standing straight (soft knees, a plié).</summary>
+        public double Drop;
     }
 
     /// <summary>The spine and what hangs on it, before arms and legs.</summary>
@@ -890,13 +892,16 @@ internal sealed class FigureSolver
                 case SegKinds.Jump:
                 {
                     double duration = t1 - t0;
-                    // Bend, air, give: the feet come down at Land, and of the time before it the bend is 0.35 / 0.85.
-                    double lands = seg.Land ?? 0.85, land = t0 + lands * duration, up = t0 + lands * duration * 0.35 / 0.85;
+                    // Bend, air, give: the feet come down at Land. Of the time before it, the bend takes as long as it
+                    // is deep, and that is as deep as the jump goes high (JumpShape, DESIGN.md 84.5).
+                    double lands = seg.Land ?? 0.85, land = t0 + lands * duration;
+                    double beforeSeconds = TempoMap.Seconds(_tempos, land) - TempoMap.Seconds(_tempos, t0);
+                    double airSeconds = JumpShape.AirIn(beforeSeconds);
+                    double up = beforeSeconds > 1e-9 ? land - (land - t0) * airSeconds / beforeSeconds : t0;
                     double angle = seg.TurnDeg * Math.PI / 180;
                     var leftAfter = Vec3.Left(s.Yaw + angle);
                     // The time in the air fixes the height: h = g T^2 / 8.
-                    double airSeconds = TempoMap.Seconds(_tempos, land) - TempoMap.Seconds(_tempos, up);
-                    double height = 9.81 * airSeconds * airSeconds / 8;
+                    double height = JumpShape.Height(airSeconds);
                     // A height written (`hop.up(5cm)`) was given the time it needs (Binder), unless there was not so much.
                     if (seg.Rise is { } rise && duration > 1e-9)
                     {
@@ -983,10 +988,10 @@ internal sealed class FigureSolver
                     {
                         // The knees bend before it as deep as the jump is high (12 cm for 16 cm of air and more; a
                         // skip of a rope bends a little, writing trial 24: 12 cm under 2.7 cm of air was a heavy
-                        // bob), and give on landing up to 8 cm, less where there is no time for it.
+                        // bob), and give on landing up to 8 cm, less where there is no time for it. Both are
+                        // measured down from standing straight: a plié the height row stands in is part of them.
                         double giveSeconds = TempoMap.Seconds(_tempos, t1) - TempoMap.Seconds(_tempos, land);
-                        double bend = Math.Min(0.12, 0.04 + 0.5 * height), give = Math.Min(0.08, 0.02 + 0.4 * height);
-                        _jumps.Add((t0, up, land, t1, height, bend, give * Math.Min(1, giveSeconds / 0.15)));
+                        _jumps.Add((t0, up, land, t1, height, JumpShape.Bend(height), JumpShape.Give(height) * Math.Min(1, giveSeconds / 0.15)));
                     }
                     break;
                 }
@@ -1369,27 +1374,43 @@ internal sealed class FigureSolver
         // measured down from where the dancer stands: `low` is bent knees, not a squat, the hips
         // 16 cm lower (a deep crouch is `low(40cm)`), and `low(12cm)` is 12 cm below standing straight in the same place.
         c.Deficit = stand - top;
-        c.WantY = top - Math.Max(softDrop, Rig.LowDrop * Math.Max(0, -level));
+        c.Drop = Math.Max(softDrop, Rig.LowDrop * Math.Max(0, -level));
+        c.WantY = top - c.Drop;
         // The most the legs reach at all: the smoothed height may not go over it, or a planted foot would come up.
         c.CeilingY = Math.Min(Cap(p + c.HipLeft * Rig.HipHalf, c.LPos, freeL, c.Raise, (Rig.Leg - 2e-4)),
                               Cap(p - c.HipLeft * Rig.HipHalf, c.RPos, freeR, c.Raise, (Rig.Leg - 2e-4)));
         return c;
     }
 
-    private double JumpOffset(double t)
+    /// <summary>
+    /// What a jump does to the height of the hips at a moment, on top of the height row. `drop` is how far
+    /// the row stands below standing straight (a plié, soft knees): the bend and the give are measured from
+    /// standing straight, so a plié already stood in is part of them, and the legs are straight from the
+    /// take-off to the landing (DESIGN.md 84.5: a plié written before a jump was a second bend under it).
+    /// </summary>
+    private double JumpOffset(double t, double drop)
     {
+        static double Smooth(double x) => x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x);
         foreach (var jump in _jumps)
         {
             if (t < jump.T0 || t > jump.T1)
                 continue;
             if (t < jump.Up)
-                return -jump.Bend * Math.Sin(Math.PI * (t - jump.T0) / (jump.Up - jump.T0));
+            {
+                // Down to the bend (only what the plié does not give already), then up onto straight legs.
+                double u = (t - jump.T0) / (jump.Up - jump.T0);
+                return -Math.Max(0, jump.Bend - drop) * Math.Sin(Math.PI * u) + drop * Smooth(2 * u - 1);
+            }
             if (t < jump.Land)
             {
                 double u = (t - jump.Up) / (jump.Land - jump.Up);
-                return jump.Height * 4 * u * (1 - u);
+                return drop + jump.Height * 4 * u * (1 - u);
             }
-            return -jump.Give * Math.Sin(Math.PI * (t - jump.Land) / (jump.T1 - jump.Land));
+            // Straight legs touch, and give into the height row's plié, and as much more as the give is deeper.
+            if (jump.T1 - jump.Land < 1e-9)
+                return 0;
+            double v = (t - jump.Land) / (jump.T1 - jump.Land);
+            return drop * (1 - Smooth(v)) - Math.Max(0, jump.Give - drop) * Math.Sin(Math.PI * v);
         }
         return 0;
     }
@@ -1419,7 +1440,7 @@ internal sealed class FigureSolver
         // a foot lands. The height row itself is not smoothed again, so it starts and arrives on its beats.
         double y = c.WantY + (Core(Clamp(t - 2 * _dt)).Deficit + Core(Clamp(t - _dt)).Deficit + c.Deficit + Core(Clamp(t + _dt)).Deficit + Core(Clamp(t + 2 * _dt)).Deficit) / 5;
         y = Math.Min(y, c.CeilingY);
-        y += JumpOffset(t);
+        y += JumpOffset(t, c.Drop);
 
         // The torso's word says the line from the pelvis to the chest. A rounded back bows
         // behind that line: the lower half stands up from it, the upper half (and with it the

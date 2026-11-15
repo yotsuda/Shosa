@@ -2128,9 +2128,9 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                 // word before, less what a jump before it needs to come down in, and of its own time as much after.
                 double before0 = Math.Min(room, JumpSeconds * perSecond) * JumpBefore;
                 // A height written takes the time it needs, and the rest of the word before is stood (DESIGN.md 83.4):
-                // the air is 0.5 / 0.85 of the time before the landing (the rest is the bend), h = g T^2 / 8.
+                // the air, h = g T^2 / 8, and the bend before it, as long as it is deep (84.5).
                 if (seg.Rise is { } rise)
-                    before0 = Math.Min(room, Math.Sqrt(8 * rise / 9.81) * 0.85 / 0.5 * perSecond);
+                    before0 = Math.Min(room, Motion.JumpShape.BeforeSeconds(rise) * perSecond);
                 double after = Math.Min(run.End - run.Start, JumpSeconds * perSecond) * (1 - JumpBefore);
                 (t0, t1) = (run.Start - before0, run.Start + after);
                 seg.Land = before0 / (before0 + after);
