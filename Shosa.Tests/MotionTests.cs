@@ -466,6 +466,12 @@ public class MotionTests
         // The foot of a leg lifted in the bend does not go into the floor.
         Assert.All(Enumerable.Range(0, 81).Select(i => i * 0.05), beat => Assert.True(Joint(beat, Rig.RHip + 2).Y > Rig.AnkleHeight - 0.005));
 
+        // `check --at` says when the feet leave the floor and land (DESIGN.md 86).
+        string Feet(double beat) => Shosa.Core.Output.CheckReport.At(compilation, [(beat, false)]).Single().Split("; feet: ")[1];
+        Assert.Equal("left on the floor, right on the floor", Feet(2));
+        Assert.Matches(@"^left \d+ cm up, right \d+ cm up$", Feet(top));
+        Assert.Matches(@"^left on the floor, right \d+ cm up$", Feet(3.5));
+
         // With no leg thrown out, a hop from both feet still does not know its foot.
         Assert.Contains(Compile(Samples.Solo("    steps { together:2 then:1 hop:1 }", "tempo 60\ntime 4/4\n")).Diagnostics, d => d.Code == "SH2012");
     }

@@ -1084,7 +1084,7 @@ on its direction, in metres: `leftFoot.fwd(0.3m)` (a small step), `leftFoot.side
   and takes a whole second of the word before it, bending from beat 1.5 and off the floor near beat 2.
   To stand still 2 beats and then jump, give the jump only its own time: `together:2 then:1 jump`
   (bends after beat 2, off the floor near 2.5), or write its height (`together:3 jump.up(10cm)`
-  stands until about beat 2.2). To see when the feet leave the floor, `shosa sheet --step 0.25`, or the ankles' height frame by frame in `shosa clip`.
+  stands until about beat 2.2). To see when the feet leave the floor, `shosa check --at 2,2.25,2.5` (it says each foot `on the floor` or `N cm up`), or `shosa sheet --step 0.25`.
   A quarter of a second gives 3 cm of air — the sheet shows bent knees and no flight — and
   half a second 10 cm (how far the body rises; a foot swinging through clears the floor by more): a leap that is to be SEEN in the air needs half a second or more before it.
   **To make jumps alike whatever comes before them, write the height**: `hop.up(5cm)`,
@@ -1324,7 +1324,7 @@ Do not try to express these; mention them as a limitation instead.
 ```
 shosa check FILE            diagnostics, or "no problems"; every score with its length, and each section in it with its beats, bars, seconds, tempo and time, a step or jump the score starts with already made, and where each dancer ends from where it began; then every mark
 shosa check FILE --score Rage   one score only (`--score ""` the unnamed one)
-shosa check FILE --at 3,4.5,0.75s   also how the body is turned at those moments (beats; seconds with an `s`): hips, shoulders, face (and its tilt, when the eyes are off level), in degrees, and how far each elbow and knee is bent (as `bent(N)` counts)
+shosa check FILE --at 3,4.5,0.75s   also how the body is turned at those moments (beats; seconds with an `s`): hips, shoulders, face (and its tilt, when the eyes are off level), in degrees, how far each elbow and knee is bent (as `bent(N)` counts), and whether each foot is on the floor
 shosa sheet FILE -o X.png   the movement on one image per score (X.png for the unnamed score, X-Idle.png, X-Punch.png …)
 shosa sheet FILE -o X.png --score Punch --step 0.5 --from 0 --to 4   one score, closer poses (in beats; --from and --to also in seconds with an `s`, as --at: --from 0.5s --to 1s; --step 0.1 for a punch)
 shosa sheet FILE -o X.png --view side   seen from stage left: a role facing front is in profile (one facing stageLeft or stageRight is in profile WITHOUT it)
@@ -1368,8 +1368,12 @@ about 10°): ask for it. `shosa check FILE --at 3,0.75s` adds a line for each mo
 and dancer:
 
 ```
-  Punch at beat 3 = 0.75 s: hips 20° left, shoulders 45° left, face 30° right and 10° up; bent: elbows 90° left, 15° right, knees 12° left, 10° right
+  Punch at beat 3 = 0.75 s: hips 20° left, shoulders 45° left, face 30° right and 10° up; bent: elbows 90° left, 15° right, knees 12° left, 10° right; feet: left on the floor, right on the floor
 ```
+
+Each foot is `on the floor`, `on its toes` (the heel up: a rise, a pointed foot touching
+the floor) or `N cm up` (the lowest of its heel and toe): a jump's take-off and landing are
+found by asking a few moments.
 
 The turns are **from the way the feet face**, measured on the floor, more to the dancer's
 own left or right: `hips` and `shoulders` are the numbers written in their rows (over a

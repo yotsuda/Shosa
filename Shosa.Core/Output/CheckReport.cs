@@ -28,6 +28,8 @@ public static class CheckReport
     /// </summary>
     /// <summary>How much higher than the other ankle a foot is held to count as off the floor, metres.</summary>
     private const double RaisedFoot = 0.01;
+    /// <summary>How high the toe joint is with the foot flat on the floor, metres (the solver's FloorToe).</summary>
+    private const double FloorToe = 0.02;
 
     private static string? Travel(MotionClip clip, ClipFigure figure)
     {
@@ -153,7 +155,20 @@ public static class CheckReport
                     string feet = Math.Round(Math.Abs(angles.Feet), 1) == 0 ? "" : $" (the feet face {Turned(angles.Feet)} of the front)";
                     static string B(double degrees) => Math.Round(degrees).ToString(CultureInfo.InvariantCulture) + "°";
                     string bends = $"; bent: elbows {B(angles.LeftElbow)} left, {B(angles.RightElbow)} right, knees {B(angles.LeftKnee)} left, {B(angles.RightKnee)} right";
-                    yield return $"  {label} at beat {N(beat)} = {N(clip.SecondsAt(beat))} s: {who}hips {Turned(angles.Hips)}, shoulders {Turned(angles.Shoulders)}, face {Turned(angles.Face)}{up}{feet}{bends}";
+                    // Whether each foot is on the floor, so the moment of a take-off or a landing is found
+                    // without opening the clip (DESIGN.md 85.4 and 86): the lowest of the ankle and the toe,
+                    // from where each is standing on the floor.
+                    var frame = clip.FrameAt(beat);
+                    string Foot(int ankle, int toe)
+                    {
+                        double heel = figure.Joint(frame, ankle).Y - Rig.AnkleHeight, ball = figure.Joint(frame, toe).Y - FloorToe;
+                        double lowest = Math.Min(heel, ball);
+                        if (lowest < RaisedFoot)
+                            return heel > 0.02 ? "on its toes" : "on the floor";
+                        return $"{Math.Round(lowest * 100).ToString(CultureInfo.InvariantCulture)} cm up";
+                    }
+                    string onFloor = $"; feet: left {Foot(Rig.LAnkle, Rig.LToe)}, right {Foot(Rig.RAnkle, Rig.RToe)}";
+                    yield return $"  {label} at beat {N(beat)} = {N(clip.SecondsAt(beat))} s: {who}hips {Turned(angles.Hips)}, shoulders {Turned(angles.Shoulders)}, face {Turned(angles.Face)}{up}{feet}{bends}{onFloor}";
                 }
             }
         }

@@ -91,10 +91,12 @@ Movement is written in `anim/*.shosa` and compiled; never edit the `.glb` files.
    `shoulders` or `hips` are read there — the direction, not the degrees.
    The degrees are in **`shosa check FILE --at 3,0.75s`** (beats; seconds with an `s`): a line
    for each moment, ``Punch at beat 3 = 0.75 s: hips 20° left, shoulders 45° left, face 30°
-   right and 10° up; bent: elbows 15° left, 90° right, knees 2° left, 2° right``, the turns all
+   right and 10° up; bent: elbows 15° left, 90° right, knees 2° left, 2° right; feet: left on
+   the floor, right 12 cm up``, the turns all
    from the way the feet face — the numbers the `hips`, `shoulders` and `head` rows are written
    in, and the bends as `bent(N)` counts them — so a line that differs from the rows is worth a
-   look (SH2010 says where the shoulders do not get to).
+   look (SH2010 says where the shoulders do not get to). Each foot is `on the floor`, `on its
+   toes` or `N cm up`: the moment of a jump's take-off and landing.
    What is left (by how many centimetres, how high a fist
    arrives, whether the head moved) is in **`shosa clip FILE -o X.json`**: every joint's
    x y z at every frame, and the same angles at every frame (the layout is in the same place

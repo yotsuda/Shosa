@@ -12,7 +12,8 @@ const string Usage = """
       shosa check   FILE            diagnostics, and what each score came to
                     [--at 3,0.75s]  how the body is turned at those beats (seconds with an s):
                                     hips, shoulders and face, in degrees from the way the feet face,
-                                    and how far the elbows and knees are bent
+                                    how far the elbows and knees are bent, and whether each foot
+                                    is on the floor (on its toes, or how high)
       shosa sheet   FILE [-o PNG]   a pose per beat and the floor from above, on one image
                     [--step BEATS] [--from BEAT] [--to BEAT]   closer poses, or part of the clip
                                     (--from and --to take seconds with an s: --from 0.5s --to 1s)
