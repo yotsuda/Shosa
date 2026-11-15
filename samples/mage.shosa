@@ -4,19 +4,19 @@ title "Mage"
 tempo 90
 
 
-figure mage
+role mage
 dancer mage humanoid on mage free
 
 pose hover {
-  steps    { lift(0.3) }                    // the feet 0.3 m above the floor
-  leftLeg  { fwd.-70@bent }
-  arms     { side.low }
+  steps    { lift(0.3m) }                    // the feet 0.3 m above the floor
+  leftLeg  { fwd.down(70).bent }
+  arms     { side.down }
 }
 
 section Float {
   mage {
     body  { hover:4 }
-    arms  { side.-30:2 side.low:2 }
+    arms  { side.down(30):2 side.down:2 }
   }
 }
 
@@ -25,9 +25,9 @@ section Cast {
     // The arms rise through the first three beats, the body leans back with them; on 5 (beat 4)
     // everything is thrown forward at once — `@sharp` goes just before its beat, not all the way there.
     body  { hover:6 }
-    arms  { skip:2 side.high up fwd@sharp!cast side.low }
-    torso { up:3 back.80 fwd.80@sharp up }
-    head  { fwd:3 fwd.20 fwd:2@sharp }
+    arms  { skip:2 side.up up fwd@sharp!cast side.down }
+    torso { up:3 up.back(10) up.fwd(10)@sharp up }
+    head  { fwd:3 fwd.up(30) fwd:2@sharp }
   }
 }
 

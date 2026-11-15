@@ -27,8 +27,8 @@ public static class GrammarDoc
         sb.Append("""
             # Shosa (`.shosa`) — Language Spec for LLMs
 
-            Shosa is a text notation for the movement of human figures. A compiler turns the text into
-            the movement of a jointed figure. You write WHAT each part of the body does and WHEN; the
+            Shosa is a text notation for human movement. A compiler turns the text into the movement
+            of a jointed body. You write WHAT each part of the body does and WHEN; the
             compiler decides how the body gets there (where knees and elbows go, how the weight shifts).
 
             This file is the whole language. A word that is not listed here does not exist: do not
@@ -42,24 +42,25 @@ public static class GrammarDoc
             tempo 120          // beats per minute, 10 to 400: here one beat is 0.5 s
             time 4/4           // beats per bar / beat unit
 
-            figure hero                      // who the choreography is written for
+            role hero                      // who the choreography is written for
             dancer hero humanoid on hero     // a body that dances it
 
             // A pose: a named way of standing and holding the body.
             pose guard {
-              steps { left.fwd.low@small }
-              arms  { fwd.25@bent }          // the fists up in front of the face, the elbows down
-              torso { fwd.80@round }         // leaning 10 degrees forward, the back rounded
-              head  { fwd.25 }               // the face up again, looking ahead
+              steps { leftFoot.fwd(0.3m) }
+              height { low(8cm) }
+              arms  { fwd.up(25).bent }          // the fists up in front of the face, the elbows down
+              torso { up.fwd(10).round }         // leaning 10 degrees forward, the back rounded
+              head  { fwd }                      // the face level, looking ahead over the lean
             }
 
             // A move: a named row of words. `!hit` names a moment for the game engine.
             // The fist is out ON the beat the jab is written at, and back in guard a beat later.
             // The same direction as the guard, straight: the fist goes out along one line. (To another
-            // direction it would swing: from `fwd.high@bent` to `fwd` it comes down like a chop.)
-            move jab { leftArm { fwd.25@sharp!hit guard } }
+            // direction it would swing: from `fwd.up(25).bent` to `fwd` it comes down like a chop.)
+            move jab { leftArm { fwd.up(25)@sharp!hit guard } }
 
-            // A section: what each figure does over a stretch of time.
+            // A section: what each role does over a stretch of time.
             section Idle {
               hero {
                 body { guard:8 }
@@ -82,16 +83,16 @@ public static class GrammarDoc
             score Punch { dancer hero  form Punch }
             ```
 
-            **Nothing of this skeleton can be left out.** Every file has at least one `figure`, one
+            **Nothing of this skeleton can be left out.** Every file has at least one `role`, one
             `dancer`, one `section`, one `form` and one `score`. The least a file can be:
 
             ```shosa
-            figure solo
+            role solo
             dancer solo humanoid on solo
 
             section Main {
               solo {
-                steps { left.fwd right.fwd left.fwd together }
+                steps { leftFoot.fwd rightFoot.fwd leftFoot.fwd stand }
               }
             }
 
@@ -109,19 +110,19 @@ public static class GrammarDoc
             | `fps N` | Frames per second of the output, and what a length in frames counts. Optional; 30. |
             | `using "parts.shosa"` | Another file joins this one (see "Files of parts: `using`"). Optional; as many as you like. |
             | `music "song.lys"` | The song this is danced to (see "Dancing to a song"). Optional. |
-            | `figure NAME` | An owner of choreography. Required: at least one (see "Figures and dancers"). |
-            | `dancer NAME humanoid on FIGURE …` | A body that dances a figure. Required: at least one. |
+            | `role NAME` | An owner of choreography. Required: at least one (see "Roles and dancers"). |
+            | `dancer NAME humanoid on ROLE …` | A body that dances a role. Required: at least one. |
             | `pose NAME { TRACK { target } … }` | A named pose. |
             | `move NAME { TRACK { events } … }` | A named move. |
-            | `section NAME { FIGURE { TRACK { … } … } … }` | A stretch of time: what each figure does in it. It may begin with lines of its own — `tempo N`, `time N/N`, `upbeat N` — before its first block (see "What a section begins with"). |
+            | `section NAME { ROLE { TRACK { … } … } … }` | A stretch of time: what each role does in it. It may begin with lines of its own — `tempo N`, `time N/N`, `upbeat N` — before its first block (see "What a section begins with"). |
             | `form { A B A }` | The order the sections are played in. Required: every score plays one. The unnamed score plays this one; `form NAME { … }` is for the score that names it (a file whose scores all name their form has no unnamed one). Repeat signs: see "Doing it again". A `tempo N` or `time N/N` before a name: see "What a section begins with". |
             | `score { dancer NAME … }` | One file written: who dances, and which form. Required: at least one. `score NAME { … }` is one more (see "Scores"). |
 
             Names are letters, digits and `_`. The words in the left column are reserved, and a pose
             or a move cannot take the name of a word of the language — any word of any table here,
-            so not `half`, `low`, `side`, `center`, `together` either (SH1005 says so) — (a mark's name, after its `!`,
-            can be any word at all). Definitions can be used before
-            or after the line that defines them. A figure and its dancer may have the same name.
+            so not `low`, `side`, `center`, `stand` either (SH1005 says so); nor can a role or a dancer
+            (SH1003). (A mark's name, after its `!`, can be any word at all.) Definitions can be used before
+            or after the line that defines them. A role and its dancer may have the same name.
 
             ## A tempo: three spellings
 
@@ -167,12 +168,12 @@ public static class GrammarDoc
               `shosa gltf FILE --combined` puts every score into ONE file, an animation each,
               named after its score: what a game engine wants of a character with several movements.
             - Inside a score: `dancer NAME` (required, one for each dancer who appears), `form NAME`,
-              `loop`, `inplace`, `tempo N` (or `tempo N%`), `title "…"`, `music "…"`. A dancer the score does not
+              `loop`, `inPlace`, `tempo N` (or `tempo N%`), `title "…"`, `music "…"`. A dancer the score does not
               list is not in it.
             - **A score starts IN the first word of each row**: at beat 0 every part is where its
               row's first word says, and nothing is seen going there. A part no row writes is
               neutral: arms hanging, torso upright, head straight, feet side by side. Within the
-              score, where a figure is, which way it faces and how it is posed carry over from one
+              score, where a role is, which way it faces and how it is posed carry over from one
               section of the form to the next.
             - **A game character's file has one form and one score per movement** — `Idle`, `Walk`,
               `Attack` …, as in the complete file above: `form Idle { Idle }` and
@@ -182,19 +183,19 @@ public static class GrammarDoc
               last word, so a looping walk's first step lands on beat 0 every time round, and
               `body { guard:8 }` in a loop simply stays in guard. The feet must end as
               they start (same stance, same facing; travelling is fine) or SH2005 says so.
-              A bounce in that guard is one more row, `steps { { both.low@small both.low } q q q }`:
-              `both` changes the height and leaves the stance alone (see "Tracks"). (That row is
-              8 beats, like the guard beside it: with bar lines, `{ both.low@small both.low } q | % |`.)
-            - `inplace` in a score — the sections are written the same (`left.fwd` still steps), but
+              A bounce in that guard is one more row, `height { { low(8cm) low } q q q }`: the
+              height is a row of its own and leaves the stance alone (see "Height"). (That row is
+              8 beats, like the guard beside it: with bar lines, `{ low(8cm) low } q | % |`.)
+            - `inPlace` in a score — the sections are written the same (`leftFoot.fwd` still steps), but
               the even travel over the floor is taken out of the output and reported as a velocity,
               for an engine that moves the character itself. Usually with `loop`.
             - A section lasts as long as its longest track. A part no track writes stays as it is.
 
             ## Tracks: one row per part of the body
 
-            A section holds a block for each figure that does something in it, and the block holds
+            A section holds a block for each role that does something in it, and the block holds
             tracks: `section Main { solo { steps { … }  arms { … } } }`. The examples below show
-            the tracks alone; in a file each of them stands inside a figure's block.
+            the tracks alone; in a file each of them stands inside a role's block.
 
 
             """.ReplaceLineEndings("\n"));
@@ -210,10 +211,10 @@ public static class GrammarDoc
             `head { fwd.left:2 … }` is a guard whose head looks around, and `arms { side:4 }` with
             `leftArm { up:4 }` puts the right arm to the side and the left arm up.
 
-            The `steps` row holds two parts: where the feet stand, and how high the body stands on
-            them. `both.low` writes only the height, so beside a wider track it takes the height
-            and leaves the feet: `body { guard:8 }` with `steps { { both.low@small both.low } q q q }`
-            is a guard that bounces, `body { walk:4 }` with `steps { both.low:4 }` the same walk
+            Where the feet stand is the `steps` row; how high the body stands on them is a row of its
+            own, `height` (see "Height"). So beside a wider track a `height` row takes the height
+            and leaves the feet: `body { guard:8 }` with `height { { low(8cm) low } q q q }`
+            is a guard that bounces, `body { walk:4 }` with `height { low:4 }` the same walk
             with bent knees. A step, a turn or a jump writes the feet, and **a step is taken or it
             is not**: a wider track's step (a pose's stance included) is taken only if that track
             has the feet at the beat the step is written at. One whose beat falls where a narrower
@@ -222,15 +223,17 @@ public static class GrammarDoc
             ## Events: `target:length@annotation!mark`
 
             A track is a row of events (words). Each is a target, then optionally `:` and a length,
-            `@` annotations and one `!` mark — glued together, no spaces:
+            `@` annotations and one `!` mark — glued together, no spaces, and **in that order**
+            (SH1040): `kick:2@mirror!hit`, never `kick@mirror:2`. The target says WHERE the part
+            arrives and in what shape; `@` says only HOW it gets there.
 
             ```
-            side.high            there for one beat (the default)
-            side.high:2          for two beats
-            side.high:1/2        for half a beat      (also :1.5, :3/4)
-            side.high:0.3s       for 0.3 seconds
-            side.high:12f        for 12 frames (at the file's fps)
-            side.high:2@sharp    gone to at the last moment: an accent
+            side.up              there for one beat (the default)
+            side.up:2            for two beats
+            side.up:1/2          for half a beat      (also :1.5, :3/4)
+            side.up:0.3s         for 0.3 seconds
+            side.up:12f          for 12 frames (at the file's fps)
+            side.up:2@sharp      gone to at the last moment: an accent
             fwd@sharp!hit        … and the beat it is there is named `hit`
             then:3               nothing new for three beats
             skip:3               say nothing for three beats (a wider track may)
@@ -243,15 +246,15 @@ public static class GrammarDoc
             start of a bar is heard at the start of the bar. The position of a word is the sum of
             the lengths before it in the row. Beats are counted from 0, here, on the sheet and in
             `shosa check`: beat 2 is the moment the third beat of the bar begins, so a clap that a
-            dancer counts "on 3" is the word AT beat 2: `arms { side.low:2 clap … }`.
+            dancer counts "on 3" is the word AT beat 2: `arms { side.down:2 clap … }`.
 
             **The way to a word is made BEFORE its beat, in the time of the word before it in the row.**
             How much of that time depends on the part:
 
             | Part | When it sets out |
             |---|---|
-            | The feet — everything in `steps`: a step, `together`, a shift, a turn, a height | In the second half of the word before, and no more than 0.5 s before its beat. A foot STANDS on its beat and is carried to the next one late: in `left.side together`, the left foot is down on beat 0, and the right closes between beat 0.5 and beat 1. |
-            | A jump | It LANDS on its beat. The bend and the flight are in the word before it (in up to a second of it). |
+            | The feet — everything in `steps` and `height`: a step, `stand`, a shift, a turn, a height | In the second half of the word before, and no more than 0.5 s before its beat. A foot STANDS on its beat and is carried to the next one late: in `leftFoot.side stand`, the left foot is down on beat 0, and the right closes between beat 0.5 and beat 1. |
+            | A jump, a hop, a leap | It LANDS on its beat. The bend and the flight are in the word before it (in up to a second of it). |
             | Arms, legs, torso, head | Through ALL of the word before. `arms { side:4 up:4 }` is at the side on beat 0 and travels the whole four beats to be up on beat 4. A gesture sets out for the next word as soon as it has arrived, unless told to stay (`then`, below); it eases in and out, so it slows at each word (for one unbroken movement through a word, `@linear` on that word and on the one after it: `down side@linear up@linear`). |
             | Any word with `@sharp` | At the last moment: it waits, then goes in no more than 0.15 s before its beat. A punch, a clap, a pointing finger. |
 
@@ -273,10 +276,10 @@ public static class GrammarDoc
               from wherever they are. There is no length 0 (SH1009): every word takes time —
               so a score cannot end on the instant its last word arrives. "Back in the stance at
               2 s" in a score of 2 s is the stance arriving earlier and standing to the end, and
-              a figure that comes back "on the next bar's 1" has to come back inside the last bar.
+              a role that comes back "on the next bar's 1" has to come back inside the last bar.
               The same for the feet: a step written on beat 0 of a score that does not loop is a
-              foot already there. To SEE it land, give the score a lead-in (`steps { then:4 | left.fwd … }`).
-              `shosa check` says it under the score (``solo starts with `left.fwd` already made``; a `left.place` too): count that
+              foot already there. To SEE it land, give the score a lead-in (`steps { then:4 | leftFoot.fwd … }`).
+              `shosa check` says it under the score (``solo starts with `leftFoot.fwd` already made``; a `leftFoot.place` too): count that
               step out of how far the dancer goes — "two steps forward, two back" from beat 0 ends one step behind.
               `shosa check` also says where each dancer ends (``solo ends 0.5 m back of where it began``,
               ``solo ends where it began``): read it instead of adding the steps up.
@@ -326,7 +329,7 @@ public static class GrammarDoc
               carry one (a step, a turn, a hand going to a place), and a name may be used as often
               as you like: an engine gets one event for each. A bar done again by `%` gives its
               marks again, and so does a section the form plays again: each event says the
-              section that wrote it and which play of it this is (`shosa check`: `!hit at beat 12 = 6 s   Attack, play 2`),
+              section that wrote it and which play of it this is (`shosa check`: `!hit at beat 12 = 6 s   Attack, verse 2`),
               so an engine can tell them apart under one name. For a name of its own, write the
               event per play: `verse 1 { fwd@sharp!first } verse 2 { fwd@sharp!second }`.
 
@@ -342,7 +345,7 @@ public static class GrammarDoc
               upbeat 1
               solo {
                 arms  { up:1 | side:3 | down:3 | }                     // begins one beat BEFORE the section: up on that beat, at the side on the section's first
-                steps { left.side right.side together | % | }          // begins at the section's first bar line
+                steps { leftFoot.side rightFoot.side stand | % | }          // begins at the section's first bar line
               }
             }
             ```
@@ -436,15 +439,15 @@ public static class GrammarDoc
             Three signs, by how much is done again. (There is no `repeat`.)
 
             - **A few events: `{ … }` and `q`.** Put the unit in braces; each `q` after it does it
-              again: `rightArm { { up:1/2@bent side.high:1/2@bent } q q }` waves three times.
+              again: `rightArm { { up.bent:1/2 side.up.bent:1/2 } q q }` waves three times.
               `q` is the nearest group in braces written before it in the same track (plain events
               in between do not matter: `{ a b } then:1 q`). Without a length it lasts as long as
               the group; `q:2` stretches or squeezes the group into 2 beats; `q@mirror` swaps left
-              and right (`steps { { left.side together } q@mirror }` goes left, then right). A `q`
+              and right (`steps { { leftFoot.side stand } q@mirror }` goes left, then right). A `q`
               with no group before it is an error (SH1026): one event is simply written twice.
             - **A bar: `%`.** Alone between bar lines, `%` is the bar before it again; `%2` is the
-              two bars before it (any number: `%4`, `%8`; one bar sixteen times is `a | % | %2 | %4 | %8 |`): `steps { left.side together right.side together | % | % | % | }`,
-              `steps { vine:4 | vine@mirror:4 | %2 | }`. The bars must be whole (no event tied into
+              two bars before it (any number: `%4`, `%8`; one bar sixteen times is `a | % | %2 | %4 | %8 |`): `steps { leftFoot.side stand rightFoot.side stand | % | % | % | }`,
+              `steps { vine:4 | vine:4@mirror | %2 | }`. The bars must be whole (no event tied into
               them from before, SH1027; ties between the bars of a `%4` are fine) and in the same
               row of the same section. **To change one bar of a run, write that bar out instead of its `%`**:
               `a b c clap | % | % | a b c jump |`.
@@ -464,7 +467,7 @@ public static class GrammarDoc
               times the song plays the section); going round a `loop` is not another play.
               Not in a `move` (SH1034).
               A verse may be whole bars, with their lines inside its braces as above, or a part
-              of a bar, with the line after it: `steps { left.side together right.side verse 1-2 { together } verse 3 { jump.together } | }`
+              of a bar, with the line after it: `steps { leftFoot.side stand rightFoot.side verse 1-2 { stand } verse 3 { jump.stand } | }`
               changes the last beat only. A `%` in a verse is the bar written before it — in
               the same verse, or before the verses (never a bar of the verse beside it).
             - A change INSIDE a longer run is written over it, in a narrower track that says `skip`
@@ -474,8 +477,8 @@ public static class GrammarDoc
             ## Poses and moves
 
             ```
-            pose guard { steps { left.fwd.low@small }  arms { fwd.25@bent } }
-            move kick  { rightLeg { fwd.low@bent fwd@sharp!hit fwd.low@bent down } }   // knee up, kick, knee, down
+            pose guard { steps { leftFoot.fwd(0.3m) }  height { low(8cm) }  arms { fwd.up(25).bent } }
+            move kick  { rightLeg { fwd.down.bent fwd@sharp!hit fwd.down.bent down } }   // knee up, kick, knee, down
             ```
 
             - **A move is written at the beat of its FIRST word**, and that word is gone to through
@@ -506,7 +509,7 @@ public static class GrammarDoc
               and `@free`. Definitions take no arguments: a variation is the same word with the
               change written over it (a narrower track, or a later `&` row). A move may hold a
               `body` row of other moves, so a whole pass can be one word:
-              `move pass { body { vine:4 vine@mirror:4 } }`.
+              `move pass { body { vine:4 vine:4@mirror } }`.
 
             ## Files of parts: `using`
 
@@ -515,16 +518,16 @@ public static class GrammarDoc
             in with `using`, as in Lily#:
 
             ```shosa
-            // hero.parts.shosa: poses and moves only. It needs no figure, section, form or score.
-            pose guard { steps { left.fwd.low@small }  arms { fwd.25@bent } }
-            move jab   { leftArm { fwd.25@sharp!hit guard } }
+            // hero.parts.shosa: poses and moves only. It needs no role, section, form or score.
+            pose guard { steps { leftFoot.fwd(0.3m) }  height { low(8cm) }  arms { fwd.up(25).bent } }
+            move jab   { leftArm { fwd.up(25)@sharp!hit guard } }
             ```
 
             ```shosa
             // combo.shosa
             using "hero.parts.shosa"
 
-            figure hero
+            role hero
             dancer hero humanoid on hero
             section Combo { hero { body { guard jab:1 jab:2 | } } }
             form { Combo }
@@ -538,7 +541,7 @@ public static class GrammarDoc
               however many lines name it, and a file that names one that names it back is no error.
             - **A name is defined once in all of them** (SH1005): a pose in the file of parts cannot be
               defined again here. Write a variation under a name of its own.
-            - **A file of parts** — poses, moves and `using` lines, with no figure, dancer, section,
+            - **A file of parts** — poses, moves and `using` lines, with no role, dancer, section,
               form or score — is not an error on its own (it has no SH1030), and writes nothing out:
               it is written out by the files that bring it in. `shosa check` on it lists what it offers
               (`a file of parts, for using: pose guard, move jab (2 beats)`); on a file that brings
@@ -552,72 +555,70 @@ public static class GrammarDoc
 
             (The `shoulders` and `hips` tracks have words of their own: see "The shoulders and the hips" below.)
 
-            A target is a direction, written as words joined by dots: any of the direction words, and
-            at most one level.
+            A target is a direction, written as words joined by dots, and then, for a part that takes
+            one, the shape it arrives in (see "Shapes" below).
 
 
             """.ReplaceLineEndings("\n"));
 
         Table("Direction", Vocabulary.Directions);
-        Table("Level", Vocabulary.Levels);
-        Table("Alone", Vocabulary.Poles);
+        Table("Up and down", Vocabulary.Poles);
 
         sb.Append("""
-            - Two direction words make a diagonal: `fwd.side`, `back.side.low`, `fwd.left.high`.
-            - **Degrees in brackets after the second direction say how far round from the first
-              toward it**, 0 to 90, where the plain diagonal is 45: `head { fwd.left(30) }` looks 30°
-              to the left of straight ahead, `rightArm { fwd.across(18) }` reaches a little across
+            - One word is one of the four ways, level: `fwd`, `side`, `back`.
+            - **A number in brackets belongs to the word before it: how far toward that word.** Two
+              directions make a diagonal, 45° between them (`fwd.side`); with degrees on the second,
+              that far from the first toward it, 0 to 90: `head { fwd.left(30) }` looks 30° to the left
+              of straight ahead, `rightArm { fwd.across(18) }` reaches a little across
               (with square shoulders the fist ends in front of the middle of the body: on the face of someone who stands
-              straight ahead. A shoulder that has come round (`shoulders { left.45 }`) is already nearer the middle, so
+              straight ahead. A shoulder that has come round (`shoulders { left(45) }`) is already nearer the middle, so
               the number gets smaller — still about 18 with the shoulders 45° round, about 5 with them side-on, 90°;
               read the fist in `shosa clip`, and again after changing the turn), `fwd.side(70)` is
-              nearly out to the side. `fwd.left(0)` is `fwd`, `fwd.left(90)` is `left`. A level goes after
-              the brackets as after any direction: `fwd.left(30).10` (30° left, 10° up),
-              `torso { fwd.left(20).70 }`, `fwd.across(15).high`. With `@mirror` the sides swap as
-              they do without brackets. The brackets need two directions that are square to each
-              other, and stand after the second: `left(30)` (from where?), `fwd.back(30)` and
-              `fwd(30).left` are errors (SH1013).
-            - No level means `mid`. A level with no direction is not a target; use `up` or `down`.
-            - **A number in the place of the level is degrees above the horizontal**, from -90 to 90:
-              `fwd.30`, `side.-30`, `back.70`. (`high` is 45, `low` is -45.) An arm swinging while
-              walking is `fwd.-70` / `back.-70`: 20° from hanging.
-            - The number is always measured from the HORIZONTAL, also for the torso: `torso { fwd.60 }`
-              leans 30° forward of upright (a bow), `fwd.80` is a nod of the whole body, `back.70`
-              leans back 20°.
-            - **The torso leans with a straight back** (a bow folds at the hips). `@round` rounds it:
-              `torso { fwd.80@round }` is a boxer's hunch, `up@round` a slouch. The direction still
-              says where the chest is from the hips; the spine bows back from that line, so the
-              chest, the shoulders and the head lean about 15° further forward than the word says
-              (lift the face again with the head, by the lean and 15° more: `head { fwd.15 }` over `up@round`,
-              `head { fwd.25 }` over `fwd.80@round`). The back always rounds
-              forward, whichever way the torso leans; there is no word for arching it back.
-            - `up` and `down` stand alone: `fwd.up` is not a word — write `fwd.high`.
+              nearly out to the side. `fwd.left(0)` is `fwd`, `fwd.left(90)` is `left`.
+            - **Up or down comes last, with the degrees above or below level**: `fwd.up(30)`,
+              `side.down(20)`, `fwd.left(30).up(10)` (30° left, 10° up). Without brackets 45:
+              `fwd.up` is half-way between ahead and straight up. An arm swinging while walking is
+              `fwd.down(70)` / `back.down(70)`: 20° from hanging. Level is the direction alone.
+            - `up` or `down` alone is straight up or down. **Written first, they are measured from
+              upright** (or from straight down): `up.fwd(10)` is 10° forward of upright. That is how a
+              torso's lean is said, from upright as a coach says it: `torso { up.fwd(30) }` is a bow of
+              30°, `torso { up.back(20) }` leans back 20°, `torso { fwd }` is folded level.
+              (`up.fwd(10)` and `fwd.up(80)` are the same direction.) After `up.` or `down.` comes one way only.
+            - With `@mirror` the sides swap as they do without brackets. The brackets need two
+              directions square to each other, and stand on the word that is turned toward: `left(30)`
+              (from where?), `fwd.back(30)` and `fwd(30).left` are errors (SH1013), and so is a
+              number after a dot (`fwd.30`): degrees are always in brackets.
+            - `low`, `mid` and `high` are heights, not directions (see "Height").
             - **Arms and legs say `side` / `across`, never `left` / `right`** (error SH1011). That is
               what lets `arms { side }` be right for both arms at once.
             - The torso and the head say `left` / `right`, never `side` / `across`.
             - For an arm the direction is where the HAND is from the shoulder; for a leg, where the
               foot is from the hip; for the torso, where the spine points (`up` is upright,
-              `fwd.high` leans 45° forward, `fwd` is horizontal); for the head, where the face looks
-              (`fwd` straight ahead, `fwd.left` turned, `fwd.-25` a nod down).
-            - Arms, legs and torso are measured against the room: `down` is toward the floor even
-              when the torso leans. The head's up and down is measured against the chest, so it follows a bow;
-              its left and right is measured from where the feet point, so it does not follow the shoulders or the hips (see `shoulders` below).
-              So in a forward fold `arms { down }` hangs toward the floor, and in a bow unwritten
-              arms hang in front of the thighs.
+              `up.fwd(45)` leans 45° forward, `fwd` is level); for the head, where the face looks
+              (`fwd` straight ahead, `fwd.left` turned, `fwd.down(25)` looking down).
+            - **Every written direction is measured the same way: from the way the feet face, level
+              with the floor** — for the arms, the legs, the torso and the head alike. `down` is toward
+              the floor even when the torso leans, and `head { fwd }` looks straight ahead over a bow
+              (to look along the bowed chest, write the degrees — over `torso { up.fwd(30) }` the face in
+              line with the chest is `fwd.down(30)` — or measure from the chest: `head { fwd.body }`).
+              The head's left and right is from where the feet point, so it does not follow the
+              shoulders or the hips (see `shoulders` below).
+              **What nobody writes is not measured**: unwritten arms hang (in a bow, in front of the
+              thighs), and an unwritten head looks along the chest, so it bows with a bow.
             - **An arm at `down` hangs as an arm nobody wrote does**: the elbow a little bent, the
               hand by the thigh and a little forward — not a straight line under the shoulder
               joint, which on a character is inside the hip. So `down` is how an arm is put back,
               and how a row says "hanging" in its first word (`arms { down:3 then side }`).
-            - **An arm follows the torso only when its event says `@body`.** Arms left at `up` stay
-              vertical while the torso leans to the side. For a side bend with the arms overhead,
-              write the lean and, over the same beats, the arms again with `@body`:
-              `torso { left.high:2 up:2 }` with `arms { up:2@body up:2 }`.
-            - Bending: `@bent` brings the hand or foot closer along the same direction (a right angle
-              at the elbow or the knee; `@bent(40)` for 40°, see "Elbows and knees" below). A raised
-              knee is `fwd@bent` (thigh about horizontal) or `fwd.low@bent` (lower); a guard with
-              the fists up in front of the face is `fwd.25@bent`.
+            - **A part follows the torso only when its target says `.body`** (an arm, a leg, the head).
+              Arms left at `up` stay vertical while the torso leans to the side. For a side bend with
+              the arms overhead, write the lean and, over the same beats, the arms again with `.body`:
+              `torso { left.up:2 up:2 }` with `arms { up.body:2 up:2 }`.
+            - Bending: `bent` brings the hand or foot closer along the same direction (a right angle
+              at the elbow or the knee; `bent(40)` for 40°, see "Shapes" below). A raised knee is
+              `fwd.bent` (thigh about horizontal) or `fwd.down.bent` (lower); a guard with the fists
+              up in front of the face is `fwd.up(25).bent`.
               **A hand travels from where it is to the target, so a straight punch is the guard's own
-              direction without `@bent`**: from `fwd.25@bent`, `fwd.25@sharp` goes out along one line
+              direction without `bent`**: from `fwd.up(25).bent`, `fwd.up(25)@sharp` goes out along one line
               (to `fwd` it would come down like a chop). Both hands at a place near the middle of the
               body (`arms { chin }`, `arms { chest }`) bring the elbows across each other: for two arms
               side by side use a direction.
@@ -625,6 +626,7 @@ public static class GrammarDoc
               `fwd` straight to `back`): the way round is then unwritten (warning SH2001). Go through
               a target in between — `arms { fwd up }` raises them through the front, `arms { side up }`
               through the side.
+
 
             An arm can also go to a place on the own body instead of a direction:
 
@@ -634,10 +636,10 @@ public static class GrammarDoc
         Table("Arm target", Vocabulary.Anchors);
 
         sb.Append("""
-            `arms { clap!clap }` is a clap on its beat (add `@sharp` for a crisp one); `arms { across.shoulder }` folds the arms.
+            `arms { clap!clap }` is a clap on its beat (add `@sharp` for a crisp one); `arms { shoulder.across }` folds the arms.
 
-            An arm or the head can take a place on ANOTHER figure,
-            `FIGURE.PLACE`: `rightArm { b.hand:2 }` reaches for b's right hand, `head { b.head }`
+            An arm or the head can take a place on ANOTHER dancer, by its role:
+            `ROLE.PLACE`: `rightArm { b.hand:2 }` reaches for b's right hand, `head { b.head }`
             looks at b.
 
 
@@ -646,7 +648,7 @@ public static class GrammarDoc
         Table("Place", Vocabulary.Parts);
 
         sb.Append("""
-            The figure named must be danced by exactly one dancer (SH1021). The arm only reaches as
+            The role named must be danced by exactly one dancer (SH1021). The arm only reaches as
             far as it is long (about 0.6 m from the shoulder): bring the two bodies within reach with
             their `at` (where the dancer stands: the middle of the feet) and their steps. A hand
             that does not get there is a warning that says how far short it is (SH2006).
@@ -654,7 +656,7 @@ public static class GrammarDoc
             meeting above the heads or beside the hips (`.high`, `.low`) the arms slant, so about 0.8 m.
             Hands of the same side (both left hands) are diagonal to each other between two who face,
             which costs a little more: about 0.7 m for those `.low`. Two who touch low and also
-            bend their knees deep stand 0.8 m apart and lean in a little (`torso { fwd.70 }`):
+            bend their knees deep stand 0.8 m apart and lean in a little (`torso { up.fwd(20) }`):
             at 0.7 m the bent knees meet.
             Two bodies are in the same place (SH2007) when their trunks come within about 0.2 m of
             each other: nearer than that in the picture is only one standing behind the other.
@@ -674,14 +676,17 @@ public static class GrammarDoc
               foot by itself as the leg lifts, and comes back as it is put down. `steps` can be
               left out, or `then`.
             - After a step the weight is on the foot that stepped, so the OTHER leg is free
-              (after `left.fwd`, the right leg).
+              (after `leftFoot.fwd`, the right leg). After a `hop` or a `leap` the foot that did not
+              land is already off the floor, held low behind: a leg row can shape it (`rightLeg { back.up(10) }`
+              is a landing in arabesque), and the next word of `steps` that moves it puts it down.
             - While either foot is in the middle of a step, or the other leg is also off the
-              floor, a leg gesture is an error (SH2004). The leg lifts through the word BEFORE its
+              floor, a leg gesture is an error (SH2004) — except in the air of a jump, a hop or a
+              leap, where both legs may take a shape (a split leap: `leftLeg { fwd }` with `rightLeg { back }`). The leg lifts through the word BEFORE its
               gesture, so keep the steps out of that word: give the leg a `then` of the beat it
-              may lift in (`rightLeg { skip:3 then fwd@bent down }` lifts in beat 3 only).
+              may lift in (`rightLeg { skip:3 then fwd.bent down }` lifts in beat 3 only).
             - A leg put `down` lands where it stood before the gesture.
 
-            A leg in the air can also send its toe to a place on the standing leg:
+            A leg in the air can also send its toe to a place on the other leg:
 
 
             """.ReplaceLineEndings("\n"));
@@ -689,39 +694,55 @@ public static class GrammarDoc
         Table("Leg target", Vocabulary.LegAnchors);
 
         sb.Append("""
-            `rightLeg { knee:2 down }` is a retiré (passé) held for two beats; `rightLeg { knee fwd.15:2 down }`
+            `rightLeg { otherKnee:2 down }` is a retiré (passé) held for two beats; `rightLeg { otherKnee fwd.up(15):2 down }`
             a développé that goes up through it and unfolds to the front. How far the knee bends follows
-            from the place (so no `@bent`); it points where the foot does — forward with the legs
-            parallel, to the side turned out (`turnout`) — or as `@knee(...)` says. The place is found
-            on the other leg wherever it is: in a plié, turned out, or in the air.
+            from the place (so no `bent`); it points where the foot does — forward with the legs
+            parallel, to the side turned out (`turnout`) — or as `knee(...)` says: `otherKnee.knee(fwd)`.
+            The place is found on the other leg wherever it is: in a plié, turned out, or in the air.
+            The foot is pointed on along the shin, its toe at the place.
 
-            ### Elbows and knees
+            ### Shapes: `bent`, `elbow`, `knee`, `round`, `body`
 
-            An arm or a leg says where its hand or foot is (its direction) and how far: straight, or
-            bent with `@bent`. Two more things can be said of the joint in the middle:
+            After the direction a target may say the shape the part arrives in, with words of their
+            own joined on by dots, **each once and in this order** (SH1012 otherwise):
 
-            - **How far it bends**: `@bent` is a right angle (90°); `@bent(N)` bends the elbow or the
-              knee N degrees, from 0 (straight) to 150 (folded tight). The hand or foot stays in the
-              direction written and comes closer: `arms { fwd.-15@bent(40) }` is a little bent,
-              `rightLeg { fwd.low@bent(130) }` a knee drawn right up before a kick.
-            - **Which way it points**: `@elbow(DIRECTION)` / `@knee(DIRECTION)`, the direction written
-              as an arm's or a leg's (`side`, `side.high`, `back`, `fwd.low`; `side` is the limb's own
-              side, so `@mirror` and `arms` are right for both). Without it an elbow hangs down, back and a
-              little out, and a knee points where its foot does.
 
+            """.ReplaceLineEndings("\n"));
+
+        Table("Shape", Vocabulary.Shapes);
+
+        sb.Append("""
             ```shosa
-            arms     { fwd.-15@bent(40)@elbow(side) }        // ballet's rounded arms: the elbows held out
-            arms     { fwd.70@bent(40)@elbow(side) }         // the same, overhead (fifth, en haut)
-            rightLeg { back.20@bent@knee(side.high) }        // an attitude: the knee out and above the foot
+            arms     { fwd.down(15).bent(40).elbow(side) }   // ballet's rounded arms: the elbows held out
+            arms     { fwd.up(70).bent(40).elbow(side) }     // the same, overhead (fifth, en haut)
+            rightLeg { back.up(20).bent.knee(side.up) }      // an attitude: the knee out and above the foot
+            torso    { up.fwd(10).round }                    // a boxer's hunch
             ```
 
-            - Only the part of the pointing square to the limb counts. Pointed along the limb itself
-              (a hand out to the side with `@elbow(side)`) it says nothing: warning SH2011.
-            - On a straight arm `@elbow` turns the arm about its own length (`side@elbow(back)` turns
-              the palm forward); a model it is put on shows it.
-            - Where the joint points is set at each word and carried with the limb between them, so it
-              does not spin on the way.
-            - `@body` measures `@elbow` against the torso too.
+            - **How far an elbow or a knee bends**: `bent` is a right angle (90°); `bent(N)` bends it
+              N degrees, from 0 (straight) to 150 (folded tight). The hand or foot stays in the
+              direction written and comes closer: `arms { fwd.down(15).bent(40) }` is a little bent,
+              `rightLeg { fwd.down.bent(130) }` a knee drawn right up before a kick.
+            - **Which way it points**: `elbow(DIRECTION)` / `knee(DIRECTION)`, the direction written
+              as an arm's or a leg's (`side`, `side.up`, `back`, `fwd.down`; `side` is the limb's own
+              side, so `@mirror` and `arms` are right for both). Without it an elbow hangs down, back
+              and a little out, and a knee points where its foot does. Only the part of the pointing
+              square to the limb counts: pointed along the limb itself (a hand out to the side with
+              `side.elbow(side)`) it says nothing, warning SH2011. On a straight arm `elbow` turns the
+              arm about its own length (`side.elbow(back)` turns the palm forward); a model it is put
+              on shows it. Where the joint points is set at each word and carried with the limb
+              between them, so it does not spin on the way.
+            - **`round`: the back is rounded.** Without it the torso leans with a straight back, as a
+              bow folds at the hips. `torso { up.fwd(10).round }` is a boxer's hunch, `up.round` a
+              slouch. The direction still says where the chest is from the hips; the spine bows back
+              from that line, so the chest and the shoulders lean about 15° further forward than the
+              word says. A written head is measured from level, so the rounding does not tip it; an
+              unwritten head leans with the chest. The back always rounds forward, whichever way the
+              torso leans; there is no word for arching it back.
+            - **`body`: measured from the chest**, not the room, so the part leans when the torso
+              leans (an arm, a leg or the head; `elbow(…)` is measured so too). See "Every written
+              direction is measured the same way" above.
+
 
             ### Turnout: `turnout`
 
@@ -736,24 +757,25 @@ public static class GrammarDoc
 
         sb.Append("""
             ```shosa
-            turnout { out.80 }                 // a dancer's turnout from the first beat: each foot 80° out
-            turnout { parallel:4 out:4 }       // parallel, turned out 45° by beat 4
+            turnout { out(80) }                 // a dancer's turnout from the first beat: each foot 80° out
+            turnout { parallel:4 out(45):4 }       // parallel, turned out 45° by beat 4
             ```
 
-            - The number is each leg's own: `out.90` puts the two feet in one line (180° between them).
+            - The number is each leg's own, and always written: `out(90)` puts the two feet in one line (180° between them).
               It is not mirrored: both legs turn out alike, also under `@mirror`.
-            - **The knees bend the way the feet point**: turned out, a plié (`steps { both.low }`)
-              takes the knees out over the toes instead of forward, and a raised knee (`rightLeg { side.-20@bent }`)
+            - **The knees bend the way the feet point**: turned out, a plié (`height { low }`)
+              takes the knees out over the toes instead of forward, and a raised knee (`rightLeg { side.down(20).bent }`)
               points to the side. The hips, the torso and the steps are not changed: a step still goes
               where its word says, only the foot on it is turned.
-            - **Turned out, `together` closes the heels**: the feet close nearer than standing width,
-              heels touching at `out.90` (a first position); at `out` (45°) the ankles are 0.12 m apart.
-              The turnout at the beat `together` lands is the one that counts, so write it first:
-              `turnout { out.80 }` with `steps { together }`. A row whose first word is turned out also
-              begins with the heels together. Turned in, the feet close at standing width.
+            - **`together` closes the feet touching, and turned out the heels touch**: at `out(90)`
+              heel to heel in one line (a first position); at `out(45)` the ankles are 0.09 m apart;
+              parallel or turned in, side by side (0.1 m). The turnout at the beat `together` lands is
+              the one that counts, so write it first: `turnout { out(80) }` with `steps { together }`.
+              (`stand` closes to standing width, 0.2 m, however the legs are turned.) A row whose
+              first word is turned out begins with the heels drawn in as far as it is turned out.
             - It goes like a gesture (through all of the word before, `@sharp`, `then`), and is kept
               until a word changes it, across sections too. A row nobody wrote is `parallel`.
-              In a pose it is the pose's own (`pose first { turnout { out.80 }  steps { together } }`),
+              In a pose it is the pose's own (`pose first { turnout { out(80) }  steps { together } }`),
               and a pose's name in the row is that pose's turnout.
 
             ## The shoulders and the hips: `shoulders`, `hips`
@@ -773,39 +795,39 @@ public static class GrammarDoc
 
         sb.Append("""
             ```shosa
-            shoulders { center:2 left:2 center:2 right.20:2 }   // square, 30° left on beat 2, square on 4, 20° right on 6
-            hips      { center:4 left.15:4 }                     // the hips 15° left on beat 4: under square shoulders
+            shoulders { center:2 left(30):2 center:2 right(20):2 }   // square, 30° left on beat 2, square on 4, 20° right on 6
+            hips      { center:4 left(15):4 }                     // the hips 15° left on beat 4: under square shoulders
             ```
 
             - `left` is the way `turn.left` goes: the shoulders (or the hips) face left, the RIGHT
               shoulder (hip) comes forward. A right-handed punch that lands is `left`; drawing that
               fist back is `right`.
-            - The number is degrees from the feet, not a level; `left` alone is 30, and it may
-              have a decimal point (`left.7.5`). The hips turn up to 45, the shoulders up to 90 (side-on);
-              more is an error (SH1013): to face another way the feet turn (`steps { turn.left.quarter }`).
-            - **Each row is from the feet, not one on the other.** `hips { left.20 }` with
-              `shoulders { left.45 }` is a punch from the hip: hips 20°, shoulders 45°, as a coach
-              says it. `hips { left.30 }` alone turns the hips under shoulders that stay square
-              (a twist dance is `hips { left right }` and nothing else); to take the shoulders round
+            - The number is degrees from the feet, and is always written (a turn of the hips has no
+              size of its own): `left(30)`; it may have a decimal point (`left(7.5)`). The hips turn up to 45, the shoulders up to 90 (side-on);
+              more is an error (SH1013): to face another way the feet turn (`steps { turn.left(90) }`).
+            - **Each row is from the feet, not one on the other.** `hips { left(20) }` with
+              `shoulders { left(45) }` is a punch from the hip: hips 20°, shoulders 45°, as a coach
+              says it. `hips { left(30) }` alone turns the hips under shoulders that stay square
+              (a twist dance is `hips { left(30) right(30) }` and nothing else); to take the shoulders round
               with the hips, write both. These are the numbers `shosa check --at` reads back.
             - The chest turns on the hips, about the spine, to put the shoulders where their row says:
               upright that is the difference of the two rows. **It turns at most 60° on the hips**:
-              `shoulders { right.90 }` over square hips gets to 60° and is warned (SH2010, saying
-              how far they get); over `hips { right.30 }` it is side-on.
+              `shoulders { right(90) }` over square hips gets to 60° and is warned (SH2010, saying
+              how far they get); over `hips { right(30) }` it is side-on.
             - **Under a lean the number is still what is seen from above**, but a turn of the chest
               about a slanting spine shows less from above, so it may have to turn further: bent forward
-              30° (`torso { fwd.60 }`), shoulders 90° over hips at 40° are in reach (a golfer's top);
-              bent 60° (`torso { fwd.30 }`) over square hips the shoulders get to about 41°, not 60
+              30° (`torso { up.fwd(30) }`), shoulders 90° over hips at 40° are in reach (a golfer's top);
+              bent 60° (`torso { up.fwd(60) }`) over square hips the shoulders get to about 41°, not 60
               (SH2010 says how far they get, and what to change: the hips further that way, or less
               lean). The head, which sits on the spine, shifts a few centimetres sideways.
               **Bent level (`torso { fwd }`), a turn about the spine does not show from above at all**:
               the shoulders stay square to the feet whatever the row says. There, point the bend itself
-              toward that side, `torso { fwd.right(60) }` with `shoulders { right.60 }` (the spine
+              toward that side, `torso { fwd.right(60) }` with `shoulders { right(60) }` (the spine
               points 60° right and the shoulders lie across it); SH2010 says so when it happens.
             - What the shoulders take round: the arms that hang on them. A hand comes 19 cm
               further forward between `right` and `left` (30° each way), on the same line: **an arm's direction is
               still measured against the room** (`fwd` is where the feet point, however the shoulders are turned).
-              An arm that says `@body` goes round with the chest: `arms { side@body }` with the
+              An arm that says `.body` goes round with the chest: `arms { side.body }` with the
               shoulders turning swings the arms round like a turnstile. A hand on the `hip` or the
               `belly` goes with the hips.
             - What does not turn: the feet (they stay planted; the knees give), the legs (`fwd`
@@ -815,18 +837,18 @@ public static class GrammarDoc
               `head { left }` 90°, and `head { fwd.left(60) }` any number between.
             - They go like a gesture: through all of the word before, `@sharp` for the snap of a
               punch, `then` to stay. A row nobody wrote is `center` from the start.
-            - In a pose it is the stance's own (`shoulders { right.20 }`: the left shoulder
+            - In a pose it is the stance's own (`shoulders { right(20) }`: the left shoulder
               ahead), and a move that turns says where it comes back to with the pose's name in
               the same row — it does not need to know how the torso leans (`guard@mirror` in a
-              `shoulders` row is the mirrored stance's shoulders, `left.20`). The pose needs a row
+              `shoulders` row is the mirrored stance's shoulders, `left(20)`). The pose needs a row
               of that name to be named in it (SH1015):
 
             ```shosa
-            pose guard { arms { fwd.25@bent }  torso { fwd.80@round }  hips { right.10 }  shoulders { right.20 }  head { fwd.25 } }
+            pose guard { arms { fwd.up(25).bent }  torso { up.fwd(10).round }  hips { right(10) }  shoulders { right(20) }  head { fwd } }
             move cross {
-              rightArm  { fwd.low@bent fwd.25@sharp!hit guard }   // elbow back, fist out, back to guard
-              hips      { right.20     left.15@sharp       guard }   // the hip back, and through
-              shoulders { right.40     left.35@sharp       guard }   // the shoulder back, round with the fist, back
+              rightArm  { fwd.down.bent fwd.up(25)@sharp!hit guard }   // elbow back, fist out, back to guard
+              hips      { right(20)     left(15)@sharp       guard }   // the hip back, and through
+              shoulders { right(40)     left(35)@sharp       guard }   // the shoulder back, round with the fist, back
             }
             ```
 
@@ -836,7 +858,7 @@ public static class GrammarDoc
               one of them, or write them one after the other. What counts is what is lost: an earlier
               row that only stands in a pose's turn (`guard` above) loses nothing and is not warned;
               an earlier row's whip is lost, and warned, whatever the later row has there — a pose's
-              name too (a move that begins `loose:1 left@sharp …` holds the shoulders for that first beat).
+              name too (a move that begins `loose:1 left(30)@sharp …` holds the shoulders for that first beat).
               A `skip` there leaves them to the other row. The same for the hips; one warning
               names both when a move loses both.
             - A turn is kept until a word changes it, across sections too: hips or shoulders turned at
@@ -848,7 +870,7 @@ public static class GrammarDoc
               steeply down (a bow, a golfer over the ball) still turns a few degrees when the chest
               turns under it, and `check --at` says those few degrees (bent forward 30°, the
               face 70° down: about 3° each way through a swing).
-            - On the contact sheet the turn is read under each pose, where the figure is drawn from
+            - On the contact sheet the turn is read under each pose, where the role is drawn from
               above: the grey line of the hips turns away from where the feet point, and the shoulder
               line (left half blue, right half red) lies across it when the two are turned apart, and
               hides it when they are not (15° shows). The hips are narrower than the shoulders: the
@@ -863,8 +885,9 @@ public static class GrammarDoc
 
             The `steps` track says where the weight is. Its events are:
 
-            **A step** — `FOOT.DIRECTION`, optionally with a level: `left.fwd`, `right.side`,
-            `left.back.low`. The foot LANDS on the word's beat and carries the weight from then on.
+            **A step** — `FOOT.DIRECTION`: `leftFoot.fwd`, `rightFoot.side`, `leftFoot.back`. The foot
+            LANDS on the word's beat and carries the weight from then on. How far it goes is a bracket
+            on its direction, in metres: `leftFoot.fwd(0.3m)` (a small step), `leftFoot.side(0.4m)`.
 
 
             """.ReplaceLineEndings("\n"));
@@ -873,43 +896,38 @@ public static class GrammarDoc
         Table("Step direction", Vocabulary.StepDirections);
 
         sb.Append($$"""
+            - `left` and `right` are never feet: a foot is `leftFoot` / `rightFoot`. `left` and `right`
+              are always the dancer's own left and right (`jump.left`, `turn.left(90)`, `shift.left`).
             - **A step is placed from the OTHER foot, not from where the stepping foot was.**
-              `left.fwd` puts the left foot one stride ({{Rig.Stride}} m) ahead of the right foot. So
-              `left.fwd right.fwd left.fwd` is a walk, and `left.fwd right.side` puts the right foot
-              level with the left one and apart from it: "forward, side", as a dancer counts it.
+              `leftFoot.fwd` puts the left foot one stride ({{Rig.Stride}} m) ahead of the right foot. So
+              `leftFoot.fwd rightFoot.fwd leftFoot.fwd` is a walk, and `leftFoot.fwd rightFoot.side` puts
+              the right foot level with the left one and apart from it: "forward, side", as a dancer counts it.
             - So **a foot already ahead does not advance by stepping "ahead" again**: from a stance
-              with the left foot a small step in front, `left.fwd@small` puts it where it is. To
+              with the left foot 0.3 m in front, `leftFoot.fwd(0.3m)` puts it where it is. To
               move the stance forward, reach with the front foot and close up with the back one:
-              `left.fwd right.back@small` (the right foot ends a small step behind the left).
-            - `side` is {{(Rig.Stance + Rig.SideStep).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)}} m apart; standing width is {{Rig.Stance}} m.
-              Directions combine: `left.fwd.side`. A step with `side` in it carries the body
-              {{Rig.SideStep}} m that way (`@small` 0.6 of it) once the other foot has followed, and
+              `leftFoot.fwd rightFoot.back(0.3m)` (the right foot ends 0.3 m behind the left).
+            - `side` is {{(Rig.Stance + Rig.SideStep).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)}} m apart (`side(0.4m)`: the feet 0.4 m apart); standing width is {{Rig.Stance}} m.
+              Directions combine: `leftFoot.fwd.side`. A step with `side` in it carries the body
+              {{Rig.SideStep}} m that way once the other foot has followed, and
               the next plain step lands at standing width beside it: walking with every left step
-              `left.fwd.side` drifts {{Rig.SideStep}} m to the left each time. There is no word for a
-              sideways distance in metres. `back` is the same {{Rig.Stride}} m as `fwd`:
-              `left.fwd together right.back together` goes out and comes home in one bar, and
-              `left.fwd right.fwd left.back right.back together` does it in walking steps (the
-              fourth step leaves the left foot a stride ahead; `together` brings it home).
-            - `across` puts the foot just in front of the other one (0.12 m), crossed over;
-              `back.across` just behind it — the cross-behind of a grapevine. A cross is not a
+              `leftFoot.fwd.side` drifts {{Rig.SideStep}} m to the left each time. `back` is the same {{Rig.Stride}} m as `fwd`:
+              `leftFoot.fwd stand rightFoot.back stand` goes out and comes home in one bar, and
+              `leftFoot.fwd rightFoot.fwd leftFoot.back rightFoot.back stand` does it in walking steps (the
+              fourth step leaves the left foot a stride ahead; `stand` brings it home).
+            - `across` puts the foot just in front of the other one (0.12 m, or `across(0.2m)`), crossed
+              over; `back.across` just behind it — the cross-behind of a grapevine. A cross is not a
               stride. Since the next step is placed from the crossed foot, a line of
               side / cross / side drifts by that 0.12 m; alternate front and behind to cancel it.
-            - A step that turns (`left.place@turn(left.eighth)`) swivels on the standing foot, not
+            - A step that turns (`leftFoot.place@turn(left(45))`) swivels on the standing foot, not
               on the middle of the body, so turning on the spot wanders a little and comes back:
               a whole turn ends where it began, a part of one does not. A quarter turn in two
-              eighths ends 0.04 m back and 0.04 m to the side; half round in two quarters ends
+              of 45° ends 0.04 m back and 0.04 m to the side; half round in two of 90° ends
               {{Rig.Stance}} m back. To be on the spot after half a turn, make it a whole one, or
               step it back (`check` says where the dancer ends).
-            - A level on a step is the height you arrive at: `low` knees bent (the hips 16 cm lower:
-              a fighter's stance, a plié — not a squat), `high` on the toes
-              (only these words: degrees are not for the feet).
-              **A step with no level arrives at normal height**, so after `right.side.high` a plain
-              `left.fwd` comes down again; to stay up, write `.high` on every step.
-              `then` and a leg gesture keep the height they find: after a `.low` step the knees
-              stay bent until a step without a level, or `both.mid`.
-            - `@small` and `@large` scale a step (0.6 and 1.4): how far it goes, not its height.
-            - `left.fwd@turn(left.quarter)` turns DURING the step: the standing foot swivels, and the
-              step lands where it would after the turn. `@turn(SIDE.AMOUNT)`, amounts below.
+            - A step says nothing of how high the body stands: that is the `height` row (below),
+              kept until it is changed — a walk in a low stance is a walk with `height { low }` beside it.
+            - `leftFoot.fwd@turn(left(90))` turns DURING the step: the standing foot swivels, and the
+              step lands where it would after the turn. `@turn(SIDE(DEGREES))`.
             - The same foot twice in a row is allowed (it moves again from the other foot).
 
             **Other things the feet do:**
@@ -920,35 +938,37 @@ public static class GrammarDoc
         Table("Event", Vocabulary.SupportActions);
 
         sb.Append("""
-            - `together` takes a level like a step: `together.high` closes on the toes. It moves the
-              foot that does not carry the weight, so after a step or a `shift.left`. Where the weight
-              is on both feet (after `jump.apart`, after `shift.center`) neither is the free one, and
-              BOTH close, each half the way, to under the weight (to STAND with the feet apart and the weight
-              between them from the start, `jump.apart` is the first word of `steps`: a first word is already made,
-              so no jump is seen; `left.side` instead leaves the weight over the left foot): `jump.apart:1 then:1 together:2`
-              slides the feet back in (`jump.together` jumps them in).
-            - `both.low`, `both.mid`, `both.high` — no foot moves; the height changes (a knee bend,
-              a rise onto the toes). The weight stays where it was too. Here `@small` / `@large` scale the bend:
-              `both.low@small` is a slight bend (8 cm), `both.low` bent knees (16 cm), `both.low@large`
-              a deep crouch (40 cm), so a light bounce in a low stance is `both.low@small both.low`,
-              and a duck or a squat is `both.low@large`. (On a step `@small` / `@large` are the
-              stride: to step into a crouch, the step and then `both.low@large`.)
+            - `together` and `stand` move the foot that does not carry the weight, so after a step or
+              a `shift.left`: `together` closes it touching (turned out, heel to heel), `stand` to
+              standing width. Where the weight is on both feet (after `jump.apart`, after
+              `shift.center`) neither is the free one, and BOTH close, each half the way, to under the
+              weight (to STAND with the feet apart and the weight between them from the start,
+              `jump.apart` is the first word of `steps`: a first word is already made, so no jump is
+              seen; `leftFoot.side` instead leaves the weight over the left foot):
+              `jump.apart:1 then:1 stand:2` slides the feet back in (`jump.stand` jumps them in).
             - `shift.left`, `shift.right`, `shift.center` — the weight moves over that foot (or
               between them); no foot leaves the floor, and the height stays as it is. The basis
               of standing and waiting.
-            - `turn.left.quarter`, `turn.right.half` — side, then amount:
-
-
-            """.ReplaceLineEndings("\n"));
-
-        Table("Turn amount", Vocabulary.TurnAmounts);
-
-        sb.Append("""
+            - `turn.left(90)`, `turn.right(180)` — side, then degrees in brackets (up to 1080: a
+              double turn is `turn.right(720)`).
               A turn pivots on the foot that carries the weight: the one that took the last step or
               that a `shift` went to (on both, if the feet are together). A free leg may gesture during a turn.
-              After it "forward" is the new facing. `turn.b` turns to face
-              figure b.
-            - `jump`, optionally with one or two of these words (`jump.fwd`, `jump.apart`):
+              After it "forward" is the new facing. `turn.b` turns to face the dancer of role b.
+            - **A jump: `jump`, `hop`, `leap`** — each word says which foot it LANDS on; which it
+              takes off from is how the feet stood before it (a jump from one foot or from both):
+
+              | Word | Lands on | From both feet | From one foot |
+              |---|---|---|---|
+              | `jump` | both feet | a jump in place, a sauté, an échappé (`jump.apart`) | an assemblé |
+              | `hop` | the foot it stands on | (an error, SH2012: which foot?) | a hop, a temps levé |
+              | `leap` | the foot that carried no weight | (an error, SH2012: which foot?) | a running step, a jeté |
+
+              From both feet, put the weight on one first (`shift.left`, then `hop` lands on the
+              left foot and `leap` on the right). After a `hop` or a `leap` the foot that did not land
+              is held low behind it, off the floor: the next word of `steps` that moves it puts it
+              down (`leftFoot.place`, `stand`), and a leg row may shape it. Running is
+              `rightFoot.fwd leap.fwd leap.fwd leap.fwd`; skipping is `leftFoot.fwd hop.fwd rightFoot.fwd hop.fwd`.
+              After the word, where it lands:
 
 
             """.ReplaceLineEndings("\n"));
@@ -956,24 +976,50 @@ public static class GrammarDoc
         Table("Jump word", Vocabulary.JumpWords);
 
         sb.Append("""
-              A jump LANDS on its beat, on both feet; the bend and the flight are in the word before
-              it, and the knees give a little after. How high it goes follows from the time that
+              A jump LANDS on its beat; the bend and the flight are in the word before it, and the
+              knees give a little after. How high it goes follows from the time that
               word gives it (the longer, up to a second, the higher; a `then` counts as that word, so
-              `then:2 jump` is a high one and `then:1/2 jump` a hop); it is not written.
+              `then:2 jump` is a high one and `then:1/2 jump` a little one); it is not written.
               A quarter of a second gives 2 cm of air — the sheet shows bent knees and no flight — and
               half a second 7 cm: a leap that is to be SEEN in the air needs half a second or more before it. It lands at the
-              height it took off from (low stays low), and a plain `jump` keeps the feet as far apart as they were.
-              `jump@turn(right.half)` turns in the air. Jumps in a row, each on its beat: `jump jump jump`.
-              `jump.left` / `jump.right` go to the figure's own left and right (a sidestep or a
-              dodge: `jump.right@small`; a dancer `facing stageLeft` has upstage on its left, so two who
-              face each other and both write `jump.left` go to opposite walls); with `fwd` or `back` they go diagonally (`jump.back.left`).
-            - `lift(0.4)` — ONLY for a free body (`@free` on the event, or `free` on the dancer line;
+              height it took off from (the `height` row), and a plain `jump` keeps the feet as far apart as they were.
+              `jump@turn(right(180))` turns in the air. Jumps in a row, each on its beat: `jump jump jump`.
+              `left` / `right` go to the dancer's own left and right (a sidestep or a
+              dodge: `jump.right(0.25m)`; a dancer `facing stageLeft` has upstage on its left, so two who
+              face each other and both write `jump.left` go to opposite walls); with `fwd` or `back` they go
+              diagonally (`jump.back.left`). In the air both legs may take a shape: `leap.fwd(1.2m)` with
+              `leftLeg { fwd }` and `rightLeg { back }` over its flight is a split leap.
+            - `lift(0.4m)` — ONLY for a free body (`@free` on the event, or `free` on the dancer line;
               otherwise SH1022): the feet hang 0.4 m above the floor until told otherwise.
-              `lift.fwd(0.4)` / `lift.back(0.4)` / `lift.left(0.4)` / `lift.right(0.4)` also travel.
+              `lift(0.4m).fwd`, `.back`, `.left`, `.right` also travel (0.4 m, or `fwd(0.8m)`).
               `land` comes back to the floor.
-              A double jump: `steps { then:0.3s lift(0.4):0.3s@free lift(0.9):0.3s@free land:0.4s@free }`
+              A double jump: `steps { then:0.3s lift(0.4m):0.3s@free lift(0.9m):0.3s@free land:0.4s@free }`
               (0.4 m up at 0.3 s, 0.9 m at 0.6 s, down at 0.9 s).
             - `then` — nothing new: the feet stay, and the next word's foot sets out in its second half.
+
+            ## Height: `height`
+
+            How high the body stands on its feet is a row of its own, and **it is kept until it is
+            changed**, as a turn of the hips is — across steps, jumps and sections:
+
+
+            """.ReplaceLineEndings("\n"));
+
+        Table("Height", Vocabulary.Levels);
+
+        sb.Append("""
+            ```shosa
+            height { low:2 mid:2 }          // a knee bend: down by beat 2, up again by beat 4
+            height { { low(8cm) low } q q q }   // a bounce in a low stance
+            height { mid high:2 mid }       // up onto the toes on beat 1, down on beat 3
+            ```
+
+            - `low` bends the knees, the hips 16 cm lower: a fighter's stance, a plié — not a squat.
+              `low(8cm)` is a slight bend, `low(40cm)` a deep crouch (up to `low(60cm)`).
+            - The weight stays where it is, and the feet: a `height` row beside a pose or a walk
+              changes only how high it stands.
+            - A row nobody wrote is `mid`. A pose may hold a height (`pose guard { … height { low(8cm) } }`),
+              and a pose's name in the row is that pose's height.
 
             ## Annotations
 
@@ -983,40 +1029,39 @@ public static class GrammarDoc
         Table("Annotation", Vocabulary.Annotations.Select(w => new Vocabulary.Word("@" + w.Name, w.Doc)).ToArray());
 
         sb.Append("""
-            `@bent` / `@bent(N)` is for arm and leg directions; `@elbow(…)` for arms, `@knee(…)` for
-            legs in the air; `@body` for arm directions; `@round` for torso
-            directions; `@small` / `@large`
-            for steps, jumps and `both` / `together`; `@turn(…)` for steps and jumps. Several can
-            follow one event, and the length, the annotations and the mark may come in any order:
-            `fwd:1@bent@sharp`, `kick@mirror:2`.
+            **`@` says how a part gets to its word, and what is done to the word — never the shape it
+            arrives in** (that is the target's: `bent`, `elbow`, `round` …). `@turn(…)` is for steps
+            and jumps. Several can follow one event, after its length and before its mark:
+            `fwd.up(25):1@sharp!hit`, `kick:2@mirror@free`.
 
-            ## Figures and dancers
 
-            A `figure` owns choreography; a `dancer` is a body that performs it. A file for one body
-            has one of each (`figure solo`, `dancer solo humanoid on solo`). Several bodies:
+            ## Roles and dancers
+
+            A `role` owns choreography; a `dancer` is a body that performs it. A file for one body
+            has one of each (`role solo`, `dancer solo humanoid on solo`). Several bodies:
 
             ```
-            figure lead
-            figure chorus
+            role lead
+            role chorus
             dancer alice humanoid on lead   at 0 1
             dancer bob   humanoid on chorus at -1.5 0
             dancer carol humanoid on chorus at 1.5 0  mirror
 
             section Verse {
-              lead   { steps { left.side together right.side together } }
-              chorus { arms  { side.high:2 down:2 } }
+              lead   { steps { leftFoot.side stand rightFoot.side stand } }
+              chorus { arms  { side.up:2 down:2 } }
             }
 
             form { Verse }
             score { dancer alice  dancer bob  dancer carol }
             ```
 
-            - EVERY track sits inside a figure's block (`lead { steps { … } }`); a track written
+            - EVERY track sits inside a role's block (`lead { steps { … } }`); a track written
               directly in a section is an error (SH1003).
-            - `dancer NAME humanoid on FIGURE`, then any of, on the same line:
+            - `dancer NAME humanoid on ROLE`, then any of, on the same line:
               `at X Z` (metres; x is stage left — the dancers' left, so the RIGHT of the sheet,
               which looks from the audience; z toward the audience), `facing front | back |
-              stageLeft | stageRight` (or degrees; positive turns to the dancer's own left),
+              stageLeft | stageRight` (or `left(30)` / `right(30)`: degrees turned from the front),
               `mirror` (left and right swapped), `delay N` (starts N beats late: a canon),
               `free` (weight, gravity and speed limits never apply), `in SECTION …` (dances only there;
               in the other sections the dancer is still on the floor, standing as they were left).
@@ -1024,12 +1069,12 @@ public static class GrammarDoc
             - `delay N` makes the score N beats longer: the others stand still while the late dancer
               finishes. `mirror` mirrors turns as well, so after a quarter turn a mirrored dancer faces
               the opposite way to the others.
-            - Several dancers can dance one figure. A dancer appears in the scores that list it
+            - Several dancers can dance one role. A dancer appears in the scores that list it
               (`score solo { dancer bea }`: bea alone).
             - Two bodies face to face, 1 m apart:
               `dancer ann humanoid on a at -0.5 0 facing stageLeft` and
               `dancer ben humanoid on b at 0.5 0 facing stageRight`.
-              `at` is where the feet stand together: a stance with a foot forward (`left.fwd.low@small`)
+              `at` is where the feet stand together: a stance with a foot forward (`leftFoot.fwd(0.3m)`)
               brings each of them nearer, and at 1 m the front legs of two such fighters meet (SH2007).
               Start those 1.1 m apart or more.
 
@@ -1042,7 +1087,7 @@ public static class GrammarDoc
             ```
             music "song.lys"                  // or: music "song.lys" score karaoke  (one of the song's scores)
 
-            figure solo
+            role solo
             dancer solo humanoid on solo
 
             section Verse  { solo { arms { side:4 | up:4 | } } }           // danced while the song plays its Verse
@@ -1097,7 +1142,7 @@ public static class GrammarDoc
               but no `tempo` or `time` of its own (SH1035: they are the song's),
               and the unnamed score of such a file still needs no form: it follows the song, beside
               the named scores that play their cuts.
-            - A score danced to a song may `loop` (a practice cut that goes round) and be `inplace`,
+            - A score danced to a song may `loop` (a practice cut that goes round) and be `inPlace`,
               like any other.
             - Do not write `music` unless you were given the song: without its file the line is an
               error (`SH1901`).
@@ -1109,23 +1154,24 @@ public static class GrammarDoc
             - Hands and fingers, the face, the shoulders on their own (a shrug).
             - "As far as it goes" (write the limit: 45 for the hips; the shoulders say when they do not get there, SH2010), a place on the other dancer's face (`b.chin`), the way an elbow travels in a hook.
             - Holding an object. Contact other than a hand reaching a place.
-            - Walking along a curve. Running (both feet off the floor between steps); hopping on one leg.
+            - Walking along a curve.
             - Sitting, kneeling, lying down, or anything else where a part other than the feet
               carries weight. Standing on one leg is possible (a leg gesture).
             - Arm swing while walking is not added for you: unwritten arms hang still.
             - A change of tempo or of time in the middle of a section (a section says them where it begins; a dance to a song follows its song).
             - A toe at any place on the other leg but its knee and its ankle; a hand on a leg (the thigh, the knee).
-            - A foot that points (on the toes in the air) or flexes; standing on pointe.
+            - A foot that points or flexes when you choose (it points only with its toe on the other leg); standing on pointe.
+            - Changing the feet in the air (a changement, an entrechat); the third and the fifth position told apart.
 
             ## Checking your work
 
             ```
             shosa check FILE            diagnostics, or "no problems"; every score with its length, and each section in it with its beats, bars, seconds, tempo and time, a step or jump the score starts with already made, and where each dancer ends from where it began; then every mark
             shosa check FILE --score Rage   one score only (`--score ""` the unnamed one)
-            shosa check FILE --at 3,4.5,0.75s   also how the body is turned at those moments (beats; seconds with an `s`): hips, shoulders, face, in degrees, and how far each elbow and knee is bent (as `@bent(N)` counts)
+            shosa check FILE --at 3,4.5,0.75s   also how the body is turned at those moments (beats; seconds with an `s`): hips, shoulders, face, in degrees, and how far each elbow and knee is bent (as `bent(N)` counts)
             shosa sheet FILE -o X.png   the movement on one image per score (X.png for the unnamed score, X-Idle.png, X-Punch.png …)
             shosa sheet FILE -o X.png --score Punch --step 0.5 --from 0 --to 4   one score, closer poses (in beats; --from and --to also in seconds with an `s`, as --at: --from 0.5s --to 1s; --step 0.1 for a punch)
-            shosa sheet FILE -o X.png --view side   seen from stage left: a figure facing front is in profile (one facing stageLeft or stageRight is in profile WITHOUT it)
+            shosa sheet FILE -o X.png --view side   seen from stage left: a role facing front is in profile (one facing stageLeft or stageRight is in profile WITHOUT it)
             shosa sheet FILE -o X.png --score solo  with `score solo { dancer bea }`, bea alone and larger (with `--score`, the file is X.png itself)
             shosa clip FILE -o X.json   the solved movement as numbers: every joint at every frame (ONE file: with several scores an array of them, each with its `name`; `--score NAME` for that one alone)
             ```
@@ -1152,10 +1198,10 @@ public static class GrammarDoc
             A looping score says `loops on the spot` or `travels 1 m forward each time round`.
             A score danced to a song is headed `Patrol to song.lys: …`. The marks come last, each with
             its score in front (`score !clap at beat 1 = 0.556 s` for the unnamed one), and with
-            `   Attack, play 2` behind when the score plays that section more than once, and with
+            `   Attack, verse 2` behind when the score plays that section more than once, and with
             the dancer behind (`score !hit at beat 1 = 0.5 s (a)`) when the score has more than one.
             The line of a first step already made is longer than quoted above (``guard starts with
-            `left.fwd` already made: the first step is not seen (right for a stance, …)``); a foot
+            `leftFoot.fwd` already made: the first step is not seen (right for a stance, …)``); a foot
             that a pose places says nothing. A section not written in bars is counted in whole
             bars all the same (5 beats in 4/4 read `2 bars`).
 
@@ -1164,10 +1210,10 @@ public static class GrammarDoc
             and dancer:
 
             ```
-              Punch at beat 3 = 0.75 s: hips 20° left, shoulders 45° left, face 30° right and 10° up
+              Punch at beat 3 = 0.75 s: hips 20° left, shoulders 45° left, face 30° right and 10° up; bent: elbows 90° left, 15° right, knees 12° left, 10° right
             ```
 
-            All three are **from the way the feet face**, measured on the floor, more to the dancer's
+            The turns are **from the way the feet face**, measured on the floor, more to the dancer's
             own left or right: `hips` and `shoulders` are the numbers written in their rows (over a
             leaning torso too; less only where SH2010 said they do not get there), `face` is
             the bracket of `head { fwd.right(30) }` (the line of the ears; less over a leaning torso)
@@ -1176,6 +1222,7 @@ public static class GrammarDoc
             of the room the hips are then that plus their own number (`clip`'s `angles` has both).
             With several dancers, a line for each, the name in front of `hips`
             (`score at beat 4 = 2.5 s: a: hips 20° left, …`). These lines come last, after the marks.
+            After `bent:` each elbow and knee is how far it is bent, 0 straight: the number `bent(N)` writes.
             Between two words a part eases out of the one and into the other (slow, fast, slow), and
             the head moves as a direction, so the halfway moment is near, not at, the halfway angle:
             ask for the moment rather than working it out.
@@ -1191,9 +1238,9 @@ public static class GrammarDoc
             named in `angleNames` (`feet`, `hips`, `shoulders`, `face`, `faceUp`, `leftElbow`, `rightElbow`,
             `leftKnee`, `rightKnee`), the degrees `check --at`
             says, more to the left (or up) counted positive; `feet` is from the front of the room; an
-            elbow or a knee is how far it is bent, 0 straight. (Standing upright, this figure's head has its middle at 1.72 m and its shoulders
-            are at 1.45 m. In the guard of "The shoulders and the hips" the head is at 1.67 m: a punch at `fwd.25`
-            arrives at 1.64 m, nose height, one at `fwd.18` at 1.57 m, the chin.)
+            elbow or a knee is how far it is bent, 0 straight. (Standing upright, this role's head has its middle at 1.72 m and its shoulders
+            are at 1.45 m. In the guard of "The shoulders and the hips" the head is at 1.67 m: a punch at `fwd.up(25)`
+            arrives at 1.64 m, nose height, one at `fwd.up(18)` at 1.57 m, the chin.)
 
             Diagnostics are `FILE(line,column): severity CODE: message`. SH0xxx is syntax, SH1xxx is
             a word or a count that does not make sense, SH2xxx is a movement the body cannot do
@@ -1201,7 +1248,8 @@ public static class GrammarDoc
             SH2005 a loop that does not join, SH2006 a hand that cannot reach the other dancer,
             SH2007 two dancers whose heads, bodies or standing legs are in the same place,
             SH2009 two rows of an `&` that turn the shoulders, or the hips, at the same time,
-            SH2010 shoulders the chest cannot turn to on the hips). The message says what to change.
+            SH2010 shoulders the chest cannot turn to on the hips, SH2011 an elbow or a knee pointed
+            along its own limb, SH2012 a hop or a leap from both feet). The message says what to change.
 
             The sheet shows poses numbered by beat from 0, read left to right, then down. How far
             apart they are depends on the length shown: every half beat up to 8 beats, every beat up
@@ -1214,41 +1262,44 @@ public static class GrammarDoc
             In a score of several sections, a section's name stands in purple beside the first pose in it.
             Under the first beat are the tempo, by the note that is felt, and the time (`4=120 4/4`; in 6/8 `4.=96 6/8`), and again
             under the first pose of a section played at another tempo or in another time: two scores that differ only in speed differ there.
-            **Under each pose the figure is drawn again from above**, audience at the bottom (so a figure facing front
+            **Under each pose the role is drawn again from above**, audience at the bottom (so a role facing front
             has its nose down and its left, blue, on the right): the grey line is the hips, the blue and red line over it the
-            shoulders, the ring the head with its nose. Read there which way the figure faces, how far the shoulders are
+            shoulders, the ring the head with its nose. Read there which way the role faces, how far the shoulders are
             turned from the hips (the two lines cross; in a lean they lie one ahead of the other, so compare their slopes), where the face looks, and a lean (the shoulders ahead of the hips).
             A dark dot ends the hips' line on each side. Which way, and which shoulder or hip is ahead, reads at any angle; the degrees read to about ±10, and a face's up and down not at all (`--view side`).
             With more than one dancer each has its own place in that row, left to right as in the pose, with its name under it (and at its ring on the floor);
             how far apart they stand is on the floor plan, not there.
             **Left limbs are blue, right limbs are red**; the torso and shoulder line are dark. The camera stands
-            in front and a little to stage left, so a figure facing front shows its left on the right
+            in front and a little to stage left, so a role facing front shows its left on the right
             of the picture; the short line on the head is the nose. From there a punch or a kick
             straight ahead is foreshortened: judge those, bows and nods with `--view side`.
             Under the poses is the floor from above,
             audience at the bottom: the grey line is the path of the hips, the blue and red marks are
-            footprints, the ring is where the figure started. Each pose is drawn in the middle of its
+            footprints, the ring is where the role started. Each pose is drawn in the middle of its
             own place in the row, so **travel is seen only on the floor**, not from pose to pose. Always look at the sheet: a file with
             no diagnostics can still be the wrong movement (a mirrored arm, a step the wrong way).
 
             ## Rules and gotchas
 
-            - Never leave out `figure`, `dancer`, `form` or `score`; every track is inside a figure's block.
+            - Never leave out `role`, `dancer`, `form` or `score`; every track is inside a role's block.
             - A word is AT its target ON its beat, and stays its length. A step written on beat 1 lands on beat 1.
             - The way there is in the word BEFORE: `arms { down:4 side }` takes four beats to get there.
               To stay and then go, a `then` before the next word: `down:3 then side`.
             - A score starts IN its first words: `body { guard jab }` starts in guard, the jab lands on beat 1. There is no `:0`.
             - A definition without a length takes its defined length; write the length when counting.
             - Limbs: `side` / `across`. Torso and head: `left` / `right`.
-            - `torso` leans; `hips` and `shoulders` turn the hips and the shoulders over the feet, each from the feet (`left.20`: degrees of turn, as seen from above). Neither turns the feet, the head, or the other.
-            - `turnout` turns the feet and the knees out (`out.80`) or in, both legs alike; the hips stay square.
-            - Degrees round, between two directions, are in brackets: `fwd.left(30)`. A number after a dot is the level.
-            - Degrees are from the horizontal, for the torso too.
+            - `torso` leans; `hips` and `shoulders` turn the hips and the shoulders over the feet, each from the feet (`left(20)`: degrees of turn, as seen from above). Neither turns the feet, the head, or the other.
+            - `turnout` turns the feet and the knees out (`out(80)`) or in, both legs alike; the hips stay square.
+            - **A number is always in brackets, after the word it belongs to: how far toward that word.** `fwd.left(30)`, `fwd.up(30)`, `up.fwd(10)` (a lean from upright), `left(20)`, `turn.left(90)`, `bent(40)`, `leftFoot.fwd(0.3m)`, `lift(0.4m)`. Metres carry their unit.
+            - `left` and `right` are always the dancer's left and right; a foot is `leftFoot` / `rightFoot`.
+            - Every written direction is measured from the way the feet face, level — the head's too. `.body` measures from the chest.
+            - The target is where a part arrives and in what shape (`bent`, `elbow(…)`, `knee(…)`, `round`, `body`, in that order); `@` is only how it gets there. Write a word as target, length, `@`, mark.
             - A step is measured from the other foot.
             - Opposite targets need one in between.
             - A leg gesture ends with `down`, and never overlaps a step.
-            - A step with no level comes back to normal height.
-            - Arms do not lean with the torso unless the event says `@body`.
+            - How high the body stands is the `height` row, kept until it is changed.
+            - `jump` lands on both feet, `hop` on the foot it stands on, `leap` on the other.
+            - A part does not lean with the torso unless its target says `.body`.
             - `body` takes only your poses and moves, `then` and `skip`.
             - Count every bar and write the `|`. An event across a bar line is tied: `kick:2~ | :1`.
             - Again: `{ … } q` for a few events, `%` for a bar, `|: A :|` in the form for sections.

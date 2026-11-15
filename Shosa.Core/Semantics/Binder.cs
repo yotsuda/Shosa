@@ -280,6 +280,73 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
 
     private static double Number(SyntaxToken token) => double.Parse(token.Text, CultureInfo.InvariantCulture);
 
+    /// <summary>One word of a target and the bracket after it, if any: how far that word goes (`left(30)`, `bent(40)`, `elbow(side.up)`).</summary>
+    private readonly record struct Part(SyntaxToken Word, SyntaxNode? Bracket)
+    {
+        public string Text => Word.Text;
+        /// <summary>The words inside the bracket, as a target of their own (`elbow(side.up)`), or none.</summary>
+        public List<Part> Inner => Bracket?.Child(SyntaxKind.Target) is { } target ? Parts(target) : [];
+    }
+
+    private static List<Part> Parts(SyntaxNode? target)
+    {
+        var parts = new List<Part>();
+        if (target is null)
+            return parts;
+        foreach (var child in target.Children())
+        {
+            if (child is SyntaxToken { Kind: SyntaxKind.Identifier or SyntaxKind.Number, IsMissing: false } token)
+                parts.Add(new Part(token, null));
+            else if (child is SyntaxNode { Kind: SyntaxKind.Arguments } bracket && parts.Count > 0)
+                parts[^1] = parts[^1] with { Bracket = bracket };
+        }
+        return parts;
+    }
+
+    /// <summary>
+    /// The one number in a bracket, and its unit (`m`, `cm` — in metres — or none for degrees), or
+    /// null with an error when the bracket holds anything else.
+    /// </summary>
+    private (double Value, string Unit)? BracketNumber(SyntaxNode bracket, string form)
+    {
+        var numbers = Tokens(bracket, SyntaxKind.Number);
+        var units = Tokens(bracket, SyntaxKind.Identifier);
+        if (numbers.Count != 1 || units.Count > 1 || bracket.ChildNodes().Any())
+        {
+            Error("SH1013", bracket.Span, form);
+            return null;
+        }
+        string unit = units.Count == 1 ? units[0].Text : "";
+        double value = Number(numbers[0]);
+        return (unit == "cm" ? value / 100 : value, unit == "cm" ? "m" : unit);
+    }
+
+    /// <summary>Degrees in a bracket, from 0 to <paramref name="max"/>; no unit.</summary>
+    private double? Degrees(SyntaxNode bracket, double max, string form)
+    {
+        if (BracketNumber(bracket, form) is not { } read)
+            return null;
+        if (read.Unit != "" || read.Value < 0 || read.Value > max)
+        {
+            Error("SH1013", bracket.Span, form);
+            return null;
+        }
+        return read.Value;
+    }
+
+    /// <summary>Metres in a bracket, written with their unit: `0.4m`, `30cm`.</summary>
+    private double? Metres(SyntaxNode bracket, string form)
+    {
+        if (BracketNumber(bracket, form) is not { } read)
+            return null;
+        if (read.Unit != "m" || read.Value < 0)
+        {
+            Error("SH1013", bracket.Span, form);
+            return null;
+        }
+        return read.Value;
+    }
+
     private static List<SyntaxToken> Tokens(SyntaxNode node, SyntaxKind kind) =>
         node.ChildTokens().Where(t => t.Kind == kind && !t.IsMissing).ToList();
 
@@ -507,7 +574,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
             {
                 var clip = NewClip(scoreName ?? "");
                 clip.Loop = attributes.Contains("loop");
-                clip.Inplace = attributes.Contains("inplace");
+                clip.Inplace = attributes.Contains("inPlace");
                 BindClip(clip, plays);
                 result.Clips.Add(clip);
             }
@@ -549,8 +616,11 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                     break;
 
                 case SyntaxKind.FigureDecl:
-                    if (name is not null && !_figures.TryAdd(name.Text, name.Text))
-                        Error("SH1003", name.Span, $"A figure named '{name.Text}' is already declared above.");
+                    // A role's name stands where words of the language do (`turn.b`, `b.hand`): it cannot be one.
+                    if (name is not null && Vocabulary.Reserved.Contains(name.Text))
+                        Error("SH1003", name.Span, $"'{name.Text}' is a word of the language: a role takes another name (lead, partner, hero).");
+                    else if (name is not null && !_figures.TryAdd(name.Text, name.Text))
+                        Error("SH1003", name.Span, $"A role named '{name.Text}' is already declared above.");
                     break;
 
                 case SyntaxKind.DancerDecl:
@@ -578,7 +648,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                         Error("SH1005", name.Span, $"A section named '{name.Text}' is already written above.");
                     foreach (var attribute in Tokens(item, SyntaxKind.Identifier).Skip(2))
                     {
-                        Error("SH1024", attribute.Span, attribute.Text is "loop" or "inplace"
+                        Error("SH1024", attribute.Span, attribute.Text is "loop" or "inPlace"
                             ? $"'{attribute.Text}' is said of what is written out, so it goes in the score: score {{ dancer NAME  {attribute.Text} }}"
                             : $"After a section's name comes its '{{'; '{attribute.Text}' does not belong here.");
                     }
@@ -849,7 +919,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                         Error("SH1005", item.Span, "'dancer' is followed by the name of one of the file's dancers: dancer alice");
                     cast.AddRange(values);
                     break;
-                case "loop" or "inplace":
+                case "loop" or "inPlace":
                     attributes.Add(tokens[0].Text);
                     break;
             }
@@ -867,6 +937,8 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
             if (words.Count < 2)
                 continue;
             var dancer = new DancerSpec { Id = words[1].Text, Name = words[1].Text };
+            if (Vocabulary.Reserved.Contains(dancer.Id))
+                Error("SH1003", words[1].Span, $"'{dancer.Id}' is a word of the language: a dancer takes another name (alice, hero).");
             if (!ids.Add(dancer.Id))
             {
                 Error("SH1003", words[1].Span, $"A dancer named '{dancer.Id}' is already declared above.");
@@ -887,9 +959,9 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                         if (values.Count == 1 && _figures.ContainsKey(values[0].Text))
                             dancer.Figure = values[0].Text;
                         else if (_figures.Count == 0)
-                            Error("SH1003", clause.Span, $"'on' names the figure this dancer dances, and the file declares none. Add: figure {(values.Count == 1 ? values[0].Text : dancer.Id)}");
+                            Error("SH1003", clause.Span, $"'on' names the role this dancer dances, and the file declares none. Add: role {(values.Count == 1 ? values[0].Text : dancer.Id)}");
                         else
-                            Error("SH1003", clause.Span, $"'on' names the figure this dancer dances: on {_figures.Keys.First()}.{(values.Count == 1 ? Hint(values[0].Text, _figures.Keys) : "")}");
+                            Error("SH1003", clause.Span, $"'on' names the role this dancer dances: on {_figures.Keys.First()}.{(values.Count == 1 ? Hint(values[0].Text, _figures.Keys) : "")}");
                         break;
 
                     case "at":
@@ -905,23 +977,28 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                         break;
 
                     case "facing":
-                        double? degrees = values.Count == 1
-                            ? values[0].Kind == SyntaxKind.Number
-                                ? Number(values[0])
-                                : values[0].Text switch
-                                {
-                                    "front" => 0,
-                                    "back" => 180,
-                                    "stageLeft" => 90,
-                                    "stageRight" => -90,
-                                    _ => null,
-                                }
-                            : null;
+                    {
+                        // A way of the stage, or turned from the front: left(30) is 30 degrees to the dancer's own left.
+                        var bracket = clause.Child(SyntaxKind.Arguments);
+                        double? degrees = values.Count == 1 && bracket is null
+                            ? values[0].Text switch
+                            {
+                                "front" => 0,
+                                "back" => 180,
+                                "stageLeft" => 90,
+                                "stageRight" => -90,
+                                _ => null,
+                            }
+                            : values is [{ Text: "left" or "right" } side] && bracket is not null
+                                && Degrees(bracket, 180, "facing left(N) or right(N) turns N degrees from the front, up to 180: facing left(30).") is { } turned
+                                ? (side.Text == "left" ? turned : -turned)
+                                : null;
                         if (degrees is { } facing)
                             dancer.FacingDeg = facing;
-                        else
-                            Error("SH1006", clause.Span, "facing takes front, back, stageLeft, stageRight, or degrees (positive turns to the dancer's left).");
+                        else if (bracket is null || values is not [{ Text: "left" or "right" }])
+                            Error("SH1006", clause.Span, "facing takes front, back, stageLeft, stageRight, or left(N) / right(N): N degrees turned from the front to the dancer's own left or right.");
                         break;
+                    }
 
                     case "mirror" when values.Count == 0:
                         dancer.Mirror = true;
@@ -957,7 +1034,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
             }
 
             if (!on)
-                Error("SH1003", words[1].Span, $"Say which figure this dancer dances: dancer {dancer.Id} humanoid on {(_figures.Count > 0 ? _figures.Keys.First() : "FIGURE")}");
+                Error("SH1003", words[1].Span, $"Say which role this dancer dances: dancer {dancer.Id} humanoid on {(_figures.Count > 0 ? _figures.Keys.First() : "ROLE")}");
             // A dancer whose figure is not known still exists: a score may name it.
             dancers.Add(dancer);
         }
@@ -969,7 +1046,8 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
     private static string[]? ChannelsOf(string trackName) => trackName switch
     {
         "body" => Channels.All,
-        "steps" => [Channels.Support, Channels.Height],
+        "steps" => [Channels.Support],
+        "height" => [Channels.Height],
         "arms" => [Channels.LeftArm, Channels.RightArm],
         Channels.LeftArm or Channels.RightArm or Channels.LeftLeg or Channels.RightLeg or Channels.Turnout or Channels.Hips or Channels.Torso or Channels.Shoulders or Channels.Head => [trackName],
         _ => null,
@@ -1031,15 +1109,15 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
             if (child.Kind == SyntaxKind.FigureBlock && !_figures.ContainsKey(name.Text))
             {
                 Error("SH1003", name.Span, _figures.Count > 0
-                    ? $"No figure is named '{name.Text}'.{Hint(name.Text, _figures.Keys)}"
-                    : $"No figure is named '{name.Text}'. Declare it: figure {name.Text}");
+                    ? $"No role is named '{name.Text}'.{Hint(name.Text, _figures.Keys)}"
+                    : $"No role is named '{name.Text}'. Declare it: role {name.Text}");
             }
             else if (child.Kind == SyntaxKind.Track)
             {
                 Error("SH1003", name.Span,
-                    _figures.ContainsKey(name.Text) ? $"The block of figure '{name.Text}' holds tracks: {name.Text} {{ steps {{ ... }} }}"
-                    : _figures.Count > 0 ? $"A track goes inside the block of the figure that does it: {_figures.Keys.First()} {{ {name.Text} {{ ... }} }}"
-                    : $"A track goes inside the block of the figure that does it. Declare the figure and who dances it (figure hero, dancer hero humanoid on hero), then: hero {{ {name.Text} {{ ... }} }}");
+                    _figures.ContainsKey(name.Text) ? $"The block of role '{name.Text}' holds tracks: {name.Text} {{ steps {{ ... }} }}"
+                    : _figures.Count > 0 ? $"A track goes inside the block of the role that does it: {_figures.Keys.First()} {{ {name.Text} {{ ... }} }}"
+                    : $"A track goes inside the block of the role that does it. Declare the role and who dances it (role hero, dancer hero humanoid on hero), then: hero {{ {name.Text} {{ ... }} }}");
             }
             else if (child.Kind == SyntaxKind.FigureBlock)
             {
@@ -1649,9 +1727,10 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
     {
         var target = ev.Child(SyntaxKind.Target);
         var words = target is null ? [] : target.ChildTokens().Where(t => t.Kind is SyntaxKind.Identifier or SyntaxKind.Number && !t.IsMissing).ToList();
-        var arguments = target?.Child(SyntaxKind.Arguments);
-        SyntaxNode? definition = words.Count == 1 && arguments is null ? _defs.GetValueOrDefault(words[0].Text) : null;
-        if (words.Count == 1 && arguments is null && words[0].Text == Vocabulary.Again && ctx.ForcedLength is null)
+        var parts = Parts(target);
+        bool bracketed = parts.Any(p => p.Bracket is not null);
+        SyntaxNode? definition = words.Count == 1 && !bracketed ? _defs.GetValueOrDefault(words[0].Text) : null;
+        if (words.Count == 1 && !bracketed && words[0].Text == Vocabulary.Again && ctx.ForcedLength is null)
         {
             BindAgain(ev, words[0], ctx, ref time, ref barStart, extra);
             return;
@@ -1662,7 +1741,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         if (ctx.ForcedLength is null && ev.Child(SyntaxKind.Duration) is { } inBars && InBars(inBars))
         {
             double count = Number(Tokens(inBars, SyntaxKind.Number)[0]);
-            bool rest = words.Count == 1 && arguments is null && words[0].Text is Vocabulary.Skip or Vocabulary.Hold;
+            bool rest = words.Count == 1 && !bracketed && words[0].Text is Vocabulary.Skip or Vocabulary.Hold;
             if (!rest)
                 Error("SH1033", inBars.Span, "Only `skip` and `then` are counted in bars: skip:3bar, then:2bar. A movement that runs across a bar line is tied over it: kick:1~ | :2");
             else if (Tokens(inBars, SyntaxKind.Number).Count > 1 || count < 1 || Math.Abs(count - Math.Round(count)) > Epsilon)
@@ -1689,6 +1768,22 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         if (target is null || words.Count == 0 || target.ChildTokens().Any(t => t.IsMissing))
             return;   // the parser has already said what is missing
 
+        // The parts of a word in one order, so that the same word is always written the same way:
+        // the target, its length, how it gets there, its mark. kick:2@mirror!hit
+        int rank = 0;
+        foreach (var part in ev.ChildNodes())
+        {
+            int own = part.Kind switch { SyntaxKind.Duration => 1, SyntaxKind.Annotation => 2, SyntaxKind.Mark => 3, _ => 0 };
+            if (own == 0)
+                continue;
+            if (own < rank)
+            {
+                Error("SH1040", part.Span, "A word is written in this order: the target, its length, then @ and the mark: kick:2@mirror!hit, fwd.up(25):1@sharp!hit.");
+                break;
+            }
+            rank = own;
+        }
+
         var annotations = new List<SyntaxNode>();
         foreach (var annotation in ev.ChildNodes(SyntaxKind.Annotation))
         {
@@ -1696,10 +1791,22 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                 continue;
             if (Vocabulary.Has(Vocabulary.Annotations, name.Text))
                 annotations.Add(annotation);
+            else if (Vocabulary.Has(Vocabulary.Shapes, name.Text))
+                // The shape a part arrives in is the target's own: `@` is only how it gets there.
+                Error("SH1010", name.Span, $"'{name.Text}' is a word of the target, after the direction: {ShapeExample(name.Text)}. '@' says how a part gets to its word (@sharp, @linear), not the shape it arrives in.");
             else
                 Error("SH1010", name.Span, $"There is no '@{name.Text}'.{Hint(name.Text, Vocabulary.Annotations.Select(w => w.Name))}");
         }
         bool Has(string name) => annotations.Any(a => a.Token(SyntaxKind.Identifier)!.Text == name);
+        if (!ctx.Channels.Contains(Channels.Support))
+        {
+            foreach (var annotation in annotations)
+            {
+                var name = annotation.Token(SyntaxKind.Identifier)!;
+                if (name.Text is "small" or "large" or "turn")
+                    Error("SH1010", name.Span, $"'@{name.Text}' is for a step.");
+            }
+        }
 
         bool mirror = ctx.Mirror ^ Has("mirror"), free = ctx.Free || Has("free");
         string? ease = ctx.EaseOverride ?? annotations.Select(a => a.Token(SyntaxKind.Identifier)!.Text).LastOrDefault(a => a is "smooth" or "sharp" or "linear");
@@ -1727,16 +1834,12 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
             return;
         }
 
-        // What the feet do is one word and two parts: where they stand, and how high the body stands on them.
+        // Where the feet stand (steps), and how high the body stands on them (height): two rows.
         Seg? feet = null, height = null;
-        if (!isHold && ctx.Channels.Any(c => c is Channels.Support or Channels.Height))
-        {
-            feet = BindSupport(words, arguments, annotations, mirror, free, ctx);
-            if (feet is { Kind: SegKinds.Level })
-                (feet, height) = (null, feet);
-            else if (feet is { Level: { } arrives })
-                (feet.Level, height) = (null, new Seg { Kind = SegKinds.Level, Level = arrives });
-        }
+        if (!isHold && ctx.Channels.Contains(Channels.Support))
+            feet = BindSupport(parts, annotations, mirror, free, ctx);
+        if (!isHold && ctx.Channels.Contains(Channels.Height))
+            height = BindHeight(parts);
 
         // The word's own time, in the clip. What is before beat 0 (an upbeat the score starts with) is
         // over the end of a loop, where it takes the part from the last play as it would from the one
@@ -1759,9 +1862,9 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
             var seg = isHold ? new Seg { Kind = SegKinds.Hold }
                 : channel == Channels.Support ? feet
                 : channel == Channels.Height ? height
-                : channel is Channels.Shoulders or Channels.Hips ? BindTurned(channel, words, arguments, annotations, mirror)
-                : channel == Channels.Turnout ? BindTurnout(words, arguments, annotations)
-                : BindGesture(channel, words, arguments, annotations, mirror, ctx);
+                : channel is Channels.Shoulders or Channels.Hips ? BindTurned(channel, parts, mirror)
+                : channel == Channels.Turnout ? BindTurnout(parts)
+                : BindGesture(channel, parts, annotations, mirror, ctx);
             if (seg is null)
                 continue;
             seg.Src = src.Start;
@@ -2034,257 +2137,275 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
             return figure.Text;
         if (figure.Text == ctx.Dancer.Figure)
         {
-            Error("SH1021", figure.Span, $"'{figure.Text}' is this figure itself. A place on the own body is written without a name: hip, chest, shoulder ...");
+            Error("SH1021", figure.Span, $"'{figure.Text}' is this role itself. A place on the own body is written without a name: hip, chest, shoulder ...");
             return null;
         }
         var dancers = _active.Where(d => d.Figure == figure.Text).ToList();
         if (dancers.Count == 1)
             return dancers[0].Id;
         Error("SH1021", figure.Span, dancers.Count == 0
-            ? $"Nobody dances figure '{figure.Text}' in this score."
-            : $"Figure '{figure.Text}' is danced by {dancers.Count} dancers, so which body is meant is not written.");
+            ? $"Nobody dances role '{figure.Text}' in this score."
+            : $"Role '{figure.Text}' is danced by {dancers.Count} dancers, so which body is meant is not written.");
         return null;
     }
 
-    /// <summary>`@small` and `@large` on a knee bend: half of `low` (8 cm), and a deep crouch (40 cm). A stride is scaled by 0.6 and 1.4.</summary>
-    private static double BendScale(double scale) => scale < 1 ? 0.5 : scale > 1 ? 2.5 : 1;
 
     private double? TurnArgument(SyntaxNode annotation, bool mirror)
     {
-        var words = annotation.Child(SyntaxKind.Arguments)?.Child(SyntaxKind.Target) is { } target ? Tokens(target, SyntaxKind.Identifier) : [];
-        if (words.Count == 2 && words[0].Text is "left" or "right" && !double.IsNaN(Vocabulary.TurnDegrees(words[1].Text)))
-        {
-            double degrees = Vocabulary.TurnDegrees(words[1].Text);
-            return (words[0].Text == "left") != mirror ? degrees : -degrees;
-        }
-        Error("SH1014", annotation.Span, "A turn made during a step is written with its side and its amount: @turn(left.quarter), @turn(right.half).");
+        var inner = Parts(annotation.Child(SyntaxKind.Arguments)?.Child(SyntaxKind.Target));
+        if (inner is [{ Text: "left" or "right", Bracket: not null } side])
+            return Turned(side, mirror);
+        Error("SH1014", annotation.Span, "A turn made during a step is written with its side and its degrees: @turn(left(90)), @turn(right(180)).");
         return null;
     }
 
+    /// <summary>`left(90)`: degrees to the left, positive (to the right, negative). Mirrored, the other way.</summary>
+    private double? Turned(Part side, bool mirror)
+    {
+        if (Degrees(side.Bracket!, Vocabulary.MaxTurn, $"A turn is degrees, more than 0 and up to 1080: {side.Text}(90), {side.Text}(180), {side.Text}(360).") is not { } degrees)
+            return null;
+        if (degrees == 0)
+        {
+            Error("SH1013", side.Bracket!.Span, $"A turn of no degrees does nothing: take it out, or write how far, {side.Text}(90).");
+            return null;
+        }
+        return (side.Text == "left") != mirror ? degrees : -degrees;
+    }
+
     /// <summary>
-    /// A word of the `hips` or the `shoulders` track: `left`, `right.20`, `center`. How far the line
-    /// of the hips or the shoulders is turned from the way the feet face, on the floor. The feet stay
-    /// where they stand, so the hips turn no more than <see cref="Vocabulary.MaxHips"/> degrees, the
-    /// shoulders no more than <see cref="Vocabulary.MaxShoulders"/>. How far the chest then turns on
-    /// the hips depends on the lean, so its own limit is the solver's (SH2010).
+    /// A word of the `hips` or the `shoulders` track: `left(20)`, `right(20)`, `center`. How far the
+    /// line of the hips or the shoulders is turned from the way the feet face, on the floor: always
+    /// written, since nothing says how far a turn of the hips goes by itself. The feet stay where they
+    /// stand, so the hips turn no more than <see cref="Vocabulary.MaxHips"/> degrees, the shoulders no
+    /// more than <see cref="Vocabulary.MaxShoulders"/>. How far the chest then turns on the hips depends
+    /// on the lean, so its own limit is the solver's (SH2010).
     /// </summary>
-    private Seg? BindTurned(string channel, List<SyntaxToken> words, SyntaxNode? arguments, List<SyntaxNode> annotations, bool mirror)
+    private Seg? BindTurned(string channel, List<Part> parts, bool mirror)
     {
         bool hips = channel == Channels.Hips;
         string what = hips ? "a turn of the hips" : "a turn of the shoulders";
         double max = hips ? Vocabulary.MaxHips : Vocabulary.MaxShoulders;
         string Form = hips
-            ? "The hips turn `left`, `right` (30 degrees), `left.N` / `right.N` for N degrees from the feet up to 45, or `center`: hips { right.20 left center }"
-            : "The shoulders turn `left`, `right` (30 degrees), `left.N` / `right.N` for N degrees from the feet up to 90, or `center`: shoulders { right.40 left center }";
-        foreach (var annotation in annotations)
-        {
-            var name = annotation.Token(SyntaxKind.Identifier)!;
-            string? belongs = name.Text switch
-            {
-                "small" or "large" or "turn" => "a step",
-                "bent" => "an arm or a leg",
-                "body" or "elbow" => "an arm",
-                "knee" => "a leg",
-                "round" => "the torso",
-                _ => null,
-            };
-            if (belongs is not null)
-                Error("SH1010", name.Span, $"'@{name.Text}' is for {belongs}. How far {what} goes is its number: left.20");
-        }
-        if (arguments is not null)
-            Error("SH1012", arguments.Span, $"There are no brackets in {what}: how far it goes is the number after the dot, left.20");
+            ? "The hips turn `left(N)` or `right(N)`, N degrees from the feet up to 45, or are `center`: hips { right(20) left(10) center }"
+            : "The shoulders turn `left(N)` or `right(N)`, N degrees from the feet up to 90, or are `center`: shoulders { right(40) left(30) center }";
 
-        if (words.Count == 1 && words[0].Text == "center")
+        if (parts is [{ Text: "center", Bracket: null }])
             return new Seg { Kind = SegKinds.Turned, TurnDeg = 0 };
-        if (words.Count is 1 or 2 && words[0].Text is "left" or "right")
+        if (parts is [{ Text: "left" or "right" } side])
         {
-            double degrees = Vocabulary.DefaultTurn;
-            if (words.Count == 2)
+            if (side.Bracket is null)
             {
-                if (words[1].Kind != SyntaxKind.Number)
-                {
-                    Error("SH1012", words[1].Span, Form);
-                    return null;
-                }
-                degrees = Number(words[1]);
-                if (degrees < 0 || degrees > max)
-                {
-                    Error("SH1013", words[1].Span, hips
-                        ? "The hips turn up to 45 degrees over feet that stay where they stand (the shoulders can be further round: shoulders { left.75 }). To face another way, the feet turn: steps { turn.left.quarter }"
-                        : "The shoulders turn up to 90 degrees from feet that stay where they stand. To face another way, the feet turn: steps { turn.left.quarter }");
-                    return null;
-                }
+                Error("SH1013", side.Word.Span, $"How far: {side.Text}(20). {Form}");
+                return null;
             }
-            return new Seg { Kind = SegKinds.Turned, TurnDeg = (words[0].Text == "left") != mirror ? degrees : -degrees };
+            if (Degrees(side.Bracket, max, hips
+                    ? "The hips turn up to 45 degrees over feet that stay where they stand (the shoulders can be further round: shoulders { left(75) }). To face another way, the feet turn: steps { turn.left(90) }"
+                    : "The shoulders turn up to 90 degrees from feet that stay where they stand. To face another way, the feet turn: steps { turn.left(90) }") is not { } degrees)
+                return null;
+            return new Seg { Kind = SegKinds.Turned, TurnDeg = (side.Text == "left") != mirror ? degrees : -degrees };
         }
 
         var known = (hips ? Vocabulary.HipsWords : Vocabulary.ShouldersWords).Select(w => w.Name).Append(Vocabulary.Hold).Append(Vocabulary.Skip).Concat(_defs.Keys);
-        Error("SH1012", words[0].Span, $"'{words[0].Text}' is not {what}. {Form}{Hint(words[0].Text, known)}");
+        Error("SH1012", parts[0].Word.Span, $"'{string.Join('.', parts.Select(p => p.Text))}' is not {what}. {Form}{Hint(parts[0].Text, known)}");
         return null;
     }
 
     /// <summary>
-    /// A word of the `turnout` track: `out`, `out.80`, `in.20`, `parallel`. How far each leg is
-    /// turned in its hip socket from the way the body faces, positive outward. Both legs alike,
-    /// so a mirror changes nothing.
+    /// A word of the `turnout` track: `out(80)`, `in(20)`, `parallel`. How far each leg is turned in
+    /// its hip socket from the way the body faces, positive outward. Both legs alike, so a mirror
+    /// changes nothing.
     /// </summary>
-    private Seg? BindTurnout(List<SyntaxToken> words, SyntaxNode? arguments, List<SyntaxNode> annotations)
+    private Seg? BindTurnout(List<Part> parts)
     {
-        const string Form = "The legs turn `out` (45 degrees each), `out.N` for N degrees up to 90, `in` (20), `in.N` up to 45, or `parallel`: turnout { parallel out.80 }";
-        foreach (var annotation in annotations)
-        {
-            var name = annotation.Token(SyntaxKind.Identifier)!;
-            string? belongs = name.Text switch
-            {
-                "small" or "large" or "turn" => "a step",
-                "bent" => "an arm or a leg",
-                "body" or "elbow" => "an arm",
-                "knee" => "a leg in the air (a turnout turns the knees with the feet)",
-                "round" => "the torso",
-                _ => null,
-            };
-            if (belongs is not null)
-                Error("SH1010", name.Span, $"'@{name.Text}' is for {belongs}. How far the legs turn is its number: out.80");
-        }
-        if (arguments is not null)
-            Error("SH1012", arguments.Span, "There are no brackets in a turnout: how far the legs turn is the number after the dot, out.80");
-
-        if (words.Count == 1 && words[0].Text == "parallel")
+        const string Form = "The legs turn `out(N)`, N degrees each up to 90, `in(N)` up to 45, or are `parallel`: turnout { parallel out(80) }";
+        if (parts is [{ Text: "parallel", Bracket: null }])
             return new Seg { Kind = SegKinds.Turned, TurnDeg = 0 };
-        if (words.Count is 1 or 2 && words[0].Text is "out" or "in")
+        if (parts is [{ Text: "out" or "in" } way])
         {
-            bool outward = words[0].Text == "out";
-            double degrees = outward ? Vocabulary.DefaultOut : Vocabulary.DefaultIn;
-            if (words.Count == 2)
+            bool outward = way.Text == "out";
+            if (way.Bracket is null)
             {
-                if (words[1].Kind != SyntaxKind.Number)
-                {
-                    Error("SH1012", words[1].Span, Form);
-                    return null;
-                }
-                degrees = Number(words[1]);
-                double max = outward ? Vocabulary.MaxOut : Vocabulary.MaxIn;
-                if (degrees < 0 || degrees > max)
-                {
-                    Error("SH1013", words[1].Span, outward
-                        ? "A leg turns out up to 90 degrees from the way the body faces (the two feet then in one line). To face another way, the feet turn: steps { turn.left.quarter }"
-                        : "A leg turns in up to 45 degrees.");
-                    return null;
-                }
+                Error("SH1013", way.Word.Span, $"How far: {(outward ? "out(80) (a dancer's turnout; 45 for one who has not trained)" : "in(20)")}. {Form}");
+                return null;
             }
+            if (Degrees(way.Bracket, outward ? Vocabulary.MaxOut : Vocabulary.MaxIn, outward
+                    ? "A leg turns out up to 90 degrees from the way the body faces (the two feet then in one line). To face another way, the feet turn: steps { turn.left(90) }"
+                    : "A leg turns in up to 45 degrees.") is not { } degrees)
+                return null;
             return new Seg { Kind = SegKinds.Turned, TurnDeg = outward ? degrees : -degrees };
         }
 
         var known = Vocabulary.TurnoutWords.Select(w => w.Name).Append(Vocabulary.Hold).Append(Vocabulary.Skip).Concat(_defs.Keys);
-        Error("SH1012", words[0].Span, $"'{words[0].Text}' is not a turnout. {Form}{Hint(words[0].Text, known)}");
+        Error("SH1012", parts[0].Word.Span, $"'{string.Join('.', parts.Select(p => p.Text))}' is not a turnout. {Form}{Hint(parts[0].Text, known)}");
         return null;
     }
+
+
+    private static string ShapeExample(string shape) => shape switch
+    {
+        "bent" => "fwd.up(25).bent, fwd.bent(40)",
+        "elbow" => "fwd.down(15).bent(40).elbow(side)",
+        "knee" => "back.up(20).bent.knee(side.up)",
+        "round" => "torso { up.fwd(10).round }",
+        _ => "arms { up.body }",
+    };
 
     /// <summary>Brackets after the second of two directions: how far round from the first toward it.</summary>
     private const string Between = "Brackets say how many degrees a direction is from the first word toward the second: fwd.left(30) is 30 degrees to the left of straight ahead, an arm's fwd.across(15) a little across (0 to 90; without brackets it is 45).";
 
-    private Seg? BindGesture(string channel, List<SyntaxToken> words, SyntaxNode? arguments, List<SyntaxNode> annotations, bool mirror, Ctx ctx)
+    /// <summary>How a direction is written, for the errors that say so.</summary>
+    private const string DirectionForm = "A direction is one word (fwd, back, side, across; left or right for the torso and the head), or two with the degrees from the first toward the second in brackets (fwd.left(30); 45 without), and then up or down with the degrees above or below level (fwd.up(30), side.down(20); 45 without). up or down alone is straight up or down; up.fwd(10) is 10 degrees forward of upright.";
+
+    /// <summary>
+    /// A target of a gesture track: a direction (or a place, or a place on another figure), then the
+    /// shape it arrives in — `bent`, `elbow(…)` or `knee(…)`, `round`, `body`, in that order.
+    /// </summary>
+    private Seg? BindGesture(string channel, List<Part> parts, List<SyntaxNode> annotations, bool mirror, Ctx ctx)
     {
         int side = channel is Channels.LeftArm or Channels.LeftLeg ? 1 : channel is Channels.RightArm or Channels.RightLeg ? -1 : 0;
         bool isArm = channel is Channels.LeftArm or Channels.RightArm;
         bool isLimb = side != 0;
-        var flags = new HashSet<string>();
-        double bend = 0;
-        double[]? jointPole = null;
-        TextSpan poleSpan = default;
-        SyntaxToken? bentWord = null;
+        bool isLeg = isLimb && !isArm;
 
-        foreach (var annotation in annotations)
+        // The shape words close the target, each once and in their order.
+        int split = parts.FindIndex(p => Vocabulary.Has(Vocabulary.Shapes, p.Text));
+        var head = split < 0 ? parts : parts.Take(split).ToList();
+        var shapes = split < 0 ? [] : parts.Skip(split).ToList();
+        if (head.Count == 0)
         {
-            var name = annotation.Token(SyntaxKind.Identifier)!;
-            flags.Add(name.Text);
-            if (name.Text is "small" or "large" or "turn")
-                Error("SH1010", name.Span, $"'@{name.Text}' is for a step.");
-            if (name.Text == "bent" && !isLimb)
-                Error("SH1010", name.Span, "'@bent' is for an arm or a leg.");
-            if (name.Text == "body" && !isArm)
-                Error("SH1010", name.Span, "'@body' is for an arm.");
-            if (name.Text == "round" && channel != Channels.Torso)
-                Error("SH1010", name.Span, "'@round' is for the torso: torso { fwd.80@round }");
-            if (name.Text == "elbow" && !isArm)
-                Error("SH1010", name.Span, isLimb ? "'@elbow' is for an arm; a leg says '@knee(...)'." : "'@elbow' is for an arm.");
-            if (name.Text == "knee" && (!isLimb || isArm))
-                Error("SH1010", name.Span, isArm ? "'@knee' is for a leg; an arm says '@elbow(...)'." : "'@knee' is for a leg.");
-
-            if (name.Text == "bent" && isLimb)
-            {
-                bentWord = name;
-                bend = Vocabulary.DefaultBend;
-                if (annotation.Child(SyntaxKind.Arguments) is { } bracket)
-                {
-                    var numbers = Tokens(bracket, SyntaxKind.Number);
-                    if (numbers.Count != 1 || bracket.ChildNodes().Any() || Number(numbers[0]) is < 0 or > Vocabulary.MaxBend)
-                    {
-                        Error("SH1013", bracket.Span, "'@bent' takes how many degrees the elbow or the knee bends, 0 to 150: @bent(40). Without a number it is a right angle, 90.");
-                        return null;
-                    }
-                    bend = Number(numbers[0]);
-                }
-            }
-            else if ((name.Text == "elbow" && isArm) || (name.Text == "knee" && isLimb && !isArm))
-            {
-                string example = isArm ? "@elbow(side)" : "@knee(side.high)";
-                var pointing = annotation.Child(SyntaxKind.Arguments)?.Child(SyntaxKind.Target);
-                var pointingWords = pointing?.ChildTokens().Where(t => t.Kind is SyntaxKind.Identifier or SyntaxKind.Number && !t.IsMissing).ToList();
-                if (pointingWords is null || pointingWords.Count == 0)
-                {
-                    Error("SH1013", annotation.Span, $"'@{name.Text}' says which way the {name.Text} points, as a direction in brackets: {example}");
-                    return null;
-                }
-                if (LimbDirection(channel, side, pointingWords, null, mirror, inBrackets: true) is not { } way)
-                    return null;
-                jointPole = [way.X, way.Y, way.Z];
-                poleSpan = annotation.Span;
-            }
-        }
-        string joined = string.Join('.', words.Select(w => w.Text));
-        bool isPlace = isArm ? Vocabulary.Has(Vocabulary.Anchors, joined) : isLimb && Vocabulary.Has(Vocabulary.LegAnchors, joined);
-        if (arguments is not null && (words.Any(w => w.Kind == SyntaxKind.Identifier && _figures.ContainsKey(w.Text)) || isPlace))
-        {
-            Error("SH1012", arguments.Span, "A place takes no number. " + Between);
+            Error("SH1013", parts[0].Word.Span, $"'{parts[0].Text}' says the shape a direction arrives in, so it comes after one: {ShapeExample(parts[0].Text)}.");
             return null;
         }
 
-        if (words.Count is 2 or 3 && words[0].Kind == SyntaxKind.Identifier && _figures.ContainsKey(words[0].Text))
+        double bend = 0;
+        double[]? jointPole = null;
+        TextSpan poleSpan = default;
+        Part? bentPart = null;
+        bool body = false, round = false;
+        int last = -1;
+        foreach (var shape in shapes)
+        {
+            int order = Vocabulary.ShapeOrder(shape.Text);
+            if (order < 0)
+            {
+                Error("SH1012", shape.Word.Span, $"After the shape words ({string.Join(", ", Vocabulary.Shapes.Select(w => w.Name))}) nothing else comes: '{shape.Text}' belongs before them, in the direction.");
+                return null;
+            }
+            if (order <= last)
+            {
+                Error("SH1012", shape.Word.Span, "The shape words come each once, in this order: bent, elbow or knee, round, body. fwd.down(15).bent(40).elbow(side)");
+                return null;
+            }
+            last = order;
+            if (shape.Bracket is not null && shape.Text is "round" or "body")
+            {
+                Error("SH1012", shape.Bracket.Span, $"'{shape.Text}' takes no brackets.");
+                return null;
+            }
+            switch (shape.Text)
+            {
+                case "bent":
+                    if (!isLimb)
+                    {
+                        Error("SH1010", shape.Word.Span, "'bent' is for an arm or a leg (a torso bows with its direction, and rounds its back with 'round').");
+                        return null;
+                    }
+                    bentPart = shape;
+                    bend = Vocabulary.DefaultBend;
+                    if (shape.Bracket is { } amount)
+                    {
+                        if (Degrees(amount, Vocabulary.MaxBend, "'bent' takes how many degrees the elbow or the knee bends, 0 to 150: bent(40). Without brackets it is a right angle, 90.") is not { } degrees)
+                            return null;
+                        bend = degrees;
+                    }
+                    break;
+                case "elbow" or "knee":
+                    if (shape.Text == "elbow" ? !isArm : !isLeg)
+                    {
+                        Error("SH1010", shape.Word.Span, shape.Text == "elbow"
+                            ? (isLeg ? "'elbow' is for an arm; a leg says knee(...)." : "'elbow' is for an arm.")
+                            : (isArm ? "'knee' is for a leg in the air; an arm says elbow(...)." : "'knee' is for a leg in the air: rightLeg { back.up(20).bent.knee(side.up) }. Knees under the weight bend the way the feet point (turnout)."));
+                        return null;
+                    }
+                    if (shape.Inner is not { Count: > 0 } pointing)
+                    {
+                        Error("SH1013", shape.Word.Span, $"'{shape.Text}' says which way the {shape.Text} points, as a direction in brackets: {ShapeExample(shape.Text)}");
+                        return null;
+                    }
+                    if (LimbDirection(channel, side, pointing, mirror, inBrackets: true) is not { } way)
+                        return null;
+                    jointPole = [way.X, way.Y, way.Z];
+                    poleSpan = shape.Bracket!.Span;
+                    break;
+                case "round":
+                    if (channel != Channels.Torso)
+                    {
+                        Error("SH1010", shape.Word.Span, "'round' is for the torso: torso { up.fwd(10).round }");
+                        return null;
+                    }
+                    round = true;
+                    break;
+                case "body":
+                    if (!isLimb && channel != Channels.Head)
+                    {
+                        Error("SH1010", shape.Word.Span, "'body' is for an arm, a leg or the head (measured from the chest instead of the room): arms { up.body }. The torso's own direction is always the room's.");
+                        return null;
+                    }
+                    body = true;
+                    break;
+            }
+        }
+
+        string joined = string.Join('.', head.Select(p => p.Text));
+        bool toFigure = head[0].Word.Kind == SyntaxKind.Identifier && _figures.ContainsKey(head[0].Text);
+        bool isPlace = isArm ? Vocabulary.Has(Vocabulary.Anchors, joined) : isLeg && Vocabulary.Has(Vocabulary.LegAnchors, joined);
+        if ((toFigure || isPlace) && head.FirstOrDefault(p => p.Bracket is not null) is { Bracket: { } number })
+        {
+            Error("SH1012", number.Span, "A place takes no number. " + Between);
+            return null;
+        }
+        if ((toFigure || isPlace) && (bentPart is not null || body || round))
+        {
+            var wrong = shapes.First(p => p.Text is "bent" or "body" or "round");
+            Error("SH1010", wrong.Word.Span, $"'{joined}' is a place: how far the {(isArm ? "elbow" : "knee")} bends follows from it, and it is where it is. Only which way the {(isArm ? "elbow" : "knee")} points can be said: {joined}.{(isArm ? "elbow" : "knee")}(side).");
+            return null;
+        }
+
+        if (toFigure)
         {
             // b.hand.high: the height at which two hands that reach for each other meet.
-            double? meet = null;
-            if (words.Count == 3)
+            if (head.Count is not (2 or 3))
             {
-                meet = words[2].Text switch { "low" => -1, "mid" => 0, "high" => 1, _ => null };
-                if (meet is null || words[1].Text != "hand" || !isArm)
+                Error("SH1012", head[0].Word.Span, "A place on another dancer is its role and the place: b.hand, b.head.");
+                return null;
+            }
+            double? meet = null;
+            if (head.Count == 3)
+            {
+                meet = head[2].Text switch { "low" => -1, "mid" => 0, "high" => 1, _ => null };
+                if (meet is null || head[1].Text != "hand" || !isArm)
                 {
-                    Error("SH1012", words[2].Span, "Only an arm reaching for a hand takes a level, for where two hands meet: b.hand.high (a high five), b.hand.mid, b.hand.low.");
+                    Error("SH1012", head[2].Word.Span, "Only an arm reaching for a hand takes a height, for where two hands meet: b.hand.high (a high five), b.hand.mid, b.hand.low.");
                     return null;
                 }
             }
             if (!isArm && channel != Channels.Head)
             {
-                Error("SH1012", words[0].Span, "A place on another figure is for an arm (reach it) or the head (look at it).");
+                Error("SH1012", head[0].Word.Span, "A place on another dancer is for an arm (reach it) or the head (look at it).");
                 return null;
             }
-            if (!Vocabulary.Has(Vocabulary.Parts, words[1].Text))
+            if (!Vocabulary.Has(Vocabulary.Parts, head[1].Text))
             {
-                Error("SH1012", words[1].Span, $"'{words[1].Text}' is not a place on a figure.{Hint(words[1].Text, Vocabulary.Parts.Select(w => w.Name))}");
+                Error("SH1012", head[1].Word.Span, $"'{head[1].Text}' is not a place on a dancer.{Hint(head[1].Text, Vocabulary.Parts.Select(w => w.Name))}");
                 return null;
             }
-            return OtherDancer(words[0], ctx) is { } other ? new Seg { Kind = SegKinds.Reach, Target = other, Part = words[1].Text, Level = meet, Pole = jointPole } : null;
+            return OtherDancer(head[0].Word, ctx) is { } other ? new Seg { Kind = SegKinds.Reach, Target = other, Part = head[1].Text, Level = meet, Pole = jointPole } : null;
         }
 
         if (isPlace)
-        {
-            // A place sets the hand or the toe: how far the elbow or the knee bends follows from it.
-            if (bentWord is { } extra)
-                Error("SH1010", extra.Span, $"'{joined}' is a place: how far the {(isArm ? "elbow" : "knee")} bends follows from it. '@bent' is for a direction: {(isArm ? "fwd.25@bent" : "fwd.low@bent")}.");
             return new Seg { Kind = SegKinds.Anchor, Anchor = joined, Pole = jointPole };
-        }
 
-        if (LimbDirection(channel, side, words, arguments, mirror, inBrackets: false) is not { } direction)
+        if (LimbDirection(channel, side, head, mirror, inBrackets: false) is not { } direction)
             return null;
 
         // Only the part of the pointing square to the limb's line counts: along the line there is none.
@@ -2292,7 +2413,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         {
             string joint = isArm ? "elbow" : "knee";
             Report("SH2011", DiagnosticSeverity.Warning, poleSpan,
-                $"The {joint} is sent the way the {(isArm ? "arm" : "leg")} itself points, so which way it bends is not said. Point it square to the {(isArm ? "arm" : "leg")}: for a {(isArm ? "hand" : "foot")} out to the side, @{joint}(up), @{joint}(back) or @{joint}(fwd).");
+                $"The {joint} is sent the way the {(isArm ? "arm" : "leg")} itself points, so which way it bends is not said. Point it square to the {(isArm ? "arm" : "leg")}: for a {(isArm ? "hand" : "foot")} out to the side, {joint}(up), {joint}(back) or {joint}(fwd).");
         }
 
         return new Seg
@@ -2301,77 +2422,67 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
             Dir = [direction.X, direction.Y, direction.Z],
             Bend = bend,
             Pole = jointPole,
-            Body = isArm && flags.Contains("body"),
-            Round = channel == Channels.Torso && flags.Contains("round"),
+            Body = body,
+            Round = round,
         };
     }
 
     /// <summary>
-    /// The words of a direction (`fwd.high`, `side.-20`, `fwd.across(15)`), as a unit vector in the
-    /// dancer's frame (x left, y up, z forward). `side` is the part's own side. In the brackets of
-    /// `@elbow(...)` / `@knee(...)` it says where a joint points, so no pose or move fits there.
+    /// The words of a direction, as a unit vector in the dancer's frame (x left, y up, z forward):
+    /// one horizontal word, or two with the degrees from the first toward the second in a bracket on
+    /// the second (45 without); then `up` / `down` with the degrees above or below level (45 without).
+    /// `up` or `down` alone is straight up or down, and `up.fwd(10)` 10 degrees from upright toward fwd.
+    /// `side` is the part's own side. In the brackets of `elbow(…)` / `knee(…)` it says where a joint
+    /// points, so no pose or move fits there.
     /// </summary>
-    private Vec3? LimbDirection(string channel, int side, List<SyntaxToken> words, SyntaxNode? arguments, bool mirror, bool inBrackets)
+    private Vec3? LimbDirection(string channel, int side, List<Part> parts, bool mirror, bool inBrackets)
     {
         bool isLimb = side != 0;
         bool isArm = channel is Channels.LeftArm or Channels.RightArm;
-        double x = 0, z = 0;
-        double? elevation = null;
-        string? pole = null;
-        var flats = new List<(SyntaxToken Word, double X, double Z)>();   // the horizontal directions, as written
-        foreach (var word in words)
+
+        // Each word: a horizontal direction (its x and z), or up / down.
+        var flats = new List<(Part Part, double X, double Z)>();
+        var verticals = new List<Part>();
+        foreach (var part in parts)
         {
-            (double beforeX, double beforeZ) = (x, z);
-            if (word.Kind == SyntaxKind.Number)
+            switch (part.Text)
             {
-                // A number where the level goes: degrees above the horizontal.
-                double degrees = Number(word);
-                if (elevation is not null || degrees is < -90 or > 90)
-                {
-                    Error("SH1013", word.Span, "A target has one level: low, mid, high, or degrees above the horizontal from -90 to 90 (fwd.30, fwd.-70).");
-                    return null;
-                }
-                elevation = degrees * Math.PI / 180;
-                continue;
-            }
-            switch (word.Text)
-            {
-                case "fwd": z += 1; break;
-                case "back": z -= 1; break;
+                case "fwd": flats.Add((part, 0, 1)); break;
+                case "back": flats.Add((part, 0, -1)); break;
                 case "side" or "across":
                     if (!isLimb)
                     {
-                        Error("SH1011", word.Span, $"'{word.Text}' is for an arm or a leg; the {channel} says left or right.");
+                        Error("SH1011", part.Word.Span, $"'{part.Text}' is for an arm or a leg; the {channel} says left or right.");
                         return null;
                     }
-                    x += word.Text == "side" ? side : -side;
+                    flats.Add((part, part.Text == "side" ? side : -side, 0));
                     break;
                 case "left" or "right":
                     if (isLimb)
                     {
-                        bool outward = (word.Text == "left") == (side == 1);
-                        Error("SH1011", word.Span,
-                            $"An arm or a leg says side or across, so that both sides can be written alike. Here '{word.Text}' is '{(outward ? "side" : "across")}'.");
+                        bool outward = (part.Text == "left") == (side == 1);
+                        Error("SH1011", part.Word.Span,
+                            $"An arm or a leg says side or across, so that both sides can be written alike. Here '{part.Text}' is '{(outward ? "side" : "across")}'.");
                         return null;
                     }
-                    x += (word.Text == "left") != mirror ? 1 : -1;
-                    break;
-                case "low" or "mid" or "high":
-                    if (elevation is not null)
-                    {
-                        Error("SH1013", word.Span, "A target has one level: low, mid, high, or degrees above the horizontal.");
-                        return null;
-                    }
-                    elevation = word.Text switch { "high" => Math.PI / 4, "low" => -Math.PI / 4, _ => 0 };
+                    flats.Add((part, (part.Text == "left") != mirror ? 1 : -1, 0));
                     break;
                 case "up" or "down":
-                    pole = word.Text;
+                    verticals.Add(part);
                     break;
+                case "low" or "mid" or "high":
+                    Error("SH1012", part.Word.Span, $"A direction goes up or down: fwd.up, fwd.down (45 degrees), fwd.up(30); level is the direction alone. ('{part.Text}' is a height: height {{ {part.Text} }}, b.hand.{part.Text}.)");
+                    return null;
                 default:
-                    var directions = Vocabulary.Directions.Concat(Vocabulary.Levels).Concat(Vocabulary.Poles).Select(w => w.Name);
+                    if (part.Word.Kind == SyntaxKind.Number)
+                    {
+                        Error("SH1013", part.Word.Span, $"Degrees go in brackets after the word they belong to: fwd.up(30), side.down(20), fwd.left(30). {DirectionForm}");
+                        return null;
+                    }
+                    var directions = Vocabulary.Directions.Concat(Vocabulary.Poles).Select(w => w.Name);
                     if (inBrackets)
                     {
-                        Error("SH1012", word.Span, $"'{word.Text}' is not a direction. Which way a joint points is written as a direction: side, back, fwd.low, side.high.{Hint(word.Text, directions)}");
+                        Error("SH1012", part.Word.Span, $"'{part.Text}' is not a direction. Which way a joint points is written as a direction: side, back, fwd.down, side.up.{Hint(part.Text, directions)}");
                         return null;
                     }
                     var known = directions.Append(Vocabulary.Hold).Append(Vocabulary.Skip).Concat(_defs.Keys);
@@ -2379,169 +2490,227 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                         known = known.Concat(Vocabulary.Anchors.Select(w => w.Name));
                     else if (isLimb)
                         known = known.Concat(Vocabulary.LegAnchors.Select(w => w.Name));
-                    Error("SH1012", word.Span, $"'{word.Text}' is not a direction, a level, or a pose or move of this file.{Hint(word.Text, known)}");
+                    Error("SH1012", part.Word.Span, $"'{part.Text}' is not a direction, a place, or a pose or move of this file.{Hint(part.Text, known)}");
                     return null;
             }
-            if (x != beforeX || z != beforeZ)
-                flats.Add((word, x - beforeX, z - beforeZ));
         }
 
-        if (arguments is not null)
+        const string Amount = "Brackets in a direction are degrees, from 0 to 90: fwd.left(30), fwd.up(30), up.fwd(10).";
+        bool Bad(Part part)
         {
-            var degrees = Tokens(arguments, SyntaxKind.Number);
-            int bracketed = words.Where(w => w.Span.End <= arguments.Span.Start).Select(w => w.Span.Start).DefaultIfEmpty(-1).Last();
-            bool between = flats.Count == 2 && bracketed == flats[1].Word.Span.Start &&Math.Abs(flats[0].X * flats[1].X + flats[0].Z * flats[1].Z) < 1e-9;
-            if (!between || degrees.Count != 1 || arguments.ChildNodes().Any() || Number(degrees[0]) is < 0 or > 90)
-            {
-                Error("SH1013", arguments.Span, Between);
-                return null;
-            }
-            double round = Number(degrees[0]) * Math.PI / 180;
-            (x, z) = (flats[0].X * Math.Cos(round) + flats[1].X * Math.Sin(round), flats[0].Z * Math.Cos(round) + flats[1].Z * Math.Sin(round));
+            Error("SH1013", part.Bracket?.Span ?? part.Word.Span, DirectionForm);
+            return true;
         }
 
-        Vec3 direction;
-        if (pole is not null)
+        // up or down alone: straight up or down.
+        if (parts is [{ Text: "up" or "down" } pole])
         {
-            if (words.Count > 1)
-            {
-                Error("SH1013", words[0].Span, $"'{pole}' stands alone; a slanted direction is written with a level: fwd.high, side.low, fwd.30.");
+            if (pole.Bracket is not null && Bad(pole))
                 return null;
-            }
-            direction = new Vec3(0, pole == "up" ? 1 : -1, 0);
+            return new Vec3(0, pole.Text == "up" ? 1 : -1, 0);
         }
-        else if (x == 0 && z == 0)
+
+        // up.fwd(10): from straight up (or down) toward one horizontal word.
+        if (parts is [{ Text: "up" or "down" } from, var toward] && flats.Count == 1)
         {
-            Error("SH1013", words[0].Span, "A direction is needed: fwd, back, side, across (left or right for the torso and head), or up / down.");
+            if (from.Bracket is not null && Bad(from))
+                return null;
+            double off = 45;
+            if (toward.Bracket is { } b)
+            {
+                if (Degrees(b, 90, Amount) is not { } d)
+                    return null;
+                off = d;
+            }
+            double radians = off * Math.PI / 180, sign = from.Text == "up" ? 1 : -1;
+            return new Vec3(flats[0].X, 0, flats[0].Z) * Math.Sin(radians) + Vec3.Up * (sign * Math.Cos(radians));
+        }
+
+        // fwd, fwd.left(30), fwd.up(30), fwd.left(30).up(10): horizontal words first, then one vertical.
+        int horizontal = flats.Count;
+        if (horizontal is < 1 or > 2 || verticals.Count > 1 || parts.Count != horizontal + verticals.Count
+            || verticals.Count == 1 && parts[^1].Text is not ("up" or "down")
+            || parts.Take(horizontal).Any(p => p.Text is "up" or "down"))
+        {
+            Error("SH1013", parts[0].Word.Span, DirectionForm);
             return null;
         }
-        else
+        if (flats[0].Part.Bracket is not null)
         {
-            var flat = new Vec3(x, 0, z).Normalized();
-            direction = flat * Math.Cos(elevation ?? 0) + Vec3.Up * Math.Sin(elevation ?? 0);
+            Error("SH1013", flats[0].Part.Bracket!.Span, $"The first word of a direction takes no degrees: the degrees go on the word it turns toward, fwd.left(30), fwd.up(30). {DirectionForm}");
+            return null;
         }
-        return direction;
+        double x = flats[0].X, z = flats[0].Z;
+        if (horizontal == 2)
+        {
+            var (second, x2, z2) = flats[1];
+            if (Math.Abs(flats[0].X * x2 + flats[0].Z * z2) > 1e-9)
+            {
+                Error("SH1013", second.Word.Span, $"'{flats[0].Part.Text}' and '{second.Text}' are not at right angles, so there is nothing between them to turn through. {Between}");
+                return null;
+            }
+            double round = 45;
+            if (second.Bracket is { } b)
+            {
+                if (Degrees(b, 90, Between) is not { } d)
+                    return null;
+                round = d;
+            }
+            double r = round * Math.PI / 180;
+            (x, z) = (x * Math.Cos(r) + x2 * Math.Sin(r), z * Math.Cos(r) + z2 * Math.Sin(r));
+        }
+        double elevation = 0;
+        if (verticals.Count == 1)
+        {
+            var vertical = verticals[0];
+            double degrees = 45;
+            if (vertical.Bracket is { } b)
+            {
+                if (Degrees(b, 90, Amount) is not { } d)
+                    return null;
+                degrees = d;
+            }
+            elevation = (vertical.Text == "up" ? 1 : -1) * degrees * Math.PI / 180;
+        }
+        var flat = new Vec3(x, 0, z).Normalized();
+        return flat * Math.Cos(elevation) + Vec3.Up * Math.Sin(elevation);
     }
 
-    private Seg? BindSupport(List<SyntaxToken> words, SyntaxNode? arguments, List<SyntaxNode> annotations, bool mirror, bool free, Ctx ctx)
+    /// <summary>
+    /// A word of the `steps` track: what the feet do on the floor. A step names its foot
+    /// (`leftFoot.fwd`), and how far it goes in a bracket on its direction (`leftFoot.fwd(0.3m)`).
+    /// The height the body stands at is the `height` track's, never a step's.
+    /// </summary>
+    private Seg? BindSupport(List<Part> parts, List<SyntaxNode> annotations, bool mirror, bool free, Ctx ctx)
     {
-        double scale = 1, turn = 0;
+        var words = parts.Select(p => p.Word).ToList();
+        double turn = 0;
         SyntaxToken? turnWord = null;
         foreach (var annotation in annotations)
         {
             var name = annotation.Token(SyntaxKind.Identifier)!;
-            switch (name.Text)
+            if (name.Text == "turn")
             {
-                case "bent":
-                    Error("SH1010", name.Span, "'@bent' is for an arm or a leg; bent knees under the weight are a level: both.low, left.fwd.low.");
-                    break;
-                case "body":
-                    Error("SH1010", name.Span, "'@body' is for an arm.");
-                    break;
-                case "elbow":
-                    Error("SH1010", name.Span, "'@elbow' is for an arm.");
-                    break;
-                case "knee":
-                    Error("SH1010", name.Span, "'@knee' is for a leg in the air: rightLeg { back.20@bent@knee(side.high) }. Knees under the weight bend the way the feet point (turnout).");
-                    break;
-                case "round":
-                    Error("SH1010", name.Span, "'@round' is for the torso: torso { fwd.80@round }");
-                    break;
-                case "small": scale = 0.6; break;
-                case "large": scale = 1.4; break;
-                case "turn":
-                    turnWord = name;
-                    turn = TurnArgument(annotation, mirror) ?? 0;
-                    break;
+                turnWord = name;
+                turn = TurnArgument(annotation, mirror) ?? 0;
             }
         }
 
         var head = words[0];
-        var rest = words.Skip(1).ToList();
+        var rest = parts.Skip(1).ToList();
         string Side(string word) => mirror ? (word == "left" ? "right" : word == "right" ? "left" : word) : word;
+        string Foot(string word) => word == "leftFoot" ? Side("left") : Side("right");
 
-        if (arguments is not null && head.Text != "lift")
-            Error("SH1012", arguments.Span, "Only lift takes a number in brackets: lift(0.4)");
-        if (turnWord is not null && head.Text is not ("left" or "right" or "jump"))
-            Error("SH1010", turnWord.Span, "'@turn(...)' is for a step or a jump. A turn on the spot is a word of its own: turn.left.quarter");
+        if (turnWord is not null && head.Text is not ("leftFoot" or "rightFoot" or "jump" or "hop" or "leap"))
+            Error("SH1010", turnWord.Span, "'@turn(...)' is for a step or a jump. A turn on the spot is a word of its own: turn.left(90)");
+        // A height is the height track's.
+        if (parts.FirstOrDefault(p => p.Text is "low" or "mid" or "high") is { Word: { } level })
+        {
+            Error("SH1012", level.Span, $"How high the body stands is a row of its own, kept until it is changed: height {{ {level.Text} }}. A step only puts a foot down.");
+            return null;
+        }
+        // Brackets in steps: metres (how far), or the degrees of a turn.
+        bool BracketsOnly(params string[] allowed)
+        {
+            foreach (var part in parts)
+            {
+                if (part.Bracket is { } stray && !allowed.Contains(part.Text))
+                {
+                    Error("SH1012", stray.Span, $"'{part.Text}' takes no brackets here.");
+                    return false;
+                }
+            }
+            return true;
+        }
 
-        double? LevelOf(SyntaxToken word) => word.Text switch { "low" => -1, "mid" => 0, "high" => 1, _ => null };
+        // How far a written direction goes: its bracket in metres, or what it goes without one.
+        double? Distance(Part part, double unwritten, string example)
+        {
+            if (part.Bracket is null)
+                return unwritten;
+            return Metres(part.Bracket, $"How far is written in metres: {example}.");
+        }
 
         switch (head.Text)
         {
-            case "together":
+            case "together" or "stand":
             {
-                // Like a step, a close arrives at a height, and unwritten means normal.
-                var seg = new Seg { Kind = SegKinds.Together, Level = 0 };
-                foreach (var word in rest)
+                // The free foot closes to the supporting one: touching (`together`), or at the width one stands at (`stand`).
+                if (!BracketsOnly())
+                    return null;
+                if (rest.Count > 0)
                 {
-                    if (LevelOf(word) is not { } level)
-                    {
-                        Error("SH1012", word.Span, "A close takes only a level: together, together.low, together.high.");
-                        return null;
-                    }
-                    seg.Level = level < 0 ? level * BendScale(scale) : level;
+                    Error("SH1012", rest[0].Word.Span, $"'{head.Text}' is one word: the free foot closes to the other one.");
+                    return null;
                 }
-                return seg;
+                return new Seg { Kind = SegKinds.Together, Spread = head.Text == "stand" ? Rig.Stance : null };
             }
 
             case "turn":
-                if (rest.Count == 2 && rest[0].Text is "left" or "right" && !double.IsNaN(Vocabulary.TurnDegrees(rest[1].Text)))
-                {
-                    double degrees = Vocabulary.TurnDegrees(rest[1].Text);
-                    return new Seg { Kind = SegKinds.Turn, TurnDeg = Side(rest[0].Text) == "left" ? degrees : -degrees };
-                }
-                if (rest.Count == 1 && _figures.ContainsKey(rest[0].Text))
-                    return OtherDancer(rest[0], ctx) is { } other ? new Seg { Kind = SegKinds.Turn, Target = other } : null;
-                Error("SH1014", head.Span, "A turn is written with its side and its amount: turn.left.quarter, turn.right.half (eighth, quarter, half, full). To face another figure: turn.b");
+                if (parts is [_, { Text: "left" or "right", Bracket: not null } side])
+                    return Turned(side, mirror) is { } degrees ? new Seg { Kind = SegKinds.Turn, TurnDeg = degrees } : null;
+                if (parts is [_, { Bracket: null } figure] && _figures.ContainsKey(figure.Text))
+                    return OtherDancer(figure.Word, ctx) is { } other ? new Seg { Kind = SegKinds.Turn, Target = other } : null;
+                Error("SH1014", head.Span, "A turn is written with its side and its degrees: turn.left(90), turn.right(180). To face another dancer: turn.b (its role)");
                 return null;
 
-            case "jump":
+            case "jump" or "hop" or "leap":
             {
-                var seg = new Seg { Kind = SegKinds.Jump, TurnDeg = turn };
-                foreach (var word in rest)
+                // Which foot it lands on: both (`jump`), the one it stands on (`hop`), the one that carries no weight (`leap`).
+                // Where to: the figure's own place, fwd, back, left, right, from where it takes off.
+                string lands = head.Text switch { "jump" => "both", "hop" => "same", _ => "other" };
+                double unwritten = head.Text switch { "jump" => 0.4, "hop" => 0.25, _ => 0.8 };
+                var seg = new Seg { Kind = SegKinds.Jump, TurnDeg = turn, Lands = lands };
+                if (parts[0].Bracket is not null)
                 {
-                    switch (word.Text)
+                    Error("SH1012", parts[0].Bracket!.Span, $"How far goes on the way it goes: {head.Text}.fwd(0.6m).");
+                    return null;
+                }
+                foreach (var part in rest)
+                {
+                    string example = $"{head.Text}.{part.Text}(0.6m)";
+                    switch (part.Text)
                     {
-                        case "place": break;
-                        case "fwd": seg.Dz = 0.4 * scale; break;
-                        case "back": seg.Dz = -0.3 * scale; break;
-                        case "left" or "right": seg.Dx = (Side(word.Text) == "left" ? 0.4 : -0.4) * scale; break;
-                        case "apart": seg.Spread = 0.6 * scale; break;
-                        case "together": seg.Spread = Rig.Stance; break;
+                        case "place":
+                            if (part.Bracket is not null && !BracketsOnly())
+                                return null;
+                            break;
+                        case "fwd" or "back":
+                            if (Distance(part, unwritten, example) is not { } along)
+                                return null;
+                            seg.Dz = part.Text == "fwd" ? along : -along;
+                            break;
+                        case "left" or "right":
+                            if (Distance(part, head.Text == "leap" ? 0.6 : unwritten, example) is not { } aside)
+                                return null;
+                            seg.Dx = Side(part.Text) == "left" ? aside : -aside;
+                            break;
+                        case "apart" or "together" or "stand" when head.Text == "jump":
+                            if (part.Text == "apart")
+                            {
+                                if (Distance(part, 0.6, "jump.apart(0.6m)") is not { } wide)
+                                    return null;
+                                seg.Spread = wide;
+                            }
+                            else
+                            {
+                                if (part.Bracket is not null && !BracketsOnly())
+                                    return null;
+                                seg.Spread = part.Text == "stand" ? Rig.Stance : -1;   // -1: touching, as `together` closes
+                            }
+                            break;
                         default:
-                            Error("SH1012", word.Span, $"A jump goes place, fwd, back, left, right, apart or together.{Hint(word.Text, ["place", "fwd", "back", "left", "right", "apart", "together"])}");
+                            var ways = head.Text == "jump" ? new[] { "place", "fwd", "back", "left", "right", "apart", "stand", "together" } : ["place", "fwd", "back", "left", "right"];
+                            Error("SH1012", part.Word.Span, $"A {head.Text} goes {string.Join(", ", ways)}.{Hint(part.Text, ways)}");
                             return null;
                     }
                 }
                 return seg;
             }
 
-            case "both":
-            {
-                double? level = null;
-                foreach (var word in rest)
-                {
-                    if (word.Text == "place")
-                        continue;
-                    if (LevelOf(word) is not { } value)
-                    {
-                        Error("SH1012", word.Span, "Both feet stay where they are and change height: both.low, both.mid, both.high. To travel, step with one foot or jump.");
-                        return null;
-                    }
-                    level = value;
-                }
-                if (level is null)
-                {
-                    Error("SH1013", head.Span, "A level is needed: both.low, both.mid, both.high.");
-                    return null;
-                }
-                // The feet do not travel here, so the size is the size of the knee bend:
-                // both.low@small is a slight bend, both.low@large a deep crouch.
-                return new Seg { Kind = SegKinds.Level, Level = level < 0 ? level * BendScale(scale) : level };
-            }
-
             case "shift":
+                if (!BracketsOnly())
+                    return null;
                 if (rest.Count == 1 && Vocabulary.Has(Vocabulary.ShiftWords, rest[0].Text))
                     return new Seg { Kind = SegKinds.Shift, Foot = Side(rest[0].Text) };
                 Error("SH1012", head.Span, "The weight shifts over a foot or between them: shift.left, shift.right, shift.center.");
@@ -2552,79 +2721,163 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                 if (!free)
                 {
                     Error("SH1022", head.Span, head.Text == "lift"
-                        ? "Only a free body can hang in the air: lift(0.4)@free, or free on the dancer line. A jump that obeys gravity is: jump"
+                        ? "Only a free body can hang in the air: lift(0.4m)@free, or free on the dancer line. A jump that obeys gravity is: jump"
                         : "'land' brings a free body back to the floor; it follows a lift.");
                     return null;
                 }
                 var seg = new Seg { Kind = head.Text == "lift" ? SegKinds.Lift : SegKinds.Land };
-                foreach (var word in rest)
+                foreach (var part in rest)
                 {
-                    switch (word.Text)
+                    string example = $"{head.Text}{(head.Text == "lift" ? "(0.4m)" : "")}.{part.Text}(0.4m)";
+                    switch (part.Text)
                     {
                         case "place": break;
-                        case "fwd": seg.Dz = 0.4 * scale; break;
-                        case "back": seg.Dz = -0.3 * scale; break;
-                        case "left" or "right": seg.Dx = (Side(word.Text) == "left" ? 0.4 : -0.4) * scale; break;
+                        case "fwd" or "back":
+                            if (Distance(part, 0.4, example) is not { } along)
+                                return null;
+                            seg.Dz = part.Text == "fwd" ? along : -along;
+                            break;
+                        case "left" or "right":
+                            if (Distance(part, 0.4, example) is not { } aside)
+                                return null;
+                            seg.Dx = Side(part.Text) == "left" ? aside : -aside;
+                            break;
                         default:
-                            Error("SH1012", word.Span, $"A {head.Text} goes place, fwd, back, left or right.{Hint(word.Text, ["place", "fwd", "back", "left", "right"])}");
+                            Error("SH1012", part.Word.Span, $"A {head.Text} goes place, fwd, back, left or right.{Hint(part.Text, ["place", "fwd", "back", "left", "right"])}");
                             return null;
                     }
                 }
                 if (head.Text == "lift")
                 {
-                    var height = arguments is null ? [] : Tokens(arguments, SyntaxKind.Number);
-                    if (height.Count != 1 || arguments!.ChildNodes().Any() || Number(height[0]) < 0)
+                    const string HowHigh = "A lift says how high the feet are above the floor, in metres: lift(0.4m), lift(40cm)";
+                    if (parts[0].Bracket is null)
                     {
-                        Error("SH1013", head.Span, "A lift says how high the feet are above the floor, in metres: lift(0.4)");
+                        Error("SH1013", head.Span, HowHigh);
                         return null;
                     }
-                    seg.Height = Number(height[0]);
+                    if (Metres(parts[0].Bracket!, HowHigh) is not { } height)
+                        return null;
+                    seg.Height = height;
+                }
+                else if (parts[0].Bracket is not null)
+                {
+                    Error("SH1012", parts[0].Bracket!.Span, "'land' comes down to the floor: it takes no height.");
+                    return null;
                 }
                 return seg;
             }
 
-            case "left" or "right":
+            case "leftFoot" or "rightFoot":
             {
-                // A step always arrives at a height: unwritten is normal height, so the step
-                // after one on the toes comes down again without being told to.
-                var seg = new Seg { Kind = SegKinds.Step, Foot = Side(head.Text), Dx = Rig.Stance, Level = 0, TurnDeg = turn, Stance = ctx.Stance };
-                bool crossed = false, back = false;
-                foreach (var word in rest)
+                var seg = new Seg { Kind = SegKinds.Step, Foot = Foot(head.Text), Dx = Rig.Stance, TurnDeg = turn, Stance = ctx.Stance };
+                if (parts[0].Bracket is not null)
                 {
-                    switch (word.Text)
+                    Error("SH1012", parts[0].Bracket!.Span, $"How far goes on the way the foot goes: {head.Text}.fwd(0.3m).");
+                    return null;
+                }
+                bool crossed = false, back = false;
+                double? crossing = null;
+                foreach (var part in rest)
+                {
+                    string example = $"{head.Text}.{part.Text}(0.3m)";
+                    switch (part.Text)
                     {
-                        case "place": break;
-                        case "fwd": seg.Dz += Rig.Stride * scale; break;
-                        case "back": seg.Dz -= Rig.Stride * scale; back = true; break;
-                        case "side": seg.Dx = Rig.Stance + Rig.SideStep * scale; break;
-                        case "across": seg.Dx = -0.08; crossed = true; break;
-                        case "low": seg.Level = -1; break;
-                        case "mid": seg.Level = 0; break;
-                        case "high": seg.Level = 1; break;
+                        case "place":
+                            if (part.Bracket is not null && !BracketsOnly())
+                                return null;
+                            break;
+                        case "fwd" or "back":
+                            if (Distance(part, Rig.Stride, example) is not { } along)
+                                return null;
+                            seg.Dz += part.Text == "fwd" ? along : -along;
+                            back |= part.Text == "back";
+                            break;
+                        case "side":
+                            // How far apart the feet land.
+                            if (Distance(part, Rig.Stance + Rig.SideStep, $"{head.Text}.side(0.5m) (the feet 0.5 m apart)") is not { } apart)
+                                return null;
+                            seg.Dx = apart;
+                            break;
+                        case "across":
+                            // How far in front of (or with back, behind) the other foot it crosses.
+                            if (Distance(part, 0.12, $"{head.Text}.across(0.2m) (crossing 0.2 m in front)") is not { } cross)
+                                return null;
+                            seg.Dx = -0.08;
+                            crossed = true;
+                            if (part.Bracket is not null)
+                                crossing = cross;
+                            break;
                         default:
-                            Error("SH1012", word.Span, word.Kind == SyntaxKind.Number
-                                ? "Under the weight a level is low, mid or high; degrees are for arms, free legs, the torso and the head."
-                                : $"'{word.Text}' is not a step direction or a level.{Hint(word.Text, Vocabulary.StepDirections.Concat(Vocabulary.Levels).Select(w => w.Name))}");
+                            Error("SH1012", part.Word.Span, part.Word.Kind == SyntaxKind.Number
+                                ? $"How far is written in metres in brackets: {head.Text}.fwd(0.3m)."
+                                : $"'{part.Text}' is not a step direction.{Hint(part.Text, Vocabulary.StepDirections.Select(w => w.Name))}");
                             return null;
                     }
                 }
                 // A crossing foot goes just in front of the other one, or with `back` just behind
                 // it: a cross is not a stride. (`fwd.across` is a full stride that crosses.)
                 if (crossed && seg.Dz == 0)
-                    seg.Dz = 0.12 * scale;
-                else if (crossed && back)
-                    seg.Dz = -0.12 * scale;
+                    seg.Dz = crossing ?? 0.12;
+                else if (crossed && back && seg.Dz == -Rig.Stride && crossing is null)
+                    seg.Dz = -0.12;
                 return seg;
             }
+
+            case "left" or "right" when rest.Count > 0 && Vocabulary.Has(Vocabulary.StepDirections, rest[0].Text):
+                Error("SH1012", head.Span, $"A step names its foot: {head.Text}Foot.{string.Join('.', rest.Select(p => p.Text))}. ('{head.Text}' is always a direction: jump.{head.Text}, turn.{head.Text}(90).)");
+                return null;
+
+            case "both":
+                Error("SH1012", head.Span, "How high the body stands is a row of its own, kept until it is changed: height { low }, height { low(30cm) }, height { mid }, height { high }.");
+                return null;
         }
 
         var heads = Vocabulary.Feet.Concat(Vocabulary.SupportActions).Select(w => w.Name).Append(Vocabulary.Hold).Append(Vocabulary.Skip).Concat(_defs.Keys);
         string hintText = Vocabulary.Has(Vocabulary.Directions, head.Text) || Vocabulary.Has(Vocabulary.Poles, head.Text)
-            ? $" A step names its foot first: left.{head.Text}, right.{head.Text}."
+            ? $" A step names its foot first: leftFoot.{head.Text}, rightFoot.{head.Text}."
             : Hint(head.Text, heads);
         Error("SH1012", head.Span, $"'{head.Text}' is not something the feet do.{hintText}");
         return null;
     }
+
+    /// <summary>
+    /// A word of the `height` track: how high the body stands on its feet, kept until it is changed.
+    /// `low` bends the knees, the hips <see cref="Rig.LowDrop"/> lower (or as far as its bracket says),
+    /// `mid` stands straight, `high` on the toes.
+    /// </summary>
+    private Seg? BindHeight(List<Part> parts)
+    {
+        const string Form = "The height is low (the knees bent, the hips 16 cm lower), low(30cm) for as far down as that, mid, or high (on the toes): height { low mid high }";
+        if (parts is [{ Text: "mid" or "high" } level])
+        {
+            if (level.Bracket is not null)
+            {
+                Error("SH1012", level.Bracket.Span, $"Only low says how far: low(30cm). {Form}");
+                return null;
+            }
+            return new Seg { Kind = SegKinds.Level, Level = level.Text == "high" ? 1 : 0 };
+        }
+        if (parts is [{ Text: "low" } low])
+        {
+            double drop = Rig.LowDrop;
+            if (low.Bracket is { } bracket)
+            {
+                if (Metres(bracket, $"How far down the hips go, in centimetres or metres: low(30cm). {Form}") is not { } metres)
+                    return null;
+                if (metres <= 0 || metres > 0.6)
+                {
+                    Error("SH1013", bracket.Span, "The hips go down from a little (low(5cm)) to a deep crouch (low(60cm)).");
+                    return null;
+                }
+                drop = metres;
+            }
+            return new Seg { Kind = SegKinds.Level, Level = -drop / Rig.LowDrop };
+        }
+        var known = Vocabulary.Levels.Select(w => w.Name).Append(Vocabulary.Hold).Append(Vocabulary.Skip).Concat(_defs.Keys);
+        Error("SH1012", parts[0].Word.Span, $"'{string.Join('.', parts.Select(p => p.Text))}' is not a height. {Form}{Hint(parts[0].Text, known)}");
+        return null;
+    }
+
 
     /// <summary>
     /// SH2001. A part sent to the exact opposite of where it is can get there by any way

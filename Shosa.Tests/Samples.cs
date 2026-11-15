@@ -24,11 +24,11 @@ internal static class Samples
     public const string Walk = """
         tempo 100
         time 4/4
-        figure solo
+        role solo
         dancer solo humanoid on solo
         section Walk {
           solo {
-            steps { left.fwd right.fwd left.fwd right.fwd | left.fwd right.fwd left.fwd together }
+            steps { leftFoot.fwd rightFoot.fwd leftFoot.fwd rightFoot.fwd | leftFoot.fwd rightFoot.fwd leftFoot.fwd stand }
             arms  { side:2 down:2 | then:4 }
           }
         }
@@ -37,7 +37,7 @@ internal static class Samples
         """;
 
     /// <summary>The one body most tests are about: a figure and the dancer who dances it.</summary>
-    public const string SoloCast = "figure solo\ndancer solo humanoid on solo\n";
+    public const string SoloCast = "role solo\ndancer solo humanoid on solo\n";
 
     /// <summary>
     /// A whole file around the tracks of one body: a section P that `solo` dances, the form

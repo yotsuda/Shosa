@@ -73,7 +73,7 @@ Movement is written in `anim/*.shosa` and compiled; never edit the `.glb` files.
    problem — the message says what to change — or `no problems`, then every score with
    its length and each section's beats, bars, seconds, tempo and time, then every mark
    with its beat and second. Take lengths and times from here; do not compute them.
-   A line ``solo starts with `left.fwd` already made`` under a score is not a problem: it
+   A line ``solo starts with `leftFoot.fwd` already made`` under a score is not a problem: it
    says the score begins with that foot already there, so that first step is not seen
    (right for a stance or a dance to a song; where the step must be seen, a `then` before it).
    A line for each dancer says where it is at the end: ``solo ends 1 m forward and 0.35 m to
@@ -86,14 +86,14 @@ Movement is written in `anim/*.shosa` and compiled; never edit the `.glb` files.
    move's length: `a file of parts, for using: pose guard, move jab (2 beats)`.
 4. **`shosa sheet FILE -o X.png`** and look. How to read the image, and what it cannot
    show at its default spacing, is under "Checking your work" in the grammar.
-   Under each pose the figure is drawn from above (hips grey with a dot at each end, shoulders
+   Under each pose the dancer is drawn from above (hips grey with a dot at each end, shoulders
    blue and red, the nose): which way it faces and which shoulder or hip is ahead under
    `shoulders` or `hips` are read there — the direction, not the degrees.
    The degrees are in **`shosa check FILE --at 3,0.75s`** (beats; seconds with an `s`): a line
    for each moment, ``Punch at beat 3 = 0.75 s: hips 20° left, shoulders 45° left, face 30°
    right and 10° up; bent: elbows 15° left, 90° right, knees 2° left, 2° right``, the turns all
    from the way the feet face — the numbers the `hips`, `shoulders` and `head` rows are written
-   in, and the bends as `@bent(N)` counts them — so a line that differs from the rows is worth a
+   in, and the bends as `bent(N)` counts them — so a line that differs from the rows is worth a
    look (SH2010 says where the shoulders do not get to).
    What is left (by how many centimetres, how high a fist
    arrives, whether the head moved) is in **`shosa clip FILE -o X.json`**: every joint's
@@ -129,7 +129,7 @@ shosa bvh  FILE -o hero.bvh              for Blender and motion tools
   ```
 
   - `loop` — the score says `loop`: the end joins the start.
-  - `velocity` — only with `inplace`: metres a second, [x, y, z], for each dancer. The
+  - `velocity` — only with `inPlace`: metres a second, [x, y, z], for each dancer. The
     travel is taken out of the animation; the engine moves the character by this.
   - `marks` — the `!name` of the file, only if there are any: `time` in seconds from
     the start of the animation, the `beat`, the figure that wrote it, the section it is
@@ -226,7 +226,7 @@ player.play("Combo")
 
 Godot scales the travel of the hips by the character's size (`motion_scale`, the height
 of its hips: a character with shorter legs takes shorter steps and its feet do not
-slide), so `velocity` of an `inplace` score is to be scaled the same way:
+slide), so `velocity` of an `inPlace` score is to be scaled the same way:
 `velocity * character_skeleton.motion_scale / 0.98`. Limbs keep their angles, not their
 reach: a hand that touches the head on Shosa's figure lands where the character's
 proportions put it. Through an `AnimationTree` the marks are signalled for every

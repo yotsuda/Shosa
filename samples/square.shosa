@@ -4,12 +4,12 @@ title "Square"
 tempo 110
 time 3/4
 
-figure solo
+role solo
 dancer solo humanoid on solo
 
 section Side {
   solo {
-    steps { left.fwd right.fwd left.fwd@turn(left.quarter) }
+    steps { leftFoot.fwd rightFoot.fwd leftFoot.fwd@turn(left(90)) }
   }
 }
 

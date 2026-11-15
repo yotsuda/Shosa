@@ -21,16 +21,16 @@ internal static class Words
 
     private static readonly Vocabulary.Word[] TurnSides =
     [
-        new("left", "Turn to the figure's left (counter-clockwise seen from above)."),
-        new("right", "Turn to the figure's right."),
+        new("left", "Turn to the dancer's left (counter-clockwise seen from above): left(90)."),
+        new("right", "Turn to the dancer's right: right(90)."),
     ];
 
     private static readonly Vocabulary.Word[] DancerClauses =
     [
-        new("on", "on FIGURE — the figure whose choreography this dancer dances."),
+        new("on", "on ROLE — the role whose choreography this dancer dances."),
         new("at", "Start position in metres: at X Z (x is stage left, z is toward the audience)."),
-        new("facing", "facing front | back | stageLeft | stageRight, or degrees (positive turns left)."),
-        new("mirror", "Dances the figure with left and right swapped."),
+        new("facing", "facing front | back | stageLeft | stageRight, or left(N) / right(N): N degrees turned from the front."),
+        new("mirror", "Dances the role with left and right swapped."),
         new("delay", "delay N — starts N beats late (a canon)."),
         new("free", "The rules of weight and gravity never apply to this body: it can hang in the air (lift)."),
         new("in", "in SECTION … — dances only in these sections."),
@@ -49,7 +49,7 @@ internal static class Words
         new("dancer", "dancer NAME — a dancer who appears in this score. Every score lists at least one."),
         new("form", "form NAME — the form this score plays, instead of the unnamed one."),
         new("loop", "The end joins the start: the score is solved as if it followed itself."),
-        new("inplace", "The travel over the floor is taken out of the output and given to the engine as a velocity."),
+        new("inPlace", "The travel over the floor is taken out of the output and given to the engine as a velocity."),
         new("tempo", "tempo N — the tempo this score begins at; the tempos after it keep their proportion. tempo 50% is half of what it would begin at; tempo 4. = 60 says it by a note."),
         new("title", "title \"…\""),
         new("music", "music \"song.lys\" score NAME — this score is danced to another song, or to another of the song's scores."),
@@ -76,11 +76,11 @@ internal static class Words
         new("time", "time N/N — beats per bar / beat unit."),
         new("fps", "fps N — frames per second of the output, and what `:12f` counts (30 if not written)."),
         new("music", "music \"song.lys\" score NAME — the Lily# song this is danced to: tempo, time and the order of the sections come from it."),
-        new("figure", "figure NAME — an owner of choreography: its tracks are written in its block in each section."),
-        new("dancer", "dancer NAME humanoid on FIGURE at X Z facing … — a body that dances a figure."),
+        new("role", "role NAME — a part in the dance, an owner of choreography: its tracks are written in its block in each section."),
+        new("dancer", "dancer NAME humanoid on ROLE at X Z facing … — a body that dances a role."),
         new("pose", "pose NAME { TRACK { target } } — a named way of standing or holding the body."),
         new("move", "move NAME { TRACK { events } } — a named row of events; written with a length it is stretched to it."),
-        new("section", "section NAME { FIGURE { TRACK { … } } } — a stretch of time: what each figure does in it."),
+        new("section", "section NAME { ROLE { TRACK { … } } } — a stretch of time: what each role does in it."),
         new("form", "form { A |: B :| } — the order the sections are played in. A named one (form short { B }) is played by the score that names it."),
         new("score", "score NAME { dancer D  form F  loop } — one file written: who dances, and which form. The unnamed score plays the unnamed form."),
     ];
@@ -102,7 +102,7 @@ internal static class Words
             "fps" => "fps ${1:30}",
             "music" => "music \"$1\"",
             "using" => "using \"$1\"",
-            "figure" => "figure ${1:" + figure + "}",
+            "role" => "role ${1:" + figure + "}",
             "dancer" => "dancer ${1:" + dancer + "} humanoid on ${2:" + figure + "}",
             "pose" => "pose ${1:name} {\n  ${2:arms} { $0 }\n}",
             "move" => "move ${1:name} {\n  ${2:steps} { $0 }\n}",
@@ -226,7 +226,7 @@ internal static class Words
         definitions ??= [];
         figures ??= [];
         if (before.Count > 0 && figures.Any(f => f.Name == before[0]))
-            return before.Count == 1 ? Vocabulary.Parts : [];
+            return before.Count == 1 ? Vocabulary.Parts : before.Count == 2 && before[1] == "hand" ? Vocabulary.Levels : [];
 
         if (track == "body")
             return before.Count == 0 ? [.. definitions, Hold, Skip, Again] : [];
@@ -235,30 +235,39 @@ internal static class Words
         {
             if (before.Count == 0)
                 return [.. Vocabulary.Feet, .. Vocabulary.SupportActions, .. definitions, Hold, Skip, Again];
+            var jumpWays = Vocabulary.JumpWords.Where(w => w.Name is "place" or "fwd" or "back" or "left" or "right");
             return before[0] switch
             {
-                "left" or "right" => Except([.. Vocabulary.StepDirections, .. Vocabulary.Levels], before.Skip(1)),
-                "both" or "together" => Vocabulary.Levels,
-                "turn" => before.Count == 1 ? [.. TurnSides, .. figures] : before.Count == 2 ? Vocabulary.TurnAmounts : [],
+                "leftFoot" or "rightFoot" => Except(Vocabulary.StepDirections, before.Skip(1)),
+                "turn" => before.Count == 1 ? [.. TurnSides, .. figures] : [],   // after the side, its degrees in brackets
                 "jump" => Except(Vocabulary.JumpWords, before.Skip(1)),
+                "hop" or "leap" => Except(jumpWays, before.Skip(1)),
                 "shift" => before.Count == 1 ? Vocabulary.ShiftWords : [],
-                "lift" or "land" => Except(Vocabulary.JumpWords.Where(w => w.Name is "fwd" or "back" or "left" or "right"), before.Skip(1)),
+                "lift" or "land" => Except(jumpWays.Where(w => w.Name != "place"), before.Skip(1)),
                 _ => [],
             };
         }
 
+        if (track == "height")
+            return before.Count == 0 ? [.. Vocabulary.Levels, .. definitions, Hold, Skip, Again] : [];   // after low, how far in brackets
+
         if (track is "shoulders" or "hips")
-        {
-            if (before.Count == 0)
-                return [.. track == "hips" ? Vocabulary.HipsWords : Vocabulary.ShouldersWords, .. definitions, Hold, Skip, Again];
-            return [];   // after left / right comes a number of degrees
-        }
+            return before.Count == 0 ? [.. track == "hips" ? Vocabulary.HipsWords : Vocabulary.ShouldersWords, .. definitions, Hold, Skip, Again] : [];
 
         if (track == "turnout")
             return before.Count == 0 ? [.. Vocabulary.TurnoutWords, .. definitions, Hold, Skip, Again] : [];   // after out / in, degrees
 
         // The torso and the head say left / right; a limb says side / across.
-        var directions = Vocabulary.Directions.Where(w => IsLimb(track) ? w.Name is not ("left" or "right") : w.Name is not ("side" or "across"));
+        var directions = Vocabulary.Directions.Where(w => IsLimb(track) ? w.Name is not ("left" or "right") : w.Name is not ("side" or "across")).ToList();
+        // The shape words this track takes, in their order: after the direction, and each after the one before.
+        var shapes = Vocabulary.Shapes.Where(w => w.Name switch
+        {
+            "bent" => IsLimb(track),
+            "elbow" => IsArm(track),
+            "knee" => IsLimb(track) && !IsArm(track),
+            "round" => track == "torso",
+            _ => IsLimb(track) || track == "head",
+        }).ToList();
         if (before.Count == 0)
         {
             IEnumerable<Vocabulary.Word> first = [.. directions, .. Vocabulary.Poles];
@@ -270,27 +279,36 @@ internal static class Words
                 first = first.Concat(figures);
             return [.. first, .. definitions, Hold, Skip, Again];
         }
-        if (IsArm(track) && before is ["across"])
-            return [.. Except([.. directions, .. Vocabulary.Levels], before), new("shoulder", "across.shoulder: the hand on the opposite shoulder.")];
-        if (IsLimb(track) && !IsArm(track) && before is [var place] && Vocabulary.Has(Vocabulary.LegAnchors, place))
-            return [new("back", $"{place}.back: the toe at the back of the standing leg's {place}.")];
-        if (before[0] is "up" or "down" or "then" or "skip" || Vocabulary.Has(Vocabulary.Anchors, before[0]) && IsArm(track)
-            || Vocabulary.Has(Vocabulary.LegAnchors, before[0]) && IsLimb(track))
+        if (before[0] is "then" or "skip")
             return [];
-        bool hasLevel = before.Any(w => Vocabulary.Has(Vocabulary.Levels, w) || double.TryParse(w, out _));
-        return Except(hasLevel ? directions : [.. directions, .. Vocabulary.Levels], before);
+        // A place: its `.across` or `.back`, then only which way the joint points.
+        if (IsArm(track) && before is ["shoulder"])
+            return [new("across", "shoulder.across: the hand on the opposite shoulder."), .. shapes.Where(s => s.Name == "elbow")];
+        if (IsLimb(track) && !IsArm(track) && before is [var place] && Vocabulary.Has(Vocabulary.LegAnchors, place))
+            return [new("back", $"{place}.back: the toe at the back of the other leg's {place[5..].ToLowerInvariant()}."), .. shapes.Where(s => s.Name == "knee")];
+        if (IsArm(track) && Vocabulary.Has(Vocabulary.Anchors, string.Join('.', before)) || !IsArm(track) && Vocabulary.Has(Vocabulary.LegAnchors, string.Join('.', before)))
+            return shapes.Where(s => s.Name is "elbow" or "knee");
+        // After a shape word, the ones that come after it.
+        int lastShape = before.Select(Vocabulary.ShapeOrder).DefaultIfEmpty(-1).Max();
+        if (lastShape >= 0)
+            return shapes.Where(s => Vocabulary.ShapeOrder(s.Name) > lastShape && !(s.Name == "knee" && before.Contains("elbow")));
+        int horizontal = before.Count(w => directions.Any(d => d.Name == w));
+        bool vertical = before.Any(w => w is "up" or "down");
+        // up.fwd(10): from straight up toward one way.
+        if (before is ["up" or "down"])
+            return [.. directions, .. shapes];
+        if (vertical)
+            return shapes;
+        IEnumerable<Vocabulary.Word> next = horizontal == 1 ? Except(directions, before) : [];
+        return [.. next, .. Vocabulary.Poles, .. shapes];
     }
 
     public static IEnumerable<Vocabulary.Word> ForAnnotation(string track) => Vocabulary.Annotations.Where(w => w.Name switch
     {
-        "bent" => IsLimb(track),
-        "body" or "elbow" => IsArm(track),
-        "knee" => IsLimb(track) && !IsArm(track),
-        "round" => track is "torso",
-        "small" or "large" or "turn" => track is "steps",
-        "smooth" or "sharp" or "linear" or "mirror" or "free" => true,
+        "turn" => track is "steps",
         _ => true,
     });
+
 
     private static IEnumerable<Vocabulary.Word> Except(IEnumerable<Vocabulary.Word> words, IEnumerable<string> used)
     {
@@ -405,6 +423,20 @@ internal static class Words
         while (end > 0 && text[end] == '.')
         {
             int start = end;
+            // A word's bracket belongs to it: fwd.left(30).up — skip back over it to the word.
+            if (start > 0 && text[start - 1] == ')')
+            {
+                int depth = 0;
+                while (start > 0)
+                {
+                    char c = text[--start];
+                    if (c == ')')
+                        depth++;
+                    else if (c == '(' && --depth == 0)
+                        break;
+                }
+                end = start;
+            }
             while (start > 0 && (char.IsLetterOrDigit(text[start - 1]) || text[start - 1] == '_' || text[start - 1] == '-'))
                 start--;
             if (start == end)
@@ -453,7 +485,7 @@ internal static class Words
         {
             // @turn(left.quarter), or where a joint points: @elbow(side.high)
             bool joint = parent.Parent.Parent?.Token(SyntaxKind.Identifier)?.Text is "elbow" or "knee";
-            word = (joint ? Vocabulary.Directions.Concat(Vocabulary.Levels).Concat(Vocabulary.Poles) : TurnSides.Concat(Vocabulary.TurnAmounts))
+            word = (joint ? Vocabulary.Directions.Concat(Vocabulary.Poles) : TurnSides)
                 .FirstOrDefault(w => w.Name == token.Text);
         }
         else if (parent.Kind == SyntaxKind.Target)

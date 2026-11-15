@@ -315,7 +315,7 @@ function header() {
   kindLabel.textContent = kind;
   kindLabel.title = !clip || !clip.loop ? '' : clip.inplace
     ? 'The end joins the start; the travel over the floor is taken out.'
-    : 'The end joins the start. The figure travels, so each round starts again from where the first began.';
+    : 'The end joins the start. The dancer travels, so each round starts again from where the first began.';
   // The bar is there whenever there is something to export.
   const movement = !!(clip && clip.figures.length && clip.totalBeats > 0);
   bar.hidden = !movement && clipSelect.hidden && nameLabel.hidden && kindLabel.hidden;

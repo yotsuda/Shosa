@@ -10,9 +10,9 @@ public class DefinitionTests
 {
     private const string Fighter = """
         tempo 120
-        pose guard { steps { left.fwd.low@small }  arms { fwd.high@bent } }
+        pose guard { steps { leftFoot.fwd(0.3m) }  height { low(8cm) }  arms { fwd.up.bent } }
         move jab  { leftArm { fwd:1@sharp!hit guard:1 } }
-        move kick { rightLeg { fwd.low:1@bent fwd:1@sharp fwd.low:1@bent down:1 } }
+        move kick { rightLeg { fwd.down.bent:1 fwd:1@sharp fwd.down.bent:1 down:1 } }
 
         """;
 
@@ -47,7 +47,7 @@ public class DefinitionTests
     {
         var compilation = Clean(Fighter + Samples.SoloCast
             + Samples.Movement("Idle", "body { guard:8 }", "loop") + Samples.Movement("Punch", "body { guard jab:2 }")
-            + Samples.Movement("Walk", "steps { left.fwd right.fwd }", "loop inplace"));
+            + Samples.Movement("Walk", "steps { leftFoot.fwd rightFoot.fwd }", "loop inPlace"));
         using var gltf = System.Text.Json.JsonDocument.Parse(Shosa.Core.Output.Gltf.Render(compilation.Clips, binary: false));
         var animations = gltf.RootElement.GetProperty("animations");
 
@@ -74,8 +74,8 @@ public class DefinitionTests
         // The second score has only ben, who is the SECOND skeleton of the file: his animation
         // must drive his own bones, not the first skeleton's.
         var compilation = Clean("""
-            figure a
-            figure b
+            role a
+            role b
             dancer ann humanoid on a at -1 0
             dancer ben humanoid on b at 1 0
             section P { a { arms { side:2 } }  b { arms { fwd:2 } } }
@@ -154,7 +154,7 @@ public class DefinitionTests
     public void In_an_overlay_the_rows_start_together_and_the_later_row_wins()
     {
         var compilation = Clean(Samples.Solo("body { { wave } & { jab:2 } then:2 }",
-            Fighter + "move wave { rightArm { side.high:2 down:2 } leftArm { side:4 } }\n"));
+            Fighter + "move wave { rightArm { side.up:2 down:2 } leftArm { side:4 } }\n"));
         var left = Track(compilation, Channels.LeftArm);
 
         Assert.Equal(6, compilation.Clip.TotalBeats);
@@ -176,7 +176,7 @@ public class DefinitionTests
         Assert.True(At(clip, 0, Rig.LAnkle).Z > At(clip, 0, Rig.RAnkle).Z + 0.25, "the left foot is in front");
 
         // A word takes time: `:0` was the way to write the starting pose, and is nothing now — first, last or in a definition.
-        foreach (string row in new[] { "body { guard:0 then:2 }", "body { then guard:0 }", "arms { side:0 fwd }", "steps { then left.fwd:0 }" })
+        foreach (string row in new[] { "body { guard:0 then:2 }", "body { then guard:0 }", "arms { side:0 fwd }", "steps { then leftFoot.fwd:0 }" })
         {
             var refused = ShosaCompilation.Compile(Samples.Solo(row, Fighter));
             Assert.Equal("SH1009", Assert.Single(refused.Diagnostics).Code);
@@ -200,8 +200,8 @@ public class DefinitionTests
     [Fact]
     public void A_loop_ends_in_the_pose_it_starts_in()
     {
-        var compilation = Clean(Samples.Solo(" steps { left.fwd!step right.fwd!step }\n leftArm { back.-70 fwd.-70 }\n rightArm { fwd.-70 back.-70 }",
-            "tempo 120\n", "loop inplace"));
+        var compilation = Clean(Samples.Solo(" steps { leftFoot.fwd!step rightFoot.fwd!step }\n leftArm { back.down(70) fwd.down(70) }\n rightArm { fwd.down(70) back.down(70) }",
+            "tempo 120\n", "loop inPlace"));
         var clip = compilation.Clip;
         var figure = clip.Figures[0];
         int last = figure.Frames.Count - 1;
@@ -219,8 +219,8 @@ public class DefinitionTests
     [Fact]
     public void A_row_of_knee_bends_beside_a_pose_takes_the_height_and_leaves_the_stance()
     {
-        // The height is a part of its own: `both` does not take the feet from the pose (DESIGN.md 15).
-        var compilation = Clean(Samples.Solo(" body { guard:8 }\n steps { { both.low@small both.low } q q q }", Fighter, "loop"));
+        // The height is a row of its own: it does not take the feet from the pose (DESIGN.md 15, 77).
+        var compilation = Clean(Samples.Solo(" body { guard:8 }\n height { { low(8cm) low } q q q }", Fighter, "loop"));
         var clip = compilation.Clip;
 
         Assert.Equal(SegKinds.Step, Assert.Single(Track(compilation, Channels.Support)).Kind);
@@ -234,8 +234,8 @@ public class DefinitionTests
     [Fact]
     public void A_height_written_beside_a_walk_keeps_the_steps()
     {
-        var compilation = Clean(Samples.Solo(" body { walk:2 }\n steps { both.low:2 }", "move walk { steps { left.fwd right.fwd } }\n", "loop inplace"));
-        var plain = Clean(Samples.Solo("steps { left.fwd right.fwd }", score: "loop inplace"));
+        var compilation = Clean(Samples.Solo(" body { walk:2 }\n height { low:2 }", "move walk { steps { leftFoot.fwd rightFoot.fwd } }\n", "loop inPlace"));
+        var plain = Clean(Samples.Solo("steps { leftFoot.fwd rightFoot.fwd }", score: "loop inPlace"));
 
         Assert.Equal(2, Track(compilation, Channels.Support).Count);
         Assert.True(At(compilation.Clip, 1, Rig.Pelvis).Y < At(plain.Clip, 1, Rig.Pelvis).Y - 0.1, "the same walk, low");
@@ -245,7 +245,7 @@ public class DefinitionTests
     [Fact]
     public void A_height_written_inside_a_poses_time_is_there_on_its_beat_and_the_poses_height_is_back_when_it_ends()
     {
-        var compilation = Clean(Samples.Solo(" body { guard:8 }\n steps { skip:4 both.mid:2 skip:2 }", Fighter, "loop"));
+        var compilation = Clean(Samples.Solo(" body { guard:8 }\n height { skip:4 high:2 skip:2 }", Fighter, "loop"));
         var clip = compilation.Clip;
         var height = Track(compilation, Channels.Height);
 
@@ -270,7 +270,7 @@ public class DefinitionTests
     public void A_word_arrives_on_its_beat_and_the_way_there_is_in_the_time_of_the_word_before()
     {
         // An arm has all of the word before; a foot the second half of it, and no more than half a second (a beat at tempo 120).
-        var compilation = Clean(Samples.Solo(" arms { side fwd:4 up }\n steps { left.fwd right.fwd:4 left.fwd }", "tempo 120\n"));
+        var compilation = Clean(Samples.Solo(" arms { side fwd:4 up }\n steps { leftFoot.fwd rightFoot.fwd:4 leftFoot.fwd }", "tempo 120\n"));
         var clip = compilation.Clip;
 
         Assert.Equal(new[] { (0.0, 0.0), (0.0, 1.0), (1.0, 5.0) }, Moves(compilation, Channels.LeftArm));
@@ -293,7 +293,7 @@ public class DefinitionTests
     public void A_sharp_word_waits_and_sets_out_at_most_015_seconds_before_its_beat()
     {
         // tempo 120: 0.15 s is 0.3 of a beat. Where the word before is shorter than that, all of it — half of it for a foot.
-        var compilation = Clean(Samples.Solo(" arms { side:2 fwd:2@sharp }\n steps { left.fwd:2 right.fwd:2@sharp }\n torso { fwd.high:1/4 up@sharp then:11/4 }", "tempo 120\n"));
+        var compilation = Clean(Samples.Solo(" arms { side:2 fwd:2@sharp }\n steps { leftFoot.fwd:2 rightFoot.fwd:2@sharp }\n torso { fwd.up:1/4 up@sharp then:11/4 }", "tempo 120\n"));
         var clip = compilation.Clip;
 
         Assert.Equal(new[] { (0.0, 0.0), (1.7, 2.0) }, Moves(compilation, Channels.LeftArm));
@@ -313,7 +313,7 @@ public class DefinitionTests
     [Fact]
     public void A_hold_moves_nothing_on_its_beat_and_the_word_after_it_travels_in_the_holds_time()
     {
-        var compilation = Clean(Samples.Solo(" arms { side:2 then:2 fwd }\n steps { left.side:2 then:2 together }", "tempo 120\n"));
+        var compilation = Clean(Samples.Solo(" arms { side:2 then:2 fwd }\n steps { leftFoot.side:2 then:2 stand }", "tempo 120\n"));
         var clip = compilation.Clip;
 
         Assert.Equal(5, clip.TotalBeats);
@@ -331,9 +331,9 @@ public class DefinitionTests
     [Fact]
     public void The_first_word_of_a_score_is_where_it_starts_and_in_a_loop_the_way_to_it_is_at_the_end()
     {
-        const string rows = " arms { side:2 fwd:2 }\n steps { left.fwd:2 right.fwd:2 }";
+        const string rows = " arms { side:2 fwd:2 }\n steps { leftFoot.fwd:2 rightFoot.fwd:2 }";
         var once = Clean(Samples.Solo(rows, "tempo 120\n"));
-        var loop = Clean(Samples.Solo(rows, "tempo 120\n", "loop inplace"));
+        var loop = Clean(Samples.Solo(rows, "tempo 120\n", "loop inPlace"));
 
         // Nothing moves to get to the first word: it is a segment of no time at beat 0.
         Assert.Equal(new[] { (0.0, 0.0), (0.0, 2.0) }, Moves(once, Channels.LeftArm));
@@ -378,14 +378,14 @@ public class DefinitionTests
     public void A_rows_first_word_after_a_skip_travels_in_the_skip_and_after_a_hold_only_in_the_hold()
     {
         // The skip is what is before the word in its row: an arm has all of it, a foot the end of it.
-        var skipped = Clean(Samples.Solo(" rightArm { skip:4 fwd }\n steps { skip:4 left.fwd }", "tempo 120\n"));
+        var skipped = Clean(Samples.Solo(" rightArm { skip:4 fwd }\n steps { skip:4 leftFoot.fwd }", "tempo 120\n"));
         Assert.Equal(new[] { (0.0, 4.0) }, Moves(skipped, Channels.RightArm));
         Assert.Equal(new[] { (3.0, 4.0) }, Moves(skipped, Channels.Support));
         Vec3 Arm(MotionClip clip, double beat) => (At(clip, beat, Rig.RHand) - At(clip, beat, Rig.RShoulder)).Normalized();
         Assert.True(Arm(skipped.Clip, 0).Y < -0.95 && Arm(skipped.Clip, 2).Z > 0.3 && Arm(skipped.Clip, 4).Z > 0.99, "on the way all through the skip");
 
         // A `then` after the skip is the word before: nothing sets out before it begins.
-        var held = Clean(Samples.Solo(" rightArm { skip:3 then:1 fwd }\n steps { skip:3 then:1 left.fwd }", "tempo 120\n"));
+        var held = Clean(Samples.Solo(" rightArm { skip:3 then:1 fwd }\n steps { skip:3 then:1 leftFoot.fwd }", "tempo 120\n"));
         Assert.Equal(new[] { (3.0, 3.0), (3.0, 4.0) }, Moves(held, Channels.RightArm));
         Assert.Equal(new[] { (3.0, 3.0), (3.5, 4.0) }, Moves(held, Channels.Support));
         Assert.True((At(held.Clip, 0, Rig.RHand) - At(held.Clip, 3, Rig.RHand)).Length < 1e-3, "still until the `then`");
@@ -398,14 +398,14 @@ public class DefinitionTests
         // The second kick is the other leg, which the first never wrote: it lifts while the first
         // leg is put down (the move's last word), not while that leg is still kicking.
         var compilation = Clean(Samples.Solo(" body { then kick kick@mirror }",
-            "tempo 120\nmove kick { rightLeg { fwd.low@bent fwd@sharp fwd.low@bent down } }\n"));
+            "tempo 120\nmove kick { rightLeg { fwd.down.bent fwd@sharp fwd.down.bent down } }\n"));
         Assert.Equal((4.0, 5.0), Moves(compilation, Channels.LeftLeg)[1]);   // [0] is the `then` the row begins with
     }
 
     [Fact]
     public void A_loop_that_ends_facing_another_way_is_reported()
     {
-        var compilation = ShosaCompilation.Compile(Samples.Solo("steps { left.fwd turn.left.quarter }", score: "loop"));
+        var compilation = ShosaCompilation.Compile(Samples.Solo("steps { leftFoot.fwd turn.left(90) }", score: "loop"));
 
         Assert.Equal("SH2005", Assert.Single(compilation.Diagnostics).Code);
     }
@@ -429,8 +429,8 @@ public class DefinitionTests
     public void One_bar_of_a_repeat_is_changed_by_a_narrower_track_and_the_mark_it_covers_is_gone()
     {
         // The second clap is held back by the narrower row: it does not happen, so it is not marked.
-        var clip = Clean(Samples.Solo(" body { vine:4 | % | }\n arms { skip:4 | skip:3 then:1 | }\n steps { skip:4 | skip:3 jump.together:1!jump | }",
-            "move vine { steps { right.side left.back.across right.side together }  arms { down:3 clap:1@sharp!clap } }\n")).Clip;
+        var clip = Clean(Samples.Solo(" body { vine:4 | % | }\n arms { skip:4 | skip:3 then:1 | }\n steps { skip:4 | skip:3 jump.stand:1!jump | }",
+            "move vine { steps { rightFoot.side leftFoot.back.across rightFoot.side stand }  arms { down:3 clap:1@sharp!clap } }\n")).Clip;
 
         // Each on the beat it is written at: the fourth of the first bar, the fourth of the second.
         Assert.Equal(new[] { ("clap", 3.0), ("jump", 7.0) }, clip.Marks.Select(m => (m.Name, Math.Round(m.Beat, 6))).ToArray());
@@ -442,7 +442,7 @@ public class DefinitionTests
     [Fact]
     public void A_number_in_the_place_of_the_level_is_degrees_above_the_horizontal()
     {
-        var clip = Clean(Samples.Solo("torso { fwd.60 } rightArm { fwd.-70 }")).Clip;
+        var clip = Clean(Samples.Solo("torso { up.fwd(30) } rightArm { fwd.down(70) }")).Clip;
         Vec3 spine = (At(clip, 1, Rig.Chest) - At(clip, 1, Rig.Pelvis)).Normalized();
         Vec3 arm = (At(clip, 1, Rig.RHand) - At(clip, 1, Rig.RShoulder)).Normalized();
 
@@ -453,7 +453,7 @@ public class DefinitionTests
     [Fact]
     public void A_step_can_turn_and_lands_where_it_would_after_the_turn()
     {
-        var clip = Clean(Samples.Solo("steps { left.fwd@turn(left.quarter) }")).Clip;
+        var clip = Clean(Samples.Solo("steps { leftFoot.fwd@turn(left(90)) }")).Clip;
         Vec3 left = At(clip, 1, Rig.LAnkle), right = At(clip, 1, Rig.RAnkle), start = At(clip, 0, Rig.RAnkle);
 
         Assert.True((right - start).Length < 1e-3, "the standing foot swivels where it is");
@@ -465,10 +465,10 @@ public class DefinitionTests
     [Fact]
     public void Only_a_free_body_can_be_lifted_and_it_hangs_at_the_height_written()
     {
-        var bound = ShosaCompilation.Compile(Samples.Solo("steps { lift(0.4) }"));
+        var bound = ShosaCompilation.Compile(Samples.Solo("steps { lift(0.4m) }"));
         Assert.Equal("SH1022", Assert.Single(bound.Diagnostics).Code);
 
-        var clip = Clean("figure mage\ndancer mage humanoid on mage free\nsection A { mage { steps { lift(0.4):2 then land:2 } } }\n"
+        var clip = Clean("role mage\ndancer mage humanoid on mage free\nsection A { mage { steps { lift(0.4m):2 then land:2 } } }\n"
             + "form { A }\nscore { dancer mage }\n").Clip;
         Assert.Equal(Rig.AnkleHeight + 0.4, At(clip, 2.5, Rig.LAnkle).Y, 3);
         Assert.Equal(Rig.AnkleHeight, At(clip, 5, Rig.LAnkle).Y, 3);
@@ -485,8 +485,8 @@ public class DefinitionTests
     }
 
     private const string Pair = """
-        figure a
-        figure b
+        role a
+        role b
         dancer ann humanoid on a at -0.5 0 facing stageLeft
         dancer ben humanoid on b at 0.5 0 facing stageRight
         score { dancer ann  dancer ben }
@@ -506,7 +506,7 @@ public class DefinitionTests
     public void Two_hands_meet_above_the_heads_for_a_high_five_and_stay_there_until_they_leave()
     {
         var clip = Clean(Pair.Replace("0.5", "0.35")
-            + "section Five {\n a { rightArm { fwd.high@bent b.hand.high then down:2 } }\n b { rightArm { fwd.high@bent a.hand.high then down:2 } }\n}\nform { Five }\n").Clip;
+            + "section Five {\n a { rightArm { fwd.up.bent b.hand.high then down:2 } }\n b { rightArm { fwd.up.bent a.hand.high then down:2 } }\n}\nform { Five }\n").Clip;
 
         // They meet on the beat the reach is written at, and the `then` keeps them there for its beat: `down` sets out in it.
         Assert.True((At(clip, 0, Rig.RHand, 0) - At(clip, 0, Rig.RHand, 1)).Length > 0.05, "apart to begin with");
@@ -523,7 +523,7 @@ public class DefinitionTests
     public void A_small_knee_bend_is_less_than_a_knee_bend_and_a_large_one_more()
     {
         // From standing (the `then` the row starts with), each bend on its own beat.
-        var clip = Clean(Samples.Solo("steps { then both.low@small both.low both.low@large }")).Clip;
+        var clip = Clean(Samples.Solo("steps { then then then then }\n    height { then low(8cm) low low(40cm) }")).Clip;
 
         double Drop(double beat) => At(clip, 0, Rig.Pelvis).Y - At(clip, beat, Rig.Pelvis).Y;
         Assert.True(Drop(1) > 0.05 && Drop(1) < Drop(2) - 0.05 && Drop(2) < Drop(3) - 0.15 && Drop(2) < 0.2, $"{Drop(1)} {Drop(2)} {Drop(3)}");
@@ -532,18 +532,18 @@ public class DefinitionTests
     [Fact]
     public void Arms_held_out_through_a_turning_jump_are_not_too_fast()
     {
-        Clean(Samples.Solo("steps { then jump@turn(left.half) } arms { side.high then }", "tempo 120\n"));
+        Clean(Samples.Solo("steps { then jump@turn(left(180)) } arms { side.up then }", "tempo 120\n"));
     }
 
     [Fact]
     public void A_mirrored_dancer_does_the_same_with_the_other_side_and_a_delayed_one_does_it_later()
     {
         var clip = Clean("""
-            figure f
+            role f
             dancer one humanoid on f at -1 0
             dancer two humanoid on f at 1 0 mirror
             dancer three humanoid on f at 3 0 delay 2
-            section A { f { leftArm { down:2 side:2 } steps { then left.side then:2 } } }
+            section A { f { leftArm { down:2 side:2 } steps { then leftFoot.side then:2 } } }
             form { A }
             score { dancer one  dancer two  dancer three }
 
@@ -562,7 +562,7 @@ public class DefinitionTests
     {
         const string text = """
             tempo 100
-            figure f
+            role f
             dancer one humanoid on f
             dancer two humanoid on f at 2 0
             section A { f { arms { side:4 } } }
@@ -633,7 +633,7 @@ public class DefinitionTests
     [InlineData("pose fwd { arms { up } }\nsection A { solo { arms { then } } }", "SH1005")]   // a word of the language
     [InlineData("section A { steps { then } }", "SH1003")]                              // tracks go in a figure's block
     [InlineData("section A wobble { solo { steps { then } } }", "SH1024")]
-    [InlineData("section A { solo { arms { fwd.95 } } }", "SH1013")]
+    [InlineData("section A { solo { arms { fwd.up(95) } } }", "SH1013")]
     public void What_does_not_make_sense_is_said_with_its_code(string text, string code)
     {
         // The rest of the file is whole, so the one thing wrong is the one thing said.

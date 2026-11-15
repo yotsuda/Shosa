@@ -8,7 +8,7 @@ tempo 120                                   // one beat = 0.5 s
 // this character (samples\parts\fighter.shosa). They are used here as if written here.
 using "parts/fighter.shosa"
 
-figure fighter
+role fighter
 dancer fighter humanoid on fighter
 
 section Idle {
@@ -27,9 +27,9 @@ section Advance {
 
 section Walk {
   fighter {
-    steps    { left.fwd!step right.fwd!step }
-    leftArm  { back.-70 fwd.-70 }             // arm swing, 20 degrees from hanging
-    rightArm { fwd.-70 back.-70 }
+    steps    { leftFoot.fwd!step rightFoot.fwd!step }
+    leftArm  { back.down(70) fwd.down(70) }             // arm swing, 20 degrees from hanging
+    rightArm { fwd.down(70) back.down(70) }
   }
 }
 
@@ -47,24 +47,25 @@ section Combo {
     // the cross on 3, the kick's knee is up on the next 1 and the kick lands half a beat later.
     // The cross is a row of its own beside the jabs (`skip`: the row leaves that time to the
     // others): the right fist is drawn back while the second jab lands, and is out half a beat on.
-    body { guard:1 { jab:1/2 jab:1/2 skip } & { skip:1/2 cross:3/2 } & { stepIn:2 } then | frontKick@mirror:2 guard:2 | }
+    body { guard:1 { jab:1/2 jab:1/2 skip } & { skip:1/2 cross:3/2 } & { stepIn:2 } then | frontKick:2@mirror guard:2 | }
   }
 }
 
 section Hurt {
   fighter {
     body  { guard:0.6s }
-    steps { skip:0.2s right.back.low:0.4s!stagger }   // from guard the right foot goes 0.2 m further back
-    torso { up:0.2s back.70:0.2s@sharp up:0.2s }      // thrown back at 0.2 s, upright again at 0.4 s
-    head  { fwd:0.2s fwd.-30:0.2s@sharp fwd:0.2s }
+    steps  { skip:0.2s rightFoot.back:0.4s!stagger }   // from guard the right foot goes 0.2 m further back
+    height { then:0.2s low:0.4s }                    // and the knees bend
+    torso { up:0.2s up.back(20):0.2s@sharp up:0.2s }      // thrown back at 0.2 s, upright again at 0.4 s
+    head  { fwd:0.2s fwd.down(10):0.2s@sharp fwd:0.2s }
   }
 }
 
 section Victory {
   fighter {
     body  { guard:4 }
-    steps { skip together jump jump }         // the feet close on 2; the jumps land on 3 and 4
-    arms  { skip down:1/2 side.high:1/2 up:2 }
+    steps { skip stand jump jump }         // the feet close on 2; the jumps land on 3 and 4
+    arms  { skip down:1/2 side.up:1/2 up:2 }
   }
 }
 
@@ -77,8 +78,8 @@ form Hurt { Hurt }
 form Victory { Victory }
 
 score Idle { dancer fighter  form Idle  loop }
-score Advance { dancer fighter  form Advance  loop inplace }
-score Walk { dancer fighter  form Walk  loop inplace }
+score Advance { dancer fighter  form Advance  loop inPlace }
+score Walk { dancer fighter  form Walk  loop inPlace }
 score Jab { dancer fighter  form Jab }
 score Combo { dancer fighter  form Combo }
 score Hurt { dancer fighter  form Hurt }

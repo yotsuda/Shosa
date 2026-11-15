@@ -4,12 +4,12 @@ title "Walk"
 tempo 100
 time 4/4
 
-figure solo
+role solo
 dancer solo humanoid on solo
 
 section Walk {
   solo {
-    steps { left.fwd right.fwd left.fwd right.fwd | left.fwd right.fwd left.fwd together }
+    steps { leftFoot.fwd rightFoot.fwd leftFoot.fwd rightFoot.fwd | leftFoot.fwd rightFoot.fwd leftFoot.fwd stand }
   }
 }
 

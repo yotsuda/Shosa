@@ -3,12 +3,12 @@ title "Jumping jacks"
 tempo 120
 time 4/4
 
-figure solo
+role solo
 dancer solo humanoid on solo
 
 move jack {
-  steps { jump.apart!land jump.together!land }
-  arms  { side.high down }
+  steps { jump.apart!land jump.stand!land }
+  arms  { side.up down }
 }
 
 section Jacks {

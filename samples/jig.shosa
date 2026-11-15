@@ -4,13 +4,13 @@ title "Jig"
 tempo 4. = 96      // the beat is the quaver (six to the bar), so this is tempo 288
 time 6/8
 
-figure solo
+role solo
 dancer solo humanoid on solo
 
 section Jig {
   solo {
-    steps { left.side:3 together:3 | right.side:3 together:3 | left.fwd:3 right.fwd:3 | left.back:3 together:3 | }
-    arms  { side:3 hip:3 | % | side.high:3 side:3 | hip:6 | }
+    steps { leftFoot.side:3 stand:3 | rightFoot.side:3 stand:3 | leftFoot.fwd:3 rightFoot.fwd:3 | leftFoot.back:3 stand:3 | }
+    arms  { side:3 hip:3 | % | side.up:3 side:3 | hip:6 | }
   }
 }
 
@@ -18,8 +18,8 @@ section Jig {
 section Close {
   tempo 85%
   solo {
-    steps { jump.apart:3 then:3 | together:6 | }
-    arms  { side.high:3 then:3 | down:6 | }
+    steps { jump.apart:3 then:3 | stand:6 | }
+    arms  { side.up:3 then:3 | down:6 | }
   }
 }
 

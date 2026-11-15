@@ -54,7 +54,7 @@ public static class CheckReport
 
         if (clip.Loop)
         {
-            string taken = clip.Inplace ? " (taken out of the movement: inplace)" : "";
+            string taken = clip.Inplace ? " (taken out of the movement: inPlace)" : "";
             return parts.Count == 0 ? $"loops on the spot{turn}" : $"travels {string.Join(" and ", parts)} each time round{turn}{taken}";
         }
         return parts.Count == 0 ? $"ends where it began{turn}" : $"ends {string.Join(" and ", parts)} of where it began{turn}";
@@ -224,7 +224,7 @@ public static class CheckReport
             foreach (var mark in clip.Marks)
             {
                 // A section the score plays more than once gives its marks each time, under the same name: say which time this is.
-                string play = clip.Marks.Any(m => m.Section == mark.Section && m.Play != mark.Play) ? $"   {mark.Section}, play {mark.Play}" : "";
+                string play = clip.Marks.Any(m => m.Section == mark.Section && m.Play != mark.Play) ? $"   {mark.Section}, verse {mark.Play}" : "";
                 string who = (clip.Figures.Count > 1 ? $" ({mark.Figure})" : "") + play;
                 yield return FormattableString.Invariant(
                     $"  {Label(clip.Name)} !{mark.Name} at beat {Math.Round(mark.Beat, 3)} = {Math.Round(mark.Seconds, 3)} s{who}");

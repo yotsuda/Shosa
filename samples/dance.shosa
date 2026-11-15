@@ -5,13 +5,13 @@
 title "Dance"
 music "song.lys"
 
-figure lead
-figure chorus
+role lead
+role chorus
 dancer alice humanoid on lead    at 0 1
 dancer bob   humanoid on chorus  at -1.5 0
 dancer carol humanoid on chorus  at 1.5 0  mirror
 
-move grapevine { steps { left.side right.back.across left.side together } }
+move grapevine { steps { leftFoot.side rightFoot.back.across leftFoot.side stand } }
 
 section Verse {
   lead {
@@ -19,17 +19,17 @@ section Verse {
     arms  { side:4 | up:4 | side:4 | down:4 }
   }
   chorus {
-    steps { left.side together right.side together | % | % | % | }
+    steps { leftFoot.side stand rightFoot.side stand | % | % | % | }
   }
 }
 
 section Chorus {
   lead {
-    steps { left.fwd@turn(left.quarter) right.fwd left.back together | % | % | % | }
-    arms  { side.high up side.high down | % | % | % | }
+    steps { leftFoot.fwd@turn(left(90)) rightFoot.fwd leftFoot.back stand | % | % | % | }
+    arms  { side.up up side.up down | % | % | % | }
   }
   chorus {
-    arms { clap!clap side.high up then | % | % | % | }    // the hands meet on 1; they come down for it through 4 (`then`)
+    arms { clap!clap side.up up then | % | % | % | }    // the hands meet on 1; they come down for it through 4 (`then`)
   }
 }
 

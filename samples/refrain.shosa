@@ -5,20 +5,21 @@ title "Refrain"
 tempo 112
 time 4/4
 
-figure solo
+role solo
 dancer solo humanoid on solo
 
 section Verse {
   solo {
-    steps { left.side together right.side together | % | % | % | }
-    arms  { side:2 down:2 | % | verse 1 { %2 | } verse 2 { side.high:2 up:2 | side.high:2 down:2 | } }
+    steps { leftFoot.side stand rightFoot.side stand | % | % | % | }
+    arms  { side:2 down:2 | % | verse 1 { %2 | } verse 2 { side.up:2 up:2 | side.up:2 down:2 | } }
   }
 }
 
 section Chorus {
   solo {
-    steps { left.fwd together right.back together | % | % | verse 1 { % | } verse 2 { left.fwd both.low jump.together!land both.mid | } }
-    arms  { clap!clap side.high up then | % | % | % | }
+    steps { leftFoot.fwd stand rightFoot.back stand | % | % | verse 1 { % | } verse 2 { leftFoot.fwd then jump.stand!land then | } }
+    height { skip:3bar | verse 1 { skip:4 | } verse 2 { mid low then mid | } }
+    arms  { clap!clap side.up up then | % | % | % | }
     head  { verse 2 { skip:2bar | skip:3 then | fwd.left:2 fwd:2 | } }   // it turns through the `then`, and looks left on the 1
   }
 }

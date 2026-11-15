@@ -305,7 +305,7 @@ public sealed class Seg
     public bool Body { get; set; }
     /// <summary>Dir, torso: the back is rounded. The direction is still the line from the pelvis to the chest; the spine bows back from it.</summary>
     public bool Round { get; set; }
-    /// <summary>Anchor, arms: hip | chest | shoulder | head | chin | belly | across.shoulder | clap. Legs: knee | knee.back | ankle | ankle.back (of the other leg).</summary>
+    /// <summary>Anchor, arms: hip | chest | shoulder | head | chin | belly | shoulder.across | clap. Legs: otherKnee | otherKnee.back | otherAnkle | otherAnkle.back.</summary>
     public string? Anchor { get; set; }
     /// <summary>Reach and Turn: the id of the other dancer.</summary>
     public string? Target { get; set; }
@@ -322,8 +322,10 @@ public sealed class Seg
     public double? Level { get; set; }
     /// <summary>Turn: degrees, positive to the left. Step and Jump: the turn made during it. Turned: how far the line of the hips or the shoulders is turned from the feet.</summary>
     public double TurnDeg { get; set; }
-    /// <summary>Jump: distance between the feet on landing; null keeps it.</summary>
+    /// <summary>Jump: distance between the feet on landing; null keeps it, -1 touching (as `together` closes). Together: null touching, else the width (`stand`).</summary>
     public double? Spread { get; set; }
+    /// <summary>Jump: the foot it lands on. both (`jump`), same — the one it took off from (`hop`), other — the one that carried no weight (`leap`).</summary>
+    public string? Lands { get; set; }
     /// <summary>Lift: metres between the floor and the feet.</summary>
     public double Height { get; set; }
     /// <summary>Jump: how far through the segment (0..1) the feet come down; 0.85 if not said. Before it the bend and the air, after it the give.</summary>

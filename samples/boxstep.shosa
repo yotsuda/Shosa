@@ -4,13 +4,13 @@ title "Box step"
 tempo 90
 time 3/4
 
-figure solo
+role solo
 dancer solo humanoid on solo
 
 section Box {
   solo {
-    steps { left.fwd right.side together | right.back left.side together }
-    arms  { side.low:6 }
+    steps { leftFoot.fwd rightFoot.side stand | rightFoot.back leftFoot.side stand }
+    arms  { side.down:6 }
   }
 }
 

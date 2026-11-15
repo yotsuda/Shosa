@@ -46,7 +46,7 @@ public class SheetTests
     [Fact]
     public void Several_dancers_have_their_names_under_them()
     {
-        const string cast = "tempo 100\nfigure f\ndancer ann humanoid on f at -1 0\ndancer ben humanoid on f at 1 0\n"
+        const string cast = "tempo 100\nrole f\ndancer ann humanoid on f at -1 0\ndancer ben humanoid on f at 1 0\n"
             + "section A { f { arms { up:4 } } }\nform { A }\n";
         // The same file with one of its dancers in the score, and with both.
         const string solo = cast + "score { dancer ann }\n";

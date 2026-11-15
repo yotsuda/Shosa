@@ -86,6 +86,10 @@ public static class Solver
 
             if (solver.LoopProblem is { } problem && ir.Sections.Count > 0)
                 diagnostics.Add(new Diagnostic("SH2005", DiagnosticSeverity.Warning, new TextSpan(ir.Sections[0].Src, "section".Length), problem));
+            // What the feet were asked to do that the way they stood does not allow (a hop from both feet).
+            foreach (var (seg, code, message) in solver.SupportProblems)
+                if (flagged.Add((seg, code)))
+                    diagnostics.Add(new Diagnostic(code, DiagnosticSeverity.Error, new TextSpan(seg.Src, seg.Len), message));
 
             // `inplace`: the even part of the travel is taken out and handed to the engine as a velocity.
             clipFigure.Facing = [solver.FacingAt(0), solver.FacingAt(ir.TotalBeats)];
@@ -167,7 +171,7 @@ public static class Solver
                         ? FormattableString.Invariant($"Bent this far, a turn about the spine hardly shows from above: bend toward that side instead (`torso {{ fwd.{way}({Math.Abs(shoulders.Wanted):0.#}) }}`), the hips further that way, or stand up more.")
                         : row == Channels.Shoulders
                         ? $"Turn the hips further that way{stand}, or write what they reach."
-                        : $"With no `shoulders` row they stay square to the feet over these hips: turn them with the hips (`shoulders {{ {(shoulders.Reached >= 0 ? "left" : "right")}.20 }}`){stand}, or turn the hips less.";
+                        : $"With no `shoulders` row they stay square to the feet over these hips: turn them with the hips (`shoulders {{ {(shoulders.Reached >= 0 ? "left" : "right")}(20) }}`){stand}, or turn the hips less.";
                     Flag(row, t, "SH2010", DiagnosticSeverity.Warning, FormattableString.Invariant(
                         $"The shoulders {(Math.Abs(shoulders.Reached) < 0.05 ? "stay square to the feet" : $"get to {Side(shoulders.Reached)} of the feet")} here, not {wanted}: the chest turns at most {Vocabulary.MaxChestTurn:0}° on the hips{lean}. {help}"));
                 }
@@ -396,6 +400,8 @@ internal sealed class FigureSolver
         public double Angle;
         public bool Air;
         public double AirHeight;
+        /// <summary>How high the foot is held off the floor when the move begins and when it ends (a foot left in the air after a hop or a leap stays at LiftTo).</summary>
+        public double LiftFrom, LiftTo;
         /// <summary>How much of a stride the step goes the way the foot points: 1 forward, -1 back, 0 sideways.</summary>
         public double Along;
     }
@@ -405,6 +411,8 @@ internal sealed class FigureSolver
     {
         public Vec3 Left, Right, Weight;
         public double LeftYaw, RightYaw, Yaw, Float;
+        /// <summary>How high each foot is held off the floor between moves: 0 on the floor, more after landing a hop or a leap on the other foot.</summary>
+        public double LeftUp, RightUp;
         public char On = 'B';   // the supporting foot: L, R or Both
         public Stand Clone() => (Stand)MemberwiseClone();
     }
@@ -491,6 +499,8 @@ internal sealed class FigureSolver
 
     /// <summary>What has to hold for a loop and does not, in words for the author; null when it joins.</summary>
     public string? LoopProblem { get; private set; }
+    /// <summary>Words of the support track that the way the feet stood did not allow, with the error to give.</summary>
+    public List<(Seg Seg, string Code, string Message)> SupportProblems { get; } = [];
 
     /// <summary>How far the weight goes over the floor from the first beat to the last.</summary>
     public Vec3 Travel => WeightAt(_length) - WeightAt(0);
@@ -613,19 +623,24 @@ internal sealed class FigureSolver
             s.Float = to;
         }
 
-        void Move(bool isLeft, FootMove move)
+        // A move sets out from as high as the foot is held, and ends on the floor, or held at `held`.
+        void Move(bool isLeft, FootMove move, double held = 0)
         {
+            move.LiftFrom = isLeft ? s.LeftUp : s.RightUp;
+            move.LiftTo = held;
             if (record)
                 (isLeft ? _leftMoves : _rightMoves).Add(move);
             if (isLeft)
             {
                 s.Left = move.To;
                 s.LeftYaw = move.YawTo;
+                s.LeftUp = held;
             }
             else
             {
                 s.Right = move.To;
                 s.RightYaw = move.YawTo;
+                s.RightUp = held;
             }
         }
 
@@ -693,7 +708,8 @@ internal sealed class FigureSolver
 
                 case SegKinds.Together:
                 {
-                    double closed = ClosedWidth(t1);
+                    // `together`: touching (the heels, turned out); `stand`: the width it says.
+                    double closed = seg.Spread ?? TouchWidth(t1);
                     if (s.On != 'B')
                     {
                         bool moveLeft = s.On == 'R';
@@ -751,16 +767,17 @@ internal sealed class FigureSolver
                     var newLeft = pivot + (s.Left - pivot).RotateY(angle);
                     var newRight = pivot + (s.Right - pivot).RotateY(angle);
                     var weight = pivot + (s.Weight - pivot).RotateY(angle);
+                    // A foot held in the air goes round held.
                     Move(true, new FootMove
                     {
                         T0 = t0, T1 = t1, From = s.Left, To = newLeft, YawFrom = s.LeftYaw, YawTo = s.LeftYaw + angle,
-                        Orbit = true, Pivot = pivot, Angle = angle, Lift = s.On == 'L' ? 0 : 0.03,
-                    });
+                        Orbit = true, Pivot = pivot, Angle = angle, Lift = s.On == 'L' || s.LeftUp > 0 ? 0 : 0.03,
+                    }, s.LeftUp);
                     Move(false, new FootMove
                     {
                         T0 = t0, T1 = t1, From = s.Right, To = newRight, YawFrom = s.RightYaw, YawTo = s.RightYaw + angle,
-                        Orbit = true, Pivot = pivot, Angle = angle, Lift = s.On == 'R' ? 0 : 0.03,
-                    });
+                        Orbit = true, Pivot = pivot, Angle = angle, Lift = s.On == 'R' || s.RightUp > 0 ? 0 : 0.03,
+                    }, s.RightUp);
                     Turn(t0, t1, angle);
                     Weight(t0, t1, weight);
                     break;
@@ -771,9 +788,6 @@ internal sealed class FigureSolver
                     double duration = t1 - t0;
                     // Bend, air, give: the feet come down at Land, and of the time before it the bend is 0.35 / 0.85.
                     double lands = seg.Land ?? 0.85, land = t0 + lands * duration, up = t0 + lands * duration * 0.35 / 0.85;
-                    var middle = (s.Left + s.Right) * 0.5;
-                    var landing = middle + fwd * seg.Dz + leftward * seg.Dx;
-                    double spread = seg.Spread ?? Math.Abs((s.Left - s.Right).Dot(leftward));
                     double angle = seg.TurnDeg * Math.PI / 180;
                     var leftAfter = Vec3.Left(s.Yaw + angle);
                     // The time in the air fixes the height: h = g T^2 / 8.
@@ -781,29 +795,73 @@ internal sealed class FigureSolver
                     double height = 9.81 * airSeconds * airSeconds / 8;
                     // A jump that takes no time (in the upbeat a score starts with) has been made: the body stands as it landed.
                     bool made = duration <= 1e-9;
-                    Move(true, new FootMove
+                    var travel = fwd * seg.Dz + leftward * seg.Dx;
+
+                    // Onto one foot: the one it stands on (`hop`) or the one that carried no weight (`leap`).
+                    // Standing on both, neither is which: the writer shifts the weight first.
+                    string onto = seg.Lands ?? "both";
+                    if (onto != "both" && s.On == 'B')
                     {
-                        T0 = up, T1 = land, From = s.Left, To = landing + leftAfter * (spread / 2),
-                        YawFrom = s.LeftYaw, YawTo = s.Yaw + angle, Air = !made, AirHeight = height,
-                    });
-                    Move(false, new FootMove
+                        if (record)
+                            SupportProblems.Add((seg, "SH2012", $"Standing on both feet, a {(onto == "same" ? "hop" : "leap")} does not know which foot it lands on. Put the weight on one first: `shift.left` (a hop lands on the left foot, a leap on the right), or jump onto both: `jump`."));
+                        onto = "both";
+                    }
+
+                    if (onto == "both")
                     {
-                        T0 = up, T1 = land, From = s.Right, To = landing - leftAfter * (spread / 2),
-                        YawFrom = s.RightYaw, YawTo = s.Yaw + angle, Air = !made, AirHeight = height,
-                    });
+                        var middle = (s.Left + s.Right) * 0.5;
+                        var landing = middle + travel;
+                        double spread = seg.Spread is -1 ? TouchWidth(t1) : seg.Spread ?? Math.Abs((s.Left - s.Right).Dot(leftward));
+                        Move(true, new FootMove
+                        {
+                            T0 = up, T1 = land, From = s.Left, To = landing + leftAfter * (spread / 2),
+                            YawFrom = s.LeftYaw, YawTo = s.Yaw + angle, Air = !made, AirHeight = height,
+                        });
+                        Move(false, new FootMove
+                        {
+                            T0 = up, T1 = land, From = s.Right, To = landing - leftAfter * (spread / 2),
+                            YawFrom = s.RightYaw, YawTo = s.Yaw + angle, Air = !made, AirHeight = height,
+                        });
+                        Weight(t0, up, middle);
+                        Weight(up, land, landing);
+                        s.On = 'B';
+                    }
+                    else
+                    {
+                        bool takeoffLeft = s.On == 'L';
+                        bool landLeft = onto == "same" ? takeoffLeft : !takeoffLeft;
+                        var takeoff = takeoffLeft ? s.Left : s.Right;
+                        // A hop comes down where it went from; a leap puts the other foot down a stride on,
+                        // at its own side of standing width.
+                        var target = takeoff + travel + (landLeft == takeoffLeft ? default : (landLeft ? leftAfter : -leftAfter) * Rig.Stance);
+                        // The foot that does not land is held low, behind the way it went, by the landing foot.
+                        var way = travel.Length > 1e-6 ? travel.Normalized() : fwd;
+                        var held = target - way * 0.12 + (landLeft ? -leftAfter : leftAfter) * 0.08;
+                        Move(landLeft, new FootMove
+                        {
+                            T0 = up, T1 = land, From = landLeft ? s.Left : s.Right, To = target,
+                            YawFrom = landLeft ? s.LeftYaw : s.RightYaw, YawTo = s.Yaw + angle, Air = !made, AirHeight = height,
+                        });
+                        Move(!landLeft, new FootMove
+                        {
+                            T0 = up, T1 = land, From = landLeft ? s.Right : s.Left, To = held,
+                            YawFrom = landLeft ? s.RightYaw : s.LeftYaw, YawTo = s.Yaw + angle, Air = !made, AirHeight = height,
+                        }, made ? 0 : Rig.HeldFoot);
+                        Weight(t0, up, takeoff);
+                        Weight(up, land, target);
+                        s.On = landLeft ? 'L' : 'R';
+                    }
                     if (angle != 0)
                         Turn(up, land, angle);
-                    Weight(t0, up, middle);
-                    Weight(up, land, landing);
                     if (record && !made)
                     {
                         // The knees give 8 cm on landing, less where there is no time for it.
                         double giveSeconds = TempoMap.Seconds(_tempos, t1) - TempoMap.Seconds(_tempos, land);
                         _jumps.Add((t0, up, land, t1, height, 0.08 * Math.Min(1, giveSeconds / 0.15)));
                     }
-                    s.On = 'B';
                     break;
                 }
+
 
                 case SegKinds.Lift or SegKinds.Land:
                 {
@@ -939,6 +997,7 @@ internal sealed class FigureSolver
             {
                 pos = move.To;
                 yaw = move.YawTo;
+                lift = move.LiftTo;   // a foot left in the air stays up until its next move
                 continue;
             }
             if (t <= move.T0)
@@ -949,20 +1008,20 @@ internal sealed class FigureSolver
             {
                 pos = move.Pivot + (move.From - move.Pivot).RotateY(move.Angle * s);
                 yaw = move.YawFrom + move.Angle * s;
-                lift = move.Lift * Math.Sin(Math.PI * u);
+                lift = move.Lift * Math.Sin(Math.PI * u) + move.LiftFrom + (move.LiftTo - move.LiftFrom) * s;
             }
             else if (move.Air)
             {
                 pos = Vec3.Lerp(move.From, move.To, u);
                 yaw = move.YawFrom + (move.YawTo - move.YawFrom) * s;
-                lift = move.AirHeight * 4 * u * (1 - u);
+                lift = move.AirHeight * 4 * u * (1 - u) + move.LiftFrom + (move.LiftTo - move.LiftFrom) * u;
                 air = true;
             }
             else
             {
                 pos = Vec3.Lerp(move.From, move.To, s);
                 yaw = move.YawFrom + (move.YawTo - move.YawFrom) * s;
-                lift = move.Lift * Math.Sin(Math.PI * u);
+                lift = move.Lift * Math.Sin(Math.PI * u) + move.LiftFrom + (move.LiftTo - move.LiftFrom) * s;
                 // A step forward rolls through the foot: it leaves heel first, toes last, and
                 // lands on the heel with the toes up. A step back does the reverse.
                 pitch = -move.Along * (u < 0.5 ? 0.6 : 0.5) * Math.Sin(2 * Math.PI * u);
@@ -980,22 +1039,24 @@ internal sealed class FigureSolver
     /// <summary>
     /// A free leg: how far it is off the floor (0..1), where its ankle is from the hip, and which way
     /// the knee is sent where the text says so (`@knee(...)`; null: the way its foot points, read at
-    /// the moment). A toe sent to the other leg (`knee`, `ankle`) is put there by `place`.
+    /// the moment). A toe sent to the other leg (`otherKnee`, `otherAnkle`) is put there by `place`.
     /// Which way the knee points is decided at the poses the text names and carried between them
     /// with the leg, as an elbow's is.
     /// </summary>
-    private static LegPose LegShape(List<Seg> targets, double t, Vec3 left, Vec3 fwd, Func<Seg, Vec3> place, Vec3 kneePole)
+    private static LegPose LegShape(List<Seg> targets, double t, Vec3 left, Vec3 fwd, Func<Seg, Vec3> place, Vec3 kneePole, (Vec3 Left, Vec3 Up, Vec3 Fwd)? torso = null)
     {
         LegPose Target(Seg? seg)
         {
+            // The room's frame, or with `.body` the torso's.
+            var (l, u, f) = seg is { Body: true } && torso is { } body ? body : (left, Vec3.Up, fwd);
             Vec3 offset;
             if (seg is { Kind: SegKinds.Anchor })
                 offset = place(seg);
-            else if (seg is null || IsDown(seg) || seg.Dir is not { } d)
+            else if (seg is null || IsDown(seg) && !seg.Body || seg.Dir is not { } d)
                 return default;
             else
-                offset = (left * d[0] + Vec3.Up * d[1] + fwd * d[2]) * Reach(seg, Rig.Thigh, Rig.Shin, 0.995);
-            Vec3? bend = seg.Pole is { } q ? Across(left * q[0] + Vec3.Up * q[1] + fwd * q[2], offset.Normalized()) : null;
+                offset = (l * d[0] + u * d[1] + f * d[2]) * Reach(seg, Rig.Thigh, Rig.Shin, 0.995);
+            Vec3? bend = seg.Pole is { } q ? Across(l * q[0] + u * q[1] + f * q[2], offset.Normalized()) : null;
             return new LegPose(1, offset, bend, seg.Kind == SegKinds.Anchor ? 1 : 0);
         }
 
@@ -1041,8 +1102,16 @@ internal sealed class FigureSolver
     /// </summary>
     private double ClosedWidth(double t)
     {
+        // (The width a row begins at: standing width, the heels together as far as it is turned out.)
         double turnout = Math.Max(0, TurnoutAt(t));
         return Rig.Stance - (Rig.Stance - Rig.HeelsTogether) * Math.Sin(turnout);
+    }
+
+    /// <summary>How far apart the ankles are when the feet close touching (`together`): side by side, the heels together as far as the legs are turned out.</summary>
+    private double TouchWidth(double t)
+    {
+        double turnout = Math.Max(0, TurnoutAt(t));
+        return Rig.Together - (Rig.Together - Rig.HeelsTogether) * Math.Sin(turnout);
     }
 
     private CoreState Core(double t)
@@ -1274,19 +1343,20 @@ internal sealed class FigureSolver
         Vec3 faceLeft = trunk.FaceLeft, faceFwd = trunk.FaceFwd;
         var lifted = Vec3.Up * c.Float;
 
+        // Where the face looks, in the room. A written direction is measured as every part's is: from
+        // the way the feet face, level (with `.body`, from the chest). A head nobody wrote looks
+        // along the chest, so it bows with a bow; it is not turned with the shoulders.
         Vec3 Gaze(Seg? seg)
         {
             if (seg?.Kind == SegKinds.Reach && _others(seg.Target!) is { } other)
-            {
-                // Look at it: the direction from this head, said in the chest's own frame.
-                var toward = (other.PlaceAt(seg.Part!, 1, t, this) - (head + lifted)).Normalized();
-                return new Vec3(toward.Dot(faceLeft), toward.Dot(torsoUp), toward.Dot(faceFwd));
-            }
-            return DirOf(seg, new Vec3(0, 0, 1));
+                return (other.PlaceAt(seg.Part!, 1, t, this) - (head + lifted)).Normalized();
+            if (seg?.Dir is { } d)
+                return seg.Body ? faceLeft * d[0] + torsoUp * d[1] + faceFwd * d[2] : c.Left * d[0] + Vec3.Up * d[1] + c.Fwd * d[2];
+            return faceFwd;
         }
 
-        var gaze = Chain(_head, t, Gaze, (a, b, e) => Blend(a, b, e, new Vec3(0, 0, 1))).Normalized();
-        var nose = head + (faceLeft * gaze.X + torsoUp * gaze.Y + faceFwd * gaze.Z) * 0.12;
+        var gaze = Chain(_head, t, Gaze, (a, b, e) => Blend(a, b, e, faceFwd)).Normalized();
+        var nose = head + gaze * 0.12;
 
         var joints = new Vec3[Rig.Joints.Length];
         joints[Rig.Pelvis] = pelvis;
@@ -1295,7 +1365,7 @@ internal sealed class FigureSolver
         joints[Rig.Head] = head;
         joints[Rig.Nose] = nose;
 
-        // Legs. A toe sent to the other leg (`knee`, `ankle`) goes where that leg is, so a leg with
+        // Legs. A toe sent to the other leg (`otherKnee`, `otherAnkle`) goes where that leg is, so a leg with
         // such a word is solved again once the other one has been.
         for (int side = 1; side >= -1; side -= 2)
             Leg(side, SomewhereBelow, ref problems);
@@ -1315,7 +1385,7 @@ internal sealed class FigureSolver
         {
             var hip = pelvis + c.HipLeft * (Rig.HipHalf * side);
             double ahead = seg.Anchor!.EndsWith(".back") ? -0.06 : 0.06;
-            var place = seg.Anchor.StartsWith("knee") ? otherKnee + c.HipFwd * ahead : otherAnkle + c.HipFwd * ahead + Vec3.Up * 0.05;
+            var place = seg.Anchor.StartsWith("otherKnee") ? otherKnee + c.HipFwd * ahead : otherAnkle + c.HipFwd * ahead + Vec3.Up * 0.05;
             double footYaw = side == 1 ? c.LYaw : c.RYaw;
             var pole = seg.Pole is { } q ? c.Left * q[0] + Vec3.Up * q[1] + c.Fwd * q[2] : Rig.KneePole(Vec3.Left(footYaw), Vec3.Forward(footYaw), side);
             var ankle = place + Vec3.Up * Rig.FootLength;
@@ -1341,13 +1411,15 @@ internal sealed class FigureSolver
             double footYaw = isLeft ? c.LYaw : c.RYaw;
             var footFwd = Vec3.Forward(footYaw);
             var kneePole = Rig.KneePole(Vec3.Left(footYaw), footFwd, side);
-            var (gesture, offset, bend, point) = LegShape(isLeft ? _leftLeg : _rightLeg, t, c.Left, c.Fwd, place, kneePole);
+            var (gesture, offset, bend, point) = LegShape(isLeft ? _leftLeg : _rightLeg, t, c.Left, c.Fwd, place, kneePole, (torsoLeft, torsoUp, torsoFwd));
 
             var ankle = new Vec3(floor.X, Rig.AnkleHeight + lift + (air ? 0 : c.Raise), floor.Z);
             if (gesture > 0)
             {
                 ankle = Vec3.Lerp(ankle, hip + offset, gesture);
-                if (gesture > 0.5 && (otherLift > 0.01 || otherGesture > 0.5))
+                // In the air of a jump both legs may take a shape (a split leap); standing, one leg carries the weight.
+                bool flight = c.LAir && c.RAir;
+                if (!flight && gesture > 0.5 && (otherLift > 0.01 || otherGesture > 0.5))
                     problems.BothFeetOff = isLeft ? Channels.LeftLeg : Channels.RightLeg;
             }
             else if (!air && (ankle - hip).Length > Rig.Leg + 0.02)

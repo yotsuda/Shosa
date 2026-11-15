@@ -4,12 +4,13 @@
 
 // A pose is a stance: being in it again moves nothing.
 pose guard {
-  steps { left.fwd.low@small }
-  arms  { fwd.25@bent }
-  torso { fwd.80@round }                    // leaning 10 degrees forward, the back rounded
-  hips      { right.10 }                    // half sideways: the hips turned over the feet,
-  shoulders { right.20 }                    // and the shoulders further round: the left shoulder ahead
-  head      { fwd.25 }                      // the face up again (the head does not turn with them)
+  steps { leftFoot.fwd(0.3m) }
+  height { low(8cm) }
+  arms  { fwd.up(25).bent }
+  torso { up.fwd(10).round }                    // leaning 10 degrees forward, the back rounded
+  hips      { right(10) }                    // half sideways: the hips turned over the feet,
+  shoulders { right(20) }                    // and the shoulders further round: the left shoulder ahead
+  head      { fwd }                             // the face level, looking ahead over the lean (the head does not turn with the hips)
 }
 
 // A pose written in a narrower track does only that track's part: `guard` in leftArm
@@ -22,14 +23,14 @@ pose guard {
 // The hips and the shoulders go with it, each in a row of its own and each from the feet: drawn
 // back with the elbow (hips 20, shoulders 40 to the right), then round with the fist (`left`: the
 // right hip and the right shoulder come forward), and back to the guard's.
-move jab       { leftArm  { fwd.25@sharp!hit guard } }
+move jab       { leftArm  { fwd.up(25)@sharp!hit guard } }
 move cross     {
-  rightArm  { fwd.low@bent fwd.25@sharp!hit guard }
-  hips      { right.20     left.15@sharp       guard }
-  shoulders { right.40     left.35@sharp       guard }
+  rightArm  { fwd.down.bent fwd.up(25)@sharp!hit guard }
+  hips      { right(20)     left(15)@sharp       guard }
+  shoulders { right(40)     left(35)@sharp       guard }
 }
-move frontKick { rightLeg { fwd.low@bent fwd@sharp!hit fwd.low@bent down } }
+move frontKick { rightLeg { fwd.down.bent fwd@sharp!hit fwd.down.bent down } }
 
 // A step is placed from the other foot: the left foot reaches a full stride ahead, then the
 // right foot closes up to a small stride behind it. Both feet end 0.2 m further on, in guard.
-move stepIn    { steps { left.fwd.low!step right.back.low@small!step } }
+move stepIn    { steps { leftFoot.fwd!step rightFoot.back(0.3m)!step }  height { low low(8cm) } }

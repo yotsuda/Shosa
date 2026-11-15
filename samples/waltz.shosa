@@ -4,12 +4,12 @@ title "March into a waltz"
 tempo 120
 time 4/4
 
-figure solo
+role solo
 dancer solo humanoid on solo
 
 section March {
   solo {
-    steps { left.fwd right.fwd left.fwd together | right.back left.back right.back together | }
+    steps { leftFoot.fwd rightFoot.fwd leftFoot.fwd stand | rightFoot.back leftFoot.back rightFoot.back stand | }
     arms  { side:2 down:2 | % | }
   }
 }
@@ -22,8 +22,8 @@ section Waltz {
   time 3/4
   upbeat 1
   solo {
-    arms  { fwd:1!turn | clap:1!clap side:2 | % | side.high:3 | side:3 | }
-    steps { left.side right.side together | right.side left.side together | jump.apart:1 then:2 | together:3 | }
+    arms  { fwd:1!turn | clap:1!clap side:2 | % | side.up:3 | side:3 | }
+    steps { leftFoot.side rightFoot.side stand | rightFoot.side leftFoot.side stand | jump.apart:1 then:2 | stand:3 | }
   }
 }
 
@@ -31,7 +31,7 @@ section Waltz {
 section Bow {
   time 3/4
   solo {
-    torso { up fwd.high then | up:3 | }        // bowed on 2; it comes up through the then
+    torso { up fwd.up then | up:3 | }        // bowed on 2; it comes up through the then
     arms  { down:3 | then:3 | }
   }
 }

@@ -35,18 +35,18 @@ public class SyntaxTests
     public void The_new_shapes_parse_into_their_own_nodes()
     {
         const string text = """
-            figure mage
+            role mage
             dancer mage humanoid on mage at 0 1 free
-            pose guard { arms { fwd.high@bent } }
-            move jab { leftArm { fwd.-10:0.3s@sharp!hit guard:12f } }
+            pose guard { arms { fwd.up.bent } }
+            move jab { leftArm { fwd.down(10):0.3s@sharp!hit guard:12f } }
             section Idle {
               mage {
                 body  { guard:0 | { jab:1/2 jab:1/2 } & { skip:1 } then:3 }
-                steps { left.fwd@turn(left.quarter) lift.fwd(0.4)@free land@free then }
+                steps { leftFoot.fwd@turn(left(90)) lift(0.4m).fwd@free land@free then }
               }
             }
             form short { Idle }
-            score practice { dancer mage  form short  tempo 80  loop inplace }
+            score practice { dancer mage  form short  tempo 80  loop inPlace }
 
             """;
         var tree = SyntaxTree.Parse(text);
@@ -59,8 +59,8 @@ public class SyntaxTests
         Assert.Equal(1, Count(SyntaxKind.Overlay));
         Assert.Equal(2, Count(SyntaxKind.Sequence));
         Assert.Equal(1, Count(SyntaxKind.Mark));
-        Assert.Equal(2, Count(SyntaxKind.Arguments));       // @turn(left.quarter), lift.fwd(0.4)
-        Assert.Equal(5, Count(SyntaxKind.ScoreItem));       // dancer, form, tempo, loop, inplace
+        Assert.Equal(4, Count(SyntaxKind.Arguments));       // fwd.down(10), @turn(left(90)) and the (90) in it, lift(0.4m)
+        Assert.Equal(5, Count(SyntaxKind.ScoreItem));       // dancer, form, tempo, loop, inPlace
         // The unit of a length is part of the length; a number can stand where a level does.
         var durations = tree.Root.DescendantNodes().Where(n => n.Kind == SyntaxKind.Duration).Select(n => n.ToString().Trim()).ToList();
         Assert.Contains(":0.3s", durations);
@@ -84,10 +84,10 @@ public class SyntaxTests
     public void An_unclosed_track_does_not_swallow_the_track_after_it()
     {
         const string text = """
-            figure a
+            role a
             section P {
               a {
-                steps { left.fwd right.fwd
+                steps { leftFoot.fwd rightFoot.fwd
                 arms  { side down }
               }
             }
@@ -115,7 +115,7 @@ public class SyntaxTests
     {
         string text = Samples.Read("taiso");
         var tree = SyntaxTree.Parse(text);
-        int at = text.IndexOf("left.high", StringComparison.Ordinal);
+        int at = text.IndexOf("left.up", StringComparison.Ordinal);
 
         var edited = tree.WithChange(new TextChange(new TextSpan(at, 4), "right"));
         var full = SyntaxTree.Parse(edited.Text);

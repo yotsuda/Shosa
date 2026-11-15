@@ -4,20 +4,20 @@ title "Duet"
 tempo 72
 time 4/4
 
-figure a
-figure b
+role a
+role b
 dancer ann humanoid on a  at -0.6 0  facing stageLeft
 dancer ben humanoid on b  at 0.6 0   facing stageRight
 
 section Greet {
   a {
-    steps    { then left.fwd@small then:2 | then:4 }       // the step lands on 2
-    torso    { up then fwd.60 then | up then:3 }           // bowed on 3: upright for a beat, then in a beat to the bow
+    steps    { then leftFoot.fwd(0.3m) then:2 | then:4 }       // the step lands on 2
+    torso    { up then up.fwd(30) then | up then:3 }           // bowed on 3: upright for a beat, then in a beat to the bow
     rightArm { down:3 then | b.hand:2 then down }          // the hands meet on the 1 of the second bar
   }
   b {
     head     { a.head then:3 | then:4 }
-    torso    { up:2 then fwd.60 | up then:3 }
+    torso    { up:2 then up.fwd(30) | up then:3 }
     rightArm { down:3 then | a.hand:2 then down }
   }
 }

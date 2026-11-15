@@ -13,15 +13,15 @@
         "2": { "name": "entity.name.section.shosa" }
       }
     },
-    { "comment": "In a score: loop, inplace.", "name": "storage.modifier.shosa", "match": "(?<![.@!:\\w])(loop|inplace)\\b(?![.:@])" },
+    { "comment": "In a score: loop, inPlace.", "name": "storage.modifier.shosa", "match": "(?<![.@!:\\w])(loop|inPlace)\\b(?![.:@])" },
     {
-      "comment": "dancer NAME humanoid on FIGURE [at X Z] [facing …] [mirror] [delay N] [free] [in SECTION …] — one line. In a score: dancer NAME.",
+      "comment": "dancer NAME humanoid on ROLE [at X Z] [facing …] [mirror] [delay N] [free] [in SECTION …] — one line. In a score: dancer NAME.",
       "begin": "(?<![.@!:\\w])(dancer)\\b(?:[ \\t]+([A-Za-z_][A-Za-z0-9_]*))?",
       "beginCaptures": {
         "1": { "name": "keyword.control.shosa" },
         "2": { "name": "entity.name.type.dancer.shosa" }
       },
-      "end": "(?=[{}])|(?=\\b(?:form|tempo|title|music|score|dancer|loop|inplace)\\b)|$",
+      "end": "(?=[{}])|(?=\\b(?:form|tempo|title|music|score|dancer|loop|inPlace)\\b)|$",
       "name": "meta.dancer.shosa",
       "patterns": [
         { "include": "#comment" },
@@ -33,8 +33,8 @@
       ]
     },
     {
-      "comment": "figure NAME, pose NAME, move NAME, form [NAME], score [NAME]; in a score: form NAME, score NAME.",
-      "match": "(?<![.@!:\\w])(figure|pose|move|form|score)\\b(?:[ \\t]+([A-Za-z_][A-Za-z0-9_]*))?",
+      "comment": "role NAME, pose NAME, move NAME, form [NAME], score [NAME]; in a score: form NAME, score NAME.",
+      "match": "(?<![.@!:\\w])(role|pose|move|form|score)\\b(?:[ \\t]+([A-Za-z_][A-Za-z0-9_]*))?",
       "captures": {
         "1": { "name": "keyword.control.shosa" },
         "2": { "name": "entity.name.function.shosa" }
@@ -42,7 +42,7 @@
     },
     { "name": "keyword.control.shosa", "match": "(?<![.@!:\\w])(using|title|tempo|time|fps|music|q|verse)\\b(?!\\.)" },
     { "name": "keyword.control.shosa", "match": "(?<![.@!:\\w])upbeat(?=[ \\t]+\\d)" },
-    { "name": "entity.name.function.track.shosa", "match": "\\b(body|steps|arms|leftArm|rightArm|leftLeg|rightLeg|turnout|hips|torso|shoulders|head)\\b(?=\\s*\\{)" },
+    { "name": "entity.name.function.track.shosa", "match": "\\b(body|steps|height|arms|leftArm|rightArm|leftLeg|rightLeg|turnout|hips|torso|shoulders|head)\\b(?=\\s*\\{)" },
     {
       "comment": "@turn(left.quarter): an annotation with arguments.",
       "begin": "(@[A-Za-z_][A-Za-z0-9_]*)(\\()",
@@ -91,7 +91,7 @@
     { "name": "keyword.operator.together.shosa", "match": "&" },
     { "name": "keyword.operator.times.shosa", "match": "\\*" },
     { "name": "comment.block.hold.shosa", "match": "(?<![.@!\\w])(then|skip)\\b(?!\\.)" },
-    { "name": "support.constant.level.shosa", "match": "(?<=\\.)(low|mid|high)\\b" }
+    { "comment": "A height: height { low(8cm) mid high }, b.hand.high.", "name": "support.constant.level.shosa", "match": "(?<![\\w])(low|mid|high)\\b(?![\\w.])" }
   ],
   "repository": {
     "comment": { "name": "comment.line.double-slash.shosa", "match": "//.*$" },

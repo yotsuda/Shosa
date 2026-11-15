@@ -26,7 +26,7 @@ public class MusicTests
 
     private const string Dance = """
         music "waltz.lys"
-        figure solo
+        role solo
         dancer solo humanoid on solo
         score { dancer solo }
         section A { solo { arms { side:3 | up:3 | } } }
@@ -190,7 +190,7 @@ public class MusicTests
 
     private const string ChangingDance = """
         music "changing.lys"
-        figure solo
+        role solo
         dancer solo humanoid on solo
         score { dancer solo }
         section A { solo { arms { side:4 | up:2!top side:2 | } } }

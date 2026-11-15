@@ -30,6 +30,10 @@ public static class Rig
     public const double Stance = 0.20;
     /// <summary>Distance between the ankles with the heels touching: the feet closed with the legs turned out all the way.</summary>
     public const double HeelsTogether = 0.08;
+    /// <summary>Distance between the ankles with the feet side by side, touching (`together`, parallel).</summary>
+    public const double Together = 0.10;
+    /// <summary>How high a foot left in the air after landing on the other one is held, ankle above the floor.</summary>
+    public const double HeldFoot = 0.15;
     public const double Stride = 0.50;
     public const double SideStep = 0.35;
 

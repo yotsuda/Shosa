@@ -93,7 +93,7 @@ public class LanguageServerTests
         string check = session.Request("shosa/check", new { uri = Uri }).GetProperty("text").GetString()!;
         Assert.StartsWith("test.shosa: no problems\n  score: 8 beats", check);
         // The walk begins with a step: the foot is there already, which is no problem and is said.
-        Assert.Contains("\n    solo starts with `left.fwd` already made: the first step is not seen", check);
+        Assert.Contains("\n    solo starts with `leftFoot.fwd` already made: the first step is not seen", check);
 
         // A text sent with the request — unsaved, or a file nobody opened — is what is checked.
         string broken = session.Request("shosa/check", new { uri = Uri, text = Samples.Walk.Replace("side:2", "sid:2") }).GetProperty("text").GetString()!;
@@ -155,8 +155,8 @@ public class LanguageServerTests
     {
         var session = new Session(Samples.Walk);
 
-        session.Replace("together }", "left. }");
-        var afterFoot = session.Complete("left. }"[..5]);
+        session.Replace("stand }", "leftFoot. }");
+        var afterFoot = session.Complete("leftFoot. }"[..9]);
         Assert.Contains("fwd", afterFoot);
         Assert.Contains("across", afterFoot);
         Assert.DoesNotContain("left", afterFoot);
@@ -164,7 +164,7 @@ public class LanguageServerTests
 
         session.Replace("side:2", "side.");
         var afterSide = session.Complete("arms  { side.");
-        Assert.Equal(new[] { "fwd", "back", "low", "mid", "high" }, afterSide);   // not `across`, its opposite; not left / right
+        Assert.Equal(new[] { "fwd", "back", "up", "down", "bent", "elbow", "body" }, afterSide);   // not `across`, its opposite; not left / right; then the shape words of an arm
     }
 
     [Fact]
@@ -189,22 +189,24 @@ public class LanguageServerTests
         Assert.Contains("turnout", session.Complete("solo {\n"));
 
         session.Replace("down:2", "down:2@");
+        // `@` is how a part gets to its word, never the shape it arrives in.
         var annotations = session.Complete("down:2@");
-        Assert.Contains("body", annotations);
-        Assert.DoesNotContain("small", annotations);
-        Assert.Contains("elbow", annotations);
-        Assert.DoesNotContain("knee", annotations);
+        Assert.Contains("sharp", annotations);
+        Assert.DoesNotContain("body", annotations);
+        Assert.DoesNotContain("bent", annotations);
+        Assert.DoesNotContain("turn", annotations);   // a step's
 
-        // A leg in the air: the places on the other leg, `.back` after one, and `@knee`.
-        session.Replace("arms  { side:2 down:2", "rightLeg { knee. down:2");
-        Assert.Contains("knee", session.Complete("rightLeg { "));
-        Assert.Contains("ankle", session.Complete("rightLeg { "));
+        // A leg in the air: the places on the other leg, `.back` after one, and which way the knee points.
+        session.Replace("arms  { side:2 down:2", "rightLeg { otherKnee. back.");
+        Assert.Contains("otherKnee", session.Complete("rightLeg { "));
+        Assert.Contains("otherAnkle", session.Complete("rightLeg { "));
         Assert.DoesNotContain("chin", session.Complete("rightLeg { "));
-        Assert.Equal(new[] { "back" }, session.Complete("rightLeg { knee."));
-        Assert.Contains("the standing leg's knee", session.Hover("knee."));
-        session.Replace("knee. down:2@", "knee down:2@");
-        Assert.Contains("knee", session.Complete("knee down:2@"));
-        Assert.DoesNotContain("elbow", session.Complete("knee down:2@"));
+        Assert.Equal(new[] { "back", "knee" }, session.Complete("rightLeg { otherKnee."));
+        Assert.Contains("the other leg's knee", session.Hover("otherKnee."));
+        var afterBack = session.Complete("otherKnee. back.");
+        Assert.Contains("knee", afterBack);
+        Assert.Contains("bent", afterBack);
+        Assert.DoesNotContain("elbow", afterBack);
 
         // In a form, after `tempo` comes a number; the word says whose tempo it is.
         session.Replace("form { ", "form { tempo 97 ");
@@ -217,12 +219,12 @@ public class LanguageServerTests
     public void Completion_knows_the_figures_dancers_and_definitions_of_the_file()
     {
         var session = new Session("""
-            figure a
-            figure b
+            role a
+            role b
             dancer ann humanoid on a facing front
             dancer ben humanoid on b
 
-            pose guard { arms { fwd.high@bent } }
+            pose guard { arms { fwd.up.bent } }
             move jab { leftArm { fwd guard } }
             section Greet {
               a { body { jab } rightArm { b. } }
@@ -237,7 +239,7 @@ public class LanguageServerTests
         Assert.Equal(new[] { "humanoid" }, session.Complete("dancer ann "));
         Assert.Equal(new[] { "a", "b" }, session.Complete("humanoid on "));
         Assert.Contains("stageLeft", session.Complete("facing "));
-        Assert.Empty(session.Complete("section Greet "));   // loop and inplace are said in the score
+        Assert.Empty(session.Complete("section Greet "));   // loop and inPlace are said in the score
         Assert.Equal(new[] { "a", "b", "upbeat", "tempo", "time" }, session.Complete("section Greet {\n"));
         Assert.Equal(new[] { "guard", "jab", "then", "skip", "q", "verse" }, session.Complete("a { body { "));
         Assert.DoesNotContain("verse", session.Complete("move jab { leftArm { "));   // a move is not played a second time
@@ -247,8 +249,8 @@ public class LanguageServerTests
         Assert.Contains("Move of this file", session.Hover("jab }"));
 
         // In a score: what it can say, the file's dancers after `dancer`, its named forms after `form`.
-        Assert.Equal(new[] { "dancer", "form", "loop", "inplace", "tempo", "title", "music" }, session.Complete("score practice { "));
-        Assert.Equal(new[] { "dancer", "form", "loop", "inplace", "tempo", "title", "music" }, session.Complete("form short  "));
+        Assert.Equal(new[] { "dancer", "form", "loop", "inPlace", "tempo", "title", "music" }, session.Complete("score practice { "));
+        Assert.Equal(new[] { "dancer", "form", "loop", "inPlace", "tempo", "title", "music" }, session.Complete("form short  "));
         Assert.Equal(new[] { "ann", "ben" }, session.Complete("score practice { dancer "));
         Assert.Equal(new[] { "short" }, session.Complete("dancer ann  form "));
     }
@@ -257,7 +259,7 @@ public class LanguageServerTests
     public void A_top_level_word_is_completed_to_the_least_its_item_needs_with_the_names_of_the_file()
     {
         var session = new Session("""
-            figure lead
+            role lead
             dancer alice humanoid on lead
 
             section Verse { lead { arms { side } } }
@@ -279,9 +281,9 @@ public class LanguageServerTests
     public void Hover_on_a_move_says_how_long_it_is()
     {
         var session = new Session("""
-            pose guard { arms { fwd.high@bent } }
+            pose guard { arms { fwd.up.bent } }
             move combo { leftArm { fwd:1/2 guard:1/2 fwd guard } rightArm { skip:2 fwd } }
-            figure solo
+            role solo
             dancer solo humanoid on solo
             section Fight { solo { body { combo combo:6 } } }
             form { Fight }
@@ -300,8 +302,8 @@ public class LanguageServerTests
     {
         var session = new Session(Samples.Walk);
 
-        string? hover = session.Hover("together");
-        Assert.Contains("closes to the supporting foot", hover);
+        string? hover = session.Hover("stand");
+        Assert.Contains("closes to standing width", hover);
         Assert.Contains("bar 2, beat 4", hover);
 
         Assert.Contains("Both arms at once", session.Hover("arms"));

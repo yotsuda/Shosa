@@ -4,13 +4,13 @@ title "Bow"
 tempo 60
 time 4/4
 
-figure solo
+role solo
 dancer solo humanoid on solo
 
 section Bow {
   solo {
-    torso { then fwd.60 then up }
-    head  { then fwd.-20 then fwd }
+    torso { then up.fwd(30) then up }
+    head  { then fwd.down(50) then fwd }
   }
 }
 

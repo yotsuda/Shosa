@@ -15,15 +15,15 @@ public class UsingTests
 
     private const string Parts = """
         // The parts of one character.
-        pose guard { steps { left.fwd.low@small }  arms { fwd.25@bent } }
-        move jab   { leftArm { fwd.25@sharp!hit guard } }
+        pose guard { steps { leftFoot.fwd(0.3m) }  height { low(8cm) }  arms { fwd.up(25).bent } }
+        move jab   { leftArm { fwd.up(25)@sharp!hit guard } }
 
         """;
 
     private const string Combo = """
         using "hero.parts.shosa"
 
-        figure hero
+        role hero
         dancer hero humanoid on hero
         section Combo { hero { body { guard jab:1 jab:2 | } } }
         form { Combo }
@@ -68,7 +68,7 @@ public class UsingTests
         Assert.Empty(parts.Clips);
         Assert.Contains("  a file of parts, for using: pose guard, move jab (2 beats)", CheckReport.Scores(parts, At("hero.parts.shosa")));
         // A file with a section is still a dance, and a dance needs a score.
-        Assert.Contains(Compile(Parts + "figure hero\n", [], "x.shosa").Diagnostics, d => d.Code == "SH1030");
+        Assert.Contains(Compile(Parts + "role hero\n", [], "x.shosa").Diagnostics, d => d.Code == "SH1030");
     }
 
     [Fact]
@@ -92,7 +92,7 @@ public class UsingTests
     [Fact]
     public void What_is_wrong_in_a_used_file_is_said_on_the_using_line_with_its_file_and_line()
     {
-        var used = Compile(Combo, new() { ["hero.parts.shosa"] = Parts.Replace("fwd.25@sharp!hit", "fwd.25@shrap!hit") });
+        var used = Compile(Combo, new() { ["hero.parts.shosa"] = Parts.Replace("fwd.up(25)@sharp!hit", "fwd.up(25)@shrap!hit") });
 
         var wrong = Assert.Single(used.Diagnostics, d => d.Code == "SH1010");
         Assert.StartsWith("In hero.parts.shosa, line 3: ", wrong.Message);
@@ -114,7 +114,7 @@ public class UsingTests
         var files = new Dictionary<string, string>
         {
             ["parts/hero.shosa"] = "using \"basics.shosa\"\nusing \"../combo.shosa\"\n" + Parts,
-            ["parts/basics.shosa"] = "using \"hero.shosa\"\nmove nod { head { fwd.-25 fwd } }\n",
+            ["parts/basics.shosa"] = "using \"hero.shosa\"\nmove nod { head { fwd.down(25) fwd } }\n",
         };
         var main = Combo.Replace("hero.parts.shosa", "parts/hero.shosa").Replace("jab:2 |", "nod:2 |") + "using \"parts/basics.shosa\"\n";
 

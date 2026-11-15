@@ -4,20 +4,21 @@ title "Morning exercise"
 tempo 80
 time 4/4
 
-figure solo
+role solo
 dancer solo humanoid on solo
 
 section Stretch {
   solo {
     arms  { fwd up side down | fwd up side down }
-    steps { both.mid both.high:2 both.mid | both.mid both.low:2 both.mid }   // up on the toes on 2, knees bent on the next 2
+    steps { then then:2 then | then then:2 then }
+    height { mid high:2 mid | mid low:2 mid }   // up on the toes on 2, knees bent on the next 2
   }
 }
 
 section Bend {
   solo {
     arms  { hip then:3 | then:2 then down }
-    torso { then left.high up right.high | up fwd.high up then }
+    torso { then left.up up right.up | up fwd.up up then }
   }
 }
 

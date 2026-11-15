@@ -28,19 +28,19 @@ interface ClipMessage {
 
 /**
  * What a new file starts as: one bar of walking, with everything a file cannot leave out
- * (a figure, its dancer, a section, the form, the score). `shosa check` passes it.
+ * (a role, its dancer, a section, the form, the score). `shosa check` passes it.
  */
 const newFileTitle = 'Untitled';
 const newFileText = `title "${newFileTitle}"
 tempo 100
 time 4/4
 
-figure solo
+role solo
 dancer solo humanoid on solo
 
 section Main {
   solo {
-    steps { left.fwd right.fwd left.fwd together | }
+    steps { leftFoot.fwd rightFoot.fwd leftFoot.fwd stand | }
   }
 }
 

@@ -16,9 +16,9 @@ namespace Shosa.Core.Syntax;
 internal sealed class Parser
 {
     private static readonly HashSet<string> TopKeywords =
-        ["using", "title", "tempo", "time", "fps", "music", "figure", "dancer", "pose", "move", "section", "form", "score"];
+        ["using", "title", "tempo", "time", "fps", "music", "role", "dancer", "pose", "move", "section", "form", "score"];
     private static readonly HashSet<string> ClauseKeywords = ["on", "at", "facing", "mirror", "delay", "free", "in"];
-    private static readonly HashSet<string> ScoreItemKeywords = ["form", "tempo", "title", "music", "dancer", "loop", "inplace"];
+    private static readonly HashSet<string> ScoreItemKeywords = ["form", "tempo", "title", "music", "dancer", "loop", "inPlace"];
 
     private readonly List<GreenToken> _tokens;
     private int _index;
@@ -104,7 +104,7 @@ internal sealed class Parser
                     ]);
                 case "music": return new GreenInner(SyntaxKind.Header, ParseMusic());
                 case "using": return new GreenInner(SyntaxKind.Header, [Next(), ExpectOnLine(SyntaxKind.String, "A file name in quotes")]);
-                case "figure": return ParseFigure();
+                case "role": return ParseFigure();
                 case "dancer": return ParseDancer();
                 case "pose": return ParseDefinition(SyntaxKind.PoseDecl, "A pose name");
                 case "move": return ParseDefinition(SyntaxKind.MoveDecl, "A move name");
@@ -130,7 +130,7 @@ internal sealed class Parser
 
     private GreenNode ParseFigure()
     {
-        var children = new List<GreenNode> { Next(), ExpectOnLine(SyntaxKind.Identifier, "A figure name") };
+        var children = new List<GreenNode> { Next(), ExpectOnLine(SyntaxKind.Identifier, "A role name") };
         return new GreenInner(SyntaxKind.FigureDecl, children);
     }
 
@@ -148,8 +148,8 @@ internal sealed class Parser
                 continue;
             }
             var clause = new List<GreenNode> { Next() };
-            while (SameLine && (Kind is SyntaxKind.Number or SyntaxKind.String || (AtName && !ClauseKeywords.Contains(Current.Text))))
-                clause.Add(Next());
+            while (SameLine && (Kind is SyntaxKind.Number or SyntaxKind.String or SyntaxKind.OpenParen || (AtName && !ClauseKeywords.Contains(Current.Text))))
+                clause.Add(Kind == SyntaxKind.OpenParen ? ParseArguments() : Next());   // facing left(30)
             children.Add(new GreenInner(SyntaxKind.Clause, clause));
         }
         return new GreenInner(SyntaxKind.DancerDecl, children);
@@ -396,6 +396,8 @@ internal sealed class Parser
                 if (_prevTight && Current.Leading.Length == 0 && (At("s") || At("f") || At("bar")))
                     duration.Add(Next());
                 children.Add(new GreenInner(SyntaxKind.Duration, duration));
+                if (Kind == SyntaxKind.Tilde)
+                    children.Add(Next());   // tied to the length that follows: kick:1~ | :2
             }
             else if (Kind == SyntaxKind.At)
             {
@@ -415,18 +417,14 @@ internal sealed class Parser
                 break;
             }
         }
-        if (Kind == SyntaxKind.Tilde)
-            children.Add(Next());   // tied to the length that follows: kick:1~ | :2
-
         return new GreenInner(SyntaxKind.Event, children);
     }
 
     private GreenNode ParseTarget(bool arguments)
     {
-        // Brackets belong to the word they follow, and the target may go on after them:
-        // lift.fwd(0.4), fwd.left(30).10.
+        // Brackets belong to the word they follow — how far that word goes — and the target goes
+        // on after them: fwd.left(30).up(10), lift.fwd(0.4m), fwd.bent(40).elbow(side).
         var children = new List<GreenNode> { Next() };
-        bool bracketed = false;
         while (true)
         {
             if (Kind == SyntaxKind.Dot)
@@ -439,10 +437,9 @@ internal sealed class Parser
                 else
                     children.Add(Missing(SyntaxKind.Identifier, "A word after '.'"));
             }
-            else if (arguments && !bracketed && Kind == SyntaxKind.OpenParen)
+            else if (arguments && Kind == SyntaxKind.OpenParen)
             {
                 children.Add(ParseArguments());
-                bracketed = true;
             }
             else
             {
@@ -452,16 +449,21 @@ internal sealed class Parser
         return new GreenInner(SyntaxKind.Target, children);
     }
 
-    /// <summary>( 0.4 ) or ( left.quarter ).</summary>
+    /// <summary>( 40 ), ( 0.4m ), ( side.up ) or ( left(180) ).</summary>
     private GreenNode ParseArguments()
     {
         var children = new List<GreenNode> { Next() };
         while (SameLine)
         {
             if (Kind == SyntaxKind.Number)
+            {
                 children.Add(Next());
+                // A unit is written against the number, as a length is: 0.4m, 30cm.
+                if (_prevTight && Current.Leading.Length == 0 && (At("m") || At("cm")))
+                    children.Add(Next());
+            }
             else if (AtName)
-                children.Add(ParseTarget(arguments: false));
+                children.Add(ParseTarget(arguments: true));
             else
                 break;
         }

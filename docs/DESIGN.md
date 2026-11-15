@@ -4884,5 +4884,22 @@ section Run {
 - **A4 高さの段** `height { low low(30cm) mid high }`。書くまで続く。`low` は 16 cm。`both.…`、一歩の `.low` `.high`、`together.low`、`@small` `@large` はなくす。跳躍は踏み切った高さに着く (今のまま)。
 - **A5 枠**: 書いた向きは、どの段も部屋の枠 (足の向き、水平)。頭もそう (`head { fwd.down(25) }` は水平から 25 度下)。胸の枠は `.body` (腕、脚、頭)。**書かない頭は胸に沿う** (いまの書かない頭と同じ)。
 - **B 群**: `figure` → `role` (`dancer alice humanoid on lead`)。言語の語は役と踊り手の名前にも使えない。`across.shoulder` → `shoulder.across`。`jump.back` も 0.4 m。文法書に段の広さの表。`together` は触れる幅 (平行で足首 0.1 m、ターンアウトで踵が触れる)、`stand` は立つ幅 (0.2 m) へ。`inplace` → `inPlace`。`check` の印の回の言い方を `verse 2` に (データの `play` は変えない)。
-- **実装の順**: 1 A1 数 → 2 A3 形と順 → 3 A2 足と跳躍 → 4 A4 高さ → 5 A5 枠 → 6 B 群 → 7 文法書、`FOR_AGENTS.md`、File > New のひな形、補完とスニペット、色づけ、サンプル 17 本と `trials/lexicon-ballet/` を書き直す (ほかの `trials/` は記録なので古い文法のまま残す) → 8 AI 執筆試験。各段階で試験を通す。
+- **実装の順** (77.9 に進み): 1 A1 数 → 2 A3 形と順 → 3 A2 足と跳躍 → 4 A4 高さ → 5 A5 枠 → 6 B 群 → 7 文法書、`FOR_AGENTS.md`、File > New のひな形、補完とスニペット、色づけ、サンプル 17 本と `trials/lexicon-ballet/` を書き直す (ほかの `trials/` は記録なので古い文法のまま残す) → 8 AI 執筆試験。各段階で試験を通す。
+
+### 77.9 実装の進み
+
+- 戻り先: コミット `ab78ed4` (77 節の前。試験 304 件が通る状態)。
+- **1〜6 をコアに入れた (2026-11-15)。ビルドは通る。試験とサンプルはまだ古い文法のままで、落ちる**:
+  - 構文: 1 つの的に括弧をいくつでも、括弧の中に括弧 (`@turn(left(180))`)、括弧の数に単位 (`0.4m` `30cm`)、`dancer` の節に括弧 (`facing left(30)`)。語の部分の順を決めた (的 → `:長さ` (直後に `~`) → `@` → `!`。違えば `SH1040`)。
+  - バインダー: 的を「語と、その後の括弧」の列 (`Part`) として読む。`LimbDirection` を新しい向きの規則に、`BindGesture` が形の語 (`Vocabulary.Shapes`) を読む。`BindTurned` `BindTurnout` は数が必須。`Turned` が回転の度。`BindSupport` を書き直した (`leftFoot` `rightFoot`、距離の括弧、`together` と `stand`、`jump` `hop` `leap` (`Seg.Lands`)、`both` と一歩の高さは誤り)。`BindHeight` (`height` の段、`Channels.Height`)。`@small` `@large` と回転の名前の量をなくした。古い `@bent` などは「的の語になった」と言う。役と踊り手の名前に言語の語は使えない。`figure` → `role`、`inplace` → `inPlace`、`shoulder.across`、`check` の印の回は `verse N`。
+  - 求解器: 足が宙に残る (`FootMove.LiftFrom` / `LiftTo`、`Stand.LeftUp` / `RightUp`)。`hop` `leap` は片足に着き、もう一方は `Rig.HeldFoot` (0.15 m) の高さで着いた足の後ろに残る。両足から `hop` / `leap` は `SH2012` (`SupportProblems`)。`together` は触れる幅 (`Rig.Together` 0.1 m、ターンアウトで踵)、`stand` は 0.2 m。空中では両脚の段を書いてよい (`SH2004` を出さない)。書いた頭の向きは部屋の枠、書かない頭は胸に沿う。脚と頭も `.body`。
+- **試験とサンプルを移した (2026-11-15)**: 移しの道具 (Python。段の文脈を見て語を書き換え、C# の文字列の中も移す。段の中の高さは `height` の段を作る) で移し、残りを手で直した。試験は文法書の 2 件を除いて全部通る (302 / 304)。サンプル 18 ファイルと `trials/lexicon-ballet/` は診断なし。手で直したもの: 繰り返しの中の高さ (`refrain` `turning`)、書いた頭の角 (前は胸から、いまは水平から。お辞儀や前傾の中の頭は、同じ向きになるよう数を足し引きした: `fighter` の構えは `fwd.25` → `fwd`)。
+  - **語のぶつかりを 1 つ見つけて直した**: 脚の着く先 `knee` (75 節) と、形の語 `knee(…)` が同じ語だった (原則 1 に反する。75 節で私が作った)。着く先を **`otherKnee` `otherAnkle`** (`.back`) にした。
+- **文法書を書き直した (2026-11-15)**: 向きの節 (括弧の規則、縦から始める形、どの段も同じ枠)、形の語の節 (`Shapes` の表)、足の節 (`leftFoot`、距離の括弧、`together` と `stand`)、跳躍の表 (`jump` `hop` `leap` と踏み切り)、新しい「Height」の節、注釈の節 (`@` は行き方だけ、語の部分の順)、役の節、「言えないこと」(走る・片足で跳ねるを外し、足の入れ替えを足した)、「Rules and gotchas」。**試験 304 件がすべて通る**。拡張: 色づけ (`role`、`inPlace`、`height`、高さの語)、File > New のひな形、プレビューの文言。`FOR_AGENTS.md`。サンプルの連続写真で、fighter の Combo と bow の形が前と同じことを見た。
+- **残り**: AI 執筆試験 (77.8 の 8)。拡張の入れ直し。
+- **見直しで気づいた、まだ直していないもの** (原則に照らして、次に提案する候補):
+  - `dancer` の行の `at 1.5 0` はメートルを単位なしで書く (原則 2 の外)。`delay 2` は拍。
+  - 書き出しの印のデータ (`events.json`、glTF の `extras`) の鍵 `figure` は、値が踊り手の名前 (原則 1 なら `dancer`)。Godot の読み込みスクリプトも変わる。
+  - 一歩の距離の括弧は、`side(0.4m)` が「足と足の間」、`fwd(0.3m)` が「立ち足からの前後」、`across(0.2m)` が「前への量」と、語ごとに測り方が違う。
+  - 試験の文字列に移しの残り (`steps { then:6 then:2 then:2 }` のような、意味のない `then` の行) がある。文法書 (`GrammarDoc.cs`) を書き直す。言語サーバーの補完 (`Words.cs`: 形の語、`up` `down`、`leftFoot`、`height`、`role`)、色づけ、File > New のひな形、`FOR_AGENTS.md`。
 

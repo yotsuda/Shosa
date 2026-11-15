@@ -2,12 +2,12 @@
 title "NPC gestures"
 tempo 60
 
-figure npc
+role npc
 dancer npc humanoid on npc
 
 section Nod {
   npc {
-    head { fwd:0.25s fwd.-25:0.25s fwd:0.2s fwd.-15:0.3s fwd:0.2s }   // down at 0.25 s, up, a smaller one at 0.7 s
+    head { fwd:0.25s fwd.down(25):0.25s fwd:0.2s fwd.down(15):0.3s fwd:0.2s }   // down at 0.25 s, up, a smaller one at 0.7 s
   }
 }
 
@@ -15,23 +15,24 @@ section Nod {
 // and then go, a `then` after it: the part stays through the word, and goes through the then.
 section Point {
   npc {
-    rightArm { down:0.3s fwd.high:0.2s@bent fwd:1s@sharp!point then:0.6s down:0.1s }
+    rightArm { down:0.3s fwd.up.bent:0.2s fwd:1s@sharp!point then:0.6s down:0.1s }
     head     { fwd:0.3s fwd.right:1.2s then:0.6s fwd:0.1s }
   }
 }
 
 section Applaud {
   npc {
-    arms { clap:1/4!clap fwd.-20:1/4@bent }
+    arms { clap:1/4!clap fwd.down(20).bent:1/4 }
   }
 }
 
 section PickUp {
   npc {
-    steps    { both.mid:0.8s          both.low@large:0.4s          then:0.8s both.mid:0.2s }   // down at 0.8 s, up again at 2 s
-    torso    { up:0.4s then:0.4s      fwd.high:0.4s                then:0.8s up:0.2s }
-    rightArm { down:0.4s then:0.4s    fwd.low:0.2s down:0.4s!grab  then:0.6s chest:0.2s }
-    head     { fwd:0.4s then:0.4s     fwd.low:0.4s                 then:0.8s fwd:0.2s }
+    steps    { then:0.8s          then:0.4s          then:0.8s then:0.2s }
+    height { mid:0.8s low(40cm):0.4s then:0.8s mid:0.2s }   // down at 0.8 s, up again at 2 s
+    torso    { up:0.4s then:0.4s      fwd.up:0.4s                then:0.8s up:0.2s }
+    rightArm { down:0.4s then:0.4s    fwd.down:0.2s down:0.4s!grab  then:0.6s chest:0.2s }
+    head     { fwd:0.4s then:0.4s     down:0.4s                     then:0.8s fwd:0.2s }
   }
 }
 
@@ -44,7 +45,7 @@ section LookAround {
 
 section Wait {
   npc {
-    arms  { across.shoulder:4 }               // arms folded: each hand to the opposite shoulder.
+    arms  { shoulder.across:4 }               // arms folded: each hand to the opposite shoulder.
     steps { shift.right:4 }                   // a loop follows itself, so it is already there
   }
 }

@@ -5,7 +5,7 @@ time 4/4
 
 using "ballet.shosa"
 
-figure ballerina
+role ballerina
 dancer ballerina humanoid on ballerina
 
 section Plies {
