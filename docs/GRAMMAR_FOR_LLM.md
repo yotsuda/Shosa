@@ -659,7 +659,7 @@ An arm can also go to a place on the own body instead of a direction:
 | `shoulder` | The hand on its own shoulder. |
 | `head` | The hand beside the head. |
 | `chin` | The hand in front of the chin: one hand in thought, one fist held close. (Both arms there cross at the elbows: a guard is `fwd.up(25).bent`.) |
-| `forehead` | The hand at the forehead, the elbow out to the side: a salute, a hand shading the eyes, wiping the brow. It goes with the head (a head tilted or looking up takes it along). |
+| `forehead` | The hand at the forehead, the elbow out to the side: a salute, a hand shading the eyes, wiping the brow. It goes with the head (a head turned, tilted or looking up takes it along). |
 | `belly` | The hand on the belly. |
 | `shoulder.across` | The hand on the opposite shoulder. With `arms`: arms folded. |
 | `clap` | The hand at the midline in front of the chest. With `arms`: the two hands meet. |
@@ -1066,6 +1066,8 @@ on its direction, in metres: `leftFoot.fwd(0.3m)` (a small step), `leftFoot.side
   out of the bend: `steps { leftFoot.side(0.7m) shift.right:1 }` with
   `height { mid low(15cm):1 }` is a side lunge over the right foot, the hips 15 cm below the
   wide stance straight, the left leg straight and the right knee at about 75°.
+  Deeper, the other leg bends too: with `low(25cm)` it is a plié in second with the weight
+  over the right foot, the knees at about 50° (left) and 95° (right).
 - `turn.left(90)`, `turn.right(180)` — side, then degrees in brackets (up to 1080: a
   double turn is `turn.right(720)`).
   A turn pivots on the foot that carries the weight: the one that took the last step or

@@ -1047,6 +1047,8 @@ public static class GrammarDoc
               out of the bend: `steps { leftFoot.side(0.7m) shift.right:1 }` with
               `height { mid low(15cm):1 }` is a side lunge over the right foot, the hips 15 cm below the
               wide stance straight, the left leg straight and the right knee at about 75°.
+              Deeper, the other leg bends too: with `low(25cm)` it is a plié in second with the weight
+              over the right foot, the knees at about 50° (left) and 95° (right).
             - `turn.left(90)`, `turn.right(180)` — side, then degrees in brackets (up to 1080: a
               double turn is `turn.right(720)`).
               A turn pivots on the foot that carries the weight: the one that took the last step or

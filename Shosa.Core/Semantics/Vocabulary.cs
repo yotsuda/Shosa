@@ -112,7 +112,7 @@ public static class Vocabulary
         new("shoulder", "The hand on its own shoulder."),
         new("head", "The hand beside the head."),
         new("chin", "The hand in front of the chin: one hand in thought, one fist held close. (Both arms there cross at the elbows: a guard is `fwd.up(25).bent`.)"),
-        new("forehead", "The hand at the forehead, the elbow out to the side: a salute, a hand shading the eyes, wiping the brow. It goes with the head (a head tilted or looking up takes it along)."),
+        new("forehead", "The hand at the forehead, the elbow out to the side: a salute, a hand shading the eyes, wiping the brow. It goes with the head (a head turned, tilted or looking up takes it along)."),
         new("belly", "The hand on the belly."),
         new("shoulder.across", "The hand on the opposite shoulder. With `arms`: arms folded."),
         new("clap", "The hand at the midline in front of the chest. With `arms`: the two hands meet."),
