@@ -28,6 +28,8 @@ public static class Rig
 
     /// <summary>Distance between the feet when standing, and what the step words mean in metres.</summary>
     public const double Stance = 0.20;
+    /// <summary>Distance between the ankles with the heels touching: the feet closed with the legs turned out all the way.</summary>
+    public const double HeelsTogether = 0.08;
     public const double Stride = 0.50;
     public const double SideStep = 0.35;
 
@@ -37,9 +39,23 @@ public static class Rig
         LHip = 11, LKnee = 12, LAnkle = 13, LToe = 14, RHip = 15, RKnee = 16, RAnkle = 17, RToe = 18;
 
     /// <summary>Where an elbow points when it bends: down, back and a little out. Side is 1 for left, -1 for right.</summary>
+    /// <summary>
+    /// How far from root to end a limb of two bones reaches with its middle joint bent `bend`
+    /// degrees (0 straight, as `@bent(N)` counts), as a share of its whole length: the law of cosines.
+    /// </summary>
+    public static double BentShare(double upper, double lower, double bend)
+    {
+        double angle = bend * Math.PI / 180;
+        return Math.Sqrt(upper * upper + lower * lower + 2 * upper * lower * Math.Cos(angle)) / (upper + lower);
+    }
+
     public static Vec3 ElbowPole(Vec3 left, Vec3 fwd, int side) => -Vec3.Up - fwd * 0.6 + left * (0.35 * side);
 
-    /// <summary>Where a knee points when it bends: forward, a little out and up.</summary>
+    /// <summary>
+    /// Where a knee points when it bends: forward, a little out and up, in the frame of its own
+    /// FOOT (the way the toes point on the floor), so a leg turned out bends its knee over the toes.
+    /// The solver and <see cref="Skeleton"/> both take it so.
+    /// </summary>
     public static Vec3 KneePole(Vec3 left, Vec3 fwd, int side) => fwd + left * (0.15 * side) + Vec3.Up * 0.1;
 
     public static readonly string[] Joints =
@@ -149,8 +165,16 @@ public sealed class ClipFigure
         var ears = torsoUp.Cross(nose.Normalized());
         double face = ears.Length < 1e-6 ? Line(Rig.LShoulder, Rig.RShoulder) : Degrees(Math.Atan2(-ears.Dot(fwd), ears.Dot(left)));
         double ahead = nose.Dot(fwd), aside = nose.Dot(left);
+        // A joint's bend as `@bent(N)` counts it: how far the second bone turns away from the line of the first.
+        double Bend(int root)
+        {
+            var upper = Joint(frame, root + 1) - Joint(frame, root);
+            var lower = Joint(frame, root + 2) - Joint(frame, root + 1);
+            return Degrees(Math.Acos(Math.Clamp(upper.Normalized().Dot(lower.Normalized()), -1, 1)));
+        }
         return new BodyAngles(Degrees(Math.Atan2(Math.Sin(yaw), Math.Cos(yaw))), Line(Rig.LHip, Rig.RHip), Line(Rig.LShoulder, Rig.RShoulder),
-            face, Degrees(Math.Atan2(nose.Y, Math.Sqrt(ahead * ahead + aside * aside))));
+            face, Degrees(Math.Atan2(nose.Y, Math.Sqrt(ahead * ahead + aside * aside))),
+            Bend(Rig.LShoulder), Bend(Rig.RShoulder), Bend(Rig.LHip), Bend(Rig.RHip));
     }
 
     /// <summary>
@@ -184,8 +208,10 @@ public sealed class ClipFigure
 /// <summary>
 /// Degrees, more to the figure's left. <paramref name="Feet"/> is from the front of the room; the
 /// hips, the shoulders and the face are from the way the feet face; <paramref name="FaceUp"/> is above level.
+/// The elbows and the knees are how far each is bent, 0 straight (as `@bent(N)` counts).
 /// </summary>
-public readonly record struct BodyAngles(double Feet, double Hips, double Shoulders, double Face, double FaceUp);
+public readonly record struct BodyAngles(double Feet, double Hips, double Shoulders, double Face, double FaceUp,
+    double LeftElbow = 0, double RightElbow = 0, double LeftKnee = 0, double RightKnee = 0);
 
 /// <param name="Section">The section that writes the mark, and <paramref name="Play"/>: which play of it in the score (1 the first). With them an engine tells the first `hit` of a section played twice from the second.</param>
 public sealed record ClipMark(double Beat, double Seconds, string Name, string Figure, string Section = "", int Play = 1);

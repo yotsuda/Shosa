@@ -115,7 +115,9 @@ public static class CheckReport
                     string up = Math.Round(Math.Abs(angles.FaceUp), 1) == 0 ? ""
                         : $" and {Math.Round(Math.Abs(angles.FaceUp), 1).ToString(CultureInfo.InvariantCulture)}° {(angles.FaceUp > 0 ? "up" : "down")}";
                     string feet = Math.Round(Math.Abs(angles.Feet), 1) == 0 ? "" : $" (the feet face {Turned(angles.Feet)} of the front)";
-                    yield return $"  {label} at beat {N(beat)} = {N(clip.SecondsAt(beat))} s: {who}hips {Turned(angles.Hips)}, shoulders {Turned(angles.Shoulders)}, face {Turned(angles.Face)}{up}{feet}";
+                    static string B(double degrees) => Math.Round(degrees).ToString(CultureInfo.InvariantCulture) + "°";
+                    string bends = $"; bent: elbows {B(angles.LeftElbow)} left, {B(angles.RightElbow)} right, knees {B(angles.LeftKnee)} left, {B(angles.RightKnee)} right";
+                    yield return $"  {label} at beat {N(beat)} = {N(clip.SecondsAt(beat))} s: {who}hips {Turned(angles.Hips)}, shoulders {Turned(angles.Shoulders)}, face {Turned(angles.Face)}{up}{feet}{bends}";
                 }
             }
         }

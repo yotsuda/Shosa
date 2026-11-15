@@ -468,6 +468,158 @@ public class MotionTests
     }
 
     [Fact]
+    public void Turnout_turns_the_feet_and_the_knees_out_and_leaves_the_hips_square()
+    {
+        var clip = Solve("    turnout { parallel:2 out:2 out.80:2 then:2 in@mirror:2 }\n    steps { then:6 both.low:2 then:2 }");
+        // Degrees to the figure's left of straight ahead, on the floor.
+        double Round(Vec3 v) => Math.Atan2(v.X, v.Z) * 180 / Math.PI;
+        double Foot(double beat, int ankle) => Round(At(clip, beat, ankle + 1) - At(clip, beat, ankle));
+
+        Assert.Equal(0, Foot(0, Rig.LAnkle), 0);
+        Assert.Equal(45, Foot(2, Rig.LAnkle), 0);
+        Assert.Equal(-45, Foot(2, Rig.RAnkle), 0);
+        Assert.Equal(80, Foot(4, Rig.LAnkle), 0);
+        Assert.Equal(-80, Foot(4, Rig.RAnkle), 0);
+        // In, and the same under a mirror: both legs alike.
+        Assert.Equal(-20, Foot(10, Rig.LAnkle), 0);
+        Assert.Equal(20, Foot(10, Rig.RAnkle), 0);
+
+        // The feet turn about the heels, and the hips stay square.
+        foreach (int joint in new[] { Rig.LAnkle, Rig.RAnkle, Rig.Pelvis, Rig.LHip, Rig.RHip })
+            Assert.True((At(clip, 4, joint) - At(clip, 0, joint)).Length < 0.005, Rig.Joints[joint]);
+
+        // In a plié the knees go out over the toes (the pole's own bias is a few degrees further out).
+        foreach (var (hip, side) in new[] { (Rig.LHip, 1), (Rig.RHip, -1) })
+        {
+            var knee = At(clip, 6, hip + 1) - (At(clip, 6, hip) + At(clip, 6, hip + 2)) * 0.5;
+            Assert.InRange(Round(knee) * side, 80, 92);
+        }
+
+        // A straight leg is turned in the thigh too: the knee's hinge goes round with the foot.
+        double Hinge(double beat, int bone)
+        {
+            var hinge = clip.Figure.Rotation(clip.Clip.FrameOfBeat(beat), bone).Rotate(new Vec3(1, 0, 0));
+            return Math.Atan2(-hinge.Z, hinge.X) * 180 / Math.PI;
+        }
+        Assert.Equal(80, Hinge(4, Skeleton.LUpperLeg) - Hinge(0, Skeleton.LUpperLeg), 0);
+        Assert.Equal(-80, Hinge(4, Skeleton.RUpperLeg) - Hinge(0, Skeleton.RUpperLeg), 0);
+    }
+
+    [Fact]
+    public void Turned_out_together_closes_the_heels()
+    {
+        double Apart(FuriClip clip, double beat) => (At(clip, beat, Rig.LAnkle) - At(clip, beat, Rig.RAnkle)).Length;
+        // A row that begins turned out begins with the heels together; a together after a step closes them again.
+        var first = Solve("    turnout { out.90 }\n    steps { then:2 left.side:2 together:2 }");
+        Assert.Equal(Rig.HeelsTogether, Apart(first, 0), 3);
+        Assert.Equal(Rig.HeelsTogether, Apart(first, 6), 3);
+        // Half way out, half way in; parallel or turned in, standing width.
+        Assert.Equal(Rig.Stance - (Rig.Stance - Rig.HeelsTogether) * Math.Sin(Math.PI / 4), Apart(Solve("    turnout { out }\n    steps { then:2 }"), 0), 3);
+        Assert.Equal(Rig.Stance, Apart(Solve("    turnout { in }\n    steps { then:2 }"), 0), 3);
+        Assert.Equal(Rig.Stance, Apart(Solve("    steps { then:2 }"), 0), 3);
+    }
+
+    [Fact]
+    public void Turnout_says_out_or_in_and_degrees_or_parallel()
+    {
+        Assert.Empty(Compile(Body("    turnout { out:2 out.90@sharp in.45 parallel }")).Diagnostics);
+        Assert.Equal("SH1013", Assert.Single(Compile(Body("    turnout { out.95:4 }")).Diagnostics).Code);
+        Assert.Equal("SH1013", Assert.Single(Compile(Body("    turnout { in.50:4 }")).Diagnostics).Code);
+        Assert.Equal("SH1012", Assert.Single(Compile(Body("    turnout { out.high:4 }")).Diagnostics).Code);
+        Assert.Equal("SH1012", Assert.Single(Compile(Body("    turnout { left:4 }")).Diagnostics).Code);
+        Assert.Equal("SH1010", Assert.Single(Compile(Body("    turnout { out@bent:4 }")).Diagnostics).Code);
+        // A pose's turnout, named in the row.
+        Assert.Empty(Compile(Samples.Solo("    body { first:2 }\n    turnout { parallel:2 first:2 }", "tempo 100\npose first { turnout { out.80 }  steps { together } }\n")).Diagnostics);
+    }
+
+    [Fact]
+    public void Bent_takes_the_degrees_the_elbow_or_the_knee_bends()
+    {
+        var clip = Solve("    rightArm { down:2 fwd@bent(60):2 fwd@bent:2 }\n    leftLeg { down:2 fwd.low@bent(110):2 down:2 }");
+        var at2 = clip.Figure.Angles(clip.Clip.FrameAt(2));
+        // The degrees written are the degrees read (check --at says them).
+        Assert.InRange(at2.RightElbow, 59, 61);
+        Assert.InRange(at2.LeftKnee, 109, 111);
+        Assert.InRange(clip.Figure.Angles(clip.Clip.FrameAt(4)).RightElbow, 89, 91);
+        // The hand stays in its direction: straight ahead of the shoulder, nearer.
+        var hand = At(clip, 2, Rig.RHand) - At(clip, 2, Rig.RShoulder);
+        Assert.True(Math.Abs(hand.X) < 0.01 && Math.Abs(hand.Y) < 0.01, hand.ToString());
+        Assert.Equal(Rig.BentShare(Rig.UpperArm, Rig.Forearm, 60) * Rig.Arm, hand.Length, 2);
+    }
+
+    [Fact]
+    public void Elbows_and_knees_point_where_the_text_says()
+    {
+        // The elbow out from the line of shoulder to hand: down by itself, out to its own side when sent.
+        Vec3 Out(FuriClip c, int root) => At(c, 2, root + 1) - (At(c, 2, root) + At(c, 2, root + 2)) * 0.5;
+        var plain = Solve("    arms { down:2 fwd.-15@bent(40):2 }");
+        var held = Solve("    arms { down:2 fwd.-15@bent(40)@elbow(side):2 }");
+        Assert.True(Out(plain, Rig.LShoulder).Y < -0.03, "hangs");
+        Assert.True(Out(held, Rig.LShoulder).X > 0.05, "the left elbow out to the left");
+        Assert.True(Out(held, Rig.RShoulder).X < -0.05, "the right elbow out to the right");
+
+        // An attitude: the knee above the foot and out when sent up and out, below it when sent down.
+        var hanging = Solve("    rightLeg { down:2 back.20@bent@knee(down):2 }");
+        var attitude = Solve("    rightLeg { down:2 back.20@bent@knee(side.high):2 }");
+        Assert.True(At(hanging, 2, Rig.RKnee).Y < At(hanging, 2, Rig.RAnkle).Y, "hangs");
+        Assert.True(At(attitude, 2, Rig.RKnee).Y > At(attitude, 2, Rig.RAnkle).Y, "above the foot");
+        Assert.True(At(attitude, 2, Rig.RKnee).X < At(attitude, 2, Rig.RHip).X - 0.1, "out to the right");
+
+        // A straight arm sent round turns about its own length: the model's upper arm shows it.
+        double Twist(string arm)
+        {
+            var c = Solve(arm);
+            var hinge = c.Figure.Rotation(c.Clip.FrameOfBeat(2), Skeleton.LUpperArm).Rotate(new Vec3(0, 0, 1));
+            return Math.Atan2(hinge.Y, -hinge.Z) * 180 / Math.PI;
+        }
+        Assert.True(Math.Abs(Twist("    leftArm { down:2 side@elbow(back):2 }") - Twist("    leftArm { down:2 side:2 }")) > 40);
+    }
+
+    [Fact]
+    public void A_toe_goes_to_the_other_legs_knee_or_ankle()
+    {
+        var fwd = new Vec3(0, 0, 1);
+        var clip = Solve("    rightLeg { down:2 knee:2 ankle:2 knee.back:2 ankle.back:2 down:2 }");
+        Assert.True((At(clip, 2, Rig.RToe) - (At(clip, 2, Rig.LKnee) + fwd * 0.06)).Length < 0.02, "a retiré");
+        Assert.True((At(clip, 4, Rig.RToe) - (At(clip, 4, Rig.LAnkle) + fwd * 0.06 + Vec3.Up * 0.05)).Length < 0.02, "a coupé");
+        Assert.True((At(clip, 6, Rig.RToe) - (At(clip, 6, Rig.LKnee) - fwd * 0.06)).Length < 0.02, "behind the knee");
+        Assert.True((At(clip, 8, Rig.RToe) - (At(clip, 8, Rig.LAnkle) - fwd * 0.06 + Vec3.Up * 0.05)).Length < 0.02, "behind the ankle");
+        Assert.Equal(Rig.AnkleHeight, At(clip, 10, Rig.RAnkle).Y, 2);
+
+        // Parallel, the knee of a retiré points forward; turned out, to the side. In a plié the
+        // standing knee comes down and forward, and the toe goes with it.
+        var parallel = Solve("    rightLeg { down:2 knee:2 }");
+        Assert.True(At(parallel, 2, Rig.RKnee).Z > At(parallel, 2, Rig.RHip).Z + 0.3, "forward");
+        var turned = Solve("    turnout { out.80 }\n    rightLeg { down:2 knee:2 }");
+        Assert.True(At(turned, 2, Rig.RKnee).X < At(turned, 2, Rig.RHip).X - 0.3, "to the side");
+        Assert.True((At(turned, 2, Rig.RToe) - (At(turned, 2, Rig.LKnee) + fwd * 0.06)).Length < 0.02, "turned out");
+        var plie = Solve("    turnout { out.80 }\n    steps { then:2 both.low:2 }\n    rightLeg { down:2 knee:2 }");
+        Assert.True(At(plie, 2, Rig.LKnee).Y < At(turned, 2, Rig.LKnee).Y - 0.05, "the standing knee bends");
+        Assert.True((At(plie, 2, Rig.RToe) - (At(plie, 2, Rig.LKnee) + fwd * 0.06)).Length < 0.02, "in a plié");
+    }
+
+    [Fact]
+    public void Bent_elbow_knee_and_the_leg_places_say_what_is_wrong()
+    {
+        string Code(string tracks) => Assert.Single(Compile(Body(tracks)).Diagnostics).Code;
+        Assert.Empty(Compile(Body("    arms { fwd.-15@bent(40)@elbow(side):2 fwd.70@bent(40)@elbow(side.high) }\n    rightLeg { down:2 knee@knee(side):2 back.20@bent(90)@knee(fwd.30):2 down }")).Diagnostics);
+        Assert.Equal("SH1013", Code("    rightArm { fwd@bent(170):4 }"));
+        Assert.Equal("SH1013", Code("    rightArm { fwd@bent(left):4 }"));
+        Assert.Equal("SH1013", Code("    rightArm { fwd@elbow:4 }"));
+        Assert.Equal("SH1012", Code("    rightArm { fwd@elbow(chin):4 }"));
+        Assert.Equal("SH1010", Code("    rightArm { fwd@knee(side):4 }"));
+        Assert.Equal("SH1010", Code("    rightLeg { fwd@elbow(side):4 }"));
+        Assert.Equal("SH1010", Code("    steps { left.fwd@knee(side):4 }"));
+        Assert.Equal("SH1010", Code("    torso { fwd.20@elbow(side):4 }"));
+        Assert.Equal("SH1010", Code("    rightLeg { down:2 knee@bent:2 }"));
+        Assert.Equal("SH1012", Code("    rightArm { knee:4 }"));
+        Assert.Equal("SH1012", Code("    rightLeg { chin:4 }"));
+        // Pointed along the limb, the joint is not told anything.
+        var along = Assert.Single(Compile(Body("    leftArm { side@elbow(side):4 }")).Diagnostics);
+        Assert.Equal(("SH2011", DiagnosticSeverity.Warning), (along.Code, along.Severity));
+    }
+
+    [Fact]
     public void Degrees_in_brackets_say_how_far_round_from_the_first_direction_toward_the_second()
     {
         // The face 30 degrees to the left of straight ahead; with a level after the brackets, 10 degrees up as well.
@@ -561,8 +713,9 @@ public class MotionTests
     [Fact]
     public void Check_says_how_the_body_is_turned_at_a_moment_from_the_way_the_feet_face()
     {
+        // How far the elbows and knees are bent comes after: another test reads it.
         string Line(string tracks, params (double, bool)[] moments) =>
-            Shosa.Core.Output.CheckReport.At(Compile(Samples.Solo(tracks, "tempo 120\ntime 4/4\n")), moments).Single();
+            Shosa.Core.Output.CheckReport.At(Compile(Samples.Solo(tracks, "tempo 120\ntime 4/4\n")), moments).Single().Split("; bent:")[0];
 
         // The numbers written are the numbers read.
         Assert.Equal("  score at beat 2 = 1 s: hips 20° left, shoulders 45° left, face 30° right and 10° up",

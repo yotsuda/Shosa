@@ -250,7 +250,8 @@ def export(args):
 # ---- Looking at it.
 
 BONES = [(a, b) for b, a in enumerate(PARENT) if a >= 0 and NAMES[b] not in ("Jaw", "LeftEye", "RightEye")]
-SHOSA_BONES = [(0, 1), (1, 2), (2, 3), (1, 4), (4, 5), (5, 6), (1, 7), (7, 8), (8, 9), (0, 10), (10, 11), (11, 12), (12, 13), (0, 14), (14, 15), (15, 16), (16, 17)]
+# Shosa's bones (Rig.Bones), by the indices of SHOSA: the trunk through the waist, the shoulders from the chest.
+SHOSA_BONES = [(0, 1), (1, 2), (2, 3), (3, 4), (2, 5), (5, 6), (6, 7), (2, 8), (8, 9), (9, 10), (0, 11), (11, 12), (12, 13), (13, 14), (0, 15), (15, 16), (16, 17), (17, 18)]
 
 
 def picture(folder, clip, frames, keys, rest, origin, floor_scale, generated):

@@ -1,0 +1,40 @@
+// A short class in the centre, written with the ballet lexicon (ballet.shosa).
+title "Class"
+tempo 80
+time 4/4
+
+using "ballet.shosa"
+
+figure ballerina
+dancer ballerina humanoid on ballerina
+
+section Plies {
+  ballerina {
+    body { first:4 | demiPlie:2 demiPlie:2 | grandPlie:4 | releve:2 then:2 | }
+    arms { brasBas:4 | firstArms:4 | portDeBras:4 | fifthArms:2 brasBas:2 | }
+  }
+}
+
+section Tendus {
+  ballerina {
+    body { tenduFwd:2 tenduSide:2 | tenduBack:2 tenduSide:2 | rondDeJambe:4 | degageSide:1 degageSide:1 degageSide:1 then:1 | }
+    arms { secondArms:16 }
+  }
+}
+
+section Adage {
+  ballerina {
+    body { retire:2 developpe:4 then:2 arabesque:4 attitude:4 grandBattement:2 grandBattement:2 then:4 }
+    arms { secondArms:8 skip:8 thirdArms:8 }
+  }
+}
+
+section Allegro {
+  ballerina {
+    body { saute:1 saute:1 saute:1 saute:1 | echappe:2 glissade:2 | pasDeBourree:3 then:1 | balance:3 then:1 | chasse:3 then:1 | pirouette:3 then:1 | chaines:2 chaines:2 | reverence:4 | }
+    arms { demiSeconde:16 secondArms:4 firstArms:4 firstArms:4 skip:4 }
+  }
+}
+
+form { Plies Tendus Adage Allegro }
+score { dancer ballerina }

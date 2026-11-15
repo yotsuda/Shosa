@@ -19,6 +19,7 @@ public static class Vocabulary
         new("rightArm", "The right arm."),
         new("leftLeg", "The left leg when it carries no weight: where it points from the hip."),
         new("rightLeg", "The right leg when it carries no weight."),
+        new("turnout", "Both legs turned in their hip sockets: `out` (45 degrees each), `out.80`, `in.20`, `parallel`. The feet and the knees point that way; the hips do not turn."),
         new("hips", "The hips turned over feet that stay where they stand: `left` (30 degrees), `right.20`, `center`. The shoulders and the head do not go round with them."),
         new("torso", "The spine: `up` is upright, `fwd.high` leans forward 45 degrees."),
         new("shoulders", "The line of the shoulders turned from the feet, as seen from above: `left` (30 degrees), `right.85`, `center`. The chest turns on the hips to put it there; the feet stay."),
@@ -46,6 +47,17 @@ public static class Vocabulary
     /// up to 90 from them; the chest turns on the hips, about the spine, up to <see cref="MaxChestTurn"/>.
     /// </summary>
     public const double DefaultTurn = 30, MaxHips = 45, MaxShoulders = 90, MaxChestTurn = 60;
+
+    /// <summary>What the `turnout` track says: each leg turned out (or in) from the way the body faces, as seen from above.</summary>
+    public static readonly Word[] TurnoutWords =
+    [
+        new("out", "Both legs turn outward from the hips: each foot, and its knee, 45 degrees out from the way the body faces, or `out.N` for N degrees (up to 90: a dancer's full turnout, the feet in one line)."),
+        new("in", "Both legs turn inward: each foot 20 degrees in, or `in.N` (up to 45). Toes toward each other."),
+        new("parallel", "The legs are not turned: the feet and the knees point the way the body faces."),
+    ];
+
+    /// <summary>Degrees each leg turns for `out` and `in` alone, and the most each may say.</summary>
+    public const double DefaultOut = 45, DefaultIn = 20, MaxOut = 90, MaxIn = 45;
 
     public static readonly Word[] Directions =
     [
@@ -81,6 +93,18 @@ public static class Vocabulary
         new("across.shoulder", "The hand on the opposite shoulder. With `arms`: arms folded."),
         new("clap", "The hand at the midline in front of the chest. With `arms`: the two hands meet."),
     ];
+
+    /// <summary>Places on the other leg, for a leg in the air: where its toe goes. The bend follows from the place.</summary>
+    public static readonly Word[] LegAnchors =
+    [
+        new("knee", "The toe at the front of the standing leg's knee: a retiré (passé). The knee points where the foot does (`turnout`), or as `@knee(...)` says."),
+        new("knee.back", "The toe at the back of the standing leg's knee."),
+        new("ankle", "The toe at the front of the standing leg's ankle: a coupé (sur le cou-de-pied)."),
+        new("ankle.back", "The toe at the back of the standing leg's ankle."),
+    ];
+
+    /// <summary>Degrees `@bent` bends an elbow or a knee when it has no number, and the most it can.</summary>
+    public const double DefaultBend = 90, MaxBend = 150;
 
     /// <summary>Places on another figure: `b.hand`. For an arm (reach it) or the head (look at it).</summary>
     public static readonly Word[] Parts =
@@ -148,7 +172,9 @@ public static class Vocabulary
         new("smooth", "The way TO this word eases in and out (the default)."),
         new("sharp", "Go at the last moment: the part waits, then gets there in no more than 0.15 s before its beat. An accent — a punch, a clap. Fast, so it can be too fast (SH2003)."),
         new("linear", "The way TO this word is at constant speed: no slowing as it arrives."),
-        new("bent", "Fold the elbow or the knee: the hand or foot stays in direction but comes closer."),
+        new("bent", "Bend the elbow or the knee: the hand or foot stays in its direction and comes closer. `@bent` is a right angle (90 degrees); `@bent(40)` bends it 40 degrees (0 straight, up to 150)."),
+        new("elbow", "For an arm: which way the elbow points, written as an arm's direction: `fwd.-15@bent(40)@elbow(side)` holds it out to the side (ballet's rounded arms). Without it the elbow hangs down, back and a little out. Only the part square to the arm counts; on a straight arm it turns the arm about its length."),
+        new("knee", "For a leg: which way the knee points, written as a leg's direction: `back.20@bent@knee(side.high)` (an attitude, the knee above the foot). Without it the knee points where its foot does (`turnout`)."),
         new("body", "For an arm: measure the direction against the torso instead of the room, so the arm leans when the torso leans."),
         new("round", "For the torso: the back is rounded. The direction still says where the chest is from the hips; the spine bows back from that line, and the chest, the shoulders and the head lean further forward (`torso { fwd.80@round }` is a fighter's guard, `up@round` a slouch). Without it the back is straight, as in a bow from the hips."),
         new("small", "A shorter step or jump. On `both.low` / `together.low`: a slighter knee bend."),
@@ -165,7 +191,7 @@ public static class Vocabulary
 
     /// <summary>Every word that means something on its own, so that a definition cannot take its name.</summary>
     public static IEnumerable<string> Reserved =>
-        new[] { Tracks, Directions, Levels, Poles, Anchors, Feet, StepDirections, SupportActions, JumpWords, TurnAmounts, ShouldersWords, HipsWords }
+        new[] { Tracks, Directions, Levels, Poles, Anchors, LegAnchors, Feet, StepDirections, SupportActions, JumpWords, TurnAmounts, ShouldersWords, HipsWords, TurnoutWords }
             .SelectMany(words => words).Select(w => w.Name).Append(Hold).Append(Skip).Append(Again);
 
     public static double TurnDegrees(string amount) => amount switch

@@ -971,7 +971,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         "body" => Channels.All,
         "steps" => [Channels.Support, Channels.Height],
         "arms" => [Channels.LeftArm, Channels.RightArm],
-        Channels.LeftArm or Channels.RightArm or Channels.LeftLeg or Channels.RightLeg or Channels.Hips or Channels.Torso or Channels.Shoulders or Channels.Head => [trackName],
+        Channels.LeftArm or Channels.RightArm or Channels.LeftLeg or Channels.RightLeg or Channels.Turnout or Channels.Hips or Channels.Torso or Channels.Shoulders or Channels.Head => [trackName],
         _ => null,
     };
 
@@ -1760,6 +1760,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                 : channel == Channels.Support ? feet
                 : channel == Channels.Height ? height
                 : channel is Channels.Shoulders or Channels.Hips ? BindTurned(channel, words, arguments, annotations, mirror)
+                : channel == Channels.Turnout ? BindTurnout(words, arguments, annotations)
                 : BindGesture(channel, words, arguments, annotations, mirror, ctx);
             if (seg is null)
                 continue;
@@ -2082,7 +2083,8 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
             {
                 "small" or "large" or "turn" => "a step",
                 "bent" => "an arm or a leg",
-                "body" => "an arm",
+                "body" or "elbow" => "an arm",
+                "knee" => "a leg",
                 "round" => "the torso",
                 _ => null,
             };
@@ -2121,12 +2123,76 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         return null;
     }
 
+    /// <summary>
+    /// A word of the `turnout` track: `out`, `out.80`, `in.20`, `parallel`. How far each leg is
+    /// turned in its hip socket from the way the body faces, positive outward. Both legs alike,
+    /// so a mirror changes nothing.
+    /// </summary>
+    private Seg? BindTurnout(List<SyntaxToken> words, SyntaxNode? arguments, List<SyntaxNode> annotations)
+    {
+        const string Form = "The legs turn `out` (45 degrees each), `out.N` for N degrees up to 90, `in` (20), `in.N` up to 45, or `parallel`: turnout { parallel out.80 }";
+        foreach (var annotation in annotations)
+        {
+            var name = annotation.Token(SyntaxKind.Identifier)!;
+            string? belongs = name.Text switch
+            {
+                "small" or "large" or "turn" => "a step",
+                "bent" => "an arm or a leg",
+                "body" or "elbow" => "an arm",
+                "knee" => "a leg in the air (a turnout turns the knees with the feet)",
+                "round" => "the torso",
+                _ => null,
+            };
+            if (belongs is not null)
+                Error("SH1010", name.Span, $"'@{name.Text}' is for {belongs}. How far the legs turn is its number: out.80");
+        }
+        if (arguments is not null)
+            Error("SH1012", arguments.Span, "There are no brackets in a turnout: how far the legs turn is the number after the dot, out.80");
+
+        if (words.Count == 1 && words[0].Text == "parallel")
+            return new Seg { Kind = SegKinds.Turned, TurnDeg = 0 };
+        if (words.Count is 1 or 2 && words[0].Text is "out" or "in")
+        {
+            bool outward = words[0].Text == "out";
+            double degrees = outward ? Vocabulary.DefaultOut : Vocabulary.DefaultIn;
+            if (words.Count == 2)
+            {
+                if (words[1].Kind != SyntaxKind.Number)
+                {
+                    Error("SH1012", words[1].Span, Form);
+                    return null;
+                }
+                degrees = Number(words[1]);
+                double max = outward ? Vocabulary.MaxOut : Vocabulary.MaxIn;
+                if (degrees < 0 || degrees > max)
+                {
+                    Error("SH1013", words[1].Span, outward
+                        ? "A leg turns out up to 90 degrees from the way the body faces (the two feet then in one line). To face another way, the feet turn: steps { turn.left.quarter }"
+                        : "A leg turns in up to 45 degrees.");
+                    return null;
+                }
+            }
+            return new Seg { Kind = SegKinds.Turned, TurnDeg = outward ? degrees : -degrees };
+        }
+
+        var known = Vocabulary.TurnoutWords.Select(w => w.Name).Append(Vocabulary.Hold).Append(Vocabulary.Skip).Concat(_defs.Keys);
+        Error("SH1012", words[0].Span, $"'{words[0].Text}' is not a turnout. {Form}{Hint(words[0].Text, known)}");
+        return null;
+    }
+
+    /// <summary>Brackets after the second of two directions: how far round from the first toward it.</summary>
+    private const string Between = "Brackets say how many degrees a direction is from the first word toward the second: fwd.left(30) is 30 degrees to the left of straight ahead, an arm's fwd.across(15) a little across (0 to 90; without brackets it is 45).";
+
     private Seg? BindGesture(string channel, List<SyntaxToken> words, SyntaxNode? arguments, List<SyntaxNode> annotations, bool mirror, Ctx ctx)
     {
         int side = channel is Channels.LeftArm or Channels.LeftLeg ? 1 : channel is Channels.RightArm or Channels.RightLeg ? -1 : 0;
         bool isArm = channel is Channels.LeftArm or Channels.RightArm;
         bool isLimb = side != 0;
         var flags = new HashSet<string>();
+        double bend = 0;
+        double[]? jointPole = null;
+        TextSpan poleSpan = default;
+        SyntaxToken? bentWord = null;
 
         foreach (var annotation in annotations)
         {
@@ -2140,11 +2206,45 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                 Error("SH1010", name.Span, "'@body' is for an arm.");
             if (name.Text == "round" && channel != Channels.Torso)
                 Error("SH1010", name.Span, "'@round' is for the torso: torso { fwd.80@round }");
+            if (name.Text == "elbow" && !isArm)
+                Error("SH1010", name.Span, isLimb ? "'@elbow' is for an arm; a leg says '@knee(...)'." : "'@elbow' is for an arm.");
+            if (name.Text == "knee" && (!isLimb || isArm))
+                Error("SH1010", name.Span, isArm ? "'@knee' is for a leg; an arm says '@elbow(...)'." : "'@knee' is for a leg.");
+
+            if (name.Text == "bent" && isLimb)
+            {
+                bentWord = name;
+                bend = Vocabulary.DefaultBend;
+                if (annotation.Child(SyntaxKind.Arguments) is { } bracket)
+                {
+                    var numbers = Tokens(bracket, SyntaxKind.Number);
+                    if (numbers.Count != 1 || bracket.ChildNodes().Any() || Number(numbers[0]) is < 0 or > Vocabulary.MaxBend)
+                    {
+                        Error("SH1013", bracket.Span, "'@bent' takes how many degrees the elbow or the knee bends, 0 to 150: @bent(40). Without a number it is a right angle, 90.");
+                        return null;
+                    }
+                    bend = Number(numbers[0]);
+                }
+            }
+            else if ((name.Text == "elbow" && isArm) || (name.Text == "knee" && isLimb && !isArm))
+            {
+                string example = isArm ? "@elbow(side)" : "@knee(side.high)";
+                var pointing = annotation.Child(SyntaxKind.Arguments)?.Child(SyntaxKind.Target);
+                var pointingWords = pointing?.ChildTokens().Where(t => t.Kind is SyntaxKind.Identifier or SyntaxKind.Number && !t.IsMissing).ToList();
+                if (pointingWords is null || pointingWords.Count == 0)
+                {
+                    Error("SH1013", annotation.Span, $"'@{name.Text}' says which way the {name.Text} points, as a direction in brackets: {example}");
+                    return null;
+                }
+                if (LimbDirection(channel, side, pointingWords, null, mirror, inBrackets: true) is not { } way)
+                    return null;
+                jointPole = [way.X, way.Y, way.Z];
+                poleSpan = annotation.Span;
+            }
         }
-        // Brackets after the second of two directions: how far round from the first toward it.
-        const string Between = "Brackets say how many degrees a direction is from the first word toward the second: fwd.left(30) is 30 degrees to the left of straight ahead, an arm's fwd.across(15) a little across (0 to 90; without brackets it is 45).";
-        if (arguments is not null && (words.Any(w => w.Kind == SyntaxKind.Identifier && _figures.ContainsKey(w.Text))
-            || isArm && Vocabulary.Has(Vocabulary.Anchors, string.Join('.', words.Select(w => w.Text)))))
+        string joined = string.Join('.', words.Select(w => w.Text));
+        bool isPlace = isArm ? Vocabulary.Has(Vocabulary.Anchors, joined) : isLimb && Vocabulary.Has(Vocabulary.LegAnchors, joined);
+        if (arguments is not null && (words.Any(w => w.Kind == SyntaxKind.Identifier && _figures.ContainsKey(w.Text)) || isPlace))
         {
             Error("SH1012", arguments.Span, "A place takes no number. " + Between);
             return null;
@@ -2173,13 +2273,48 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                 Error("SH1012", words[1].Span, $"'{words[1].Text}' is not a place on a figure.{Hint(words[1].Text, Vocabulary.Parts.Select(w => w.Name))}");
                 return null;
             }
-            return OtherDancer(words[0], ctx) is { } other ? new Seg { Kind = SegKinds.Reach, Target = other, Part = words[1].Text, Level = meet } : null;
+            return OtherDancer(words[0], ctx) is { } other ? new Seg { Kind = SegKinds.Reach, Target = other, Part = words[1].Text, Level = meet, Pole = jointPole } : null;
         }
 
-        string joined = string.Join('.', words.Select(w => w.Text));
-        if (isArm && Vocabulary.Has(Vocabulary.Anchors, joined))
-            return new Seg { Kind = SegKinds.Anchor, Anchor = joined };
+        if (isPlace)
+        {
+            // A place sets the hand or the toe: how far the elbow or the knee bends follows from it.
+            if (bentWord is { } extra)
+                Error("SH1010", extra.Span, $"'{joined}' is a place: how far the {(isArm ? "elbow" : "knee")} bends follows from it. '@bent' is for a direction: {(isArm ? "fwd.25@bent" : "fwd.low@bent")}.");
+            return new Seg { Kind = SegKinds.Anchor, Anchor = joined, Pole = jointPole };
+        }
 
+        if (LimbDirection(channel, side, words, arguments, mirror, inBrackets: false) is not { } direction)
+            return null;
+
+        // Only the part of the pointing square to the limb's line counts: along the line there is none.
+        if (jointPole is { } p && Math.Abs(p[0] * direction.X + p[1] * direction.Y + p[2] * direction.Z) > 0.97)
+        {
+            string joint = isArm ? "elbow" : "knee";
+            Report("SH2011", DiagnosticSeverity.Warning, poleSpan,
+                $"The {joint} is sent the way the {(isArm ? "arm" : "leg")} itself points, so which way it bends is not said. Point it square to the {(isArm ? "arm" : "leg")}: for a {(isArm ? "hand" : "foot")} out to the side, @{joint}(up), @{joint}(back) or @{joint}(fwd).");
+        }
+
+        return new Seg
+        {
+            Kind = SegKinds.Dir,
+            Dir = [direction.X, direction.Y, direction.Z],
+            Bend = bend,
+            Pole = jointPole,
+            Body = isArm && flags.Contains("body"),
+            Round = channel == Channels.Torso && flags.Contains("round"),
+        };
+    }
+
+    /// <summary>
+    /// The words of a direction (`fwd.high`, `side.-20`, `fwd.across(15)`), as a unit vector in the
+    /// dancer's frame (x left, y up, z forward). `side` is the part's own side. In the brackets of
+    /// `@elbow(...)` / `@knee(...)` it says where a joint points, so no pose or move fits there.
+    /// </summary>
+    private Vec3? LimbDirection(string channel, int side, List<SyntaxToken> words, SyntaxNode? arguments, bool mirror, bool inBrackets)
+    {
+        bool isLimb = side != 0;
+        bool isArm = channel is Channels.LeftArm or Channels.RightArm;
         double x = 0, z = 0;
         double? elevation = null;
         string? pole = null;
@@ -2233,10 +2368,17 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                     pole = word.Text;
                     break;
                 default:
-                    var known = Vocabulary.Directions.Concat(Vocabulary.Levels).Concat(Vocabulary.Poles).Select(w => w.Name)
-                        .Append(Vocabulary.Hold).Append(Vocabulary.Skip).Concat(_defs.Keys);
+                    var directions = Vocabulary.Directions.Concat(Vocabulary.Levels).Concat(Vocabulary.Poles).Select(w => w.Name);
+                    if (inBrackets)
+                    {
+                        Error("SH1012", word.Span, $"'{word.Text}' is not a direction. Which way a joint points is written as a direction: side, back, fwd.low, side.high.{Hint(word.Text, directions)}");
+                        return null;
+                    }
+                    var known = directions.Append(Vocabulary.Hold).Append(Vocabulary.Skip).Concat(_defs.Keys);
                     if (isArm)
                         known = known.Concat(Vocabulary.Anchors.Select(w => w.Name));
+                    else if (isLimb)
+                        known = known.Concat(Vocabulary.LegAnchors.Select(w => w.Name));
                     Error("SH1012", word.Span, $"'{word.Text}' is not a direction, a level, or a pose or move of this file.{Hint(word.Text, known)}");
                     return null;
             }
@@ -2278,15 +2420,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
             var flat = new Vec3(x, 0, z).Normalized();
             direction = flat * Math.Cos(elevation ?? 0) + Vec3.Up * Math.Sin(elevation ?? 0);
         }
-
-        return new Seg
-        {
-            Kind = SegKinds.Dir,
-            Dir = [direction.X, direction.Y, direction.Z],
-            Ext = flags.Contains("bent") ? 0.72 : 1,
-            Body = isArm && flags.Contains("body"),
-            Round = channel == Channels.Torso && flags.Contains("round"),
-        };
+        return direction;
     }
 
     private Seg? BindSupport(List<SyntaxToken> words, SyntaxNode? arguments, List<SyntaxNode> annotations, bool mirror, bool free, Ctx ctx)
@@ -2303,6 +2437,12 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                     break;
                 case "body":
                     Error("SH1010", name.Span, "'@body' is for an arm.");
+                    break;
+                case "elbow":
+                    Error("SH1010", name.Span, "'@elbow' is for an arm.");
+                    break;
+                case "knee":
+                    Error("SH1010", name.Span, "'@knee' is for a leg in the air: rightLeg { back.20@bent@knee(side.high) }. Knees under the weight bend the way the feet point (turnout).");
                     break;
                 case "round":
                     Error("SH1010", name.Span, "'@round' is for the torso: torso { fwd.80@round }");

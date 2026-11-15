@@ -120,8 +120,12 @@ public static class Skeleton
             world[arm + 1] = world[arm + 2] = lower;
 
             int leg = side == 1 ? LUpperLeg : RUpperLeg, hip = side == 1 ? Rig.LHip : Rig.RHip;
-            // A knee folds the shin back: about +x on both sides.
-            (upper, lower) = Limb(joints[hip], joints[hip + 1], joints[hip + 2], -Vec3.Up, X, Rig.KneePole(left, fwd, side));
+            // A knee folds the shin back: about +x on both sides. It bends the way its foot points
+            // (as the solver bends it), so a straight leg turned out is turned in the thigh too.
+            var toes = joints[hip + 3] - joints[hip + 2];
+            var footFwd = new Vec3(toes.X, 0, toes.Z);
+            footFwd = footFwd.Length < 1e-6 ? fwd : footFwd.Normalized();
+            (upper, lower) = Limb(joints[hip], joints[hip + 1], joints[hip + 2], -Vec3.Up, X, Rig.KneePole(Vec3.Up.Cross(footFwd), footFwd, side));
             world[leg] = upper;
             world[leg + 1] = lower;
 

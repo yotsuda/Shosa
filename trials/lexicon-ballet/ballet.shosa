@@ -1,0 +1,59 @@
+// Ballet: a first lexicon, written in the core words of Shosa alone (DESIGN.md 73).
+// A trial, not a sample: what cannot be said, and what is only near, is written beside each word.
+// The working leg is the right one; `@mirror` gives the left.
+
+// ---- Positions of the feet. Without turnout: the feet and the knees point forward in all of them.
+pose first   { steps { together } }                 // heels together (the toes should turn out)
+pose second  { steps { right.side@small } }         // feet apart, 0.33 m (but the weight is on the right foot)
+pose fourth  { steps { right.fwd@small } }          // the right foot a small step ahead
+pose fifth   { steps { right.across } }             // the right foot crossed in front, 0.12 m (heel to toe, turned out)
+
+// ---- Positions of the arms: rounded with a little @bent, the elbows held out to the side (DESIGN.md 75).
+pose brasBas     { arms { fwd.-70@bent(30)@elbow(side) } }   // low, in front of the thighs, rounded
+pose firstArms   { arms { fwd.-15@bent(40)@elbow(side) } }   // in front of the diaphragm
+pose secondArms  { arms { side.fwd(20).-10@bent(15)@elbow(back) } }   // out to the side, a little forward and below the shoulders, the palms forward
+pose fifthArms   { arms { fwd.70@bent(40)@elbow(side) } }    // en haut: above the head, a little forward
+pose demiSeconde { arms { side.-45 } }
+pose thirdArms   { leftArm { fwd.70@bent(40)@elbow(side) }  rightArm { side.fwd(20).-10@bent(15)@elbow(back) } }
+
+// ---- At the barre, and in the centre.
+move demiPlie    { steps { both.low@small both.mid } }
+move grandPlie   { steps { both.low@large:2 both.mid:2 } }
+move releve      { steps { both.high both.mid } }
+move tenduFwd    { rightLeg { fwd.-65 down } }      // the foot along the floor to the front, pointed
+move tenduSide   { rightLeg { side.-65 down } }
+move tenduBack   { rightLeg { back.-65 down } }
+move degageSide  { rightLeg { side.-45@sharp down } }
+move rondDeJambe { rightLeg { fwd.-65 side.-65 back.-65 down } }   // a half circle on the floor, front to back
+move retire      { rightLeg { knee down } }                        // the toe at the knee of the other leg
+move developpe   { rightLeg { knee fwd.15:2 down } }               // up through retiré, unfold to the front
+move grandBattement { rightLeg { fwd.high down } }   // thrown up fast and lowered with control: @sharp would be 15 m/s, too fast
+move fondu       { steps { both.low@small both.mid }  rightLeg { ankle fwd.-30 } }   // from sur le cou-de-pied
+move portDeBras  { arms { brasBas firstArms fifthArms secondArms brasBas } }
+
+pose arabesque {
+  rightLeg { back.10 }
+  torso    { fwd.80 }                                // leaning 10 degrees forward
+  leftArm  { fwd.15 }                                // the arm of the standing leg in front (first arabesque)
+  rightArm { side.back(30).-5 }
+  head     { fwd.10 }
+}
+pose attitude { rightLeg { back.20@bent@knee(side.high) }  arms { fifthArms } }   // the knee out and above the foot
+
+// ---- Steps and jumps.
+move saute       { steps { both.low@small:1/2 jump:1/2 } }
+move echappe     { steps { jump.apart jump.together } }
+move glissade    { steps { right.side.low@small together.low } }
+move pasDeBourree { steps { right.back.across.high left.side.high@small right.fwd.low } }
+move balance     { steps { right.side left.back.across.high right.place } }
+move chasse      { steps { right.fwd.low together.high right.fwd.low } }
+move pique       { steps { right.side.high }  leftLeg { knee } }
+move pirouette   { steps { shift.left turn.right.full shift.center }  rightLeg { knee:2 down } }
+move chaines     { steps { right.side.high@turn(right.half) left.place.high@turn(right.half) } }
+
+move reverence {
+  steps { right.side@small left.back.across.low:2 together }
+  torso { up fwd.70:2 up }
+  head  { fwd fwd.-20:2 fwd }
+  arms  { brasBas secondArms:2 brasBas }
+}

@@ -42,7 +42,7 @@
     },
     { "name": "keyword.control.shosa", "match": "(?<![.@!:\\w])(using|title|tempo|time|fps|music|q|verse)\\b(?!\\.)" },
     { "name": "keyword.control.shosa", "match": "(?<![.@!:\\w])upbeat(?=[ \\t]+\\d)" },
-    { "name": "entity.name.function.track.shosa", "match": "\\b(body|steps|arms|leftArm|rightArm|leftLeg|rightLeg|hips|torso|shoulders|head)\\b(?=\\s*\\{)" },
+    { "name": "entity.name.function.track.shosa", "match": "\\b(body|steps|arms|leftArm|rightArm|leftLeg|rightLeg|turnout|hips|torso|shoulders|head)\\b(?=\\s*\\{)" },
     {
       "comment": "@turn(left.quarter): an annotation with arguments.",
       "begin": "(@[A-Za-z_][A-Za-z0-9_]*)(\\()",

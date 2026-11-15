@@ -254,6 +254,9 @@ internal static class Words
             return [];   // after left / right comes a number of degrees
         }
 
+        if (track == "turnout")
+            return before.Count == 0 ? [.. Vocabulary.TurnoutWords, .. definitions, Hold, Skip, Again] : [];   // after out / in, degrees
+
         // The torso and the head say left / right; a limb says side / across.
         var directions = Vocabulary.Directions.Where(w => IsLimb(track) ? w.Name is not ("left" or "right") : w.Name is not ("side" or "across"));
         if (before.Count == 0)
@@ -261,13 +264,18 @@ internal static class Words
             IEnumerable<Vocabulary.Word> first = [.. directions, .. Vocabulary.Poles];
             if (IsArm(track))
                 first = first.Concat(Vocabulary.Anchors.Where(a => !a.Name.Contains('.')));
+            else if (IsLimb(track))
+                first = first.Concat(Vocabulary.LegAnchors.Where(a => !a.Name.Contains('.')));
             if (IsArm(track) || track == "head")
                 first = first.Concat(figures);
             return [.. first, .. definitions, Hold, Skip, Again];
         }
         if (IsArm(track) && before is ["across"])
             return [.. Except([.. directions, .. Vocabulary.Levels], before), new("shoulder", "across.shoulder: the hand on the opposite shoulder.")];
-        if (before[0] is "up" or "down" or "then" or "skip" || Vocabulary.Has(Vocabulary.Anchors, before[0]) && IsArm(track))
+        if (IsLimb(track) && !IsArm(track) && before is [var place] && Vocabulary.Has(Vocabulary.LegAnchors, place))
+            return [new("back", $"{place}.back: the toe at the back of the standing leg's {place}.")];
+        if (before[0] is "up" or "down" or "then" or "skip" || Vocabulary.Has(Vocabulary.Anchors, before[0]) && IsArm(track)
+            || Vocabulary.Has(Vocabulary.LegAnchors, before[0]) && IsLimb(track))
             return [];
         bool hasLevel = before.Any(w => Vocabulary.Has(Vocabulary.Levels, w) || double.TryParse(w, out _));
         return Except(hasLevel ? directions : [.. directions, .. Vocabulary.Levels], before);
@@ -276,7 +284,8 @@ internal static class Words
     public static IEnumerable<Vocabulary.Word> ForAnnotation(string track) => Vocabulary.Annotations.Where(w => w.Name switch
     {
         "bent" => IsLimb(track),
-        "body" => IsArm(track),
+        "body" or "elbow" => IsArm(track),
+        "knee" => IsLimb(track) && !IsArm(track),
         "round" => track is "torso",
         "small" or "large" or "turn" => track is "steps",
         "smooth" or "sharp" or "linear" or "mirror" or "free" => true,
@@ -442,7 +451,10 @@ internal static class Words
 
         if (parent.Kind == SyntaxKind.Target && parent.Parent?.Kind == SyntaxKind.Arguments)
         {
-            word = TurnSides.Concat(Vocabulary.TurnAmounts).FirstOrDefault(w => w.Name == token.Text);
+            // @turn(left.quarter), or where a joint points: @elbow(side.high)
+            bool joint = parent.Parent.Parent?.Token(SyntaxKind.Identifier)?.Text is "elbow" or "knee";
+            word = (joint ? Vocabulary.Directions.Concat(Vocabulary.Levels).Concat(Vocabulary.Poles) : TurnSides.Concat(Vocabulary.TurnAmounts))
+                .FirstOrDefault(w => w.Name == token.Text);
         }
         else if (parent.Kind == SyntaxKind.Target)
         {

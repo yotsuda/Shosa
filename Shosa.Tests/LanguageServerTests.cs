@@ -186,11 +186,25 @@ public class LanguageServerTests
         Assert.Contains("shoulders", session.Complete("solo {\n"));
         Assert.DoesNotContain("twist", session.Complete("solo {\n"));
         Assert.Contains("hips", session.Complete("solo {\n"));
+        Assert.Contains("turnout", session.Complete("solo {\n"));
 
         session.Replace("down:2", "down:2@");
         var annotations = session.Complete("down:2@");
         Assert.Contains("body", annotations);
         Assert.DoesNotContain("small", annotations);
+        Assert.Contains("elbow", annotations);
+        Assert.DoesNotContain("knee", annotations);
+
+        // A leg in the air: the places on the other leg, `.back` after one, and `@knee`.
+        session.Replace("arms  { side:2 down:2", "rightLeg { knee. down:2");
+        Assert.Contains("knee", session.Complete("rightLeg { "));
+        Assert.Contains("ankle", session.Complete("rightLeg { "));
+        Assert.DoesNotContain("chin", session.Complete("rightLeg { "));
+        Assert.Equal(new[] { "back" }, session.Complete("rightLeg { knee."));
+        Assert.Contains("the standing leg's knee", session.Hover("knee."));
+        session.Replace("knee. down:2@", "knee down:2@");
+        Assert.Contains("knee", session.Complete("knee down:2@"));
+        Assert.DoesNotContain("elbow", session.Complete("knee down:2@"));
 
         // In a form, after `tempo` comes a number; the word says whose tempo it is.
         session.Replace("form { ", "form { tempo 97 ");

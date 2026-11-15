@@ -229,6 +229,12 @@ public static class Channels
     public const string LeftLeg = "leftLeg";
     public const string RightLeg = "rightLeg";
     /// <summary>
+    /// Both legs turned in the hip sockets, about their own length: the feet and the knees point
+    /// out from (or in toward) the way the body faces. The hips stay square. A state: it lasts until
+    /// a word changes it. Its segments are `Turned`, TurnDeg each leg's turn, positive outward.
+    /// </summary>
+    public const string Turnout = "turnout";
+    /// <summary>
     /// The hips turned on the feet, about the vertical: the feet stay where they stand. The
     /// shoulders are a part of their own: they stay where their row has them while the hips turn.
     /// </summary>
@@ -242,7 +248,7 @@ public static class Channels
     public const string Shoulders = "shoulders";
     public const string Head = "head";
 
-    public static readonly string[] All = [Support, Height, LeftArm, RightArm, LeftLeg, RightLeg, Hips, Torso, Shoulders, Head];
+    public static readonly string[] All = [Support, Height, LeftArm, RightArm, LeftLeg, RightLeg, Turnout, Hips, Torso, Shoulders, Head];
 
     public static string Mirror(string channel) => channel switch
     {
@@ -258,7 +264,7 @@ public static class SegKinds
 {
     public const string Hold = "hold";          // every channel: stay as you are
     public const string Dir = "dir";            // gesture: point the part along Dir
-    public const string Anchor = "anchor";      // arm: bring the hand to a place on the body
+    public const string Anchor = "anchor";      // arm: bring the hand to a place on the body; leg: the toe to the other leg
     public const string Reach = "reach";        // arm: to a place on another dancer; head: look at it
     public const string Turned = "turned";      // hips and shoulders: their line turned TurnDeg from the way the feet face, on the floor
     public const string Step = "step";          // support: move Foot, then carry the weight on it
@@ -291,13 +297,15 @@ public sealed class Seg
 
     /// <summary>Dir: unit vector in the dancer's frame (x left, y up, z forward).</summary>
     public double[]? Dir { get; set; }
-    /// <summary>Dir: how far the limb is extended, 1 = straight.</summary>
-    public double Ext { get; set; } = 1;
+    /// <summary>Dir, limbs: degrees the elbow or the knee is bent, 0 = straight (`@bent(N)`). The hand or foot stays in Dir and comes closer.</summary>
+    public double Bend { get; set; }
+    /// <summary>Limbs: which way the elbow or the knee points (`@elbow(...)`, `@knee(...)`), in the dancer's frame (in the torso's with Body); null: the solver's own way.</summary>
+    public double[]? Pole { get; set; }
     /// <summary>Dir, arms: the direction is in the torso's frame (it leans with the torso), not the room's.</summary>
     public bool Body { get; set; }
     /// <summary>Dir, torso: the back is rounded. The direction is still the line from the pelvis to the chest; the spine bows back from it.</summary>
     public bool Round { get; set; }
-    /// <summary>Anchor: hip | chest | shoulder | head | chin | belly | across.shoulder | clap.</summary>
+    /// <summary>Anchor, arms: hip | chest | shoulder | head | chin | belly | across.shoulder | clap. Legs: knee | knee.back | ankle | ankle.back (of the other leg).</summary>
     public string? Anchor { get; set; }
     /// <summary>Reach and Turn: the id of the other dancer.</summary>
     public string? Target { get; set; }

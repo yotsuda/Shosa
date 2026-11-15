@@ -612,7 +612,8 @@ public static class GrammarDoc
               vertical while the torso leans to the side. For a side bend with the arms overhead,
               write the lean and, over the same beats, the arms again with `@body`:
               `torso { left.high:2 up:2 }` with `arms { up:2@body up:2 }`.
-            - Bending: `@bent` brings the hand or foot closer along the same direction. A raised
+            - Bending: `@bent` brings the hand or foot closer along the same direction (a right angle
+              at the elbow or the knee; `@bent(40)` for 40°, see "Elbows and knees" below). A raised
               knee is `fwd@bent` (thigh about horizontal) or `fwd.low@bent` (lower); a guard with
               the fists up in front of the face is `fwd.25@bent`.
               **A hand travels from where it is to the target, so a straight punch is the guard's own
@@ -679,6 +680,81 @@ public static class GrammarDoc
               gesture, so keep the steps out of that word: give the leg a `then` of the beat it
               may lift in (`rightLeg { skip:3 then fwd@bent down }` lifts in beat 3 only).
             - A leg put `down` lands where it stood before the gesture.
+
+            A leg in the air can also send its toe to a place on the standing leg:
+
+
+            """.ReplaceLineEndings("\n"));
+
+        Table("Leg target", Vocabulary.LegAnchors);
+
+        sb.Append("""
+            `rightLeg { knee:2 down }` is a retiré (passé) held for two beats; `rightLeg { knee fwd.15:2 down }`
+            a développé that goes up through it and unfolds to the front. How far the knee bends follows
+            from the place (so no `@bent`); it points where the foot does — forward with the legs
+            parallel, to the side turned out (`turnout`) — or as `@knee(...)` says. The place is found
+            on the other leg wherever it is: in a plié, turned out, or in the air.
+
+            ### Elbows and knees
+
+            An arm or a leg says where its hand or foot is (its direction) and how far: straight, or
+            bent with `@bent`. Two more things can be said of the joint in the middle:
+
+            - **How far it bends**: `@bent` is a right angle (90°); `@bent(N)` bends the elbow or the
+              knee N degrees, from 0 (straight) to 150 (folded tight). The hand or foot stays in the
+              direction written and comes closer: `arms { fwd.-15@bent(40) }` is a little bent,
+              `rightLeg { fwd.low@bent(130) }` a knee drawn right up before a kick.
+            - **Which way it points**: `@elbow(DIRECTION)` / `@knee(DIRECTION)`, the direction written
+              as an arm's or a leg's (`side`, `side.high`, `back`, `fwd.low`; `side` is the limb's own
+              side, so `@mirror` and `arms` are right for both). Without it an elbow hangs down, back and a
+              little out, and a knee points where its foot does.
+
+            ```shosa
+            arms     { fwd.-15@bent(40)@elbow(side) }        // ballet's rounded arms: the elbows held out
+            arms     { fwd.70@bent(40)@elbow(side) }         // the same, overhead (fifth, en haut)
+            rightLeg { back.20@bent@knee(side.high) }        // an attitude: the knee out and above the foot
+            ```
+
+            - Only the part of the pointing square to the limb counts. Pointed along the limb itself
+              (a hand out to the side with `@elbow(side)`) it says nothing: warning SH2011.
+            - On a straight arm `@elbow` turns the arm about its own length (`side@elbow(back)` turns
+              the palm forward); a model it is put on shows it.
+            - Where the joint points is set at each word and carried with the limb between them, so it
+              does not spin on the way.
+            - `@body` measures `@elbow` against the torso too.
+
+            ### Turnout: `turnout`
+
+            How far the legs are turned in their hip sockets, about their own length, is a row of its
+            own: **`turnout` says how far each foot, and its knee, points out from the way the body faces**,
+            in degrees as seen from above. A ballet dancer stands turned out; a hip-hop dancer may stand turned in.
+
+
+            """.ReplaceLineEndings("\n"));
+
+        Table("Turnout", Vocabulary.TurnoutWords);
+
+        sb.Append("""
+            ```shosa
+            turnout { out.80 }                 // a dancer's turnout from the first beat: each foot 80° out
+            turnout { parallel:4 out:4 }       // parallel, turned out 45° by beat 4
+            ```
+
+            - The number is each leg's own: `out.90` puts the two feet in one line (180° between them).
+              It is not mirrored: both legs turn out alike, also under `@mirror`.
+            - **The knees bend the way the feet point**: turned out, a plié (`steps { both.low }`)
+              takes the knees out over the toes instead of forward, and a raised knee (`rightLeg { side.-20@bent }`)
+              points to the side. The hips, the torso and the steps are not changed: a step still goes
+              where its word says, only the foot on it is turned.
+            - **Turned out, `together` closes the heels**: the feet close nearer than standing width,
+              heels touching at `out.90` (a first position); at `out` (45°) the ankles are 0.12 m apart.
+              The turnout at the beat `together` lands is the one that counts, so write it first:
+              `turnout { out.80 }` with `steps { together }`. A row whose first word is turned out also
+              begins with the heels together. Turned in, the feet close at standing width.
+            - It goes like a gesture (through all of the word before, `@sharp`, `then`), and is kept
+              until a word changes it, across sections too. A row nobody wrote is `parallel`.
+              In a pose it is the pose's own (`pose first { turnout { out.80 }  steps { together } }`),
+              and a pose's name in the row is that pose's turnout.
 
             ## The shoulders and the hips: `shoulders`, `hips`
 
@@ -907,7 +983,8 @@ public static class GrammarDoc
         Table("Annotation", Vocabulary.Annotations.Select(w => new Vocabulary.Word("@" + w.Name, w.Doc)).ToArray());
 
         sb.Append("""
-            `@bent` is for arm and leg directions; `@body` for arm directions; `@round` for torso
+            `@bent` / `@bent(N)` is for arm and leg directions; `@elbow(…)` for arms, `@knee(…)` for
+            legs in the air; `@body` for arm directions; `@round` for torso
             directions; `@small` / `@large`
             for steps, jumps and `both` / `together`; `@turn(…)` for steps and jumps. Several can
             follow one event, and the length, the annotations and the mark may come in any order:
@@ -1037,14 +1114,15 @@ public static class GrammarDoc
               carries weight. Standing on one leg is possible (a leg gesture).
             - Arm swing while walking is not added for you: unwritten arms hang still.
             - A change of tempo or of time in the middle of a section (a section says them where it begins; a dance to a song follows its song).
-            - Where an elbow or a knee points.
+            - A toe at any place on the other leg but its knee and its ankle; a hand on a leg (the thigh, the knee).
+            - A foot that points (on the toes in the air) or flexes; standing on pointe.
 
             ## Checking your work
 
             ```
             shosa check FILE            diagnostics, or "no problems"; every score with its length, and each section in it with its beats, bars, seconds, tempo and time, a step or jump the score starts with already made, and where each dancer ends from where it began; then every mark
             shosa check FILE --score Rage   one score only (`--score ""` the unnamed one)
-            shosa check FILE --at 3,4.5,0.75s   also how the body is turned at those moments (beats; seconds with an `s`): hips, shoulders, face, in degrees
+            shosa check FILE --at 3,4.5,0.75s   also how the body is turned at those moments (beats; seconds with an `s`): hips, shoulders, face, in degrees, and how far each elbow and knee is bent (as `@bent(N)` counts)
             shosa sheet FILE -o X.png   the movement on one image per score (X.png for the unnamed score, X-Idle.png, X-Punch.png …)
             shosa sheet FILE -o X.png --score Punch --step 0.5 --from 0 --to 4   one score, closer poses (in beats; --from and --to also in seconds with an `s`, as --at: --from 0.5s --to 1s; --step 0.1 for a punch)
             shosa sheet FILE -o X.png --view side   seen from stage left: a figure facing front is in profile (one facing stageLeft or stageRight is in profile WITHOUT it)
@@ -1109,9 +1187,11 @@ public static class GrammarDoc
             that order, in metres. The frame of a moment is its seconds × `fps` (0.75 s is frame 22.5: a `@sharp` word
             is still on its way at frame 22 and there at 23, so take the later one). y is up, z is
             toward the audience, x toward stage left — for a dancer facing front, z is forward and
-            +x its own left. Beside `frames`, `angles` has a row for every frame too: the five numbers
-            named in `angleNames` (`feet`, `hips`, `shoulders`, `face`, `faceUp`), the degrees `check --at`
-            says, more to the left (or up) counted positive; `feet` is from the front of the room. (Standing upright, this figure's head has its middle at 1.72 m and its shoulders
+            +x its own left. Beside `frames`, `angles` has a row for every frame too: the nine numbers
+            named in `angleNames` (`feet`, `hips`, `shoulders`, `face`, `faceUp`, `leftElbow`, `rightElbow`,
+            `leftKnee`, `rightKnee`), the degrees `check --at`
+            says, more to the left (or up) counted positive; `feet` is from the front of the room; an
+            elbow or a knee is how far it is bent, 0 straight. (Standing upright, this figure's head has its middle at 1.72 m and its shoulders
             are at 1.45 m. In the guard of "The shoulders and the hips" the head is at 1.67 m: a punch at `fwd.25`
             arrives at 1.64 m, nose height, one at `fwd.18` at 1.57 m, the chin.)
 
@@ -1161,6 +1241,7 @@ public static class GrammarDoc
             - A definition without a length takes its defined length; write the length when counting.
             - Limbs: `side` / `across`. Torso and head: `left` / `right`.
             - `torso` leans; `hips` and `shoulders` turn the hips and the shoulders over the feet, each from the feet (`left.20`: degrees of turn, as seen from above). Neither turns the feet, the head, or the other.
+            - `turnout` turns the feet and the knees out (`out.80`) or in, both legs alike; the hips stay square.
             - Degrees round, between two directions, are in brackets: `fwd.left(30)`. A number after a dot is the level.
             - Degrees are from the horizontal, for the torso too.
             - A step is measured from the other foot.

@@ -11,7 +11,8 @@ const string Usage = """
 
       shosa check   FILE            diagnostics, and what each score came to
                     [--at 3,0.75s]  how the body is turned at those beats (seconds with an s):
-                                    hips, shoulders and face, in degrees from the way the feet face
+                                    hips, shoulders and face, in degrees from the way the feet face,
+                                    and how far the elbows and knees are bent
       shosa sheet   FILE [-o PNG]   a pose per beat and the floor from above, on one image
                     [--step BEATS] [--from BEAT] [--to BEAT]   closer poses, or part of the clip
                                     (--from and --to take seconds with an s: --from 0.5s --to 1s)
@@ -271,11 +272,12 @@ switch (command)
                 {
                     var a = clip.Figures[i].Angles(f);
                     rows.Add(new System.Text.Json.Nodes.JsonArray(
-                        Math.Round(a.Feet, 1), Math.Round(a.Hips, 1), Math.Round(a.Shoulders, 1), Math.Round(a.Face, 1), Math.Round(a.FaceUp, 1)));
+                        Math.Round(a.Feet, 1), Math.Round(a.Hips, 1), Math.Round(a.Shoulders, 1), Math.Round(a.Face, 1), Math.Round(a.FaceUp, 1),
+                        Math.Round(a.LeftElbow, 1), Math.Round(a.RightElbow, 1), Math.Round(a.LeftKnee, 1), Math.Round(a.RightKnee, 1)));
                 }
                 node["figures"]![i]!["angles"] = rows;
             }
-            node["angleNames"] = new System.Text.Json.Nodes.JsonArray("feet", "hips", "shoulders", "face", "faceUp");
+            node["angleNames"] = new System.Text.Json.Nodes.JsonArray("feet", "hips", "shoulders", "face", "faceUp", "leftElbow", "rightElbow", "leftKnee", "rightKnee");
             return node;
         }
         Write(clips.Count == 1 ? Clip(clips[0]).ToJsonString(json)
