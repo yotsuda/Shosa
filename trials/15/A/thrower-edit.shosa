@@ -1,0 +1,47 @@
+title "Thrower"
+tempo 120          // one beat is 0.5 s
+time 4/4
+
+figure hero
+dancer hero humanoid on hero
+
+// The throwing stance: left foot ahead, left shoulder ahead, the ball at the chest.
+pose stance {
+  steps    { left.fwd@small }
+  twist    { right.20 }
+  rightArm { chest }
+  leftArm  { fwd.low@bent }
+}
+
+// The wind-up: right shoulder further back, right hand back and up behind.
+pose windup {
+  twist    { right.45 }
+  rightArm { back.high@bent }
+  leftArm  { fwd }
+}
+
+// The release and follow-through: right shoulder through, right hand out in front.
+pose follow {
+  twist    { left.40 }
+  rightArm { fwd.25 }
+  leftArm  { hip }
+}
+
+section Idle {
+  hero {
+    body  { stance:4 | }
+    steps { both.low@small:2 both.mid:2 | }     // a slow breath in the knees
+  }
+}
+
+section Throw {
+  hero {
+    body { stance:0.6s windup:0.4s follow:0.5s!release then:0.7s stance:0.3s }
+  }
+}
+
+form Idle  { Idle }
+form Throw { Throw }
+
+score Idle  { dancer hero  form Idle  loop }
+score Throw { dancer hero  form Throw }

@@ -81,8 +81,28 @@ public static class Skeleton
 
         var torsoUp = (joints[Rig.Chest] - joints[Rig.Waist]).Normalized();
         var torsoLeft = (across - torsoUp * across.Dot(torsoUp)).Normalized();
-        world[Spine] = Piece((joints[Rig.Waist] - joints[Rig.Pelvis]).Normalized());
-        world[Chest] = world[Neck] = world[LShoulder] = world[RShoulder] = Piece(torsoUp);
+        world[Chest] = world[LShoulder] = world[RShoulder] = Piece(torsoUp);
+
+        // A twist is the shoulder line turned about the spine, away from where the hips put it
+        // (the hip line, square to the line from the pelvis to the chest: a rounded back bows about
+        // that, so it is square to both pieces). The spine takes half of the turn, the chest all
+        // of it, and the neck none: the head is not turned by a twist.
+        var line = (joints[Rig.Chest] - joints[Rig.Pelvis]).Normalized();
+        var plain = left - line * left.Dot(line);
+        if (plain.Length < 1e-6)
+        {
+            world[Spine] = Piece((joints[Rig.Waist] - joints[Rig.Pelvis]).Normalized());
+            world[Neck] = world[Chest];
+        }
+        else
+        {
+            plain = plain.Normalized();
+            double twist = Math.Atan2(plain.Cross(torsoLeft).Dot(torsoUp), plain.Dot(torsoLeft));
+            var spineUp = (joints[Rig.Waist] - joints[Rig.Pelvis]).Normalized();
+            var spineLeft = plain * Math.Cos(twist / 2) + spineUp.Cross(plain) * Math.Sin(twist / 2);
+            world[Spine] = Quat.FromBasis(spineLeft, spineUp, spineLeft.Cross(spineUp));
+            world[Neck] = Quat.FromBasis(plain, torsoUp, plain.Cross(torsoUp));
+        }
 
         // The head looks along the nose and stays upright in the torso's frame.
         var gaze = (joints[Rig.Nose] - joints[Rig.Head]).Normalized();

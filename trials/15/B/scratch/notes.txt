@@ -1,0 +1,79 @@
+NOTES - trial 15 B
+
+Beat counting used in all files: the task's "beat 1..4" is the dancer's count (1-based);
+in the text and in check it is beat 0..3 of the bar.
+
+==== 1. song-dance.shosa — PREDICTION (before first check) ====
+Expected check output:
+song-dance.shosa: no problems
+  score to song.lys: 32 beats, 17.8 s, 1 dancer
+    Verse    0-16    4 bars   8.89 s   at 108   4/4
+    Chorus   16-32   4 bars   8.89 s   at 108   4/4
+    solo starts with `left.place` already made
+    solo ends where it began
+Predict question: Verse, beat 2 (index 1): right shoulder forward = twist `left`
+  -> the chest is turned toward the dancer's LEFT.
+Worries: (a) the jump on the chorus' first beat right after the verse's last step (one beat, 0.56 s,
+for a step AND a flight) - might give SH2004 or SH2003. (b) arms down -> up is "the exact opposite",
+so I go through `side`. (c) I do not know if @linear on the first word of a %-repeated bar is accepted.
+
+==== 2. boxers.shosa — PREDICTION ====
+Direction words:
+ bar 1: a punches with the RIGHT: right shoulder forward = twist `left` (a: right.20 -> left@sharp).
+        b slips: a's right fist is on b's LEFT side (they face), so b's left shoulder is pulled back
+        = b's right shoulder forward = twist `left` too (b: left.20 -> left.45).
+ bar 2: b punches with the LEFT: left shoulder forward = twist `right`. a slips: the fist is on a's
+        right side, a's right shoulder back = twist `right` (a: right.20 -> right.45).
+ So in each exchange BOTH write the same word (left, then right). Because each uses its own left/right
+ and they face each other.
+Touching: I predict check reports NOTHING (no SH2007: trunks 1 m apart, heads ~0.6 m apart; a fist is
+ not looked at; no SH2006 because I use a direction, not a place on the other figure). On the sheet I
+ expect the fist to come very close to / reach b's head (reach ~0.8 m from a's feet, b's head ~0.8 m).
+Expected check output:
+boxers.shosa: no problems
+  score: 8 beats, 4 s, 2 dancers
+    Fight   0-8   2 bars   4 s   at 120   4/4
+    a ends where it began
+    b ends where it began
+  score !hit at beat 1 = 0.5 s
+  score !hit at beat 5 = 2.5 s
+Worries: `guard@mirror` written in a `twist` / `leftArm` row - is the mirror allowed there and does
+ it give left.20? Is right.20 -> left@sharp too fast (SH2003)? (doc's own example does right.35 -> left).
+
+==== 3. sower.shosa — PREDICTION ====
+Reading of the task: steps land on beats 4..11; the 8th "step" is `together` (so that the walker
+"stands" on the last beat). 7 strides: 0.25 + 6*0.5 = 3.25 m for the middle of the feet, together +0.25.
+Expected check output:
+sower.shosa: no problems
+  score: 12 beats, 8 s, 1 dancer
+    Walk   0-12   3 bars   8 s   at 90   4/4
+    solo ends 3.5 m forward of where it began
+(if the 8th were a real right.fwd I would predict 3.75 m)
+
+==== 4. sower-edit.shosa — PREDICTION ====
+Same output as sower with the file name changed (the feet are untouched):
+sower-edit.shosa: no problems
+  score: 12 beats, 8 s, 1 dancer
+    Walk   0-12   3 bars   8 s   at 90   4/4
+    solo ends 3.5 m forward of where it began
+Unknown: whether `left.7.5` (a decimal number of degrees) is a word. Doc says "left.N for N degrees".
+I will try 7.5 first; I predict it FAILS to parse (the dot joins words) and I will need 8 or 7.
+
+==== ACTUAL ====
+1. song-dance: check run 1: no problems. Lines as predicted except "17.78 s" (I wrote 17.8 s) and the
+   longer "already made: the first step is not seen (right for a stance, ...)" line. No diagnostics at all.
+   Predict question right: beat 1 of the bar shoulder line -30 deg, right shoulder forward, chest to the LEFT (clip + side sheet).
+   After the sheet/clip I changed the chorus (2nd check run, also clean): (a) with `twist { center:2 left:2 | center:2 right:2 | %2 | }`
+   the chest stayed at 30 deg from beat 22 to 23 and went back to center only in beat 23-24 (at the %2 seam), while at the
+   written seam (19-20) it took two beats; I wrote the four bars out. (b) the last bar ended with arms at the side and
+   the chest turned; I made the last bar come down and square on its beat 3.
+   check runs until clean: 1 (2 in all).
+2. boxers: check run 1: no problems. As predicted, except the mark lines carry the dancer: "score !hit at beat 1 = 0.5 s (a)".
+   Direction words right (clip: a beat 1 right shoulder 18 cm ahead; b left shoulder 6 cm further back; heads unmoved).
+   No touching reported: right. Fist: with fwd.25 it was at 1.64 m (nose height), 6 cm short of b's nose plane and 16 cm
+   beside the face; changed guard and punch to fwd.18 -> 1.57 m. 2nd check run clean. `guard@mirror` in twist/leftArm rows worked.
+   check runs until clean: 1 (2 in all).
+3. sower: check run 1: no problems, output exactly as predicted (3.5 m forward). check runs: 1.
+4. sower-edit: check run 1: no problems, as predicted. `left.7.5` IS accepted (my prediction that it fails was wrong);
+   clip shows 7.5 deg. check runs: 1.
+

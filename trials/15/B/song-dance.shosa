@@ -1,0 +1,28 @@
+title "Song dance"
+music "song.lys"
+
+figure solo
+dancer solo humanoid on solo
+
+// Verse: a foot on every beat, on the spot; the shoulders swing over hips that stay.
+// Count 2 (beat 1 of the bar): right shoulder forward = twist left. Count 4 (beat 3): left shoulder forward.
+section Verse {
+  solo {
+    steps { left.place right.place left.place right.place | % | %2 | }
+    twist { center:1 left:2 right:1~ | :1 left:2 right:1~ | :1 left:2 right:1~ | :1 left:2 right:1 | }
+  }
+}
+
+// Chorus: land from a jump on count 1; on count 3 the arms are overhead and the chest is turned
+// (left in bars 1 and 3, right in bars 2 and 4); down and square on the next count 1.
+section Chorus {
+  solo {
+    steps { jump:4 | % | %2 | }
+    // The last bar has no "next count 1" in the song: there the arms come down and the chest squares on count 4.
+    arms  { down@linear side@linear up@linear side@linear | % | % | down@linear side@linear up:1/2@linear side:1/2@linear down | }
+    // Written out, not `%2`: with `%2` the way back to `center` at the start of the repeat took one beat instead of two.
+    twist { center:2 left:2 | center:2 right:2 | center:2 left:2 | center:2 right:1 center:1 | }
+  }
+}
+
+score { dancer solo }

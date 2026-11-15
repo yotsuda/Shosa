@@ -1,0 +1,68 @@
+== thrower.shosa : PREDICTION (before first check) ==
+Expected check output:
+thrower.shosa: no problems
+  Idle: 4 beats, 2 s, 1 dancer
+    Idle   0-4   1 bar   2 s   at 120   4/4
+    hero loops on the spot
+  Throw: 4 beats, 2 s, 1 dancer
+    Throw   0-4   1 bar   2 s   at 120   4/4
+    hero starts with `left.fwd` already made
+    hero ends where it began
+  Throw !release at beat 2 = 1 s
+Predict questions:
+- At 1.0 s (twist left.40): shoulders ~38 cm apart (derived from "a hand comes 19 cm further forward between right and left (30 each way)" => half width 19 cm).
+  Right shoulder ahead of left by 38*sin(40) = ~24 cm.
+- Nose between 0.6 s and 1.0 s: does NOT move (twist turns the shoulders under the head; torso upright; feet/hips still). Maybe a few mm at most.
+Doubts: (a) can a pose in `body` carry a !mark and a length in seconds; (b) possible SH2003 (too fast) for the arm going back.high@bent -> fwd.25 in 0.4 s;
+(c) I cannot make "back in stance AT 2.0 s" and "score is 2.0 s" both literally true, since the last word needs a length: I arrive at 1.7 s and hold 0.3 s.
+(d) "side-on to the target": I keep the feet facing the target and use twist right.20 for the stance; a truly side-on body would need the feet turned, and then the face could not stay on the target by twist alone.
+
+== lookout.shosa : PREDICTION ==
+lookout.shosa: no problems
+  score: 16 beats, 8 s, 1 dancer
+    Watch   0-16   4 bars   8 s   at 120   4/4
+    guard ends where it began
+Predict: in bar 2 (twist left.45) the RIGHT shoulder is nearer to where the guard originally faced (right shoulder comes forward).
+Bigger turn than allowed (twist left.60): an error, SH1xxx (I guess SH1011 or a nearby code), text something like
+"a twist is at most 45 degrees: to face another way the feet turn (steps { turn.left.quarter })".
+Doubt: head `fwd.left` is 45 deg = same as chest at left.45? I use head `left` (90 deg) to be "further than the chest". Not sure whether head is relative to chest or hips under a twist (doc says both "relative to the chest" and "a twist turns the shoulders under the head").
+
+== warmup.shosa : PREDICTION ==
+warmup.shosa: no problems
+  score: 16 beats, 9.6 s, 1 dancer
+    Main   0-16   4 bars   9.6 s   at 100   4/4
+    solo starts with `jump.apart` already made
+    solo ends where it began
+Predict: bar 1 beat 1 (twist left): right shoulder forward, so the LEFT hand is BEHIND the body.
+Doubt: does one long `side@body:4` follow the twist continuously during the word? Possible SH2003 for @sharp twist left<->right (60 deg in 0.15 s).
+
+== thrower-edit.shosa : PREDICTION ==
+Same as thrower but Throw: 5 beats, 2.5 s;  "Throw   0-5   1.25 bars   2.5 s   at 120   4/4" (not sure how a part bar prints); release still at beat 2 = 1 s.
+
+== thrower.shosa : ACTUAL ==
+check runs until clean: 1 (no diagnostics on the first run).
+Output as predicted EXCEPT the line "hero starts with `left.fwd` already made" was NOT printed (the step is inside a pose, not written in `steps`).
+Numbers from `shosa clip` (z = forward): t=1.0 s leftShoulder z=0.073, rightShoulder z=0.317 -> right is 24.4 cm ahead (predicted ~24: RIGHT).
+t=0.6 s left 0.304 / right 0.086 (left 21.8 cm ahead; stance at t=0: left 13.0 cm ahead). Nose (0.030,1.694,0.315) identical in every sampled frame (predicted: RIGHT). Pelvis, hips, ankles identical in every frame.
+rightHand at 0.6 s z=-0.219 y=1.729 (behind/up), at 1.0 s z=0.860 (in front).
+
+
+== lookout.shosa : ACTUAL ==
+check runs until clean: 1. Output exactly as predicted.
+clip: bar 2 (t=2..3.5 s) leftShoulder z=-0.134, rightShoulder z=+0.134 -> RIGHT shoulder nearer the original facing (predicted: RIGHT). Chest 45 deg left; nose (0.120, 1.716, 0.000) = face 90 deg left (head `left`), so further than the chest.
+bar 3 (t=4): leftShoulder z=+0.049 (15 deg right), nose (0,1.716,0.120) straight ahead. Bar 4 square. Ankles never move.
+scratch\toofar.shosa (twist left.60): ACTUAL "scratch\toofar.shosa(6,36): error SH1013: The chest turns up to 45 degrees on the hips. To face another way, the feet turn: steps { turn.left.quarter }"
+ -> an error as predicted, code guess (SH1011) WRONG (SH1013; the reference names no code for it), text close.
+
+== warmup.shosa : ACTUAL ==
+check runs until clean: 1 (no diagnostics; one informational line).
+Differences from prediction: the start line is longer: "solo starts with `jump.apart:4` already made: the first jump is not seen (right for a stance, or a count the foot only stands on; to see it, a `then` before it)".
+clip: t=0 (bar 1 beat 1) leftHand=(0.684,1.423,-0.395) -> LEFT hand BEHIND (predicted: RIGHT). Hands stay on the shoulder line (propeller). No SH2003 for the @sharp twists.
+Bars 3-4: chest at (0,1.297,0.226) through beats 8-14; at beat 8/12 right shoulder lower+further forward (turned left), at 10/14 the reverse; 0.1 s before each beat still on the way (sharp). Beat 15: upright, square, arms hanging.
+
+
+== thrower-edit.shosa : ACTUAL ==
+check runs until clean: 1. "Throw: 5 beats, 2.5 s, 1 dancer / Throw   0-5   2 bars   2.5 s   at 120   4/4" (I predicted "1.25 bars": WRONG, it prints 2 bars). !release at beat 2 = 1 s (RIGHT).
+Tokens changed vs thrower.shosa: `right.35` -> `right.45` (pose windup); `follow:0.7s!release` -> `follow:0.5s!release`; new token `then:0.7s` after it. Nothing else.
+clip: 0.6 s left shoulder 26.8 cm ahead (45 deg); 1.0-1.5 s all joints identical (held); back in stance by 2.2 s; nose/pelvis/ankles never move.
+

@@ -374,6 +374,65 @@ public class MotionTests
     }
 
     [Fact]
+    public void A_twist_turns_the_shoulders_on_the_hips_and_not_the_head()
+    {
+        // There on beat 2; `left` alone is 30 degrees.
+        var clip = Solve("    twist { center:2 left:2 }\n    arms { side:2@body side:2@body }");
+        var mirrored = Solve("    twist { center:2 left@mirror:2 }");
+
+        Vec3 Across(FuriClip c, double beat) => (At(c, beat, Rig.LShoulder) - At(c, beat, Rig.RShoulder)).Normalized();
+        double sin = Math.Sin(30 * Math.PI / 180);
+        Assert.True(Math.Abs(Across(clip, 0).Z) < 1e-3, "square at first");
+        Assert.True(Math.Abs(Across(clip, 2).Z + sin) < 2e-3, $"the left shoulder goes back, the right comes forward: {Across(clip, 2)}");
+        Assert.True(Math.Abs(Across(mirrored, 2).Z - sin) < 2e-3, "mirrored, the other way");
+
+        foreach (int joint in new[] { Rig.Pelvis, Rig.Waist, Rig.Chest, Rig.Head, Rig.Nose, Rig.LHip, Rig.RHip, Rig.LAnkle })
+            Assert.True((At(clip, 2, joint) - At(clip, 0, joint)).Length < 1e-3, $"{Rig.Joints[joint]} stays: the spine is the axis, and the face looks where the head says");
+        // An arm said against the body goes round with the chest.
+        var arm = (At(clip, 2, Rig.LHand) - At(clip, 2, Rig.LShoulder)).Normalized();
+        Assert.True(arm.Dot(Across(clip, 2)) > 0.999, "the @body arm is still in line with the shoulders");
+
+        // The bones: the spine takes half of the turn, the chest the rest, the neck turns back under the head.
+        var turns = clip.Figure.Rotations[clip.Clip.FrameOfBeat(2)];
+        double Yaw(int bone) => 2 * Math.Atan2(turns[bone * 4 + 1], turns[bone * 4 + 3]) * 180 / Math.PI;
+        Assert.Equal(15, Yaw(Skeleton.Spine), 0);
+        Assert.Equal(15, Yaw(Skeleton.Chest), 0);
+        Assert.Equal(-30, Yaw(Skeleton.Neck), 0);
+    }
+
+    [Fact]
+    public void A_twist_says_a_side_and_degrees_up_to_45_or_center()
+    {
+        Assert.Empty(Compile(Body("    twist { right.20:2 left.45@sharp center }")).Diagnostics);
+        Assert.Equal("SH1013", Assert.Single(Compile(Body("    twist { left.60:4 }")).Diagnostics).Code);
+        Assert.Equal("SH1012", Assert.Single(Compile(Body("    twist { fwd:4 }")).Diagnostics).Code);
+        Assert.Equal("SH1012", Assert.Single(Compile(Body("    twist { left.high:4 }")).Diagnostics).Code);
+        Assert.Equal("SH1010", Assert.Single(Compile(Body("    twist { left@large:4 }")).Diagnostics).Code);
+        Assert.Equal("SH1012", Assert.Single(Compile(Body("    torso { center:4 }")).Diagnostics).Code);
+    }
+
+    [Fact]
+    public void A_move_can_twist_over_any_lean_and_come_back_to_the_pose()
+    {
+        // The twist is a part of its own: the move does not say the lean, and `guard` in its row is the guard's twist.
+        var compilation = Compile(Samples.Solo("    body { guard:2 hook:2 then:2 }", """
+            tempo 100
+            pose guard { torso { left.70 }  twist { right.20 } }
+            move hook { twist { left guard } }
+
+            """));
+        Assert.Empty(compilation.Diagnostics);
+        var clip = new FuriClip(compilation.Clip, compilation.Clip.Figures[0]);
+
+        double Turn(double beat) => Math.Asin((At(clip, beat, Rig.RShoulder) - At(clip, beat, Rig.LShoulder)).Normalized().Z) * 180 / Math.PI;
+        Assert.Equal(-20, Turn(0), 0);
+        Assert.Equal(30, Turn(2), 0);
+        Assert.Equal(-20, Turn(3), 0);
+        Vec3 Lean(double beat) => (At(clip, beat, Rig.Chest) - At(clip, beat, Rig.Pelvis)).Normalized();
+        Assert.True(Lean(2).Dot(Lean(0)) > 0.9999, "the lean is the guard's all through");
+    }
+
+    [Fact]
     public void A_jump_to_the_left_lands_to_the_left_and_mirrored_to_the_right()
     {
         var left = Solve("    steps { then:2 jump.left then }");
@@ -722,6 +781,21 @@ public class MotionTests
         // A skip or a `then` of no length is told that it does nothing.
         var none = Compile(Sections("solo { arms { side:4 | } }", "solo { arms { up:2 skip:0 fwd:2 | } }"));
         Assert.Contains(none.Diagnostics, d => d.Code == "SH1009" && d.Message.Contains("does nothing"));
+    }
+
+    [Fact]
+    public void A_bar_done_again_sets_out_from_the_word_before_the_sign_not_from_the_section_before()
+    {
+        // A ends on a word of one beat. B's first word had that one beat to come in; done again by `%`,
+        // the same word comes after `left:2` and has its two beats (trial 15: it had one).
+        string first = "solo { twist { left:3 right:1 | } }";
+        var signs = Compile(Sections(first, "solo { twist { center:2 left:2 | % | } }"));
+        var written = Compile(Sections(first, "solo { twist { center:2 left:2 | center:2 left:2 | } }"));
+
+        Assert.Empty(signs.Diagnostics);
+        Same(written, signs);
+        var again = signs.Ir.Dancers[0].Tracks["twist"].Single(s => Math.Abs(s.At - 8) < 1e-9);
+        Assert.Equal(6, again.T0, 6);
     }
 
     [Fact]

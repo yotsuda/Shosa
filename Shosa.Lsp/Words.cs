@@ -222,6 +222,13 @@ internal static class Words
             };
         }
 
+        if (track == "twist")
+        {
+            if (before.Count == 0)
+                return [.. Vocabulary.TwistWords, .. definitions, Hold, Skip, Again];
+            return [];   // after left / right comes a number of degrees
+        }
+
         // The torso and the head say left / right; a limb says side / across.
         var directions = Vocabulary.Directions.Where(w => IsLimb(track) ? w.Name is not ("left" or "right") : w.Name is not ("side" or "across"));
         if (before.Count == 0)

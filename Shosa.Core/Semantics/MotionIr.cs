@@ -227,9 +227,14 @@ public static class Channels
     public const string LeftLeg = "leftLeg";
     public const string RightLeg = "rightLeg";
     public const string Torso = "torso";
+    /// <summary>
+    /// The chest turned on the hips, about the spine. A part of its own, beside the torso's lean:
+    /// the two are different axes and move at different times (a guard keeps its lean through every punch).
+    /// </summary>
+    public const string Twist = "twist";
     public const string Head = "head";
 
-    public static readonly string[] All = [Support, Height, LeftArm, RightArm, LeftLeg, RightLeg, Torso, Head];
+    public static readonly string[] All = [Support, Height, LeftArm, RightArm, LeftLeg, RightLeg, Torso, Twist, Head];
 
     public static string Mirror(string channel) => channel switch
     {
@@ -247,6 +252,7 @@ public static class SegKinds
     public const string Dir = "dir";            // gesture: point the part along Dir
     public const string Anchor = "anchor";      // arm: bring the hand to a place on the body
     public const string Reach = "reach";        // arm: to a place on another dancer; head: look at it
+    public const string Twist = "twist";        // twist: the chest turned TurnDeg on the hips
     public const string Step = "step";          // support: move Foot, then carry the weight on it
     public const string Together = "together";  // support: close the free foot to the supporting one
     public const string Level = "level";        // height: stand at Level (from `both.low`, or the level a step arrives at)
@@ -298,7 +304,7 @@ public sealed class Seg
     public double Dz { get; set; }
     /// <summary>Level: -1 knees bent, 0 normal, 1 on the toes. Reach: the height two hands meet at.</summary>
     public double? Level { get; set; }
-    /// <summary>Turn: degrees, positive to the left. Step and Jump: the turn made during it.</summary>
+    /// <summary>Turn: degrees, positive to the left. Step and Jump: the turn made during it. Twist: how far the chest is turned on the hips.</summary>
     public double TurnDeg { get; set; }
     /// <summary>Jump: distance between the feet on landing; null keeps it.</summary>
     public double? Spread { get; set; }

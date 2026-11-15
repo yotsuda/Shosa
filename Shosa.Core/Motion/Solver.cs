@@ -392,7 +392,9 @@ internal sealed class FigureSolver
         public Vec3 TorsoUp;
         /// <summary>How far the back is rounded: 0 a straight spine, 1 the whole of `@round`.</summary>
         public double Round;
-        public Vec3 P;              // pelvis over the floor
+        /// <summary>How far the chest is turned on the hips about the spine, radians, positive to the left.</summary>
+        public double Twist;
+        public Vec3 P;             // pelvis over the floor
         public double RawY, Raise, Float;
     }
 
@@ -402,6 +404,11 @@ internal sealed class FigureSolver
         public CoreState C;
         /// <summary>Up, Left and Fwd are the chest's own: with a rounded back the chest leans further than the line from the pelvis to it.</summary>
         public Vec3 Pelvis, Waist, Chest, Head, Up, Left, Fwd;
+        /// <summary>
+        /// The chest's frame before the twist: what the head is measured against. A twist turns the
+        /// shoulders under the head, so the face keeps looking where the head's own word says.
+        /// </summary>
+        public Vec3 FaceLeft, FaceFwd;
         public readonly Vec3 Shoulder(int side) => Chest + Left * (Rig.ShoulderHalf * side) - Up * Rig.ShoulderDrop;
     }
 
@@ -418,7 +425,7 @@ internal sealed class FigureSolver
     private double _weightTime, _floatTime;
     private readonly List<(double T0, double T1, double From, double To)> _turns = [];
     private readonly List<(double T0, double Up, double Land, double T1, double Height, double Give)> _jumps = [];
-    private readonly List<Seg> _height, _leftArm, _rightArm, _leftLeg, _rightLeg, _torso, _head;
+    private readonly List<Seg> _height, _leftArm, _rightArm, _leftLeg, _rightLeg, _torso, _twist, _head;
     private bool _built;
     private int _posing;
 
@@ -439,6 +446,7 @@ internal sealed class FigureSolver
         _leftLeg = Row(Channels.LeftLeg);
         _rightLeg = Row(Channels.RightLeg);
         _torso = Row(Channels.Torso);
+        _twist = Row(Channels.Twist);
         _head = Row(Channels.Head);
     }
 
@@ -971,6 +979,7 @@ internal sealed class FigureSolver
         var torso = Direction(_torso, t, Vec3.Up, new Vec3(0, 0, 1));
         c.TorsoUp = (c.Left * torso.X + Vec3.Up * torso.Y + c.Fwd * torso.Z).Normalized();
         c.Round = Chain(_torso, t, seg => seg is { Round: true } ? 1.0 : 0.0, (a, b, e) => a + (b - a) * e);
+        c.Twist = Chain(_twist, t, seg => (seg?.TurnDeg ?? 0) * Math.PI / 180, (a, b, e) => a + (b - a) * e);
         // A leaning torso is balanced by the hips going the other way.
         p -= new Vec3(c.TorsoUp.X, 0, c.TorsoUp.Z) * 0.18;
         c.P = p;
@@ -1050,6 +1059,12 @@ internal sealed class FigureSolver
         trunk.Chest = trunk.Pelvis + line * (Rig.Spine * cos);
         trunk.Up = line * cos + ahead * sin;
         trunk.Fwd = trunk.Left.Cross(trunk.Up);
+        // A twist turns the chest about its own up: the shoulders, and what is said against the
+        // chest (`@body`, a hand on the chest), go round with it. The head does not.
+        (trunk.FaceLeft, trunk.FaceFwd) = (trunk.Left, trunk.Fwd);
+        double turnCos = Math.Cos(c.Twist), turnSin = Math.Sin(c.Twist);
+        trunk.Left = trunk.FaceLeft * turnCos - trunk.FaceFwd * turnSin;
+        trunk.Fwd = trunk.FaceFwd * turnCos + trunk.FaceLeft * turnSin;
         trunk.Head = trunk.Chest + trunk.Up * Rig.HeadUp;
         return trunk;
     }
@@ -1128,6 +1143,7 @@ internal sealed class FigureSolver
         var c = trunk.C;
         Vec3 pelvis = trunk.Pelvis, chest = trunk.Chest, head = trunk.Head;
         Vec3 torsoUp = trunk.Up, torsoLeft = trunk.Left, torsoFwd = trunk.Fwd;
+        Vec3 faceLeft = trunk.FaceLeft, faceFwd = trunk.FaceFwd;
         var lifted = Vec3.Up * c.Float;
 
         Vec3 Gaze(Seg? seg)
@@ -1136,13 +1152,13 @@ internal sealed class FigureSolver
             {
                 // Look at it: the direction from this head, said in the chest's own frame.
                 var toward = (other.PlaceAt(seg.Part!, 1, t, this) - (head + lifted)).Normalized();
-                return new Vec3(toward.Dot(torsoLeft), toward.Dot(torsoUp), toward.Dot(torsoFwd));
+                return new Vec3(toward.Dot(faceLeft), toward.Dot(torsoUp), toward.Dot(faceFwd));
             }
             return DirOf(seg, new Vec3(0, 0, 1));
         }
 
         var gaze = Chain(_head, t, Gaze, (a, b, e) => Blend(a, b, e, new Vec3(0, 0, 1))).Normalized();
-        var nose = head + (torsoLeft * gaze.X + torsoUp * gaze.Y + torsoFwd * gaze.Z) * 0.12;
+        var nose = head + (faceLeft * gaze.X + torsoUp * gaze.Y + faceFwd * gaze.Z) * 0.12;
 
         var joints = new Vec3[Rig.Joints.Length];
         joints[Rig.Pelvis] = pelvis;
@@ -1219,9 +1235,10 @@ internal sealed class FigureSolver
                     {
                         "hip" => pelvis + c.Left * (0.17 * side) + Vec3.Up * 0.06 + c.Fwd * 0.02,
                         "chest" => chest + torsoFwd * 0.13 - torsoUp * 0.14 + torsoLeft * (0.04 * side),
-                        "head" => head + torsoLeft * (0.13 * side) + torsoUp * 0.02,
-                        "chin" => head + torsoFwd * 0.14 - torsoUp * 0.12 + torsoLeft * (0.06 * side),
-                        "belly" => pelvis + torsoUp * 0.18 + torsoFwd * 0.13 + torsoLeft * (0.03 * side),
+                        // The head and the belly are not turned by a twist: the head is over it, the belly under it.
+                        "head" => head + faceLeft * (0.13 * side) + torsoUp * 0.02,
+                        "chin" => head + faceFwd * 0.14 - torsoUp * 0.12 + faceLeft * (0.06 * side),
+                        "belly" => pelvis + torsoUp * 0.18 + faceFwd * 0.13 + faceLeft * (0.03 * side),
                         "across.shoulder" => chest - torsoLeft * (Rig.ShoulderHalf * 0.8 * side) - torsoUp * Rig.ShoulderDrop + torsoFwd * 0.09,
                         "clap" => chest + torsoFwd * 0.28 - torsoUp * 0.12 + torsoLeft * (0.012 * side),
                         _ => shoulder + torsoUp * 0.06 + torsoFwd * 0.05,

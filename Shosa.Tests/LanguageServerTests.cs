@@ -169,6 +169,7 @@ public class LanguageServerTests
         Assert.Equal(new[] { "bar" }, session.Complete("| then:4"));
         Assert.Empty(session.Complete("side:2"));
         Assert.Contains("verse", session.Complete("steps { "));
+        Assert.Contains("twist", session.Complete("solo {\n"));
 
         session.Replace("down:2", "down:2@");
         var annotations = session.Complete("down:2@");

@@ -1,0 +1,17 @@
+title "Lookout"
+tempo 120
+time 4/4
+
+figure guard
+dancer guard humanoid on guard
+
+section Watch {
+  guard {
+    // No `steps` row: the feet stay side by side for the whole piece.
+    twist { center:3 then:1 | left.45:3 then:1 | right.15:3 then:1 | center:4 | }
+    head  { fwd:3 then:1    | left:3 then:1    | fwd:4              | fwd:4    | }
+  }
+}
+
+form { Watch }
+score { dancer guard }

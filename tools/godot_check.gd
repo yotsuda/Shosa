@@ -3,7 +3,10 @@
 # is from the solver's own joints (`shosa clip`).
 #
 #   godot --headless --path out\godot\proj --import          (once, after the .glb is put in the project)
-#   godot --headless --path out\godot\proj -s C:\…\tools\godot_check.gd -- walk.glb [C:\…\out\godot\walk.clip.json [figure index]]
+#   godot --headless --path out\godot\proj -s C:\…\tools\godot_check.gd -- walk.glb [C:\…\out\godot\walk.clip.json [figure index [animation]]]
+#
+# The clip is compared with the first animation, or with the one named (a --combined file:
+# `shosa clip FILE --score Combo`, then `… fighter.glb C:\…\combo.clip.json 0 Combo`).
 #
 # The .glb is named as it lies in the project (res://); the script and the clip by their FULL paths
 # on disk (Godot's working directory is the project's).
@@ -184,7 +187,7 @@ func _initialize() -> void:
 			if str(scene.get_path_to(s)).contains(figure["id"]):
 				skeleton = s
 		var player: AnimationPlayer = players[0]
-		var animation := player.get_animation_list()[0]
+		var animation: String = args[3] if args.size() > 3 else player.get_animation_list()[0]
 		var joints: Array = clip["joints"]
 		var frames: Array = figure["frames"]
 		var worst := 0.0

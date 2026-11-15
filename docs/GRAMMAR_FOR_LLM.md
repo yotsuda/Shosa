@@ -177,7 +177,8 @@ the tracks alone; in a file each of them stands inside a figure's block.
 | `leftLeg` | The left leg when it carries no weight: where it points from the hip. |
 | `rightLeg` | The right leg when it carries no weight. |
 | `torso` | The spine: `up` is upright, `fwd.high` leans forward 45 degrees. |
-| `head` | Where the face looks, relative to the chest: `fwd` is straight ahead. |
+| `twist` | The chest turned on the hips, about the spine: `left` (30 degrees), `right.20`, `center`. The feet and the hips stay. |
+| `head` | Where the face looks: `fwd` is straight ahead. It nods with the chest's lean, but does not turn with a `twist`. |
 
 Tracks may overlap: `body` covers everything, `arms` covers both arms. **Where two tracks
 write the same part at the same time, the narrower one wins**; when the narrower one has
@@ -247,7 +248,10 @@ How much of that time depends on the part:
   seen going there: `body { guard jab }` starts in guard, and the jab lands on beat 1.
   To show the body going to its first target, write first where it comes from:
   `arms { down side:3 }` raises them through beat 0 to 1; `arms { then side:3 }` the same
-  from wherever they are. There is no length 0 (SH1009): every word takes time.
+  from wherever they are. There is no length 0 (SH1009): every word takes time —
+  so a score cannot end on the instant its last word arrives. "Back in the stance at
+  2 s" in a score of 2 s is the stance arriving earlier and standing to the end, and
+  a figure that comes back "on the next bar's 1" has to come back inside the last bar.
   The same for the feet: a step written on beat 0 of a score that does not loop is a
   foot already there. To SEE it land, give the score a lead-in (`steps { then:4 | left.fwd … }`).
   `shosa check` says it under the score (``solo starts with `left.fwd` already made``; a `left.place` too): count that
@@ -484,6 +488,8 @@ move kick  { rightLeg { fwd.low@bent fwd@sharp!hit fwd.low@bent down } }   // kn
 
 ## Gesture targets (arms, legs, torso, head)
 
+(The `twist` track has words of its own: see "The twist" below.)
+
 A target is a direction, written as words joined by dots: any of the direction words, and
 at most one level.
 
@@ -531,7 +537,8 @@ at most one level.
   `fwd.high` leans 45° forward, `fwd` is horizontal); for the head, where the face looks
   (`fwd` straight ahead, `fwd.left` turned, `fwd.-25` a nod down).
 - Arms, legs and torso are measured against the room: `down` is toward the floor even
-  when the torso leans. The head is measured against the chest, so it follows a bow.
+  when the torso leans. The head is measured against the chest, so it follows a bow
+  (but not a twist: see `twist` below).
   So in a forward fold `arms { down }` hangs toward the floor, and in a bow unwritten
   arms hang in front of the thighs.
 - **An arm at `down` hangs as an arm nobody wrote does**: the elbow a little bent, the
@@ -615,6 +622,60 @@ the leg back with `down`.
   gesture, so keep the steps out of that word: give the leg a `then` of the beat it
   may lift in (`rightLeg { skip:3 then fwd@bent down }` lifts in beat 3 only).
 - A leg put `down` lands where it stood before the gesture.
+
+## The twist: `twist`
+
+The torso's word says where the spine points; **`twist` turns the chest about the spine**,
+on hips that stay where the feet put them. It is a row of its own because it is another
+axis and moves at other times: a guard keeps its lean through every punch.
+
+| Twist | Meaning |
+|---|---|
+| `left` | The chest turns to the figure's left, the right shoulder comes forward: 30 degrees, or `left.N` for N degrees (up to 45). |
+| `right` | The chest turns to the figure's right, the left shoulder comes forward: 30 degrees, or `right.N`. |
+| `center` | No twist: the shoulders square over the hips. |
+
+```shosa
+twist { center:2 left:2 center:2 right.20:2 }   // square, 30° left on beat 2, square on 4, 20° right on 6
+```
+
+- `left` is the way `turn.left` goes: the chest faces left, the RIGHT shoulder comes
+  forward. A right-handed punch that lands is `left`; drawing that fist back is `right`.
+- The number is degrees of turn (0 to 45), not a level; `left` alone is 30, and it may
+  have a decimal point (`left.7.5`). More than 45 is an error (SH1013): to face another
+  way the feet turn (`steps { turn.left.quarter }`).
+- What turns: the shoulders, and so the arms that hang on them. A hand comes 19 cm
+  further forward between `right` and `left` (30° each way), on the same line: **an arm's direction is
+  still measured against the room** (`fwd` is where the figure faces, twisted or not).
+  An arm that says `@body` goes round with the chest: `arms { side@body }` over a twist
+  swings the arms round like a turnstile.
+- What does not turn: the hips, the legs, and **the head. A twist turns the shoulders
+  under the head**, so the face keeps looking where the `head` row says (ahead, if there
+  is none) — a fighter's eyes stay on the target. To look over the shoulder, turn the
+  head as well: `head { fwd.left }` is 45° from where the feet point, `head { left }`
+  90° (the head turns in those steps only: it has no degrees of turn).
+- It goes like a gesture: through all of the word before, `@sharp` for the snap of a
+  punch, `then` to stay. A twist nobody wrote is `center`.
+- In a pose it is the stance's own twist (`twist { right.20 }`: the left shoulder
+  ahead), and a move that twists says where it comes back to with the pose's name in
+  its `twist` row — it does not need to know how the torso leans (`guard@mirror` in a
+  `twist` row is the mirrored stance's twist, `left.20`):
+
+```shosa
+pose guard { arms { fwd.25@bent }  torso { fwd.80@round }  twist { right.20 }  head { fwd.25 } }
+move cross {
+  rightArm { fwd.low@bent fwd.25@sharp!hit guard }   // elbow back, fist out, back to guard
+  twist    { right.35     left@sharp          guard }   // shoulder back, round with the fist, back
+}
+```
+
+- Two rows of an `&` that both write `twist` at the same time: the later row has it
+  (as with any part), and nothing is said. Give the twist to one of them.
+- On the contact sheet a twist shows from the side (`--view side`): the two shoulders,
+  one point when square, come apart, and the arm of the shoulder that came forward is
+  the one nearer the nose (30° is plain, 15° only just; from the front the shoulder
+  line only gets shorter, and the floor plan does not show it). For the number, read
+  the two shoulders in `shosa clip` (below).
 
 ## The feet: `steps`
 
@@ -874,7 +935,7 @@ score { dancer solo }             // the whole song
 
 Do not try to express these; mention them as a limitation instead.
 
-- Hands and fingers, the face, the shoulders on their own, twisting the torso.
+- Hands and fingers, the face, the shoulders on their own (a shrug), turning the hips without the feet.
 - Holding an object. Contact other than a hand reaching a place.
 - Walking along a curve. Running (both feet off the floor between steps); hopping on one leg.
 - Sitting, kneeling, lying down, or anything else where a part other than the feet
@@ -892,6 +953,7 @@ shosa sheet FILE -o X.png   the movement on one image per score (X.png for the u
 shosa sheet FILE -o X.png --score Punch --step 0.5 --from 0 --to 4   one score, closer poses (all three in beats; --step 0.1 for a punch)
 shosa sheet FILE -o X.png --view side   seen from stage left: a figure facing front is in profile (one facing stageLeft or stageRight is in profile WITHOUT it)
 shosa sheet FILE -o X.png --score solo  with `score solo { dancer bea }`, bea alone and larger (with `--score`, the file is X.png itself)
+shosa clip FILE -o X.json   the solved movement as numbers: every joint at every frame (a file per score, as `sheet`)
 ```
 
 What `check` prints for a file with a looping `score Idle` and a `score Patrol`:
@@ -916,7 +978,22 @@ Both ways at once read `ends 2.25 m forward and 0.42 m to its left of where it b
 A looping score says `loops on the spot` or `travels 1 m forward each time round`.
 A score danced to a song is headed `Patrol to song.lys: …`. The marks come last, each with
 its score in front (`score !clap at beat 1 = 0.556 s` for the unnamed one), and with
-`   Attack, play 2` behind when the score plays that section more than once.
+`   Attack, play 2` behind when the score plays that section more than once, and with
+the dancer behind (`score !hit at beat 1 = 0.5 s (a)`) when the score has more than one.
+The line of a first step already made is longer than quoted above (``guard starts with
+`left.fwd` already made: the first step is not seen (right for a stance, …)``); a foot
+that a pose places says nothing. A section not written in bars is counted in whole
+bars all the same (5 beats in 4/4 read `2 bars`).
+
+When the sheet cannot settle it — which shoulder is ahead, whether the head moved, how
+high a fist is — read the numbers. `shosa clip` writes `fps` (30), `joints` (their names
+in order: `pelvis`, `chest`, `head`, `nose`, `leftShoulder`, `rightHand`, `leftAnkle` …)
+and, for each of `figures`, `frames`: one row for every frame, x y z for every joint in
+that order, in metres. The frame of a moment is its seconds × `fps`. y is up, z is
+toward the audience, x toward stage left — for a dancer facing front, z is forward and
++x its own left. (Standing upright, this figure's head has its middle at 1.72 m and its shoulders
+are at 1.45 m. In the guard of "The twist" the head is at 1.67 m: a punch at `fwd.25`
+arrives at 1.64 m, nose height, one at `fwd.18` at 1.57 m, the chin.)
 
 Diagnostics are `FILE(line,column): severity CODE: message`. SH0xxx is syntax, SH1xxx is
 a word or a count that does not make sense, SH2xxx is a movement the body cannot do
@@ -955,6 +1032,7 @@ no diagnostics can still be the wrong movement (a mirrored arm, a step the wrong
 - A score starts IN its first words: `body { guard jab }` starts in guard, the jab lands on beat 1. There is no `:0`.
 - A definition without a length takes its defined length; write the length when counting.
 - Limbs: `side` / `across`. Torso and head: `left` / `right`.
+- `torso` leans, `twist` turns the shoulders (`left.20`: degrees of turn). Neither turns the feet, and a twist does not turn the head.
 - Degrees are from the horizontal, for the torso too.
 - A step is measured from the other foot.
 - Opposite targets need one in between.

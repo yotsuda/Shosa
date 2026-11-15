@@ -1,0 +1,11 @@
+figure guard
+dancer guard humanoid on guard
+
+section Watch {
+  guard {
+    twist { center:3 then:1 | left.60:4 | }
+  }
+}
+
+form { Watch }
+score { dancer guard }

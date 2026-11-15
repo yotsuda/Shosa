@@ -11,8 +11,9 @@ dancer fighter humanoid on fighter
 pose guard {
   steps { left.fwd.low@small }
   arms  { fwd.25@bent }
-  torso { fwd.80 }
-  head  { fwd.10 }
+  torso { fwd.80@round }                    // leaning 10 degrees forward, the back rounded
+  twist { right.20 }                        // the left shoulder ahead: the chest turned on the hips
+  head  { fwd.25 }                          // the face up again (a twist does not turn the head)
 }
 
 // A pose written in a narrower track does only that track's part: `guard` in leftArm
@@ -22,8 +23,13 @@ pose guard {
 // knee up, kick, knee, down: its `!hit` is one word after the beat the kick is written at.
 // The cross draws the elbow back first (`fwd.low@bent`: the fist by the ribs, the elbow behind the
 // body) and goes out from there: its `!hit` too is one word after the beat the cross is written at.
+// The shoulders go with it, in a row of their own: drawn back with the elbow, then round with the
+// fist (`left`: the chest turns left, the right shoulder comes forward), and back to the guard's.
 move jab       { leftArm  { fwd.25@sharp!hit guard } }
-move cross     { rightArm { fwd.low@bent fwd.25@sharp!hit guard } }
+move cross     {
+  rightArm { fwd.low@bent fwd.25@sharp!hit guard }
+  twist    { right.35     left@sharp          guard }
+}
 move frontKick { rightLeg { fwd.low@bent fwd@sharp!hit fwd.low@bent down } }
 
 // A step is placed from the other foot: the left foot reaches a full stride ahead, then the

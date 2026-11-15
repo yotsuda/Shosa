@@ -1,0 +1,18 @@
+title "Sower"
+tempo 90
+time 4/4
+
+figure solo
+dancer solo humanoid on solo
+
+// Bar 1 stands. Steps land on beats 4 to 11, left first; the eighth closes the feet.
+// Left foot lands: right shoulder in front (twist left). Right foot lands: left shoulder in front.
+section Walk {
+  solo {
+    steps { then:4 | left.fwd right.fwd left.fwd right.fwd | left.fwd right.fwd left.fwd together | }
+    twist { center:3 then:1 | { left.7.5 right.7.5 } q | q center center | }
+  }
+}
+
+form { Walk }
+score { dancer solo }

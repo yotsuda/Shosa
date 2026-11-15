@@ -1,0 +1,18 @@
+title "Warm-up"
+tempo 100
+time 4/4
+
+figure solo
+dancer solo humanoid on solo
+
+section Main {
+  solo {
+    steps { jump.apart:4 | then:4 | then:4 | then:4 | }                     // feet apart from the start, and still
+    torso { up:4 | up:2 then:2 | fwd.high:4 | fwd.high:2 then:1 up:1 | }    // leaned 45 degrees through bars 3 and 4
+    twist { left:2 right:2 | % | left:2@sharp right:2@sharp | left:2@sharp right:1@sharp center:1 | }
+    arms  { side@body:4 | side@body:2 then:2 | down:4 | down:4 | }          // the arm line goes round with the chest
+  }
+}
+
+form { Main }
+score { dancer solo }

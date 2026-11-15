@@ -1,0 +1,33 @@
+title "Boxers"
+tempo 120
+time 4/4
+
+figure a
+figure b
+dancer a humanoid on a at -0.5 0 facing stageLeft
+dancer b humanoid on b at 0.5 0 facing stageRight
+
+// Hands up, back rounded, the left shoulder a little ahead. b stands in its mirror (right shoulder ahead).
+pose guard {
+  arms  { fwd.18@bent }        // 18, not 25: the straight punch along this line then ends at chin height (1.57 m; the head's middle is 1.67)
+  torso { fwd.80@round }
+  twist { right.20 }
+  head  { fwd.25 }
+}
+
+// Beats from 0. Bar 1: the punch lands on beat 1 (count 2). Bar 2: on beat 5 (count 2 of bar 2).
+section Fight {
+  a {
+    body     { guard:4 | guard:4 | }
+    rightArm { guard:1 fwd.18@sharp!hit guard:2 | }                       // straight right
+    twist    { guard:1 left@sharp guard:2 | then:1 right.45@sharp guard:2 | }   // right shoulder through; then slip: right shoulder back
+  }
+  b {
+    body    { guard@mirror:4 | guard@mirror:4 | }
+    leftArm { skip:4 | guard@mirror:1 fwd.18@sharp!hit guard@mirror:2 | }  // straight left
+    twist   { guard@mirror:1 left.45@sharp guard@mirror:2 | then:1 right@sharp guard@mirror:2 | }   // slip: left shoulder back; then left shoulder through
+  }
+}
+
+form { Fight }
+score { dancer a  dancer b }

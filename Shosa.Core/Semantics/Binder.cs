@@ -95,7 +95,8 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         double? ForcedLength = null,
         string? EaseOverride = null,
         TextSpan? Src = null,
-        double Since = double.NegativeInfinity);   // where the word before the next one in the row begins: the next sets out no earlier
+        double Since = double.NegativeInfinity,    // where the word before the next one in the row begins: the next sets out no earlier
+        bool After = false);                       // done again by a `%`, the first word has another word before it than where it was written: Since is that one's
 
     private readonly List<Diagnostic> _diagnostics = [];
     private readonly HashSet<(string, int, int)> _reported = [];
@@ -959,7 +960,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         "body" => Channels.All,
         "steps" => [Channels.Support, Channels.Height],
         "arms" => [Channels.LeftArm, Channels.RightArm],
-        Channels.LeftArm or Channels.RightArm or Channels.LeftLeg or Channels.RightLeg or Channels.Torso or Channels.Head => [trackName],
+        Channels.LeftArm or Channels.RightArm or Channels.LeftLeg or Channels.RightLeg or Channels.Torso or Channels.Twist or Channels.Head => [trackName],
         _ => null,
     };
 
@@ -1367,9 +1368,12 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                     else
                     {
                         var replay = ctx with { Src = ctx.Src ?? item.Span, CheckBars = false };
-                        foreach (var entry in again)
+                        // The first of them comes after the word before the sign, not after what was before it
+                        // where it was written (the section before, at a row's first bar).
+                        for (int k = 0; k < again.Count; k++)
                         {
-                            done.Add((entry.T0 + span, entry.Play(entry.T0 + span, replay), entry.Play));
+                            var entry = again[k];
+                            done.Add((entry.T0 + span, entry.Play(entry.T0 + span, k == 0 ? replay with { Since = since, After = true } : replay), entry.Play));
                             since = entry.T0 + span;
                         }
                     }
@@ -1389,7 +1393,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                     (time, barStart) = Verses(run, ctx, t0, barStart, soFar, rowStart);
                     // Done again by a `%`, it is the verse of the play then, with the bars before it moved along.
                     done.Add((t0, time, (start, c) =>
-                        Verses(run, c with { Since = start - lag }, start, start, [.. soFar.Select(e => (e.T0 + start - t0, e.T1 + start - t0, e.Play))], row0 + start - t0).Time));
+                        Verses(run, Again(c, start - lag), start, start, [.. soFar.Select(e => (e.T0 + start - t0, e.T1 + start - t0, e.Play))], row0 + start - t0).Time));
                     since = t0;
                     i = lastVerse;
                     break;
@@ -1399,7 +1403,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                 {
                     double t0 = time, lag = t0 - since;
                     since = Overlay(item, ctx, ref time, ref barStart);
-                    done.Add((t0, time, (start, c) => { double t = start, b = start; Overlay(item, c with { Since = start - lag }, ref t, ref b); return t; }));
+                    done.Add((t0, time, (start, c) => { double t = start, b = start; Overlay(item, Again(c, start - lag), ref t, ref b); return t; }));
                     break;
                 }
 
@@ -1463,7 +1467,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                         i = last;
                     }
                     double lag = t0 - since;
-                    done.Add((t0, time, (start, c) => { double t = start, b = start; BindEvent(item, c with { Since = start - lag }, ref t, ref b, extra); return t; }));
+                    done.Add((t0, time, (start, c) => { double t = start, b = start; BindEvent(item, Again(c, start - lag), ref t, ref b, extra); return t; }));
                     // After a move, the word before the next one is the move's last word, not all of the move.
                     since = double.IsNaN(innerSince) ? t0 : Math.Max(t0, innerSince);
                     break;
@@ -1472,6 +1476,12 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         }
         return since;
     }
+
+    /// <summary>
+    /// What an item is bound in when a `%` does it again at another beat: the word before it begins as
+    /// long before it as where it was written — but for the first item done again, which is told (After).
+    /// </summary>
+    private static Ctx Again(Ctx ctx, double since) => ctx.After ? ctx with { After = false } : ctx with { Since = since };
 
     /// <summary>
     /// Rows that start together. The whole is as long as its longest row; a later row wins.
@@ -1737,6 +1747,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
             var seg = isHold ? new Seg { Kind = SegKinds.Hold }
                 : channel == Channels.Support ? feet
                 : channel == Channels.Height ? height
+                : channel == Channels.Twist ? BindTwist(words, arguments, annotations, mirror)
                 : BindGesture(channel, words, arguments, annotations, mirror, ctx);
             if (seg is null)
                 continue;
@@ -1988,6 +1999,57 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
             return (words[0].Text == "left") != mirror ? degrees : -degrees;
         }
         Error("SH1014", annotation.Span, "A turn made during a step is written with its side and its amount: @turn(left.quarter), @turn(right.half).");
+        return null;
+    }
+
+    /// <summary>
+    /// A word of the `twist` track: `left`, `right.20`, `center`. How far the chest is turned on the
+    /// hips, about the spine; the hips do not come along, so it is no more than <see cref="Vocabulary.MaxTwist"/> degrees.
+    /// </summary>
+    private Seg? BindTwist(List<SyntaxToken> words, SyntaxNode? arguments, List<SyntaxNode> annotations, bool mirror)
+    {
+        const string Form = "A twist is `left`, `right` (30 degrees), `left.N` / `right.N` for N degrees up to 45, or `center`: twist { right.20 left center }";
+        foreach (var annotation in annotations)
+        {
+            var name = annotation.Token(SyntaxKind.Identifier)!;
+            string? belongs = name.Text switch
+            {
+                "small" or "large" or "turn" => "a step",
+                "bent" => "an arm or a leg",
+                "body" => "an arm",
+                "round" => "the torso",
+                _ => null,
+            };
+            if (belongs is not null)
+                Error("SH1010", name.Span, $"'@{name.Text}' is for {belongs}. How far a twist goes is its number: left.20");
+        }
+        if (arguments is not null)
+            Error("SH1012", arguments.Span, "Only lift takes a number in brackets: steps { lift(0.4) }");
+
+        if (words.Count == 1 && words[0].Text == "center")
+            return new Seg { Kind = SegKinds.Twist, TurnDeg = 0 };
+        if (words.Count is 1 or 2 && words[0].Text is "left" or "right")
+        {
+            double degrees = Vocabulary.DefaultTwist;
+            if (words.Count == 2)
+            {
+                if (words[1].Kind != SyntaxKind.Number)
+                {
+                    Error("SH1012", words[1].Span, Form);
+                    return null;
+                }
+                degrees = Number(words[1]);
+                if (degrees is < 0 or > Vocabulary.MaxTwist)
+                {
+                    Error("SH1013", words[1].Span, "The chest turns up to 45 degrees on the hips. To face another way, the feet turn: steps { turn.left.quarter }");
+                    return null;
+                }
+            }
+            return new Seg { Kind = SegKinds.Twist, TurnDeg = (words[0].Text == "left") != mirror ? degrees : -degrees };
+        }
+
+        var known = Vocabulary.TwistWords.Select(w => w.Name).Append(Vocabulary.Hold).Append(Vocabulary.Skip).Concat(_defs.Keys);
+        Error("SH1012", words[0].Span, $"'{words[0].Text}' is not a twist. {Form}{Hint(words[0].Text, known)}");
         return null;
     }
 
