@@ -1,0 +1,184 @@
+=== TASK 1: idle.shosa — BEFORE ===
+Words chosen:
+  tempo 60; role/dancer guard; score Idle { dancer guard form Idle loop }.
+  steps { leftFoot.side(0.4m):2 shift.right:4 shift.left:2 }
+    - first word leftFoot.side(0.4m) = stance already made, feet 0.4 m apart, weight on both (centre) at beat 0.
+    - shift.right at beat 2, shift.left at beat 6; a shift moves "through ALL of the word before",
+      so centre->right over 0-2, right->left over 2-6, left->centre over 6-8 (the loop's way back
+      to the first word is made in the last word). So: right drift 6->10 (over the loop point) = 4 beats,
+      left drift 2->6 = 4 beats. Continuous.
+  head { fwd.right(15):2 fwd.right(30):4 fwd:2 } — same phase: 30 deg right when weight is right (beat 2),
+    front when weight is left (beat 6), halfway at beat 0/8.
+  arms unwritten (hang relaxed: "A part no row writes is neutral: arms hanging").
+Unclear in the grammar:
+  - I wanted the weight on the LEFT at beat 0. The first word of steps must make the 0.4 m stance, and
+    "A step already made is a way of standing, so the weight is on both feet". There seems to be no
+    way to start with the stance AND the weight on one foot at beat 0. So I phase-shifted: centre at beat 0.
+  - Does a gesture-like shift stop (ease) at a word that is not a reversal (the centre word at beat 0/8)?
+    "it eases in and out, so it slows at each word" vs. "A back-and-forth ... slows to nothing only at the
+    ends". @through would fix it but "Not for steps". Risk of a stall at the loop point.
+  - Going back to a first word that is a STEP (leftFoot.side) at the loop end: is the left foot lifted
+    and re-placed, or is it a shape ("standing as after this step")? Feet must never move.
+Expected diagnostics: none (maybe an info line "starts with leftFoot.side already made").
+Predictions:
+  (a) The pelvis never stands still, except maybe it slows near beat 0/8 (centre word) — I predict it
+      slows but does not stop... honestly unsure; I predict no full stop. Side-to-side travel: 0.4 m stance,
+      between "0.3 m goes over the foot" and "0.5 m half of the way" -> ~75% of 0.2 m = 0.15 m each way,
+      about 28 cm total.
+  (b) No jump at the loop point (largest frame-to-frame move at the loop about the same as elsewhere).
+  (c) No diagnostic.
+
+--- TASK 1 predictions from the contact sheet alone (first version, steps { leftFoot.side(0.4m):2 shift.right:4 shift.left:2 }) ---
+  (a) the pelvis seems to move every half beat; not still. Travel maybe 25-30 cm.
+  (b) beat 8 looks the same as beat 0: no jump.
+  (c) none (check said "no problems").
+--- measured with clip (first version) ---
+  (a) MISS: the pelvis stands completely still from beat 6 to 7.5 (frames 181-226), then rushes back to
+      centre in the last half beat. Travel x from -22.5 to +10.5 cm = 33 cm (feet at -0.26 / +0.14 m).
+  (b) MISS: at the loop the LEFT FOOT LIFTS 6 cm (beat 7.5-8): the loop's "way back to the first word" re-takes
+      the step leftFoot.side(0.4m). Largest frame-to-frame move 3.29 cm (leftKnee, frame 240) vs ~0.5 cm elsewhere.
+      The half-beat sheet did not show it (only check --at 7.75 says "left 6 cm up").
+  (c) HIT: no diagnostic (none for the lifted foot in a "feet never move" loop either).
+--- fixing ---
+ run 2: pose wide { steps { leftFoot.side(0.4m) } }, body { wide:8 }, steps { skip:2 shift.right:4 shift.left:2 }:
+        feet stay down; the weight at beat 0 is where the loop's end left it (left), so skip moves left->right 0-2,
+        right->left 2-6, and still 6-8 (nothing after shift.left). Stance correct (0.4 m).
+ run 3: body { wide:8 }, steps { shift.left:4 shift.right:4 }: smooth sine, BUT the feet are at 0.2 m (standing
+        width): the pose's stance is not taken because the steps row has the feet at beat 0. (As the grammar says
+        for steps, but it was not obvious that a shift counts as "having the feet".) Pelvis height constant.
+ run 4 (final): body { wide:8 }, steps { skip:4 shift.right:15/4 shift.left:1/4 }, head { fwd:4 fwd.right(30):4 }.
+        Feet 0.4 m apart (L x=0.035, R x=-0.365) on the floor all 8 beats. Pelvis 0 -> -33 cm (left->right, over 0-4),
+        back over 4-7.75, still for 0.25 beat (8 frames) at the left end, then out again. Loop: last frame = first
+        frame; largest frame-to-frame move 0.53 cm anywhere (no jump). Face 0 -> 30 deg right -> 0.
+ Final-version sheet: weight over blue (left) leg at 0/8, over red at 4; head ring turns right at 4. Matches clip.
+=== TASK 1 — AFTER ===
+Check runs: 4. Diagnostics: none in any run. All problems were silent (lifted foot, standing still, lost stance).
+Unwanted: (v1) foot lift at the loop and a 1.5-beat stall; (v3) stance silently 0.2 m.
+Final has a 0.25-beat hold at the left end (8 frames) because a skip-first row cannot make a word at beat 8
+for the return; I accepted it (a reversal point eases to zero anyway).
+Surprises: a pose's steps in body is taken only if the steps row starts with skip; the weight at beat 0 of a loop
+whose steps row starts with skip is whatever the end of the loop leaves (not the pose's centred weight).
+The pelvis also bobs 3 cm up and down (the 3 cm sink in a shift), twice per cycle.
+Could not express directly: "stance 0.4 m, weight on the left at beat 0" as a row's first word.
+
+
+=== TASK 2: salute.shosa — BEFORE ===
+Words chosen:
+  tempo 100. steps { together:2/3 turn.right(30):2/3 turn.right(30):2/3 turn.right(30):13/3 }  (7 beats total)
+    The feet "set out in the second half of the word before, and no more than 0.5 s before its beat", so one
+    turn.right(90) at beat 2 would turn only in about the last 0.5 s (0.83 beat), not "over 2 beats". Three 30-deg
+    pivots at 2/3, 4/3, 2 spread it over the 2 beats (each turns in the second half of its 2/3 beat).
+    Feet together, "on both, if the feet are together" -> pivots on both.
+  height { straight } (attention). leftArm { down.bent(0) } (straight arm at attention).
+  rightArm { down.bent(0):2 then:1/2 side.down(30).bent(60):1/2@through forehead:2 then:1 down.bent(0):1 }
+    - held down 0-2, then via a point out to its own side (@through: no stop) to the forehead at 3, held to 5, down by 6.
+    - forehead = "the hand at the forehead, the elbow out to the side: a salute".
+  head unwritten (fwd). The forehead target "goes with the head".
+Unclear:
+  - No word to make a turn take a given time ("over 2 beats"); I approximate with three small pivots.
+  - Whether a decimal degree is allowed in turn(...) (I avoided it).
+  - Whether the direct path down -> forehead crosses the chest midline; the grammar does not say how the hand
+    travels to a body place. I added an intermediate on the right side to be safe.
+  - Whether `down.bent(0)` and then `forehead` cause anything odd; whether @through combines with an intermediate.
+Expected diagnostics: none.
+Predictions:
+  (a) The hand stays on the right on the way up: the closest it gets to the midline is at the forehead itself,
+      about -3 cm (3 cm right of the midline; a salute hand at the right brow). Answer: about -3 cm.
+  (b) The body faces 90 deg to its right of where it started (it started facing the audience, ends facing stage right,
+      i.e. the audience's left; profile in the sheet).
+  (c) No diagnostic.
+
+--- TASK 2 predictions from the contact sheet alone ---
+  (a) Front sheet + side sheet (--from 2 --to 6 --step 0.25): at 2.5 the hand is far out on its right side, at 2.75
+      above the right shoulder, at 3 at the forehead. It never seems to cross: about -5 cm (stays right).
+  (b) The ring under each pose ends with the nose to the left of the picture: facing 90 deg to its right (stage right).
+  (c) none ("no problems"; check says "ends where it began, turned 90° to its right").
+--- measured with clip (lateral offset of rightHand from chest, along the shoulder line) ---
+  (a) HIT (predicted ~-3 to -5): on the way up (beats 2-3) the hand's least offset is 4.0 cm RIGHT of the midline,
+      reached at the forehead itself; through 2.44 it is 58 cm out to the right. So -4 cm.
+  (b) HIT: facing goes 0 -> -30 -> -60 -> -90 in three steps; "turned 90° to its right", ends where it began.
+  (c) HIT: no diagnostic.
+=== TASK 2 — AFTER ===
+Check runs: 1. Diagnostics: none.
+Unwanted:
+  - On the way DOWN (beats 5-6, a plain forehead -> down.bent(0)) the hand crosses in front of the chest to
+    17 cm LEFT of the midline at beat 5.5 (fwd 31 cm, at 1.32 m). The task constrained only the way up, so I left
+    it, but a soldier would bring it down on the right. The direct forehead<->down path is evidently via the front/
+    across; going up I avoided that only because of my own side.down(30).bent(60)@through point.
+  - The turn is a staircase: 30 deg in each second half of a 2/3-beat word, still in between (feet set out late).
+    There is no way to say "turn evenly over 2 beats".
+Surprises: the @through intermediate worked as hoped (no stop at 2.5).
+Could not express: a turn of the feet that takes a written duration.
+
+
+=== TASK 3: cover.shosa — BEFORE ===
+Words chosen (7 beats: stand 0, crouched 1, peeking 3, hold to 4, centred crouch 5, standing 6, last word to 7):
+  steps  { leftFoot.side(0.4m):1 then:2 shift.left:1 then:1 shift.center:2 }
+           (stance already made at 0; "To move it later, stand first ... then:1 shift.right:2": the shift moves
+            through the then, 1-3; holds 3-4; shift.center moves 4-5)
+  height { mid low(40cm):4 then:1 mid:1 }      (down 0-1, held 1-5, up 5-6)
+  torso  { up:1 then:2 up.right(30):1 then:1 up:2 }  (lean right 1-3, hold 3-4, upright 4-5)
+  head unwritten: "an unwritten head looks along the chest", so it tilts with the lean (peeking past the box).
+Unclear:
+  - "low(40cm)" is "lower than standing straight in the same place (on wide feet, lower than the wide stance straight)";
+    the task says 40 cm lower than standing (= mid). Difference 0.5 cm, ignored.
+  - Where the hips go in a shift.left at low(40cm) on a 0.4 m stance: "the hips stay at that depth and go on toward
+    the foot as far as the other leg reaches". With a deep crouch the other leg reaches far, so over the foot?
+  - Whether a shift during a deep crouch changes the height ("sink no more than 3 cm").
+Expected diagnostics: none.
+Predictions:
+  (a) Pelvis about 40 cm below standing (39.5 below mid). Knees: leg ~0.89 m, hip-ankle distance ~0.49 m ->
+      bent about 110 deg each.
+  (b) Pelvis over the left foot, about 15 cm to the LEFT of the middle of the feet; head about 20 cm to the RIGHT of
+      its standing place (30 deg lean of a ~0.75 m trunk = +37 cm, minus the pelvis's 15 cm).
+  (c) No diagnostic.
+
+--- TASK 3 predictions from the contact sheet alone ---
+  (a) crouched from beat 1, about 40 cm lower (the head drops about a quarter of the figure); knees about 100 deg.
+  (b) at 3-4 the pelvis is over the blue (left) foot, maybe 15-20 cm left of the middle; the head ring in the
+      from-above view is well to the dancer's right of the hips: ~20-25 cm right of where it stood.
+  (c) none (only the info line about the first step already made).
+--- measured with clip / check --at ---
+  (a) HIT: pelvis 39.6 cm below standing at beats 1-5; knees 112 deg both (113 L / 102 R while peeking). Predicted 40 / 110.
+  (b) HIT: pelvis 17.2 cm LEFT of the middle of the feet (left ankle is 20 cm left of it); head 19.8 cm RIGHT of its
+      standing place (and 49 cm lower). Predicted 15 left / 20 right.
+  (c) HIT: no diagnostic.
+=== TASK 3 — AFTER ===
+Check runs: 1. Diagnostics: none (info: "starts with leftFoot.side(0.4m):1 already made ... right for a stance").
+Unwanted: the unwritten head tilts with the lean ("face 0°, tilted 30° right") — that is what the grammar says, and it
+  reads as peeking round a corner, so I kept it; a level-eyed peek would be head { fwd.tilt(right(0)) }... actually
+  tilt(left(0)) per the grammar.
+Surprises: none; the timing words (then before a shift) did exactly what the grammar said.
+Could not express: nothing missing for this one (arms just hang; a real cover pose would hold a weapon — not expressible).
+
+
+=== TASK 4: idle-edit.shosa — BEFORE ===
+Start: copy of the final idle.shosa:
+  body  { wide:8 }
+  steps { skip:4 shift.right:15/4 shift.left:1/4 }
+  head  { fwd:4 fwd.right(30):4 }
+Change (12-beat loop: left rests 0-2, moves right 2-6, rests 6-8, moves left 8-12):
+  body  { wide:12 }                                             1 token changed
+  steps { skip:2 then:4 shift.right:2 then:15/4 shift.left:1/4 } skip:4->skip:2, +then:4, shift.right:15/4->:2, +then:15/4 = 4
+  head  { fwd:2 then:4 fwd.right(30):2 then:4 }                 fwd:4->:2, +then:4, fwd.right(30):4->:2, +then:4 = 4
+  Total: 9 tokens (5 changed, 4 added), comments aside.
+  ("skip:3 then side rises in the last beat only": skip then then makes the wait; the last then:4 of head is the
+   loop's way back to fwd.)
+Unclear: same 0.25-beat issue as before: the return shift.left must be a word before beat 12, so the left rest is
+  11.75-14 (2.25 beats) and the left-going move 8-11.75 (3.75 beats).
+Expected diagnostics: none.
+Predictions: pelvis still 0-2 (well, 11.75-2), moving 2-6, still 6-8, moving 8-11.75; head still 0-2 at 0 deg,
+  turning 2-6 to 30 deg right, still 6-8, back 8-12. Loop joins with no jump.
+
+--- TASK 4 measured ---
+  Sheet: 0-2 same pose (weight on blue/left, face front), 2-6 moves to red/right with the head turning, 6-8 same, 8-12 back.
+  clip: pelvis still frames 1-60 (beats 0-2) and 353-360 (11.77-12) = a 2.25-beat rest at the left; moving 2-6; still
+  181-240 (beats 6-8); moving 8-11.75. Face 0 held 0-2, 30 deg right at 6 held to 8, back to 0 by 12. Feet 0.4 m apart, never
+  lifted. Loop: last frame = first frame, largest frame-to-frame move 0.53 cm. All as predicted.
+=== TASK 4 — AFTER ===
+Check runs: 1. Diagnostics: none. Tokens: 9 (5 changed: wide:8->12, skip:4->2, shift.right:15/4->2, fwd:4->2,
+  fwd.right(30):4->2; 4 added: then:4, then:15/4 in steps, then:4, then:4 in head).
+Unwanted: the left rest is 2.25 beats and the leftward move 3.75 (the same 1/4-beat workaround as in idle.shosa).
+Note: every rest needs a then inserted in BOTH rows (steps and head), and every length has to be recomputed; with a
+  pose holding both it would be one place, but a pose cannot hold a row of events (only a move can).
+

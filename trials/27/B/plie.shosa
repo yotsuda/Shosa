@@ -1,0 +1,21 @@
+// Plie in second, travelling the weight over the right foot on the way down.
+title "Plie"
+tempo 60
+time 4/4
+
+role solo
+dancer solo humanoid on solo
+
+section Main {
+  solo {
+    turnout { out(80):4 | then:4 | then:4 | }
+    // wide second; the weight goes over the right foot through beats 0-4, held 4-6, back to the middle 6-10
+    steps   { leftFoot.side(0.6m):4 | shift.right:2 then:2~ | :2 shift.center:2 | }
+    // down with the shift (0-4), held, up with it (6-10)
+    height  { straight:4 | low(25cm):2 then:2~ | :2 straight:2 | }
+    arms    { side.fwd(20).down(15).bent(20):4 | then:4 | then:4 | }
+  }
+}
+
+form { Main }
+score { dancer solo }

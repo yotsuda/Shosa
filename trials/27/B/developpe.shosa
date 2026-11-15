@@ -1,0 +1,26 @@
+// Developpe a la seconde with the right leg, from fifth (right front), closing fifth behind.
+title "Developpe"
+tempo 66
+time 4/4
+
+role solo
+dancer solo humanoid on solo
+
+pose brasBas { arms { fwd.across(30).down(70).bent(40).elbow(side) } }
+pose first   { arms { fwd.across(15).down(25).bent(50).elbow(side) } }
+pose second  { arms { side.fwd(20).down(15).bent(20) } }
+
+section Main {
+  solo {
+    turnout  { out(80):4 | then:4 | then:4 | }
+    height   { straight:4 | then:4 | then:4 | }
+    steps    { rightFoot.fwd(0.08m).across(0.13m):4 | then:4 | then:2 rightFoot.back(0.08m).across(0.13m):2 | }
+    // retire at 2, a la seconde at 4, held to 8, let go to the step behind (lands at 10)
+    rightLeg { down:2 otherKnee:2 | side:4 | skip:4 | }
+    // first at 2; second at 5, one beat after the leg; down with the leg to bras bas at 10
+    arms     { brasBas:2 first:2~ | :1 second:3 | then:2 brasBas:2 | }
+  }
+}
+
+form { Main }
+score { dancer solo }

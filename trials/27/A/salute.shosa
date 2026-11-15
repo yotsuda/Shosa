@@ -1,0 +1,18 @@
+title "Guard salute"
+tempo 100
+time 4/4
+
+role guard
+dancer guard humanoid on guard
+
+section Salute {
+  guard {
+    height   { straight }                                          // at attention: straight legs
+    steps    { together:2/3 turn.right(30):2/3 turn.right(30):2/3 turn.right(30):13/3 }   // a quarter turn right over beats 0-2
+    leftArm  { down.bent(0) }
+    rightArm { down.bent(0):2 then:1/2 side.down(30).bent(60):1/2@through forehead:2 then:1 down.bent(0):1 }
+  }
+}
+
+form Salute { Salute }
+score Salute { dancer guard  form Salute }

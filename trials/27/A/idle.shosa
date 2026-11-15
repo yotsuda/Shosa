@@ -1,0 +1,19 @@
+title "Guard idle"
+tempo 60
+time 4/4
+
+role guard
+dancer guard humanoid on guard
+
+pose wide { steps { leftFoot.side(0.4m) } }
+
+section Idle {
+  guard {
+    body  { wide:8 }                                             // the stance, as a shape: never re-stepped
+    steps { skip:4 shift.right:15/4 shift.left:1/4 }             // (left from the loop's end) right at 4, left at 7.75
+    head  { fwd:4 fwd.right(30):4 }                              // looks right with the weight
+  }
+}
+
+form Idle { Idle }
+score Idle { dancer guard  form Idle  loop }

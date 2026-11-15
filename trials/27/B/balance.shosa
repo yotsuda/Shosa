@@ -1,0 +1,30 @@
+// Waltz balance side to side: right, left, right, left, with the arms sweeping over each time.
+title "Balance"
+tempo 120
+time 3/4
+
+role solo
+dancer solo humanoid on solo
+
+// the arms open to the right: right arm out to the side (second), left arm rounded in front (first)
+pose openRight {
+  rightArm { side.fwd(20).down(15).bent(20) }
+  leftArm  { fwd.across(15).down(25).bent(50).elbow(side) }
+}
+// passing low in front (bras bas)
+pose lowFront { arms { fwd.across(30).down(70).bent(40).elbow(side) } }
+
+section Main {
+  solo {
+    turnout { out(60):3 | then:3 | then:3 | then:3 | then:3 | then:3 | }
+    // lead-in bar, four balances (right, left, right, left), a bar to stand
+    steps   { stand:3 | { rightFoot.side(0.4m) leftFoot.back(0.08m).across(0.05m) rightFoot.fwd(0.08m) } | q@mirror | q | q@mirror | then:3 | }
+    // down a little on 1, on the toes on 2, down on 3
+    height  { mid:3 | { low(5cm) high mid } | q | q | q | mid:3 | }
+    // each swing runs through its whole bar, low in front at the middle, and stops open on the next downbeat
+    arms    { openRight:3@mirror | then:3/2 lowFront:3/2@through | openRight:3/2 lowFront:3/2@through | openRight:3/2@mirror lowFront:3/2@through | openRight:3/2 lowFront:3/2@through | openRight:3@mirror | }
+  }
+}
+
+form { Main }
+score { dancer solo }

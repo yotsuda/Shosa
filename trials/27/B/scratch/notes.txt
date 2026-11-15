@@ -1,0 +1,158 @@
+=== TASK 1: plie.shosa — BEFORE ===
+Words chosen:
+- turnout { out(80) }, height { straight ... }, arms { side.fwd(20).down(15).bent(20) } (second, from the examples table).
+- steps { leftFoot.side(0.6m):4 shift.right:2 then:4 shift.center:2 }: first word already made = standing wide on both feet.
+  shift.right at beat 4 moves "through ALL of the word before" (0-4); then:4 is the way to shift.center (6-10).
+- height { straight:4 low(25cm):2 then:4 straight:2 }: same timing as the shift so the path is one diagonal
+  (both are gestures eased over 0-4).
+Unclear:
+- "low(25cm)" on wide feet is "lower than the wide stance straight", not lower than standing together.
+  The task's "25 cm lower than standing" — I read it as standing straight in this wide stance. Chose low(25cm).
+- Whether a shift with a deep height goes all the way over the foot at 0.6 m. Grammar: "The hips stay at that depth
+  and go on toward the foot as far as the other leg reaches"; example at 0.7 m with low(25cm) "with the weight over the right foot".
+- Is `then` before a shift a real "way to the next word" (gesture) or a feet-style wait (second half)? The shift line's
+  example `then:1 shift.right:2` says it moves through the then -> gesture.
+- Do shift and height share the same easing curve (needed for a straight diagonal)? Not stated.
+Expected diagnostics: none (maybe the "already made" note for leftFoot.side).
+Predictions:
+(a) bottom: pelvis ~27 cm toward the right foot from the middle of the feet (nearly over it; foot is 30 cm from middle), 25 cm lower than wide-stance straight (~27 cm below standing together).
+(b) knees at bottom: left ~60, right ~95.
+(c) halfway (beat 2): ~14 cm sideways, ~12 cm down (both eased the same, so half).
+(d) no diagnostic.
+
+--- Task 1 predictions from the contact sheet alone (out/plie.png, out/plie-down.png) ---
+(a) pelvis ~20 cm toward the right foot, ~22 cm lower.
+(b) right ~90, left ~30 (the left leg LOOKS nearly straight from the front camera).
+(c) beat 2: ~10 cm sideways, ~11 cm down.
+(d) none.
+
+--- Task 1 measured (clip out/plie.json, check --at) ---
+middle of feet x=0.259 (ankles 0.559 / -0.041), standing pelvis y=0.957.
+(a) bottom pelvis x=0.004, y=0.707: 25.5 cm toward the right foot (foot is 30 cm out), 25.0 cm down.  prediction 27 / 25 -> HIT
+(b) knees 61 left, 91 right.  prediction 60 / 95 -> HIT
+(c) beat 2: x=0.132 (12.7 cm), y=0.832 (12.5 cm down).  prediction 14 / 12 -> HIT
+    (sideways/down ratio the same at every beat: b1 4.0/3.9, b3 21.5/21.1: one straight diagonal)
+(d) no diagnostic -> HIT (only the info line "starts with leftFoot.side(0.6m) already made").
+
+=== TASK 1 AFTER ===
+check runs: 1 (no diagnostics). (Before the first run I caught my own mistake: `then:2 | then:2 shift.center`
+  — two thens in a row, only the last is the way, so the rise would have taken 2 beats; changed to a tie `then:2~ | :2`.)
+Not wanted: at the bottom the right knee is 35 cm further out (x) than the right ankle: the shin slants about 50 deg
+  outward, the knee far past the toes, not over them. The left knee is 4 cm INSIDE its ankle. From the front the left
+  leg looks almost straight though it is 61 deg bent (turnout foreshortening) — the sheet misled my estimate (b).
+Surprise: low(25cm) is measured from the wide stance straight, and the travel to the foot came out by itself;
+  the diagonal is perfectly straight because shift and height ease the same.
+Could not express: nothing; but "how far toward the foot" cannot be written — the shift goes as far as the
+  solver decides (here 25.5 of 30 cm). "mostly over the right foot" happened to fit.
+
+=== TASK 2: developpe.shosa — BEFORE ===
+Words chosen:
+- poses for the arm positions (bras bas / first / second, from the grammar's example table) used in an `arms` row.
+- turnout { out(80) }, height { straight }.
+- steps { rightFoot.fwd(0.08m).across(0.13m):4 | then:4 | then:2 rightFoot.back(0.08m).across(0.13m):2 | }:
+  first word already made = fifth, right front, both feet; the close to fifth behind is a step landing at beat 10.
+- rightLeg { down:2 otherKnee:2 | side:4 | skip:4 | }: retiré at 2, à la seconde (level = 90 deg, straight) at 4,
+  held 4-8 (no next target, so I hope it does not drift), skip lets the leg go back to steps 8-10 and the step behind
+  carries it there from the air.
+- arms { brasBas:2 first:2~ | :1 second:3 | then:2 brasBas:2 | }: first at 2; `first:3` makes the way to second
+  run 2-5 so it arrives at 5, one beat after the leg (the grammar's "one part of the pose a little behind" pattern);
+  second held 5-8 with `then:2` as the way down, bras bas at 10 with the leg.
+Unclear:
+- Does a leg word followed by `skip` hold still, or drift? ("A gesture sets out for the next word as soon as it has arrived")
+- Is the lowering over 2 beats (8-10) or only the step's late setting-out (<=0.5 s before beat 10)? The skip says
+  "over the time of the skip", the step says "second half, no more than 0.5 s".
+- Does the foot pass through the standing leg on its way from the side to fifth behind?
+- Where the weight is after closing (the step "carries the weight": on the right foot only?).
+Expected diagnostics: none; possibly SH2004/SH2013 at the close.
+Predictions:
+(a) right foot (ankle) during the hold: ~90 cm above the floor (leg level at hip height).
+(b) at beat 4 the arms are between first and second (eased 3-beat way, about 3/4 open), not yet in second.
+(c) no diagnostic.
+
+--- Task 2 predictions from the contact sheet alone (out/developpe.png, out/developpe-close.png) ---
+(a) the foot about at hip height during the hold: ~90 cm, and it does not drift 4-8.
+(b) beat 4: arms visibly not yet in second (frame 4 differs from 5), between.
+(c) none.
+--- Task 2 measured ---
+(a) right ankle y 0.973 = pelvis height, check --at: "right 89 cm up" at 4, 6, 8 (constant: no drift).  pred 90 -> HIT
+(b) beat 4: hands x 0.648 / -0.547 vs first 0.113 / -0.012 and second 0.777 / -0.676: 81% of the way sideways,
+    elbows bent 31 (first 50, second 20). Between, not yet second; in second at beat 5.  -> HIT
+(c) no diagnostic -> HIT.
+
+=== TASK 2 AFTER ===
+check runs: 1, no diagnostics.
+Not wanted: the unfolding (2-4) does not keep the knee up: at beat 3 the foot is LOWER than at the retiré
+  (ankle y 0.595 -> 0.523 -> 0.973); the shin swings down and out and then up, like a leg swinging about the hip,
+  not a développé that extends the lower leg from a high knee. I found no word for "unfold from the knee"
+  (maybe @through on an intermediate side.bent target would do it; the grammar does not say).
+Surprise (good): the close came out as a ballet close: the foot comes down to the floor out to the side around 9.3
+  and slides in to fifth behind by 10 (floor plan shows a long red slide). The skip+step worked as described.
+  `side:4 skip:4` held still through 4-8 (the leg did not drift toward the skip).
+Unclear but worked: whether a `then` is needed to hold before skip — it was not.
+Could not express: the développé's knee-first unfolding path, explicitly.
+
+=== TASK 3: balance.shosa — BEFORE ===
+Words chosen:
+- a lead-in bar of standing (so the first step to the right is SEEN, not "already made"), 4 balancé bars, a last bar standing.
+- steps { stand:3 | { rightFoot.side(0.4m) leftFoot.back(0.08m).across(0.05m) rightFoot.place } | q@mirror | q | q@mirror | then:3 | }
+  side step on 1, cross behind (just past the right foot's line) on 2, step in place on 3; q@mirror for the left ones.
+- height { mid:3 | { low(5cm) high mid } | q | q | q | mid:3 | }: a little down on 1, on the toes (ball of the foot) on 2, down on 3.
+- turnout { out(60) } (ballet class; not asked for exactly).
+- poses: openRight { rightArm second, leftArm first }, lowFront { arms bras bas }; openLeft is openRight@mirror.
+- arms { openRight@mirror:3 | then:3/2 lowFront:3/2@through | openRight:3/2 lowFront:3/2@through | openRight@mirror:3/2 lowFront:3/2@through | openRight:3/2 lowFront:3/2@through | openRight@mirror:3 | }
+  each swing runs through the whole balancé bar, passing lowFront (with @through) at the bar's middle and stopping in
+  the open line on the next downbeat.
+Unclear:
+- "on the ball of the foot" for ONE foot: only `height { high }` exists (both feet on the toes). Compromise.
+- `place` is "beside the supporting foot": the right foot's "in place" step is placed from the crossed-behind left foot,
+  so it moves (I estimate) about 0.2 m further right rather than staying where it was.
+- Does a `|` between a group and its `q` matter? ("plain events in between do not matter").
+- Does @through work on a pose name in an arms row? (A pose takes @through per the list.)
+Expected diagnostics: none.
+Predictions:
+(a) No: the arms do not stop in the low front position; they stop only in each open line (on the downbeats).
+(b) about 45 cm per balancé (side 0.4 m, cross 0.05 m past, then the "place" step beside it): middle of the feet moves ~0.45 m.
+(c) none.
+
+--- Task 3 predictions from the contact sheet alone (out/balance.png, out/balance-fine.png at 0.25 beat) ---
+(a) no stop: the quarter-beat poses 4.25 / 4.5 / 4.75 all differ by similar amounts; stops only at 6 and 9.
+(b) from the floor plan: about 35 cm.
+(c) none (in the final file).
+--- Task 3 measured (scratch/speed.ps1: hand speed relative to its shoulder, per frame) ---
+(a) both hands: speed falls to ~0 only at beats 3, 6, 9 (ends of swings); through the low point (4.5, 7.5) 0.84 m/s
+    in one frame against ~1.2-1.3 around it (a small kink, not a stop); lowest point of the hand y=0.925.  -> HIT
+    (world-space speed has extra dips, e.g. 0.26 m/s at 8.53 for the right hand, from the body travelling under it.)
+(b) middle of the feet: (0,0) at beat 0 -> (-0.45, -0.04) after the right balancé (beat 5.5), back to (0, -0.04) after the left. 45 cm. -> HIT
+(c) final file: no diagnostic -> HIT (but see the runs below).
+
+=== TASK 3 AFTER ===
+check runs: 3.
+  run 1: 3x error SH1040 (word order): I wrote `openRight@mirror:3`; must be `openRight:3@mirror`. My slip; the grammar says it clearly.
+         Also, no diagnostic but "solo ends 0.32 m back of where it began": with `rightFoot.place` after the cross-behind,
+         the whole line drifted 8 cm back per balancé (place is beside the crossed-back foot).
+  run 2: no problems, still 0.32 m back. Changed `rightFoot.place` to `rightFoot.fwd(0.08m)` to undo the cross's 8 cm.
+  run 3: no problems, ends 0.04 m back (the first cross is never undone... actually the last balancé ends with the right foot 8 cm back:
+         the end stance is a small third/fifth, right foot behind, acceptable).
+Not wanted: "on the ball of the foot" could only be `height { high }` = BOTH feet on the toes on beat 2 (and rising through beat 1).
+  The step on beat 1 is in a slight plié I added (low(5cm)); a true balancé "down-up-up" vs "down-up-down" is a matter of choice.
+Surprise: `place` is not "in place" for the foot that is stepping; it is "beside the other foot", so after a cross-behind it
+  drifts. The grammar does say "a line of side / cross / side drifts by that 0.12 m", but `place` reads like "step in place".
+Could not express: one foot on demi-pointe while the other is flat.
+
+=== TASK 4: developpe-edit.shosa — BEFORE ===
+Plan (copy of developpe.shosa):
+- steps: insert `then:4 |` (one more bar of standing before the close).
+- rightLeg: `side:4 |` -> `side:4~ | :4 |` (a tie: ONE word of 8 beats; a `then` before `skip` might count as a "way").
+- arms: `first:2~ | :1 second:3 |` -> `first:2 | second:4 |` (second now arrives at 4 with the leg) and insert `then:4 |`
+  so the arms stay in second through 4-12 and go down 12-14 with the leg.
+- turnout and height rows: left alone (kept until changed; the section is as long as its longest track).
+Expected: no diagnostics; leg 89 cm up from 4 to 12, arms in second at 4.
+
+=== TASK 4 AFTER ===
+check runs: 1, no diagnostics. Measured: foot 89 cm up at 4, 8, 12; hands at beat 4 = (0.777/-0.676, y 1.290) = the
+second position exactly (same as beat 5 and 12), elbows 20; leg and arms down by 14; 16 beats.
+Tokens: changed 3 (`side:4`->`side:4~`, `first:2~`->`first:2`, `second:3`->`second:4`), added 6 (`then:4` `|` in steps;
+`|` `:4` in rightLeg; `then:4` `|` in arms), removed 1 (`:1`). 10 tokens touched (comments also updated, not counted).
+Why so many: the hold is written in three rows (steps, leg, arms), each needs its own extra bar; the grammar's advice
+("A shape held by several rows at once is a pose, so that its length is in one place") would have saved this, but
+the arms deliberately differ in timing from the leg, which the pose form makes harder (a row beside the body row).
