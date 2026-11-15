@@ -1,0 +1,22 @@
+title "Batter"
+tempo 60          // one beat is one second
+
+figure batter
+dancer batter humanoid on batter
+
+// The four shapes of the swing. The feet point at the plate; the pitcher is to the left.
+pose stance { arms { clap }  hips { center }    twist { center }    head { fwd.left(60).-10 } }
+pose wound  { arms { clap }  hips { right.30 }  twist { right.45 }  head { fwd.left(60).-10 } }
+pose midway { arms { clap }  hips { left.20 }   twist { right.30 }  head { fwd.left(60).-10 } }
+pose finish { arms { clap }  hips { left.45 }   twist { left.45 }   head { fwd.left(45).20 } }
+
+section Swing {
+  batter {
+    // 0 s stance, 1 s wound up, 1.5 s half way (sharp), 1.75 s the finish, held to 3 s, back in the stance at 3.75 s
+    body  { stance:1 wound:0.5 midway:0.25@sharp!contact finish:1.25 then:0.75 stance:0.25 }
+    steps { { jump.apart } & { both.low@small } }
+  }
+}
+
+form { Swing }
+score { dancer batter }

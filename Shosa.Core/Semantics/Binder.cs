@@ -1867,24 +1867,40 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
     /// </summary>
     private void CheckTwistsAtOnce(Dictionary<string, List<Raw>> sink)
     {
-        foreach (string channel in new[] { Channels.Twist, Channels.Hips })
+        // A move used in a row has one place in the text for its `hips` and its `twist`: one warning says both.
+        var twists = sink.TryGetValue(Channels.Twist, out var chest) ? TurnsLost(chest) : [];
+        var hips = sink.TryGetValue(Channels.Hips, out var pelvis) ? TurnsLost(pelvis) : [];
+        foreach (var span in twists.Union(hips))
         {
-            if (sink.TryGetValue(channel, out var raws))
-                CheckTurnsAtOnce(raws, channel == Channels.Hips ? "turn the hips" : "twist the chest", channel == Channels.Hips ? "the hips go" : "the chest goes");
+            var (both, goes) = (twists.Contains(span), hips.Contains(span)) switch
+            {
+                (true, true) => ("turn the hips and twist the chest", "they go"),
+                (true, false) => ("twist the chest", "the chest goes"),
+                _ => ("turn the hips", "the hips go"),
+            };
+            Report("SH2009", DiagnosticSeverity.Warning, span,
+                $"This row and a later row of the `&` both {both} at the same time, and {goes} with the later one: what is written here is not seen. Write it in one of the rows only, or put the two one after the other.");
         }
     }
 
-    private void CheckTurnsAtOnce(List<Raw> raws, string both, string goes)
+    /// <summary>
+    /// The turns that another row of their `&amp;` takes the part from. What is lost must be something done:
+    /// a pose's word only keeps the part where it was. What takes it may be anything, a pose's word too —
+    /// a move that begins by squaring itself (`loose:1 left@sharp …`) hides the whip of the row before it.
+    /// </summary>
+    private static List<TextSpan> TurnsLost(List<Raw> raws)
     {
+        var spans = new List<TextSpan>();
         foreach (var lost in raws.Where(r => r is { Stance: false, Rows: not null }))
         {
-            var over = raws.FirstOrDefault(o => o is { Stance: false, Rows: not null } && o.Order != lost.Order && Beats(o, lost)
+            bool over = raws.Any(o => o.Rows is not null && o.Order != lost.Order && Beats(o, lost)
                 && Math.Min(o.Seg.T1, lost.Seg.T1) - Math.Max(o.Seg.T0, lost.Seg.T0) > Epsilon
-                && o.Rows.Any(a => lost.Rows.Any(b => a.Group == b.Group && a.Row != b.Row)));
-            if (over is not null)
-                Report("SH2009", DiagnosticSeverity.Warning, new TextSpan(lost.Seg.Src, lost.Seg.Len),
-                    $"This row and a later row of the `&` both {both} at the same time, and {goes} with the later one: what is written here is not seen. Write it in one of the rows only, or put the two one after the other.");
+                && o.Rows.Any(a => lost.Rows!.Any(b => a.Group == b.Group && a.Row != b.Row)));
+            var span = new TextSpan(lost.Seg.Src, lost.Seg.Len);
+            if (over && !spans.Contains(span))
+                spans.Add(span);
         }
+        return spans;
     }
 
     /// <summary>Whether an event still has its part at the moment it arrives (the same rules as <see cref="Resolve"/>).</summary>

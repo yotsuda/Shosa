@@ -1,0 +1,150 @@
+=== 1. song-dance.shosa — PREDICTION (before first check) ===
+check will print:
+  song-dance.shosa: no problems
+    score to song.lys: 32 beats, 17.8 s, 1 dancer
+      Verse    0-16    4 bars   8.89 s   at 108   4/4
+      Chorus   16-32   4 bars   8.89 s   at 108   4/4
+      solo starts with `left.place` already made: ...
+      solo ends about 0.17 m to its left of where it began   (left.side then shift.center; unsure of the number: 0.17 or 0.35)
+  no marks.
+Predict Q1 (Verse count 2: right shoulder forward, back or neither?): NEITHER. hips left (30) brings the right hip forward,
+  twist right (30) on top takes the shoulders back to square over the feet.
+Predict Q2 (Chorus bar 1 count 3: degrees between where the chest faces and where the face looks?): 60.
+  chest 30 left of the feet (hips left, twist center), face fwd.right(30) = 30 right of the feet (head is not turned by hips).
+
+--- 1. song-dance.shosa — ACTUAL ---
+check run 1: clean. Printed:
+  song-dance.shosa: no problems
+    score to song.lys: 32 beats, 17.78 s, 1 dancer
+      Verse    0-16    4 bars   8.89 s   at 108   4/4
+      Chorus   16-32   4 bars   8.89 s   at 108   4/4
+      solo starts with `left.place` already made: the first step is not seen (right for a stance, or a count the foot only stands on; to see it, a `then` before it)
+      solo ends 0.17 m to its left of where it began
+Prediction of check: right (I wrote 17.8 s, it prints 17.78 s; 0.17 m right).
+Sheet (image alone): Chorus read easily from the top view: beat 16/24 shoulder line tilted, red end toward the audience (right side forward = turned left),
+  no grey line visible = one block; 20/28 the other way; 18/26 nose to image-left (figure's right), 22/30 nose to figure's left; 31 and 32 square, arms down.
+  Verse: shoulder line flat and nose straight down in every pose -> "neither" for the shoulder. The grey hips line shows only as two short stubs
+  behind the shoulder line at beats 1 and 3 (it is shorter than the shoulder line); I could see THAT the hips are turned, but not reliably WHICH way
+  from the top view. --view side --step 0.5 showed the red (right) hip/leg in front at beat 1 and the blue at beat 3.
+  Angle chest/face in chorus: 30 and 30 look right on the image, but I could not have said "60" rather than "50" from the image.
+clip: beat 1: hips 30 L, shoulders 0, face 0. beat 3: hips -30, shoulders 0. Chorus 16: hips 30 shoulders 30 face 0; 18: hips 30 shoulders 30 face -30 (60 between); 20/22 mirrored; 31, 32: all 0.
+Predict Q1 neither: RIGHT. Q2 60: RIGHT.
+
+=== 2. spar.shosa — PREDICTION (before first check) ===
+check will print:
+  spar.shosa: no problems
+    score: 8 beats, 4 s, 2 dancers
+      Main   0-8   2 bars   4 s   at 120   4/4
+      a ends where it began
+      b ends where it began
+    score !hit at beat 1 = 0.5 s (a)
+    score !hit at beat 5 = 2.5 s (b)
+  (no "starts with ... already made" line, since the foot is placed by a pose.) Possibly an SH2003 (too fast) for a @sharp word - not expected.
+Predict Q1 (bar 1 count 2, which of a's shoulders is nearer b?): the RIGHT one (hips left 20 + twist left 20 = shoulders 40 left: right shoulder forward).
+Predict Q2 (does b's nose move?): YES - b's head row turns the face 30 to its left, so the nose swings to b's left by about 5 cm; (the head's middle should hardly move:
+  the hips turn about the spine; with the rounded lean the head may shift a little).
+Predict Q3 (does check report anything about the two touching?): NO. The fist goes in a direction, not to a place on b (no SH2006), and the trunks are ~0.7 m apart (no SH2007).
+My choice for b's face: it turns to b's own LEFT, the same way as the trunk (left shoulder back = trunk turned left): a's right fist comes at b's left side... the face goes away with it.
+Unsure: whether fwd.across(18).18 really lands on b's centre line / chin with the hips+twist 40 and staggered stances, and whether it reaches in depth. To be measured.
+
+
+--- 2. spar.shosa — ACTUAL ---
+check run 1 (stance `steps { left.fwd.low@small }`, b in guard@mirror):
+  spar.shosa(20,1): warning SH2007: Two dancers are in the same place: at beat 0 the legs of a and b run into each other. Start them farther apart (`at`), or make the movement smaller.
+  (then the score lines and the two marks as predicted)
+  -> NOT predicted. Changed the stance to `steps { both.low }` (feet side by side); `at` is fixed at 1 m by the task.
+check run 2: clean:
+  spar.shosa: no problems
+    score: 8 beats, 4 s, 2 dancers
+      Main   0-8   2 bars   4 s   at 120   4/4
+      a ends where it began
+      b ends where it began
+    score !hit at beat 1 = 0.5 s (a)
+    score !hit at beat 5 = 2.5 s (b)
+clip after run 2 (fwd.across(18).18, torso fwd.80@round): a's fist at 0.5 s = (0.197, 1.412, -0.027); b's head (0.354, 1.510, 0.031), nose (0.249, 1.513, 0.089).
+  Height right (10 cm under the head's middle = chin). But 5 cm short of the nose tip in depth, and across(18) carries the fist PAST b's centre line
+  (a's right is +z; b's head went to z=+0.03 with the roll, the fist is at -0.03): with the shoulders turned 40 the right shoulder is already nearer the middle.
+  Experiments in scratch\try.shosa (4+3 check/clip runs, all clean): across(10) -> z 0.051, across(5) -> z 0.100, plain fwd -> 0.149; torso 77/76/75 for depth.
+  Final: torso fwd.77@round (head fwd.28), fist fwd.across(8).18 -> fist (0.231, 1.402, 0.071), b's head (0.327, 1.500, 0.030), nose (0.222, 1.503, 0.088):
+  1 cm from the line head-middle -> nose in plan, 10 cm under the head's middle, at the depth of the nose tip.
+check run 3 (after tuning): clean, same lines.
+Measured at 0.5 s: a hips 20.0 L, a shoulders 37.2 L in plan (written 20+20: the twist is about a spine that leans, so the plan angle is less than 40; with torso 80 it was 38.0).
+  b hips 30.0 L, shoulders 28.7 L (one block; same lean effect), face 28.6 L.  Bar 2 (2.5 s) is the exact mirror.
+Sheet (image alone, out\spar.png and spar-close.png --step 0.25): top view at beat 1: a's shoulder line is steeper than its grey hips line (two different angles, shoulders further),
+  red end toward b -> a's RIGHT shoulder nearer b. b: grey and coloured lines parallel (one block), blue end away from a -> left shoulder back. b's nose stroke points
+  down-left instead of left -> turned to b's left. Because of the lean the two lines are drawn side by side, not crossing: I compare slopes. I could not read 20 vs 40 as numbers.
+  The pose picture itself: the two bodies overlap (heads almost touch in the drawing), the fist is somewhere at b's head ring: chin vs nose and centre line NOT readable. Needed clip.
+Predict Q1 (a's right shoulder nearer b): RIGHT.
+Predict Q2 (b's nose moves): RIGHT, more than I said: nose (0.199,1.498,0.000) -> (0.222,1.503,0.088) = 9 cm to b's left, 2 cm back; the head's middle itself moves 3 cm (hips turn under a leaning spine).
+Predict Q3 (check says nothing about touching): right for the fist on the face (nothing is said), WRONG in that run 1 did report SH2007 for the legs.
+Check prediction: wrong for run 1 (SH2007), right for the rest.
+
+=== 3. batter.shosa — PREDICTION (before first check) ===
+check will print:
+  batter.shosa: no problems
+    score: 4 beats, 4 s, 1 dancer
+      Swing   0-4   1 bar   4 s   at 60   4/4
+      batter starts with `left.side` already made: the first step is not seen (...)
+      batter ends where it began          (unsure: the left.side at beat 0 may count as nothing, or as 0.17/0.35 m to its left - I say "where it began")
+    score !contact at beat 1.5 = 1.5 s
+  Risk: SH2003 too fast for finish (twist right.30 -> left.45 and hips left.20 -> left.45 in 0.25 s) or for half@sharp. I guess no warning.
+  Risk: `{ left.side } & { both.low@small }` as the first thing of a steps row may not be accepted, or a mark on a pose may be refused.
+Predict Q1 (1.0 s: angle between pelvis line and shoulder line): 45 (pelvis 30 R, shoulders 75 R; twist right.45 = 75 - 30).
+Predict Q2 (1.5 s: which shoulder is forward): the LEFT (shoulders 10 R of the feet: hips left.20 + twist right.30 = -10; turned right = left shoulder forward).
+Predict Q3 (1.75 s: chest vs nose): the chest faces 90 left of the feet, the nose 45 left: the chest is 45 further to the left than the face (the face looks 45 to the right of the chest, and 20 up).
+
+
+--- 3. batter.shosa — ACTUAL ---
+check run 1 (a pose named `half`):
+  batter.shosa(10,6): error SH1005: 'half' is a word of the language; a definition needs a name of its own.
+  batter.shosa(16,32): error SH1019: No pose or move is named 'half'.
+  (then: score: 4 beats, 4 s, 1 dancer / Swing 0-4 1 bar 4 s at 60 4/4 / batter starts with `left.side` already made: ... / batter ends where it began; no mark line)
+  -> not predicted (`half` is a turn amount). Renamed the pose `midway`.
+check run 2: clean:
+  batter.shosa: no problems
+    score: 4 beats, 4 s, 1 dancer
+      Swing   0-4   1 bar   4 s   at 60   4/4
+      batter starts with `left.side` already made: the first step is not seen (right for a stance, or a count the foot only stands on; to see it, a `then` before it)
+      batter ends where it began
+    score !contact at beat 1.5 = 1.5 s
+  Prediction of these lines: right (incl. "ends where it began", no SH2003, `{ } & { }` and the mark on a pose accepted).
+Sheet --step 0.25: the pose showed the pelvis over the LEFT foot (clip: pelvis x 0.258, feet at -0.10 and 0.45): `left.side` leaves the weight on the stepping foot.
+  Not "pelvis square over the feet" as I want a batter. Tried `jump.apart` as the first word (scratch\batter-jump.shosa, clean): pelvis x 0.000, feet +-0.30. Took it.
+check run 3 (with jump.apart): clean; the line now reads
+      batter starts with `jump.apart` already made: the first jump is not seen (right for a stance, or a count the foot only stands on; to see it, a `then` before it)
+Sheet (image alone), top view under each pose:
+  0 s: shoulder line flat, no grey visible, nose stroke to lower right (the figure's left), clearly more than 45.
+  1.0 s: shoulder line nearly upright on the page, blue (left) end toward the audience, red away -> turned far to the right, left shoulder forward; grey stubs stick out at another angle
+     -> pelvis less turned than shoulders. I read "about 40-50 between them"; could not have said 45 exactly. Nose still lower right.
+  1.5 s: shoulder line almost flat, blue end slightly toward the audience (left shoulder a little forward), grey stubs tilted the OTHER way (right hip forward) -> the pelvis leads. Readable, and this is the best case for the drawing.
+  1.75 s: shoulder line upright on the page, blue end away from the audience, red toward -> 90 left; nose lower right at about 45, i.e. half way between the audience and where the chest faces. In the pose the head ring has a dot (face up).
+  The 10 down / 20 up of the face cannot be read from the top view; the pose's head shows a dot in the ring when it looks up, nothing I could read for 10 down.
+clip: 1.0 s hips -30 shoulders -75 face +60, -10 up. 1.5 s hips +20 shoulders -10 face 60/-10. 1.75 s (frame 52 = 1.733 s) hips 44.7 shoulders 88.7 face 45.2/19.6; 2.5 s 45/90/45/20. 3.75 s and 4.0 s: 0/0/60/-10.
+Predict Q1 45: RIGHT. Q2 left shoulder forward: RIGHT. Q3 chest 45 further left than the nose: RIGHT.
+
+=== 4. batter-edit.shosa — PREDICTION (before first check) ===
+Tokens changed: `right.30` -> `right.15` (pose wound, hips); `right.45` -> `right.22.5` (pose wound, twist: 37.5 - 15);
+  `fwd.left(45).20` -> `fwd.left(30).20` (pose finish, head); `finish:1.25` -> `finish:0.25` (body row). Plus the numbers in one comment.
+check will print:
+  batter-edit.shosa: no problems
+    score: 3 beats, 3 s, 1 dancer
+      Swing   0-3   1 bar   3 s   at 60   4/4
+      batter starts with `jump.apart` already made: the first jump is not seen (...)
+      batter ends where it began
+    score !contact at beat 1.5 = 1.5 s
+Expect: 1.0 s hips 15 R, shoulders 37.5 R; 1.75 s face 30 L, 20 up; finish held 1.75-2.0, stance from 2.75.
+
+
+--- 4. batter-edit.shosa — ACTUAL ---
+check run 1: clean, exactly as predicted:
+  batter-edit.shosa: no problems
+    score: 3 beats, 3 s, 1 dancer
+      Swing   0-3   1 bar   3 s   at 60   4/4
+      batter starts with `jump.apart` already made: the first jump is not seen (right for a stance, or a count the foot only stands on; to see it, a `then` before it)
+      batter ends where it began
+    score !contact at beat 1.5 = 1.5 s
+Sheet --step 0.25: 1.0 s the shoulder line is turned visibly less than in batter.png; the grey hips line is all but hidden (22.5 between them: a stub at one end only).
+  1.75 s the nose is nearer "straight at the audience" than in batter.png. Ends at 3.
+clip: 1.0 s hips -15, shoulders -37.5; 1.5 s 20 / -10; 1.9-2.0 s 45 / 90, face 30 L 20 up; 2.75 s and 3.0 s 0 / 0, face 60 L -10.
+All predictions right.
+

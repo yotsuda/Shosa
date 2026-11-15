@@ -1,0 +1,45 @@
+title "Twister"
+tempo 120
+time 4/4
+
+figure twister
+dancer twister humanoid on twister
+
+// Where everything comes back to: fists up, elbows bent, hips and shoulders square.
+pose loose {
+  arms  { fwd.25@bent }
+  hips  { center }
+  twist { center }
+}
+
+// A left hook, 2 beats: the elbow out, the fist round to in front of the face at the end of
+// the first beat with hips and shoulders whipped to the right, then back.
+// (across(14) and 38 up: with the left shoulder brought forward by the whip, that is in front of the nose.)
+move hookL {
+  leftArm { fwd.side(60).25@bent:1 fwd.across(14).38@bent@sharp:1/2!hook loose:1/2 }
+  hips    { loose:1                right@sharp:1/2                       loose:1/2 }
+  twist   { loose:1                right@sharp:1/2                       loose:1/2 }
+}
+
+// A right uppercut, 2 beats: the fist low, up in front of the chin at the end of the first
+// beat with hips and shoulders whipped to the left, then back.
+move upperR {
+  rightArm { fwd.low@bent:1 chin@sharp:1/2!upper loose:1/2 }
+  hips     { loose:1        left@sharp:1/2       loose:1/2 }
+  twist    { loose:1        left@sharp:1/2       loose:1/2 }
+}
+
+section Dance {
+  twister {
+    steps { jump.apart:4 | then:4 | then:4 | then:4 | }
+    // bar 4, the flurry: hookL is the LATER row, so in the beat the two share its whip has the
+    // hips and the chest (upperR only says `loose` there); upperR's own whip is on the beat hookL ends.
+    body  { loose:4 | then:3 then:1 | hookL:2 upperR:2 | { skip:1 upperR:2 skip:1 } & { hookL:2 skip:2 } | }
+    // the twist: the hips swing, the shoulders turn back by as much and stay square
+    hips  { left right left right | % | }
+    twist { right left right left | % | }
+  }
+}
+
+form { Dance }
+score { dancer twister }

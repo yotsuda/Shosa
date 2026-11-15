@@ -1,0 +1,18 @@
+title "Lookout"
+tempo 60
+time 4/4
+
+figure sentry
+dancer sentry humanoid on sentry
+
+section Watch {
+  sentry {
+    // bar 1: 20 left, 70 left. bar 2: 15 up, 30 right and 20 down. bar 3: with the arm. bar 4: front.
+    head     { fwd.left(20):2 fwd.left(70):2 | fwd.15:2 fwd.right(30).-20:2 | fwd.right(30):2 fwd.right(60).20:2 | fwd:4 | }
+    // hanging for two bars (it rises in the last two beats of bar 2), pointing in bar 3, down again on bar 4.
+    rightArm { down:4                         | then:2 then:2                 | fwd.side(30):2  fwd.side(60).20:2  | down:4 | }
+  }
+}
+
+form { Watch }
+score { dancer sentry }

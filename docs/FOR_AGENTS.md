@@ -78,11 +78,13 @@ Movement is written in `anim/*.shosa` and compiled; never edit the `.glb` files.
    Forward and left are the dancer's own at the start. Check "comes back to where it began" here.
 4. **`shosa sheet FILE -o X.png`** and look. How to read the image, and what it cannot
    show at its default spacing, is under "Checking your work" in the grammar.
-   Under each pose the figure is drawn from above (hips grey, shoulders blue and red, the
-   nose): which way it faces and which shoulder is ahead in a `twist` are read there.
+   Under each pose the figure is drawn from above (hips grey with a dot at each end, shoulders
+   blue and red, the nose): which way it faces and which shoulder or hip is ahead in a
+   `twist` or under `hips` are read there — the direction, not the degrees.
    What the image cannot settle (by how many centimetres, how high a fist
    arrives, whether the head moved) is in **`shosa clip FILE -o X.json`**: every joint's
-   x y z at every frame (the layout is in the same place of the grammar).
+   x y z at every frame (the layout is in the same place of the grammar; one file, an
+   array of the scores when there are several, `--score NAME` for one).
 5. **Export** (below). To change the movement later, change the words and run 3 to 5
    again; never touch the output.
 

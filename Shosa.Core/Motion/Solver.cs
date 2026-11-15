@@ -64,6 +64,7 @@ public static class Solver
             var clipFigure = new ClipFigure { Id = dancer.Id, Name = dancer.Name };
             var flagged = new HashSet<(Seg, string)>();
             Vec3[]? previous = null;
+            double previousFacing = 0;
             var body = bodies[dancer.Id] = [];
 
             // A hand sent to a place on another dancer that is farther away than the arm is long.
@@ -156,13 +157,14 @@ public static class Solver
                     Speed(Rig.RAnkle, SegAt(dancer, Channels.RightLeg, t) is null ? Channels.Support : Channels.RightLeg, MaxFootSpeed, "foot");
                 }
                 previous = pose;
+                previousFacing = solver.FacingAt(t);
 
                 void Speed(int joint, string channel, double limit, string what)
                 {
                     // A hand is judged against the body it hangs on: an arm held out through a turn or
                     // a jump is not a fast arm. (The feet, which make the turn, are judged against the floor.)
                     double speed = what == "hand"
-                        ? (InBody(pose, joint) - InBody(previous!, joint)).Length * fps
+                        ? (InBody(pose, joint, solver.FacingAt(t)) - InBody(previous!, joint, previousFacing)).Length * fps
                         : (pose[joint] - previous![joint]).Length * fps;
                     if (speed > limit)
                         Flag(channel, t, "SH2003", DiagnosticSeverity.Warning,
@@ -273,14 +275,15 @@ public static class Solver
         return (w + u * s - v * r).Length;
     }
 
-    /// <summary>A joint as seen from the pelvis: sideways along the hips, up, and forward.</summary>
-    private static Vec3 InBody(Vec3[] pose, int joint)
+    /// <summary>
+    /// A joint as seen from the pelvis by a dancer facing <paramref name="yaw"/>: to its left, up, and forward.
+    /// The facing is the feet's, not the line of the hips: a direction word of an arm is measured from the
+    /// feet, so a hand held out stays where it is in the room while the hips whip round under it (`hips`).
+    /// </summary>
+    private static Vec3 InBody(Vec3[] pose, int joint, double yaw)
     {
-        var across = pose[Rig.LHip] - pose[Rig.RHip];
-        var left = new Vec3(across.X, 0, across.Z).Normalized();
-        var fwd = left.Cross(Vec3.Up);
         var d = pose[joint] - pose[Rig.Pelvis];
-        return new Vec3(d.Dot(left), d.Y, d.Dot(fwd));
+        return new Vec3(d.Dot(Vec3.Left(yaw)), d.Y, d.Dot(Vec3.Forward(yaw)));
     }
 
     private static Seg? SegAt(DancerIr dancer, string channel, double t)

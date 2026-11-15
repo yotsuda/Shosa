@@ -1,0 +1,40 @@
+title "Fighter"
+tempo 120
+time 4/4
+
+figure hero
+dancer hero humanoid on hero
+
+// A boxer's stance: left foot ahead, the hips 15 degrees to the right of the feet,
+// the shoulders 15 more (30 from the feet), fists up, back rounded, face on the target.
+pose guard {
+  steps { left.fwd.low@small }
+  arms  { fwd.25@bent }
+  torso { fwd.80@round }
+  hips  { right.15 }
+  twist { right.15 }
+  head  { fwd.25 }
+}
+
+section Idle {
+  hero {
+    body { guard:4 }
+  }
+}
+
+// 0.5 s (beat 1): wound up. 0.75 s (beat 1.5): the fist is out. It stays 0.4 s; 1.9 s: in the stance again.
+section Punch {
+  hero {
+    body     { guard:4 }
+    rightArm { guard:1 fwd.low@bent:1/2 fwd.across(5).25:0.4s@sharp!hit then:1.5 guard:1 }
+    hips     { guard:1 right.30:1/2     left.45:0.4s@sharp              then:1.5 guard:1 }
+    twist    { guard:1 right.20:1/2     left.45:0.4s@sharp              then:1.5 guard:1 }
+    head     { guard:1 fwd.right(10).25:1/2 guard }
+  }
+}
+
+form Idle  { Idle }
+form Punch { Punch }
+
+score Idle  { dancer hero  form Idle  loop }
+score Punch { dancer hero  form Punch }

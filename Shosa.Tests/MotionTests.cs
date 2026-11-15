@@ -526,6 +526,22 @@ public class MotionTests
         // The hips are one too.
         const string Hips = "tempo 100\nmove a { hips { left center } }\nmove b { hips { right center } }\n";
         Assert.Equal("SH2009", Assert.Single(Compile(Samples.Solo("    body { { a:2 } & { b:2 } then }", Hips)).Diagnostics).Code);
+        // Found in the 16th writing trial: a later row that begins by standing in a pose takes the whip of the
+        // row before it just the same. What is lost is what counts; one warning names the hips and the chest.
+        const string Square = """
+            tempo 100
+            pose loose { arms { fwd.25@bent }  hips { center }  twist { center } }
+            move hook { hips { loose:1 right@sharp:1/2 loose:1/2 }  twist { loose:1 right@sharp:1/2 loose:1/2 } }
+            move upper { hips { loose:1 left@sharp:1/2 loose:1/2 }  twist { loose:1 left@sharp:1/2 loose:1/2 } }
+
+            """;
+        string flurry = Samples.Solo("    body { loose:1 { hook:2 skip:1 } & { skip:1 upper:2 } then }", Square);
+        var hidden = Assert.Single(Compile(flurry).Diagnostics);
+        Assert.Equal("SH2009", hidden.Code);
+        Assert.Contains("turn the hips and twist the chest", hidden.Message);
+        Assert.Equal("hook:2", flurry.Substring(hidden.Span.Start, hidden.Span.Length));
+        // The other way round the upper's whip comes after the hook is home: nothing done is lost.
+        Assert.Empty(Compile(Samples.Solo("    body { loose:1 { skip:1 upper:2 } & { hook:2 skip:1 } then }", Square)).Diagnostics);
         // Written as rows of the section, a narrower track over a wider one is the way to take a part over.
         Assert.Empty(Compile(Samples.Solo("    body { guard:1 jab:1 then }\n    twist { skip:1 left:1 then }", Definitions)).Diagnostics);
     }
@@ -708,6 +724,24 @@ public class MotionTests
         // A beat that becomes another note keeps the music's speed: a quaver at 240 is a crotchet at 120, there and back.
         var quavers = Compile(Sections("solo { arms { side:4 | } }", "time 6/8\n solo { arms { up:6 | } }", "form { A B A }")).Clip;
         Assert.Equal(new[] { 120.0, 240.0, 120.0 }, quavers.Tempos.Select(t => t.Bpm).ToArray());
+    }
+
+    [Fact]
+    public void A_hand_held_out_is_not_fast_because_the_hips_whip_round_under_it()
+    {
+        // The arm's `fwd` is measured from the feet: the hand stays where it is in the room (under 6 m/s, the
+        // shoulder's own way) while hips and chest go 180 degrees in 0.15 s. Judged against the line of the hips
+        // it was a hand at 10 m/s, and a warning for an arm that does nothing.
+        string Whip(string arms) => $"tempo 120\ntime 4/4\n{Samples.SoloCast}"
+            + "section S { solo { steps { jump.apart:8 } arms { " + arms + " }\n"
+            + "  hips { center:2 left.45:2 right.45@sharp:2 center:2 } twist { center:2 left.45:2 right.45@sharp:2 center:2 } } }\n"
+            + "form { S }\nscore { dancer solo }\n";
+        Assert.Empty(ShosaCompilation.Compile(Whip("down:2 down:2 fwd:2 down:2")).Diagnostics);
+
+        // An arm that goes with the chest (`@body`) is carried round by it, and that is still seen.
+        var carried = ShosaCompilation.Compile(Whip("side@body:2 side@body:2 side@body:2 side@body:2")).Diagnostics;
+        Assert.All(carried, d => Assert.Equal("SH2003", d.Code));
+        Assert.NotEmpty(carried);
     }
 
     [Fact]

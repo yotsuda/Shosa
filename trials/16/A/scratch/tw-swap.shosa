@@ -1,0 +1,42 @@
+title "Twister"
+tempo 120
+time 4/4
+
+figure twister
+dancer twister humanoid on twister
+
+// Where everything comes back to: fists up, elbows bent, hips and shoulders square.
+pose loose {
+  arms  { fwd.25@bent }
+  hips  { center }
+  twist { center }
+}
+
+// A left hook, 2 beats: the elbow out, the fist round to in front of the face at the end of
+// the first beat with hips and shoulders whipped to the right, then back.
+move hookL {
+  leftArm { fwd.side(60).25@bent:1 fwd.across(25).25@bent@sharp:1/2!hook loose:1/2 }
+  hips    { loose:1                right@sharp:1/2                       loose:1/2 }
+  twist   { loose:1                right@sharp:1/2                       loose:1/2 }
+}
+
+// A right uppercut, 2 beats: the fist low, up in front of the chin at the end of the first
+// beat with hips and shoulders whipped to the left, then back.
+move upperR {
+  rightArm { fwd.low@bent:1 chin@sharp:1/2!upper loose:1/2 }
+  hips     { loose:1        left@sharp:1/2       loose:1/2 }
+  twist    { loose:1        left@sharp:1/2       loose:1/2 }
+}
+
+section Dance {
+  twister {
+    steps { jump.apart:4 | then:4 | then:4 | then:4 | }
+    body  { loose:4 | then:4 | hookL:2 upperR:2 | { skip:1 upperR:2 skip:1 } & { hookL:2 skip:2 } | }
+    // the twist: the hips swing, the shoulders turn back by as much and stay square
+    hips  { left right left right | % | }
+    twist { right left right left | % | }
+  }
+}
+
+form { Dance }
+score { dancer twister }

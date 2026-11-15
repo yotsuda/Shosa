@@ -10,7 +10,7 @@ namespace Shosa.Core.Output;
 /// </summary>
 public static class ContactSheet
 {
-    private const uint Ink = 0x30343A, LeftColor = 0x2F6FDF, RightColor = 0xD9482B, Grid = 0xD8DCE2, Faint = 0x9AA1AB, MarkColor = 0x1E8E5A, SectionColor = 0x7A4FBF;
+    private const uint Ink = 0x30343A, LeftColor = 0x2F6FDF, RightColor = 0xD9482B, Grid = 0xD8DCE2, Faint = 0x9AA1AB, HipColor = 0x6B7280,MarkColor = 0x1E8E5A, SectionColor = 0x7A4FBF;
     private const int CellWidth = 190, CellHeight = 264, Columns = 8, Margin = 14;
     // The text: two pixels a dot, so a character is 12 wide and a line 16 high. Under the floor
     // line of a cell there is each figure from above, and room for two lines of names.
@@ -240,6 +240,10 @@ public static class ContactSheet
             var (leftShoulder, rightShoulder) = (Joint(Rig.LShoulder), Joint(Rig.RShoulder));
             canvas.Line(middle.X, middle.Y, leftShoulder.X, leftShoulder.Y, 3, LeftColor);
             canvas.Line(middle.X, middle.Y, rightShoulder.X, rightShoulder.Y, 3, RightColor);
+            // The hips are narrower than the shoulders and half under the head: a dot at each end, over the
+            // shoulder line, says which way they are turned when the shoulders are square over them.
+            canvas.Disc(leftHip.X, leftHip.Y, 2.6, HipColor);
+            canvas.Disc(rightHip.X, rightHip.Y, 2.6, HipColor);
 
             var head = Joint(Rig.Head);
             var nose = Joint(Rig.Nose);

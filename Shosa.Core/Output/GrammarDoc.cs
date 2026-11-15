@@ -117,7 +117,8 @@ public static class GrammarDoc
             | `score { dancer NAME … }` | One file written: who dances, and which form. Required: at least one. `score NAME { … }` is one more (see "Scores"). |
 
             Names are letters, digits and `_`. The words in the left column are reserved, and a pose
-            or a move cannot take the name of a word of the language (a mark's name, after its `!`,
+            or a move cannot take the name of a word of the language — any word of any table here,
+            so not `half`, `low`, `side`, `center`, `together` either (SH1005 says so) — (a mark's name, after its `!`,
             can be any word at all). Definitions can be used before
             or after the line that defines them. A figure and its dancer may have the same name.
 
@@ -525,7 +526,10 @@ public static class GrammarDoc
             - **Degrees in brackets after the second direction say how far round from the first
               toward it**, 0 to 90, where the plain diagonal is 45: `head { fwd.left(30) }` looks 30°
               to the left of straight ahead, `rightArm { fwd.across(18) }` reaches a little across
-              (the fist ends in front of the middle of the body: on the face of someone who stands straight ahead), `fwd.side(70)` is
+              (with square shoulders the fist ends in front of the middle of the body: on the face of someone who stands
+              straight ahead. A shoulder that has come round with `hips` or `twist` is already nearer the middle, so
+              the number gets smaller — still about 18 with the shoulders 45° round, about 5 with them side-on, 90°;
+              read the fist in `shosa clip`, and again after changing the turn), `fwd.side(70)` is
               nearly out to the side. `fwd.left(0)` is `fwd`, `fwd.left(90)` is `left`. A level goes after
               the brackets as after any direction: `fwd.left(30).10` (30° left, 10° up),
               `torso { fwd.left(20).70 }`, `fwd.across(15).high`. With `@mirror` the sides swap as
@@ -555,8 +559,8 @@ public static class GrammarDoc
               `fwd.high` leans 45° forward, `fwd` is horizontal); for the head, where the face looks
               (`fwd` straight ahead, `fwd.left` turned, `fwd.-25` a nod down).
             - Arms, legs and torso are measured against the room: `down` is toward the floor even
-              when the torso leans. The head is measured against the chest, so it follows a bow
-              (but not a twist: see `twist` below).
+              when the torso leans. The head's up and down is measured against the chest, so it follows a bow;
+              its left and right is measured from where the feet point, so it does not follow a twist or the hips (see `twist` below).
               So in a forward fold `arms { down }` hangs toward the floor, and in a bow unwritten
               arms hang in front of the thighs.
             - **An arm at `down` hangs as an arm nobody wrote does**: the elbow a little bent, the
@@ -684,8 +688,15 @@ public static class GrammarDoc
             - Two rows of an `&` that both twist at the same time: the later row has the chest
               (as with any part), and the earlier one is warned that its twist is not seen
               (SH2009) — two punches look apart, but they share the one chest. Give the twist to
-              one of them, or write them one after the other. Coming back to a pose's twist
-              (`guard` above) while the other row twists is not that: it loses nothing.
+              one of them, or write them one after the other. What counts is what is lost: an earlier
+              row that only stands in a pose's twist (`guard` above) loses nothing and is not warned;
+              an earlier row's whip is lost, and warned, whatever the later row has there — a pose's
+              name too (a move that begins `loose:1 left@sharp …` holds the chest for that first beat).
+              A `skip` there leaves the chest to the other row. The same for the hips; one warning
+              names both when a move loses both.
+            - Under a lean the turn is about the leaning spine, so measured on the floor it is a
+              little less than its number (10° of lean: 38° for 40), and the head, which sits on
+              the spine, shifts a few centimetres sideways though the face keeps its direction.
             - On the contact sheet a twist is read under each pose, where the figure is drawn from
               above: the shoulder line (left half blue, right half red) lies across the grey line
               of the hips when twisted, and hides it when square (15° shows). In the pose itself it
@@ -739,6 +750,8 @@ public static class GrammarDoc
 
             - On the contact sheet, from above: the grey line of the hips turns away from where
               the feet point, and the shoulder line with it (crossing it only if there is a twist too).
+              The hips are narrower than the shoulders: the dark dot at each end of their line is what
+              shows them when the shoulders are square over them (a dot above the shoulder line on one side, below it on the other).
               `shosa check` still says which way the dancer faces by its feet: hips turned at the
               end are not "turned 30° to its left".
 
@@ -800,7 +813,9 @@ public static class GrammarDoc
             - `together` takes a level like a step: `together.high` closes on the toes. It moves the
               foot that does not carry the weight, so after a step or a `shift.left`. Where the weight
               is on both feet (after `jump.apart`, after `shift.center`) neither is the free one, and
-              BOTH close, each half the way, to under the weight: `jump.apart:1 then:1 together:2`
+              BOTH close, each half the way, to under the weight (to STAND with the feet apart and the weight
+              between them from the start, `jump.apart` is the first word of `steps`: a first word is already made,
+              so no jump is seen; `left.side` instead leaves the weight over the left foot): `jump.apart:1 then:1 together:2`
               slides the feet back in (`jump.together` jumps them in).
             - `both.low`, `both.mid`, `both.high` — no foot moves; the height changes (a knee bend,
               a rise onto the toes). The weight stays where it was too. Here `@small` / `@large` scale the bend:
@@ -903,6 +918,9 @@ public static class GrammarDoc
             - Two bodies face to face, 1 m apart:
               `dancer ann humanoid on a at -0.5 0 facing stageLeft` and
               `dancer ben humanoid on b at 0.5 0 facing stageRight`.
+              `at` is where the feet stand together: a stance with a foot forward (`left.fwd.low@small`)
+              brings each of them nearer, and at 1 m the front legs of two such fighters meet (SH2007).
+              Start those 1.1 m apart or more.
 
             ## Dancing to a song
 
@@ -977,7 +995,9 @@ public static class GrammarDoc
 
             Do not try to express these; mention them as a limitation instead.
 
-            - Hands and fingers, the face, the shoulders on their own (a shrug), turning the hips without the feet.
+            - Hands and fingers, the face, the shoulders on their own (a shrug).
+            - Where the shoulders are from the feet as one number (it is `hips` plus `twist`), "as far as it goes"
+              (write the limit, 45), a place on the other dancer's face (`b.chin`), the way an elbow travels in a hook.
             - Holding an object. Contact other than a hand reaching a place.
             - Walking along a curve. Running (both feet off the floor between steps); hopping on one leg.
             - Sitting, kneeling, lying down, or anything else where a part other than the feet
@@ -995,7 +1015,7 @@ public static class GrammarDoc
             shosa sheet FILE -o X.png --score Punch --step 0.5 --from 0 --to 4   one score, closer poses (all three in beats; --step 0.1 for a punch)
             shosa sheet FILE -o X.png --view side   seen from stage left: a figure facing front is in profile (one facing stageLeft or stageRight is in profile WITHOUT it)
             shosa sheet FILE -o X.png --score solo  with `score solo { dancer bea }`, bea alone and larger (with `--score`, the file is X.png itself)
-            shosa clip FILE -o X.json   the solved movement as numbers: every joint at every frame (a file per score, as `sheet`)
+            shosa clip FILE -o X.json   the solved movement as numbers: every joint at every frame (ONE file: with several scores an array of them, each with its `name`; `--score NAME` for that one alone)
             ```
 
             What `check` prints for a file with a looping `score Idle` and a `score Patrol`:
@@ -1031,7 +1051,8 @@ public static class GrammarDoc
             high a fist is — read the numbers. `shosa clip` writes `fps` (30), `joints` (their names
             in order: `pelvis`, `chest`, `head`, `nose`, `leftShoulder`, `rightHand`, `leftAnkle` …)
             and, for each of `figures`, `frames`: one row for every frame, x y z for every joint in
-            that order, in metres. The frame of a moment is its seconds × `fps`. y is up, z is
+            that order, in metres. The frame of a moment is its seconds × `fps` (0.75 s is frame 22.5: a `@sharp` word
+            is still on its way at frame 22 and there at 23, so take the later one). y is up, z is
             toward the audience, x toward stage left — for a dancer facing front, z is forward and
             +x its own left. (Standing upright, this figure's head has its middle at 1.72 m and its shoulders
             are at 1.45 m. In the guard of "The twist" the head is at 1.67 m: a punch at `fwd.25`
@@ -1058,7 +1079,8 @@ public static class GrammarDoc
             **Under each pose the figure is drawn again from above**, audience at the bottom (so a figure facing front
             has its nose down and its left, blue, on the right): the grey line is the hips, the blue and red line over it the
             shoulders, the ring the head with its nose. Read there which way the figure faces, how far the chest is
-            twisted on the hips (the two lines cross), where the face looks, and a lean (the shoulders ahead of the hips).
+            twisted on the hips (the two lines cross; in a lean they lie one ahead of the other, so compare their slopes), where the face looks, and a lean (the shoulders ahead of the hips).
+            A dark dot ends the hips' line on each side. Which way, and which shoulder or hip is ahead, reads at any angle; the degrees read to about ±10, and a face's up and down not at all (`--view side`).
             With more than one dancer each has its own place in that row, left to right as in the pose, with its name under it (and at its ring on the floor);
             how far apart they stand is on the floor plan, not there.
             **Left limbs are blue, right limbs are red**; the torso and shoulder line are dark. The camera stands

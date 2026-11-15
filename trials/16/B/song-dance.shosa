@@ -1,0 +1,32 @@
+title "Song dance"
+music "song.lys"
+
+figure solo
+dancer solo humanoid on solo
+
+// Verse: a step on the spot on every beat. The pelvis swings (right side forward on
+// count 2, left side forward on count 4) under a chest that the twist holds square.
+section Verse {
+  solo {
+    steps { left.place right.place left.place right.place | % | % | % | }
+    hips  { center left center right | % | % | % | }
+    twist { center right center left | % | % | % | }
+    head  { fwd:4 | then:4 | then:4 | then:4 | }
+    arms  { down:4 | then:4 | then:4 | then:4 | }
+  }
+}
+
+// Chorus: the feet apart and still. The trunk as one block (hips, no twist) left on
+// count 1 of bars 1 and 3, right on count 1 of bars 2 and 4, held to count 3.
+// On count 3 the arms are overhead and the face looks 30 degrees to the other side.
+section Chorus {
+  solo {
+    steps { left.side shift.center then:2 | then:4 | then:4 | then:4 | }
+    hips  { left:2 then:2 | right:2 then:2 | left:2 then:2 | right:2 then:1 center:1 | }
+    twist { center:4 | then:4 | then:4 | then:4 | }
+    head  { fwd:2 fwd.right(30):2 | fwd:2 fwd.left(30):2 | fwd:2 fwd.right(30):2 | fwd:2 fwd.left(30):1 fwd:1 | }
+    arms  { down side up side | % | % | down side up:1/2 side:1/2 down | }
+  }
+}
+
+score { dancer solo }

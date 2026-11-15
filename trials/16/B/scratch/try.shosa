@@ -1,0 +1,41 @@
+title "Spar"
+tempo 120
+time 4/4
+
+figure a
+figure b
+dancer a humanoid on a at -0.5 0 facing stageLeft
+dancer b humanoid on b at 0.5 0 facing stageRight
+
+// The stance. Feet side by side, knees bent: at 1 m a staggered stance runs the front legs into each other (SH2007).
+pose guard {
+  steps { both.low }
+  arms  { fwd.25@bent }
+  torso { fwd.76@round }
+  hips  { center }
+  twist { center }
+  head  { fwd.29 }
+}
+
+section Main {
+  a {
+    body     { guard:4 | then:4 | }
+    // bar 1: the right straight, from the pelvis: hips 20 left, the shoulders 20 more on top (40 from the feet)
+    rightArm { guard:1 fwd.across(10).20@sharp!hit:2 guard:1 | then:4 | }
+    // bar 2: rolls with b's left straight: one block 30 to its right (the right shoulder back), the face 30 to its right
+    hips     { guard:1 left.20@sharp:2 guard:1 | guard:1 right.30@sharp:2 guard:1 | }
+    twist    { guard:1 left.20@sharp:2 guard:1 | then:4 | }
+    head     { guard:4 | guard:1 fwd.right(30).29@sharp:2 guard:1 | }
+  }
+  b {
+    body     { guard@mirror:4 | then:4 | }
+    leftArm  { guard@mirror:4 | guard@mirror:1 fwd.across(10).20@sharp!hit:2 guard@mirror:1 | }
+    // bar 1: rolls with a's right straight: one block 30 to its left (the left shoulder back), the face 30 to its left
+    hips     { guard@mirror:1 left.30@sharp:2 guard@mirror:1 | guard@mirror:1 right.20@sharp:2 guard@mirror:1 | }
+    twist    { guard@mirror:4 | guard@mirror:1 right.20@sharp:2 guard@mirror:1 | }
+    head     { guard@mirror:1 fwd.left(30).29@sharp:2 guard@mirror:1 | then:4 | }
+  }
+}
+
+form { Main }
+score { dancer a  dancer b }

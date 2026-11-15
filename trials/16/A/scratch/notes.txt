@@ -1,0 +1,202 @@
+TRIAL 16 A - notes
+
+== 1. fighter.shosa ==
+PREDICTION (before first check):
+  fighter.shosa: no problems
+    Idle: 4 beats, 2 s, 1 dancer
+      Idle   0-4   1 bar   2 s   at 120   4/4
+      hero loops on the spot
+    Punch: 4 beats, 2 s, 1 dancer
+      Punch   0-4   1 bar   2 s   at 120   4/4
+      hero ends where it began
+    Punch !hit at beat 1.5 = 0.75 s
+  (maybe a SH2003 "too fast" on the @sharp hips/twist: 50 deg + 45 more in 0.15 s. Not sure.)
+Predict questions:
+  - 0.75 s: the RIGHT side of the pelvis is nearer the target (hips left.20 = right hip forward).
+  - right shoulder ahead of the left: shoulders 45 deg left of the feet. Doc: "a hand comes 19 cm further
+    forward between right and left (30 each way)" -> half shoulder width ~0.19, width ~0.38 m.
+    0.38 * sin45 = ~27 cm.
+  - nose between 0.5 and 0.75 s: the face does not turn (head does not turn with hips or twist). Its place:
+    I guess it hardly moves (< 3 cm), since the torso's lean is measured against the room. Unsure: the
+    head sits on a chest that is turned about the pelvis.
+  - fist: fwd.across(18) is said to end in front of the middle of the body, but that sentence is about
+    square shoulders; with the shoulders 45 left the right shoulder is nearer the middle, so I expect the
+    fist to overshoot to the left by ~5 cm and to need a smaller number.
+
+ACTUAL (fighter.shosa): check runs until clean: 1. No diagnostics.
+  Printed:
+    fighter.shosa: no problems
+      Idle: 4 beats, 2 s, 1 dancer
+        Idle   0-4   1 bar   2 s   at 120   4/4
+        hero loops on the spot
+      Punch: 4 beats, 2 s, 1 dancer
+        Punch   0-4   1 bar   2 s   at 120   4/4
+        hero ends where it began
+      Punch !hit at beat 1.5 = 0.75 s
+  -> the predicted lines were right to the character; the SH2003 I half expected did not come.
+READ FROM THE IMAGE (out\fighter-Idle.png, fighter-punch-close.png, -side.png), before clip:
+  - Idle, from above: grey hip line tilted a little, blue (left) end nearer the bottom = left hip forward = hips to the
+    right; shoulder line tilted about twice as much the same way; the two lines visibly apart. Nose straight down. OK.
+    I can say "about 15" and "about 30" only because I know them; by eye 10-20 and 25-35.
+  - Punch 0.5 s (beat 1): both lines steeper, same way. 0.75 s (beat 1.5): both lines tilted the OTHER way, red end
+    lower = right hip / right shoulder nearer the target. Shoulder steeper than hips. !hit in green over beat 1.5. 
+  - The nose line points straight down in every pose -> face on target. Whether the head's PLACE moves 0.5->0.75 s:
+    not readable (the ring seems maybe 5 px further right at 1.5; I would not have said so without looking for it).
+  - cm of right shoulder ahead of left: not readable from the sheet (no scale under the top view). Side view shows the
+    two shoulders apart but no number.
+  - Is the fist in front of the middle? NOT readable: the top view does not draw the arms, the front view is from
+    "a little to stage left", the side view has no left-right. Needed clip.
+CLIP (scratch\fighter.json; note: `clip -o X.json` wrote ONE file holding an array of both scores, not X-Idle.json / X-Punch.json
+  as the doc says "a file per score, as sheet"):
+  - 0.5 s: hips -30.0 (right), shoulder line -48.0. 0.767 s (frame 23): hips +20.0 left, shoulder line +42.6 left.
+    Idle: hips -15.0, shoulder line -28.3. So hips are exact; the shoulder line measured on the floor plane is 2 deg short of
+    hips+twist (lean and rounded back, I suppose). I kept the nominal numbers.
+  - 0.75 s falls between frames 22 and 23 (22.5); at frame 22 the snap is not finished (18.3 / 39.5).
+  - right shoulder ahead of left at the hit: 0.25 m. Predicted 27 cm -> right (roughly).
+  - right side of pelvis nearer the target: right hip 6.8 cm ahead. Prediction right.
+  - nose: direction unchanged (nose - head = (0,0,0.12) both times). Place: x -0.005 -> +0.052: it moves 5.7 cm to the
+    figure's left, y and z unchanged. Prediction "hardly moves (<3 cm)" WRONG: the head swings sideways with the turn.
+  - fist at hit: x=0.059 y=1.474 z=0.877; pelvis x=0.030, head x=0.051, right shoulder x=-0.109. So it is 3 cm left of the
+    pelvis' middle, 1 cm from the head's middle: in front of the middle. My predicted overshoot of ~5 cm: 3 cm, accepted,
+    file not changed.
+
+
+== 2. lookout.shosa ==
+PREDICTION (before first check):
+  lookout.shosa: no problems
+    score: 16 beats, 16 s, 1 dancer
+      Watch   0-16   4 bars   16 s   at 60   4/4
+      sentry ends where it began
+Predict questions:
+  - bar 1 beat 3 (70 left): the nose is nearer "straight to the left" (20 from it) than "straight ahead" (70 from it).
+  - bar 3 beat 1: arm about 0.6 m from the shoulder, shoulder ~0.19 m right of the midline, 30 deg round:
+    0.19 + 0.6*sin30 = ~0.49 m right of the midline (and ~0.52 m ahead of the shoulder).
+
+
+ACTUAL (lookout.shosa): check runs until clean: 1. No diagnostics. Printed exactly the 4 predicted lines:
+    lookout.shosa: no problems
+      score: 16 beats, 16 s, 1 dancer
+        Watch   0-16   4 bars   16 s   at 60   4/4
+        sentry ends where it began
+READ FROM THE IMAGE (out\lookout.png --step 2, lookout-side.png), before clip:
+  - top view beat 0: nose a little to the picture's right of straight down (= figure's left), about 20.
+    beat 2: nose almost level to the picture's right, a little down: clearly nearer "straight left" than "ahead". -> answer from
+    the image: nearer straight to the left. Shoulder and hip lines level in every pose (never move).
+  - beat 4: nose straight down in the top view; the 15 up is only in the side view (nose line slightly raised). beat 6: nose to
+    the picture's left ~30, side view: nose lowered.
+  - beat 8: arm straight, level, red, to the picture's left; nose ~30 to the figure's right. beat 10: arm higher and further
+    out; nose further right. beat 12-16: arm down, nose down (front).
+  - how many cm the hand is right of the midline at beat 8: NOT readable. The front view shows the arm almost at full length
+    sideways (the camera is oblique), the side view shows only forward reach, and the top view does not draw arms.
+    From the two views I would have guessed 40-55 cm. Needed clip.
+CLIP: head->nose: 20.0 L / 70.0 L / 0 and 15.0 up / 30.0 R and 20.0 down / 30.0 R / 60.0 R and 20.0 up / 0. All exact.
+  rightShoulder->rightHand at beat 8: 30.0 right, 0.0 up, length 0.599; hand at x=-0.490: 49 cm right of the midline.
+  beat 10: 60.0 right, 20.0 up. Arm hangs until beat 6, rises 6->8 (then:2 then:2). Predictions: both right (49 cm predicted).
+
+== 3. twister.shosa ==
+PREDICTION (before first check):
+  twister.shosa(36,?): warning SH2009: ... (the hookL row of bar 4: its twist is not seen because the later row twists too)
+  twister.shosa(36,?): warning SH2009: ... (the same for the hips)
+    -- not sure it fires: in the overlapping beat hookL says right@sharp then `loose`, upperR says only `loose` (a pose's
+       name, which the doc says "loses nothing"); upperR's own `left` is on the beat hookL ends. I guess it fires.
+  twister.shosa: (2 warnings)
+    score: 16 beats, 8 s, 1 dancer
+      Dance   0-16   4 bars   8 s   at 120   4/4
+      twister starts with `jump.apart` already made: ...
+      twister ends where it began
+    score !hook at beat 9 = 4.5 s
+    score !upper at beat 11 = 5.5 s
+    score !hook at beat 13 = 6.5 s
+    score !upper at beat 14 = 7 s
+Predict questions:
+  - bars 1-2 beat 1 (hips left): the RIGHT side of the pelvis is forward.
+  - the left shoulder: neither forward nor back (twist right.30 undoes hips left.30).
+
+
+ACTUAL (twister.shosa): check run 1: no diagnostics at all. Printed:
+    twister.shosa: no problems
+      score: 16 beats, 8 s, 1 dancer
+        Dance   0-16   4 bars   8 s   at 120   4/4
+        twister starts with `jump.apart:4` already made: the first jump is not seen (right for a stance, or a count the foot only stands on; to see it, a `then` before it)
+        twister ends where it began
+      score !hook at beat 9 = 4.5 s
+      score !upper at beat 11 = 5.5 s
+      score !hook at beat 13 = 6.5 s
+      score !upper at beat 14 = 7 s
+  -> score/section/mark lines as predicted; the "already made" line predicted in substance. The SH2009 I predicted did NOT come.
+READ FROM THE IMAGE (out\twister.png, twister-b34.png, -side.png), before clip:
+  - bars 1-2, from above: the shoulder line stays level; behind it short grey stubs of the hip line stick out at a slant, and
+    the slant flips every beat. Beat 0: the stub on the red (right) side is nearer the bottom = RIGHT side of the pelvis forward.
+    Left shoulder: neither (line level). Nose straight down. Both predictions right from the image alone. The stubs are
+    short (the hip line is half as long as the shoulder line and the head ring sits on its middle): I could tell the
+    side, not the angle.
+  - bar 3: beat 9 (!hook) both lines steep, blue end to the bottom = turned right; beat 11 (!upper) red end to the bottom = left.
+  - bar 4: beat 13 (!hook): the top view was SQUARE. The hook had lost its whip in the flurry, and the compiler had said
+    nothing. beat 14 (!upper) turned left as it should.
+  - the left arm drifted out to the side through the whole of bar 2 (my `then:4` before hookL is the way to hookL's first word).
+CLIP: bars 1-2 hips +30/-30/+30/-30 exactly, shoulder line 0.0 throughout, nose 0.0. beat 9: hips -30, shoulders -60.
+  beat 11: +30/+60. beat 13: 0/0 (whip lost). beat 14: +30/+60.
+  hook fist at beat 9: x=-0.070 y=1.602 (head middle 1.69): 7 cm past the middle, 9 cm under the nose.
+  uppercut (`chin`): x=-0.060 y=1.570 z=0.140: 6 cm to the right of the middle, at chin height. Accepted.
+BAR 4, what the compiler said and what I did:
+  - With my first text the compiler said NOTHING about bar 4:
+        body { ... | { hookL:2 skip:2 } & { skip:1 upperR:2 skip:1 } | }
+    with both moves' hips/twist rows as  `loose:1  X@sharp:1/2  loose:1/2`  (loose = my pose, hips center, twist center).
+    But the movement was wrong: in the shared beat the later row (upperR) says `loose`, and that took the hips and the chest
+    from hookL's whip (0 deg at beat 13), silently. The doc's sentence "Coming back to a pose's twist (`guard` above) while
+    the other row twists is not that: it loses nothing" made me expect either a warning or both whips; I got neither.
+  - Experiments in scratch (tw-then, tw-center, tw-skip, tw-swap):
+      upperR's hips/twist first word `then:1` or `center:1` instead of `loose:1` ->
+        scratch\tw-then.shosa(34,53): warning SH2009: This row and a later row of the `&` both twist the chest at the same time, and the chest goes with the later one: what is written here is not seen. Write it in one of the rows only, or put the two one after the other.
+        (same text for tw-center.shosa(34,53)). ONE warning, about the chest only, though the hips row is lost in the same way.
+        Understood: yes - the two rows of the & both hold the chest during beat 13-14, the later row has it, so hookL's
+        right@sharp is thrown away. (34,53) is the first row of the group in the body line.
+      upperR's hips/twist first word `skip:1` -> no problems, both whips seen (-30/-60 at 13, 0 at 13.5, +30/+60 at 14).
+      rows swapped, `{ skip:1 upperR:2 skip:1 } & { hookL:2 skip:2 }`, moves unchanged -> no problems, both whips seen.
+  - CHOSEN: the swap. The two whips are in fact one after the other (hook lands on 13 and is home at 13.5; the uppercut
+    snaps in the last 0.15 s before 14, the beat hookL ends), so nothing has to be given up; only the row that whips
+    first must be the later row of the &. This keeps both moves whole (each squares itself in its first beat, which they
+    need when played alone or after the twist dance). `skip:1` in upperR gives the same movement in bar 4 but upperR would
+    then not square the hips when it follows something else.
+  - Also changed: hook target fwd.across(25).25 -> fwd.across(14).38 (fist now x=+0.013 y=1.685, in front of the nose);
+    bar 2 of body `then:4` -> `then:3 then:1` (arms still until the last beat before the hook).
+  check runs: 2 (run 1 clean but wrong movement; run 2 after the corrections, clean, same lines). Final clip: beat 8 0/0, 9 -30/-60,
+  11 +30/+60, 13 -30/-60, 14 +30/+60, 15 and 16 0/0.
+
+== 4. fighter-edit.shosa ==
+PREDICTION (before first check):
+  fighter-edit.shosa: no problems
+    Idle: 4 beats, 2 s, 1 dancer
+      Idle   0-4   1 bar   2 s   at 120   4/4
+      hero loops on the spot
+    Punch: 4.8 beats, 2.4 s, 1 dancer
+      Punch   0-4.8   2 bars   2.4 s   at 120   4/4
+      hero ends where it began
+    Punch !hit at beat 1.5 = 0.75 s
+  (possible SH2003 too fast: hips 75 deg and shoulders 140 deg in 0.15 s. I guess not, since 95 deg raised none.)
+  Expect: at the hit hips +45, shoulder line near +90 (side-on, a little less measured); nose 10 right at 0.5 s, 0 at 0.75 s;
+  everything frozen 0.75 -> 1.15 s; in guard at 1.9 s. The fist will now overshoot the middle (shoulder further round):
+  I expect x about +0.15..0.2 and to have to lower across(18).
+
+
+ACTUAL (fighter-edit.shosa): check run 1 clean, printed exactly the predicted lines (Punch: 4.8 beats, 2.4 s; `Punch   0-4.8   2 bars   2.4 s   at 120   4/4`;
+  !hit at beat 1.5 = 0.75 s). No SH2003. Runs: 3 in all, every one clean (run 2 after across(18)->across(5), run 3 after the comment).
+READ FROM THE IMAGE (out\fighter-edit.png --step 0.2 --from 0.6 --to 4.8), before clip:
+  - from 1.6 to 2.2 the shoulder line stands upright in the top view (side-on, red end to the bottom), the hip line at about 45 behind it;
+    the four poses 1.6-2.2 are identical, 2.4 begins to come back; in guard from about 3.8. -> (a) and (c) readable.
+  - the head ring is clearly pushed to the picture's right (figure's left) while the shoulders are side-on.
+  - (b) 10 deg of the nose at beat 1: I cannot honestly see it; the nose stub is a few pixels long. Needed clip.
+  - the mark is written "!hit 1.5" over the pose 1.6 (first pose at or after it).
+CLIP: hit: hips +45.0, shoulder line +88.5. nose: 0.5 s 11.0 right (guard itself reads 1.0 right), 0.77 s 3.1 LEFT and 4.1 up,
+  i.e. with the shoulders side-on the face is 3 deg off the target although the head row says `guard`.
+  Frozen from 0.767 to 1.167 s (identical numbers), guard again at 1.9 s, score 2.4 s.
+  Fist with across(18): x=0.188 (pelvis middle 0.030, head 0.074): 16 cm past the middle, as predicted. Changed to across(5): x=0.067.
+TOKENS CHANGED against fighter.shosa (section Punch only):
+  rightArm: `fwd.across(18).25:1.5@sharp!hit` -> `fwd.across(5).25:0.4s@sharp!hit`   (length for (c); 18->5 only to keep the fist on the middle after (a))
+            + new word `then:1.5` after it
+  hips:     `left.20:1.5@sharp` -> `left.45:0.4s@sharp`   + new word `then:1.5`
+  twist:    `left.25:1.5@sharp` -> `left.45:0.4s@sharp`   + new word `then:1.5`
+  new row:  `head     { guard:1 fwd.right(10).25:1/2 guard }`
+  comment above the section: "1.5 s (beat 3): in the stance again." -> "It stays 0.4 s; 1.9 s: in the stance again."
+  NOT changed: `body { guard:4 }` (the section is as long as its longest row, 4.8 beats).
+

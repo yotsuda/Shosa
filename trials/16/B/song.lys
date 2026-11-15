@@ -1,0 +1,29 @@
+// Song — the tune dance.shosa is danced to. Written in Lily# (https://github.com/yotsuda/LilySharp).
+// Two sections of four bars; the dance has a section of the same name for each.
+title "Song"
+tempo 108
+time 4/4
+key c major
+
+part melody "Melody" { clef treble }
+
+section Verse {
+  chords harmony { C | Am | F | G | }
+  melody {
+    e'4 g g a | g4 e c2 | f4 a a g | f4 e d2 |
+  }
+}
+
+section Chorus {
+  chords harmony { F | C | G | C | }
+  melody {
+    a'4 a c a | g4 g e2 | d4 g b d | c2. r4 |
+  }
+}
+
+form { Verse Chorus }
+
+score {
+  chords harmony
+  staff melody
+}
