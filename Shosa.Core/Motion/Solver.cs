@@ -922,13 +922,28 @@ internal sealed class FigureSolver
                     var travel = fwd * seg.Dz + leftward * seg.Dx;
 
                     // Onto one foot: the one it stands on (`hop`) or the one that carried no weight (`leap`).
-                    // Standing on both, neither is which: the writer shifts the weight first.
+                    // Standing on both, a `hop` lands on the foot whose leg its row does not hold in a shape
+                    // as it lands (a sissonne: the other leg is thrown out; DESIGN.md 85.5). With neither leg
+                    // or both held, or for a `leap`, nothing says which: the writer shifts the weight first.
                     string onto = seg.Lands ?? "both";
+                    bool fromBoth = false, sissonneLeft = false;
                     if (onto != "both" && s.On == 'B')
                     {
-                        if (record)
-                            SupportProblems.Add((seg, "SH2012", $"Standing on both feet, a {(onto == "same" ? "hop" : "leap")} does not know which foot it lands on. Put the weight on one first: `shift.left` (a hop lands on the left foot, a leap on the right), or jump onto both: `jump`."));
-                        onto = "both";
+                        bool Held(List<Seg> row) => LegShape(row, land, leftward, fwd, SomewhereBelow, Vec3.Up).Weight > 0.5;
+                        bool leftHeld = Held(_leftLeg), rightHeld = Held(_rightLeg);
+                        if (onto == "same" && leftHeld != rightHeld)
+                        {
+                            fromBoth = true;
+                            sissonneLeft = rightHeld;
+                        }
+                        else
+                        {
+                            if (record)
+                                SupportProblems.Add((seg, "SH2012", onto == "same"
+                                    ? "Standing on both feet, a hop does not know which foot it lands on. Throw one leg out in its row as it lands (`rightLeg { side.down(45) }`: it lands on the left foot, a sissonne), or put the weight on one first (`shift.left`), or jump onto both: `jump`."
+                                    : "Standing on both feet, a leap does not know which foot it lands on. Put the weight on one first: `shift.left` (a leap lands on the right foot), or for a jump from both feet onto one, a `hop` with the other leg thrown out in its row."));
+                            onto = "both";
+                        }
                     }
 
                     if (onto == "both")
@@ -959,6 +974,29 @@ internal sealed class FigureSolver
                         Weight(t0, up, middle);
                         Weight(up, land, landing);
                         s.On = 'B';
+                    }
+                    else if (fromBoth)
+                    {
+                        // Off both feet together, onto one; the other leg goes where its row throws it, and when
+                        // the row lets it go it is held low by the landing foot, as after a hop.
+                        bool landLeft = sissonneLeft;
+                        var middle = (s.Left + s.Right) * 0.5;
+                        var target = (landLeft ? s.Left : s.Right) + travel;
+                        var way = travel.Length > 1e-6 ? travel.Normalized() : fwd;
+                        var held = target - way * 0.12 + (landLeft ? -leftAfter : leftAfter) * 0.08;
+                        Move(landLeft, new FootMove
+                        {
+                            T0 = up, T1 = land, From = landLeft ? s.Left : s.Right, To = target,
+                            YawFrom = landLeft ? s.LeftYaw : s.RightYaw, YawTo = s.Yaw + angle, Air = !made, AirHeight = height,
+                        });
+                        Move(!landLeft, new FootMove
+                        {
+                            T0 = up, T1 = land, From = landLeft ? s.Right : s.Left, To = held,
+                            YawFrom = landLeft ? s.RightYaw : s.LeftYaw, YawTo = s.Yaw + angle, Air = !made, AirHeight = height,
+                        }, made ? 0 : Rig.HeldFoot);
+                        Weight(t0, up, middle);
+                        Weight(up, land, target);
+                        s.On = landLeft ? 'L' : 'R';
                     }
                     else
                     {
@@ -1286,14 +1324,14 @@ internal sealed class FigureSolver
             // The room's frame, or with `.body` the torso's.
             var (l, u, f) = seg is { Body: true } && torso is { } body ? body : (left, Vec3.Up, fwd);
             Vec3 offset;
-            if (seg is { Kind: SegKinds.Anchor })
+            if (seg is { Kind: SegKinds.Anchor } or { Floor: true })
                 offset = place(seg);
             else if (seg is null || IsDown(seg) && !seg.Body || seg.Dir is not { } d)
                 return default;
             else
                 offset = (l * d[0] + u * d[1] + f * d[2]) * Reach(seg, Rig.Thigh, Rig.Shin, Rig.StraightLeg);
             Vec3? bend = seg.Pole is { } q ? Across(l * q[0] + u * q[1] + f * q[2], offset.Normalized()) : null;
-            return new LegPose(1, offset, bend, seg.Kind == SegKinds.Anchor ? 1 : 0);
+            return new LegPose(1, offset, bend, seg.Kind == SegKinds.Anchor || seg.Floor ? 1 : 0);
         }
 
         return Chain(targets, t, Target, (a, b, e) =>
@@ -1324,6 +1362,9 @@ internal sealed class FigureSolver
     private readonly record struct LegPose(double Weight, Vec3 Offset, Vec3? Bend, double Point);
 
     /// <summary>Where a toe sent to the other leg is, before that leg is solved: only to say the leg is off the floor.</summary>
+    /// <summary>How high a toe on the floor is drawn, metres (the toe joint above the sole).</summary>
+    private const double FloorToe = 0.02;
+
     private static Vec3 SomewhereBelow(Seg seg) => -Vec3.Up * (Rig.Leg * 0.6);
 
     private double Clamp(double t) => _loop ? t : Math.Clamp(t, 0, _length);
@@ -1693,14 +1734,31 @@ internal sealed class FigureSolver
         // Legs. A toe sent to the other leg (`otherKnee`, `otherAnkle`) goes where that leg is, so a leg with
         // such a word is solved again once the other one has been.
         for (int side = 1; side >= -1; side -= 2)
-            Leg(side, SomewhereBelow, ref problems);
+        {
+            int at = side;
+            Leg(side, seg => seg.Floor ? ToeOnTheFloor(seg, at) : SomewhereBelow(seg), ref problems);
+        }
         for (int side = 1; side >= -1; side -= 2)
         {
             if ((side == 1 ? _leftLeg : _rightLeg).Any(s => s.Kind == SegKinds.Anchor))
             {
-                int other = side == 1 ? Rig.RHip : Rig.LHip;
-                Leg(side, seg => ToeAt(seg, side, joints[other + 1], joints[other + 2]), ref problems);
+                int other = side == 1 ? Rig.RHip : Rig.LHip, at = side;
+                Leg(side, seg => seg.Floor ? ToeOnTheFloor(seg, at) : ToeAt(seg, at, joints[other + 1], joints[other + 2]), ref problems);
             }
+        }
+
+        // `side.floor`: the leg straight out its way, the foot pointed on along it, the toe on the
+        // floor (a tendu). How far down it slopes follows from how high the hip is: the leg and the
+        // foot together reach from the hip to the floor (DESIGN.md 85.5).
+        Vec3 ToeOnTheFloor(Seg seg, int side)
+        {
+            var hip = pelvis + c.HipLeft * (Rig.HipHalf * side);
+            var d = seg.Dir!;
+            var way = c.Left * d[0] + c.Fwd * d[2];
+            way = way.Length > 1e-6 ? way.Normalized() : c.Fwd;
+            double leg = Rig.StraightLeg * Rig.Leg, reach = leg + Rig.FootLength;
+            double sin = Math.Clamp((hip.Y - FloorToe) / reach, 0, 1), cos = Math.Sqrt(1 - sin * sin);
+            return (way * cos - Vec3.Up * sin) * leg;
         }
 
         // The toe of the leg on `side` at the other leg's knee or ankle. The foot is pointed on along
@@ -1754,6 +1812,9 @@ internal sealed class FigureSolver
                 // Letting go, the floor end is where `steps` has the foot when the leg has let go (the
                 // place it is in now would swing the way from one side round to the other as a step
                 // sets out late in the word); lifting, it is where the foot stood.
+                // Swung from a hip that sinks (a plié, the bend before a jump) the foot would go into the floor.
+                if (ankle.Y < Rig.AnkleHeight)
+                    ankle = new Vec3(ankle.X, Rig.AnkleHeight, ankle.Z);
                 if (!flight && gesture < 1)
                 {
                     var goal = onFloor;
@@ -1780,7 +1841,12 @@ internal sealed class FigureSolver
             toe = new Vec3(toe.X, offFloor ? Math.Max(0.02, reached.Y - 0.05 + Rig.FootLength * Math.Sin(pitch)) : 0.02, toe.Z);
             // A toe sent to the other leg: the foot pointed on along the shin.
             if (point > 0)
+            {
                 toe = Vec3.Lerp(toe, reached + (reached - knee).Normalized() * Rig.FootLength, point);
+                // Sliding out to a tendu, a toe pointed along the shin would dip into the floor.
+                if (toe.Y < FloorToe)
+                    toe = new Vec3(toe.X, FloorToe, toe.Z);
+            }
 
             int first = isLeft ? Rig.LHip : Rig.RHip;
             joints[first] = hip;

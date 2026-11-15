@@ -271,7 +271,7 @@ internal static class Words
         }).ToList();
         if (before.Count == 0)
         {
-            IEnumerable<Vocabulary.Word> first = [.. directions, .. Vocabulary.Poles];
+            IEnumerable<Vocabulary.Word> first = [.. directions, .. Vocabulary.Poles.Where(w => w.Name != Vocabulary.Floor)];
             if (IsArm(track))
                 first = first.Concat(Vocabulary.Anchors.Where(a => !a.Name.Contains('.')));
             else if (IsLimb(track))
@@ -297,13 +297,17 @@ internal static class Words
             return shapes.Where(s => Vocabulary.ShapeOrder(s.Name) > lastShape && !(s.Name == "knee" && before.Contains("elbow")));
         int horizontal = before.Count(w => directions.Any(d => d.Name == w));
         bool vertical = before.Any(w => w is "up" or "down");
+        // A leg to the floor is straight and pointed: nothing follows.
+        if (before.Contains(Vocabulary.Floor))
+            return [];
         // up.fwd(10): from straight up toward one way.
         if (before is ["up" or "down"])
             return [.. directions, .. shapes];
         if (vertical)
             return shapes;
         IEnumerable<Vocabulary.Word> next = horizontal == 1 ? Except(directions, before) : [];
-        return [.. next, .. Vocabulary.Poles, .. shapes];
+        bool leg = IsLimb(track) && !IsArm(track);
+        return [.. next, .. Vocabulary.Poles.Where(w => leg || w.Name != Vocabulary.Floor), .. shapes];
     }
 
     public static IEnumerable<Vocabulary.Word> ForAnnotation(string track) => Vocabulary.Annotations.Where(w => w.Name switch

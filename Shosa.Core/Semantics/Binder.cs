@@ -2458,6 +2458,26 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         if (isPlace)
             return new Seg { Kind = SegKinds.Anchor, Anchor = joined, Pole = jointPole };
 
+        // `side.floor`: a leg straight out that way with its toe on the floor (a tendu). It stands
+        // where `up` / `down` would, and how far down follows from the height of the hip.
+        bool floor = head.Count > 1 && head[^1].Text == Vocabulary.Floor;
+        if (head.Any(p => p.Text == Vocabulary.Floor))
+        {
+            var word = head.First(p => p.Text == Vocabulary.Floor);
+            string? wrong = !isLeg ? "'floor' is for a leg: rightLeg { side.floor } (out to the side, the toe on the floor: a tendu). A hand to the floor is a direction: arms { fwd.down(60) }."
+                : !floor ? "'floor' closes a leg's direction, where up or down would be: side.floor, fwd.floor, back.floor, fwd.side(30).floor."
+                : word.Bracket is not null ? "'floor' takes no brackets: how far down the leg goes follows from how high the hip is."
+                : head.Any(p => p.Text is "up" or "down") ? "'floor' is instead of up or down: side.floor, not side.down.floor."
+                : bend is not null || jointPole is not null || body ? "A leg to the floor is straight, its foot pointed along it: side.floor takes no bent, knee or body."
+                : null;
+            if (wrong is not null)
+            {
+                Error("SH1012", word.Word.Span, wrong);
+                return null;
+            }
+            head = head.Take(head.Count - 1).ToList();
+        }
+
         if (LimbDirection(channel, side, head, mirror, inBrackets: false) is not { } direction)
             return null;
 
@@ -2486,6 +2506,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
             Body = body,
             Round = round,
             Tilt = tilt,
+            Floor = floor,
         };
     }
 

@@ -310,6 +310,8 @@ public sealed class Seg
     public double? Tilt { get; set; }
     /// <summary>Dir, torso: the back is rounded. The direction is still the line from the pelvis to the chest; the spine bows back from it.</summary>
     public bool Round { get; set; }
+    /// <summary>Dir, legs (`side.floor`): the leg straight that way, the foot pointed and its toe on the floor (a tendu). Dir is level; how far down follows from how high the hip is.</summary>
+    public bool Floor { get; set; }
     /// <summary>Anchor, arms: hip | chest | shoulder | head | chin | belly | shoulder.across | clap. Legs: otherKnee | otherKnee.back | otherAnkle | otherAnkle.back.</summary>
     public string? Anchor { get; set; }
     /// <summary>Reach and Turn: the id of the other dancer.</summary>

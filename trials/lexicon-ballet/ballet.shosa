@@ -22,11 +22,11 @@ pose thirdArms   { leftArm { fwd.up(70).bent(40).elbow(side) }  rightArm { side.
 move demiPlie    { height { low(8cm) straight } }
 move grandPlie   { height { low(40cm):2 straight:2 } }
 move releve      { height { high straight } }
-move tenduFwd    { rightLeg { fwd.down(65) down } }      // the foot along the floor to the front, pointed
-move tenduSide   { rightLeg { side.down(65) down } }
-move tenduBack   { rightLeg { back.down(65) down } }
-move degageSide  { rightLeg { side.down@sharp down } }
-move rondDeJambe { rightLeg { fwd.down(65) side.down(65) back.down(65) down } }   // a half circle on the floor, front to back
+move tenduFwd    { rightLeg { fwd.floor down } }        // the foot along the floor to the front, pointed
+move tenduSide   { rightLeg { side.floor down } }
+move tenduBack   { rightLeg { back.floor down } }
+move degageSide  { rightLeg { side.floor:1/2 side.down(70):1/2@sharp side.floor:1/2 down:1/2 } }   // brushed out through the tendu, a little off the floor
+move rondDeJambe { rightLeg { fwd.floor side.floor back.floor down } }   // a half circle on the floor, front to back
 move retire      { rightLeg { otherKnee down } }                        // the toe at the knee of the other leg
 move developpe   { rightLeg { otherKnee fwd.up(15):2 down } }               // up through retiré, unfold to the front
 move grandBattement { rightLeg { fwd.up down } }   // thrown up fast and lowered with control: @sharp would be 15 m/s, too fast

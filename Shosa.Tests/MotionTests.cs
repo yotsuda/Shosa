@@ -414,6 +414,58 @@ public class MotionTests
     }
 
     [Fact]
+    public void A_leg_to_the_floor_is_a_tendu_whose_toe_slides_out_on_the_floor()
+    {
+        // DESIGN.md 85.5: `side.floor`. The leg straight, the foot pointed, the toe on the floor; deeper in a plié.
+        var compilation = Compile(Samples.Solo("""
+                height   { straight:4 | then:2 low(8cm):1 then:1 | }
+                rightLeg { then:1 fwd.floor:1 then:1 skip:1 | then:2 side.floor:1 skip:1 | }
+            """, "tempo 60\ntime 4/4\n"));
+        Assert.Empty(compilation.Diagnostics);
+        var figure = compilation.Clip.Figures[0];
+        Vec3 Joint(double beat, int joint) => figure.Joint(compilation.Clip.FrameAt(beat), joint);
+        int toe = Rig.RHip + 3, ankle = Rig.RHip + 2, knee = Rig.RHip + 1, hip = Rig.RHip;
+        Assert.Equal(0.02, Joint(2, toe).Y, 2);                                            // the toe on the floor
+        Assert.True(Joint(2, toe).Z - Joint(0, toe).Z > 0.3, "the foot went out in front");
+        double Bend(double beat) => Math.Acos(Math.Clamp((Joint(beat, knee) - Joint(beat, hip)).Normalized().Dot((Joint(beat, ankle) - Joint(beat, knee)).Normalized()), -1, 1)) * 180 / Math.PI;
+        Assert.True(Bend(2) < 5, $"the leg is straight: {Bend(2):0.0}°");   // straight as a standing leg is (3.6°)
+        // On the way out the toe slides: it neither leaves the floor nor goes into it.
+        Assert.All(Enumerable.Range(0, 21).Select(i => i * 0.05), beat => Assert.InRange(Joint(beat, toe).Y, 0.019, 0.03));
+        // In the plié the hip is lower, so the leg reaches farther out to the side, the toe still on the floor.
+        Assert.Equal(0.02, Joint(7, toe).Y, 2);
+        Assert.True(Math.Abs(Joint(7, toe).X - Joint(7, hip).X) > Math.Abs(Joint(2, toe).Z - Joint(2, hip).Z) + 0.05, "a tendu from a plié reaches farther");
+
+        Assert.Contains(Compile(Samples.Solo("    arms { side.floor }")).Diagnostics, d => d.Code == "SH1012");
+        Assert.Contains(Compile(Samples.Solo("    rightLeg { side.floor.bent }")).Diagnostics, d => d.Code == "SH1012");
+        Assert.Contains(Compile(Samples.Solo("    rightLeg { side.down.floor }")).Diagnostics, d => d.Code == "SH1012");
+    }
+
+    [Fact]
+    public void A_hop_from_both_feet_lands_on_the_foot_whose_leg_is_not_thrown_out()
+    {
+        // DESIGN.md 85.5: a sissonne. Off both feet together, onto the left; the right leg out to the side.
+        var compilation = Compile(Samples.Solo("""
+                steps    { together:2 then:1 hop.left(0.2m):1 then:2 }
+                rightLeg { skip:2 then:1 side.down(45):1 then:2 }
+            """, "tempo 60\ntime 4/4\n"));
+        Assert.Empty(compilation.Diagnostics);
+        var figure = compilation.Clip.Figures[0];
+        Vec3 Joint(double beat, int joint) => figure.Joint(compilation.Clip.FrameAt(beat), joint);
+        // Both feet leave the floor together: in the middle of the flight neither is on it.
+        var top = Enumerable.Range(0, 41).Select(i => 2 + i * 0.025).MaxBy(beat => Joint(beat, Rig.Pelvis).Y);
+        Assert.True(Joint(top, Rig.LHip + 2).Y > Rig.AnkleHeight + 0.05, "the left foot did not leave the floor");
+        Assert.True(Joint(top, Rig.RHip + 2).Y > Rig.AnkleHeight + 0.05, "the right foot did not leave the floor");
+        Assert.Equal(Rig.AnkleHeight, Joint(3, Rig.LHip + 2).Y, 2);                          // on the left foot
+        Assert.True(Joint(3, Rig.RHip + 2).Y > 0.2, "the right leg is out to the side");
+        Assert.Equal(0.2, Joint(3, Rig.LHip + 2).X - Joint(0, Rig.LHip + 2).X, 2);         // 0.2 m to its left
+        // The foot of a leg lifted in the bend does not go into the floor.
+        Assert.All(Enumerable.Range(0, 81).Select(i => i * 0.05), beat => Assert.True(Joint(beat, Rig.RHip + 2).Y > Rig.AnkleHeight - 0.005));
+
+        // With no leg thrown out, a hop from both feet still does not know its foot.
+        Assert.Contains(Compile(Samples.Solo("    steps { together:2 then:1 hop:1 }", "tempo 60\ntime 4/4\n")).Diagnostics, d => d.Code == "SH2012");
+    }
+
+    [Fact]
     public void A_changement_lands_with_the_feet_mirrored()
     {
         // Writing trial 21 (DESIGN.md 80.3): once a plain jump kept the feet as they stood, nothing changed them.

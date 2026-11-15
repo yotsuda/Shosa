@@ -267,7 +267,7 @@ How much of that time depends on the part:
   **A step already made is a way of standing, so the weight is on both feet**:
   `steps { rightFoot.fwd(0.08m).across(0.13m):4 }` stands in fifth on both legs, with no
   `shift.center`. To begin on the foot it stepped onto, shift to it next
-  (`rightFoot.fwd shift.right:1/4 hop:3/4`; a `hop` or a `leap` straight after does not know its foot, SH2012),
+  (`rightFoot.fwd shift.right:1/4 hop:3/4`; a `leap` straight after does not know its foot, SH2012, nor a `hop` unless a leg row throws the other leg out),
   and a `together` or `stand` straight after closes both feet to the middle.
   `shosa check` also says where each dancer ends (``solo ends 0.5 m back of where it began``,
   ``solo ends where it began``): read it instead of adding the steps up.
@@ -498,7 +498,7 @@ move kick  { rightLeg { fwd.down.bent fwd@sharp!hit fwd.down.bent down } }   // 
   `guard` again moves nothing. (A step written directly in `steps` always steps.) Stepping
   into it, the body stands on both feet, the weight between them, as with a first step
   already made: the same guard stands the same in a loop and out of one. A `hop` straight
-  after it needs a `shift` to the foot it hops on (SH2012).
+  after it needs a `shift` to the foot it hops on, or the other leg thrown out in its row (SH2012).
 - A pose takes `@mirror`, `@free`, `@smooth`, `@sharp`, `@linear`; a move takes `@mirror`
   and `@free`. Definitions take no arguments: a variation is the same word with the
   change written over it (a narrower track, or a later `&` row). A move may hold a
@@ -565,6 +565,7 @@ one, the shape it arrives in (see "Shapes" below).
 |---|---|
 | `up` | Straight up. After a direction, toward up: `fwd.up(30)` is 30 degrees above `fwd` (`fwd.up` 45). Before one, from straight up: `up.fwd(10)` is 10 degrees forward of upright (a torso's slight lean). |
 | `down` | Straight down; for an arm, hanging as an arm nobody wrote does (the hand by the thigh, a little forward); for a free leg, back on the floor. After a direction, toward down: `side.down(20)`; `fwd.down` 45. |
+| `floor` | For a leg, after its direction instead of up or down: the leg straight that way, the foot pointed and its toe on the floor (a tendu): `rightLeg { side.floor }`, `fwd.floor`, `back.floor`. How far down follows from how high the hip is (deeper in a plié). Out from the floor and back to it, the toe slides along the floor; a brush up (a dégagé) passes through it: `side.floor:1/2 side.down(45):1/2`. |
 
 - One word is one of the four ways, level: `fwd`, `side`, `back`.
 - **A number in brackets belongs to the word before it: how far toward that word.** Two
@@ -721,6 +722,11 @@ the leg back with `down`.
   on past the landing of a step or a jump is all let go when the foot lands. With no step, the
   foot goes back to where it stood before the leg lifted (or, after a hop, stays held in the
   air until a step or a `down` puts it on the floor). To keep a leg as it is, write `then`.
+  A foot along the floor (a tendu) is the leg's direction closed by `floor` instead of up or down:
+  `rightLeg { side.floor }` (also `fwd.floor`, `back.floor`, `fwd.side(30).floor`): the leg straight,
+  the foot pointed, the toe on the floor, as far out as the leg reaches from the hip (farther in a
+  plié). Out from the floor and back the toe slides; a dégagé brushes through it, `side.floor:1/2
+  side.down(70):1/2 side.floor:1/2 down:1/2`, and a rond de jambe is `fwd.floor side.floor back.floor down`.
   Seen from above, a foot going between the floor and a shape by the standing foot goes round
   the standing ankle the shorter way, no nearer to it than its two ends: from the back of the
   ankle to fifth in front it passes beside the standing foot (about 12 cm out), not through it.
@@ -1014,7 +1020,7 @@ on its direction, in metres: `leftFoot.fwd(0.3m)` (a small step), `leftFoot.side
 | `stand` | The free foot closes to standing width (0.2 m, ankle to ankle); the weight is on both. |
 | `turn` | A pivot on the supporting foot: `turn.left(90)`, `turn.right(180)` (degrees, up to 1080). |
 | `jump` | Off the floor, landing on both feet: `jump`, `jump.fwd`, `jump.left(0.6m)`, `jump.apart`, `jump.stand`, `jump.together`. |
-| `hop` | Off the floor from the foot that carries the weight, landing on the same foot: `hop`, `hop.fwd`. The other foot is held off the floor. |
+| `hop` | Off the floor from the foot that carries the weight, landing on the same foot: `hop`, `hop.fwd`. The other foot is held off the floor. From both feet, it lands on the foot whose leg its row does not throw out (a sissonne). |
 | `leap` | Off the floor from the foot that carries the weight, landing on the other: `leap.fwd` (a running step), `leap.left` (a small jump to the side). The foot it took off from is held off the floor. |
 | `shift` | The weight moves and neither foot leaves the floor: `shift.left`, `shift.right`, `shift.center`. |
 | `lift` | Only for a free body (`@free`, or `free` on the dancer): the feet hang at a height, `lift(0.4m)`. `lift(0.4m).fwd` also travels (0.4 m, or `fwd(0.6m)`). |
@@ -1043,11 +1049,15 @@ on its direction, in metres: `leftFoot.fwd(0.3m)` (a small step), `leftFoot.side
   | Word | Lands on | From both feet | From one foot |
   |---|---|---|---|
   | `jump` | both feet | a jump in place, a sauté, an échappé (`jump.apart`) | an assemblé |
-  | `hop` | the foot it stands on | (an error, SH2012: which foot?) | a hop, a temps levé |
+  | `hop` | the foot it stands on; from both feet, the one whose leg its row does not throw out | a sissonne (the other leg in a shape as it lands; neither: SH2012) | a hop, a temps levé |
   | `leap` | the foot that carried no weight | (an error, SH2012: which foot?) | a running step, a jeté |
 
-  From both feet, put the weight on one first (`shift.left`, then `hop` lands on the
-  left foot and `leap` on the right). After a `hop` or a `leap` the foot that did not land
+  From both feet, a `hop` pushes off both together and lands on one: the foot whose leg
+  its row does NOT hold in a shape as it lands (a sissonne: `steps { together:2 then:1 hop.left(0.2m):1 }`
+  with `rightLeg { skip:2 then:1 side.down(45):1 }` springs off both feet and lands on the left,
+  the right leg out to the side; a `skip` or `down` in its row after that closes it). With no leg
+  thrown out (or both), it does not know its foot (SH2012); put the weight on one first instead
+  (`shift.left`, then `hop` lands on the left foot and `leap` on the right). After a `hop` or a `leap` the foot that did not land
   is held low behind it, off the floor: the next word of `steps` that moves it puts it
   down (`leftFoot.place`, `stand`), and a leg row may shape it. Running is
   `rightFoot.fwd leap.fwd leap.fwd leap.fwd`; skipping is `leftFoot.fwd hop.fwd rightFoot.fwd hop.fwd`.
@@ -1306,7 +1316,7 @@ Do not try to express these; mention them as a limitation instead.
 - Arm swing while walking is not added for you: unwritten arms hang still.
 - A change of tempo or of time in the middle of a section (a section says them where it begins; a dance to a song follows its song).
 - A toe at any place on the other leg but its knee and its ankle; a hand on a leg (the thigh, the knee).
-- A foot that points or flexes when you choose (it points only with its toe on the other leg); standing on pointe.
+- A foot that points or flexes when you choose (it points only with its toe on the other leg or on the floor, `side.floor`); standing on pointe.
 - Beating the legs in the air (an entrechat; a changement is `jump.change`).
 
 ## Checking your work
@@ -1400,7 +1410,7 @@ SH2005 a loop that does not join, SH2006 a hand that cannot reach the other danc
 SH2007 two dancers whose heads, bodies or standing legs are in the same place,
 SH2009 two rows of an `&` that turn the shoulders, or the hips, at the same time,
 SH2010 shoulders the chest cannot turn to on the hips, SH2011 an elbow or a knee pointed
-along its own limb, SH2012 a hop or a leap from both feet, SH2013 a foot that `steps` puts
+along its own limb, SH2012 a hop (with no leg thrown out) or a leap from both feet, SH2013 a foot that `steps` puts
 down while its leg's row still holds it up, SH2014 a bend or a knee written on a leg sent
 down, which stands on the floor). The message says what to change.
 

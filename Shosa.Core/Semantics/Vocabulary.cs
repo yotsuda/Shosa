@@ -82,7 +82,11 @@ public static class Vocabulary
     [
         new("up", "Straight up. After a direction, toward up: `fwd.up(30)` is 30 degrees above `fwd` (`fwd.up` 45). Before one, from straight up: `up.fwd(10)` is 10 degrees forward of upright (a torso's slight lean)."),
         new("down", "Straight down; for an arm, hanging as an arm nobody wrote does (the hand by the thigh, a little forward); for a free leg, back on the floor. After a direction, toward down: `side.down(20)`; `fwd.down` 45."),
+        new(Floor, "For a leg, after its direction instead of up or down: the leg straight that way, the foot pointed and its toe on the floor (a tendu): `rightLeg { side.floor }`, `fwd.floor`, `back.floor`. How far down follows from how high the hip is (deeper in a plié). Out from the floor and back to it, the toe slides along the floor; a brush up (a dégagé) passes through it: `side.floor:1/2 side.down(45):1/2`."),
     ];
+
+    /// <summary>The leg's direction closed by the floor: `side.floor`, a tendu.</summary>
+    public const string Floor = "floor";
 
     /// <summary>Words that come after a direction and say the shape the part arrives in. Written in this order.</summary>
     public static readonly Word[] Shapes =
@@ -155,7 +159,7 @@ public static class Vocabulary
         new("stand", "The free foot closes to standing width (0.2 m, ankle to ankle); the weight is on both."),
         new("turn", "A pivot on the supporting foot: `turn.left(90)`, `turn.right(180)` (degrees, up to 1080)."),
         new("jump", "Off the floor, landing on both feet: `jump`, `jump.fwd`, `jump.left(0.6m)`, `jump.apart`, `jump.stand`, `jump.together`."),
-        new("hop", "Off the floor from the foot that carries the weight, landing on the same foot: `hop`, `hop.fwd`. The other foot is held off the floor."),
+        new("hop", "Off the floor from the foot that carries the weight, landing on the same foot: `hop`, `hop.fwd`. The other foot is held off the floor. From both feet, it lands on the foot whose leg its row does not throw out (a sissonne)."),
         new("leap", "Off the floor from the foot that carries the weight, landing on the other: `leap.fwd` (a running step), `leap.left` (a small jump to the side). The foot it took off from is held off the floor."),
         new("shift", "The weight moves and neither foot leaves the floor: `shift.left`, `shift.right`, `shift.center`."),
         new("lift", "Only for a free body (`@free`, or `free` on the dancer): the feet hang at a height, `lift(0.4m)`. `lift(0.4m).fwd` also travels (0.4 m, or `fwd(0.6m)`)."),
