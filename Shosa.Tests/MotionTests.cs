@@ -204,6 +204,43 @@ public class MotionTests
     }
 
     [Fact]
+    public void A_standing_leg_is_straight()
+    {
+        // Writing trial 19: every standing knee was bent 11° (a ballet dancer's standing leg is straight). DESIGN.md 78.4.
+        var compilation = Compile(Samples.Solo("    turnout { out(80) }\n    steps { together:4 then:4 }\n    rightLeg { then:4 otherKnee:4 }", "tempo 120\ntime 4/4\n"));
+        Assert.Empty(compilation.Diagnostics);
+        var figure = compilation.Clip.Figures[0];
+        double Knee(double beat, int hip)
+        {
+            var frame = compilation.Clip.FrameAt(beat);
+            Vec3 thigh = figure.Joint(frame, hip + 1) - figure.Joint(frame, hip), shin = figure.Joint(frame, hip + 2) - figure.Joint(frame, hip + 1);
+            return Math.Acos(Math.Clamp(thigh.Normalized().Dot(shin.Normalized()), -1, 1)) * 180 / Math.PI;
+        }
+        Assert.InRange(Knee(0, Rig.LHip), 0, 5);
+        Assert.InRange(Knee(0, Rig.RHip), 0, 5);
+        Assert.InRange(Knee(7, Rig.LHip), 0, 5);   // the leg it stands on in a retiré
+    }
+
+    [Fact]
+    public void A_leg_put_down_after_a_hop_lands_beside_the_foot_it_stands_on()
+    {
+        // Before, `down` brought a foot held up after a hop back to where it was held: it never reached the floor
+        // without a word of `steps`. DESIGN.md 78.4.
+        var compilation = Compile(Samples.Solo("""
+                steps    { stand:1 shift.left:1 | hop:2 | then:2 | then:2 | }
+                rightLeg { skip:2 | skip:2 | down:2 | then:2 | }
+            """, "tempo 120\ntime 2/4\n"));
+        Assert.Empty(compilation.Diagnostics);
+        var clip = compilation.Clip;
+        var figure = clip.Figures[0];
+        Vec3 left = figure.Joint(clip.FrameAt(7), Rig.LAnkle), right = figure.Joint(clip.FrameAt(7), Rig.RAnkle);
+        Assert.True(figure.Joint(clip.FrameAt(2.2), Rig.RAnkle).Y > Rig.AnkleHeight + 0.05, "held up after the hop");
+        Assert.Equal(Rig.AnkleHeight, right.Y, 3);
+        Assert.Equal(Rig.Stance, left.X - right.X, 2);   // at standing width, beside it
+        Assert.Equal(left.Z, right.Z, 2);
+    }
+
+    [Fact]
     public void A_foot_put_down_while_its_leg_row_holds_it_up_is_a_warning_at_the_step()
     {
         // Writing trial 19: the landing leg of a split leap kept its shape and never landed, without a word.
@@ -511,7 +548,7 @@ public class MotionTests
     [Fact]
     public void Turnout_turns_the_feet_and_the_knees_out_and_leaves_the_hips_square()
     {
-        var clip = Solve("    turnout { parallel:2 out(45):2 out(80):2 then:2 in(20):2@mirror }\n    steps { then:6 then:2 then:2 }\n    height { then:6 low:2 then:2 }");
+        var clip = Solve("    turnout { parallel:2 out(45):2 out(80):2 then:2 in(20):2@mirror }\n    steps { then:6 then:2 then:2 }\n    height { mid:5 then:1 low:2 then:2 }");
         // Degrees to the figure's left of straight ahead, on the floor.
         double Round(Vec3 v) => Math.Atan2(v.X, v.Z) * 180 / Math.PI;
         double Foot(double beat, int ankle) => Round(At(clip, beat, ankle + 1) - At(clip, beat, ankle));

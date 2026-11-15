@@ -238,7 +238,7 @@ public class DefinitionTests
         var plain = Clean(Samples.Solo("steps { leftFoot.fwd rightFoot.fwd }", score: "loop inPlace"));
 
         Assert.Equal(2, Track(compilation, Channels.Support).Count);
-        Assert.True(At(compilation.Clip, 1, Rig.Pelvis).Y < At(plain.Clip, 1, Rig.Pelvis).Y - 0.1, "the same walk, low");
+        Assert.True(At(compilation.Clip, 1, Rig.Pelvis).Y < At(plain.Clip, 1, Rig.Pelvis).Y - 0.09, "the same walk, low (16 cm under standing; mid-stride a plain walk is lower too)");
         Assert.Equal(At(plain.Clip, 1, Rig.LAnkle).Z, At(compilation.Clip, 1, Rig.LAnkle).Z, 3);
     }
 
@@ -249,13 +249,14 @@ public class DefinitionTests
         var clip = compilation.Clip;
         var height = Track(compilation, Channels.Height);
 
-        // Up on beat 4, rising in the last beat before it (half of the four beats before, and no more than half a second);
-        // the guard has the height back at 6, and comes down to it in the second half of the two beats written.
-        Assert.Equal(new[] { (3.0, 4.0, 4.0, 6.0), (5.0, 6.0, 6.0, 8.0) }, height.Select(s => (s.T0, s.T1, s.At, s.Until)).ToArray());
-        Assert.Equal(At(clip, 0, Rig.Pelvis).Y, At(clip, 3, Rig.Pelvis).Y, 2);
-        Assert.True(At(clip, 4, Rig.Pelvis).Y > At(clip, 3, Rig.Pelvis).Y + 0.1, "up on the beat it is written at");
-        Assert.Equal(At(clip, 4, Rig.Pelvis).Y, At(clip, 5, Rig.Pelvis).Y, 2);
-        Assert.Equal(At(clip, 0, Rig.Pelvis).Y, At(clip, 6, Rig.Pelvis).Y, 2);
+        // Up on beat 4, rising through all of the four beats before it, as a gesture does (a height is not a step:
+        // DESIGN.md 78.4); the guard has the height back at 6, and comes down to it through the two beats written.
+        Assert.Equal(new[] { (0.0, 4.0, 4.0, 6.0), (4.0, 6.0, 6.0, 8.0) }, height.Select(s => (s.T0, s.T1, s.At, s.Until)).ToArray());
+        double y0 = At(clip, 0, Rig.Pelvis).Y, y2 = At(clip, 2, Rig.Pelvis).Y, y4 = At(clip, 4, Rig.Pelvis).Y, y5 = At(clip, 5, Rig.Pelvis).Y;
+        Assert.True(y4 > y0 + 0.1, "up on the beat it is written at");
+        Assert.True(y2 > y0 + 0.03 && y2 < y4 - 0.03, "on its way up half-way through");
+        Assert.True(y5 > y0 + 0.03 && y5 < y4 - 0.03, "on its way down");
+        Assert.Equal(y0, At(clip, 6, Rig.Pelvis).Y, 2);
         Assert.Equal(At(clip, 0, Rig.Pelvis).Y, At(clip, 8, Rig.Pelvis).Y, 3);
         // The feet are the guard's all along: it is one word of the feet, and in a loop the way to it is at the end.
         Assert.Equal((0.0, 8.0), (Assert.Single(Track(compilation, Channels.Support)).At, Track(compilation, Channels.Support)[0].Until));

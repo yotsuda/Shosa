@@ -2038,12 +2038,14 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
     /// has written for a long time does not drift for all of that time.
     ///
     /// A step is taken or it is not: a word of the feet that only gets them back half-way through
-    /// its time moves nothing. The height is a part of its own and comes back like a gesture, so a
-    /// row of `both.low` beside a pose or a walk takes the height and leaves the feet where they are.
+    /// its time moves nothing. The height is a part of its own and moves and comes back like a gesture, so a
+    /// row of `height` beside a pose or a walk takes the height and leaves the feet where they are.
     /// </summary>
     private static List<Seg> Resolve(string channel, List<Raw> raws, MotionIr clip, double origin)
     {
-        bool feet = channel == Channels.Support, steps = feet || channel == Channels.Height;
+        // The height is timed as a gesture is, over the whole of the word before (a plié over three beats
+        // goes down for three beats); only the feet set out late (writing trial 19, DESIGN.md 78.4).
+        bool feet = channel == Channels.Support, steps = feet;
         bool loop = clip.Loop && clip.TotalBeats > 0;
         double total = clip.TotalBeats;
         var tempos = TempoMap.Of(clip.Tempos, clip.Tempo);

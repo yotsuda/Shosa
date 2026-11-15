@@ -9,6 +9,12 @@ public static class Rig
     public const double Thigh = 0.45;
     public const double Shin = 0.45;
     public const double Leg = Thigh + Shin;
+    /// <summary>
+    /// How much of its length a straight leg reaches, standing or in the air: a knee bent about 3.6°, which the
+    /// eye reads as straight (a ballet dancer's standing leg), and still enough for the knee to know which way
+    /// it bends. Was 0.995 (11.5°, a soft knee everywhere) until writing trial 19 (DESIGN.md 78.4).
+    /// </summary>
+    public const double StraightLeg = 0.9995;
     public const double HipHalf = 0.10;
     public const double Spine = 0.50;
     public const double ShoulderHalf = 0.19;

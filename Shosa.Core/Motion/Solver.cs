@@ -442,7 +442,7 @@ internal sealed class FigureSolver
         public double Hips;
         public Vec3 HipLeft, HipFwd;
         public Vec3 P;             // pelvis over the floor
-        public double RawY, Raise, Float;
+        public double RawY, CeilingY, Raise, Float;
     }
 
     /// <summary>The spine and what hangs on it, before arms and legs.</summary>
@@ -685,8 +685,39 @@ internal sealed class FigureSolver
 
         static double StepLift(Vec3 from, Vec3 to) => Math.Clamp(0.05 + 0.12 * (to - from).Length, 0.06, 0.15);
 
+        // A leg's `down` puts a foot left in the air (after a hop or a leap) on the floor, beside the
+        // foot it stands on at standing width; the weight stays where it is (DESIGN.md 78.4). Its
+        // row's `down` words, in this play's time, in order.
+        var downs = new[] { (Left: true, Row: _leftLeg), (Left: false, Row: _rightLeg) }
+            .SelectMany(leg => leg.Row.Where(d => IsDown(d) && d.T1 > offset + 1e-9 && d.T1 <= offset + _length + 1e-9)
+                                      .Select(d => (leg.Left, Seg: d)))
+            .OrderBy(d => d.Seg.T1).ToList();
+        int nextDown = 0;
+        void PutDown(double until)
+        {
+            for (; nextDown < downs.Count && downs[nextDown].Seg.T1 <= until + 1e-9; nextDown++)
+            {
+                var (isLeft, down) = downs[nextDown];
+                if ((isLeft ? s.LeftUp : s.RightUp) <= 0 || s.On == 'B' || (s.On == 'L') == isLeft)
+                    continue;
+                var standing = isLeft ? s.Right : s.Left;
+                var place = standing + Vec3.Left(s.Yaw) * (isLeft ? Rig.Stance : -Rig.Stance);
+                current = null;
+                // Not before the foot has finished being put in the air.
+                var moves = isLeft ? _leftMoves : _rightMoves;
+                double from = record && moves.Count > 0 ? Math.Max(down.T0, Math.Min(down.T1, moves[^1].T1)) : down.T0;
+                Move(isLeft, new FootMove
+                {
+                    T0 = from, T1 = down.T1, From = isLeft ? s.Left : s.Right, To = place,
+                    YawFrom = isLeft ? s.LeftYaw : s.RightYaw, YawTo = s.Yaw,
+                });
+            }
+        }
+
         foreach (var seg in support)
         {
+            // A `down` that has arrived before this word sets out has put its foot on the floor.
+            PutDown(seg.T0 + offset);
             current = seg;
             double t0 = seg.T0 + offset, t1 = seg.T1 + offset;
             var fwd = Vec3.Forward(s.Yaw);
@@ -923,6 +954,7 @@ internal sealed class FigureSolver
                     break;
             }
         }
+        PutDown(double.MaxValue);
     }
 
     private static double Smooth(double u) => u * u * (3 - 2 * u);
@@ -1092,7 +1124,7 @@ internal sealed class FigureSolver
             else if (seg is null || IsDown(seg) && !seg.Body || seg.Dir is not { } d)
                 return default;
             else
-                offset = (l * d[0] + u * d[1] + f * d[2]) * Reach(seg, Rig.Thigh, Rig.Shin, 0.995);
+                offset = (l * d[0] + u * d[1] + f * d[2]) * Reach(seg, Rig.Thigh, Rig.Shin, Rig.StraightLeg);
             Vec3? bend = seg.Pole is { } q ? Across(l * q[0] + u * q[1] + f * q[2], offset.Normalized()) : null;
             return new LegPose(1, offset, bend, seg.Kind == SegKinds.Anchor ? 1 : 0);
         }
@@ -1192,12 +1224,12 @@ internal sealed class FigureSolver
         // The height is a row of its own, read like a gesture: it can be taken over half-way.
         double level = Chain(_height, t, seg => seg?.Level ?? 0, (a, b, e) => a + (b - a) * e);
         c.Raise = Math.Max(0, level) * 0.07;
-        double reach = Rig.Leg * 0.995;
-        // `low` is bent knees, not a squat: the hips come down 16 cm (a deep crouch is `both.low@large`).
+        double reach = Rig.Leg * Rig.StraightLeg;
+        // `low` is bent knees, not a squat: the hips come down 16 cm (a deep crouch is `low(40cm)`).
         double y = Rig.AnkleHeight + reach - Rig.LowDrop * Math.Max(0, -level) + c.Raise;
 
         // The pelvis is as high as it can be with both planted feet still in reach.
-        double Cap(Vec3 hip, Vec3 foot, bool free, double raise)
+        double Cap(Vec3 hip, Vec3 foot, bool free, double raise, double reach)
         {
             if (free)
                 return double.MaxValue;
@@ -1205,9 +1237,13 @@ internal sealed class FigureSolver
             return Rig.AnkleHeight + raise + Math.Sqrt(Math.Max(0.04, reach * reach - distance * distance));
         }
 
-        y = Math.Min(y, Cap(p + c.HipLeft * Rig.HipHalf, c.LPos, c.LAir || c.GwL > 0.05, c.Raise));
-        y = Math.Min(y, Cap(p - c.HipLeft * Rig.HipHalf, c.RPos, c.RAir || c.GwR > 0.05, c.Raise));
+        bool freeL = c.LAir || c.GwL > 0.05, freeR = c.RAir || c.GwR > 0.05;
+        y = Math.Min(y, Cap(p + c.HipLeft * Rig.HipHalf, c.LPos, freeL, c.Raise, reach));
+        y = Math.Min(y, Cap(p - c.HipLeft * Rig.HipHalf, c.RPos, freeR, c.Raise, reach));
         c.RawY = y;
+        // The most the legs reach at all: the smoothed height may not go over it, or a planted foot would come up.
+        c.CeilingY = Math.Min(Cap(p + c.HipLeft * Rig.HipHalf, c.LPos, freeL, c.Raise, (Rig.Leg - 2e-4)),
+                              Cap(p - c.HipLeft * Rig.HipHalf, c.RPos, freeR, c.Raise, (Rig.Leg - 2e-4)));
         return c;
     }
 
@@ -1252,6 +1288,7 @@ internal sealed class FigureSolver
 
         // Smooth the height over five frames: the reach limit has corners where a foot lands.
         double y = (Core(Clamp(t - 2 * _dt)).RawY + Core(Clamp(t - _dt)).RawY + c.RawY + Core(Clamp(t + _dt)).RawY + Core(Clamp(t + 2 * _dt)).RawY) / 5;
+        y = Math.Min(y, c.CeilingY);
         y += JumpOffset(t);
 
         // The torso's word says the line from the pelvis to the chest. A rounded back bows

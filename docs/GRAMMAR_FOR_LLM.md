@@ -236,9 +236,9 @@ How much of that time depends on the part:
 
 | Part | When it sets out |
 |---|---|
-| The feet — everything in `steps` and `height`: a step, `stand`, a shift, a turn, a height | In the second half of the word before, and no more than 0.5 s before its beat. A foot STANDS on its beat and is carried to the next one late: in `leftFoot.side stand`, the left foot is down on beat 0, and the right closes between beat 0.5 and beat 1. |
+| The feet — everything in `steps`: a step, `stand`, a shift, a turn | In the second half of the word before, and no more than 0.5 s before its beat. A foot STANDS on its beat and is carried to the next one late: in `leftFoot.side stand`, the left foot is down on beat 0, and the right closes between beat 0.5 and beat 1. |
 | A jump, a hop, a leap | It LANDS on its beat. The bend and the flight are in the word before it (in up to a second of it). |
-| Arms, legs, torso, head | Through ALL of the word before. `arms { side:4 up:4 }` is at the side on beat 0 and travels the whole four beats to be up on beat 4. A gesture sets out for the next word as soon as it has arrived, unless told to stay (`then`, below); it eases in and out, so it slows at each word (for one unbroken movement through a word, `@linear` on that word and on the one after it: `down side@linear up@linear`). |
+| Arms, legs, torso, head, and the `height` | Through ALL of the word before. `arms { side:4 up:4 }` is at the side on beat 0 and travels the whole four beats to be up on beat 4. A gesture sets out for the next word as soon as it has arrived, unless told to stay (`then`, below); it eases in and out, so it slows at each word (for one unbroken movement through a word, `@linear` on that word and on the one after it: `down side@linear up@linear`). |
 | Any word with `@sharp` | At the last moment: it waits, then goes in no more than 0.15 s before its beat. A punch, a clap, a pointing finger. |
 
 - **To stay, and then go: `then`.** `then` is a word that brings nothing new on its
@@ -677,14 +677,16 @@ the leg back with `down`.
 - After a step the weight is on the foot that stepped, so the OTHER leg is free
   (after `leftFoot.fwd`, the right leg). After a `hop` or a `leap` the foot that did not
   land is already off the floor, held low behind: a leg row can shape it (`rightLeg { back.up(10) }`
-  is a landing in arabesque), and the next word of `steps` that moves it puts it down
-  (once the leg row has let it go with `down`: a leg's row wins over `steps`, SH2013).
+  is a landing in arabesque), and the leg's `down` or the next word of `steps` that moves it
+  puts it on the floor (a leg's row wins over `steps`: while the row holds it up, a step does not, SH2013).
 - While either foot is in the middle of a step, or the other leg is also off the
   floor, a leg gesture is an error (SH2004) — except in the air of a jump, a hop or a
   leap, where both legs may take a shape (a split leap: `leftLeg { fwd }` with `rightLeg { back }`). The leg lifts through the word BEFORE its
   gesture, so keep the steps out of that word: give the leg a `then` of the beat it
   may lift in (`rightLeg { skip:3 then fwd.bent down }` lifts in beat 3 only).
-- A leg put `down` lands where it stood before the gesture.
+- A leg put `down` lands where it stood before the gesture. A foot held in the air after a
+  `hop` or a `leap` is put on the floor by `down` beside the foot it stands on, at standing
+  width; the weight stays on the standing foot.
 
 A leg in the air can also send its toe to a place on the other leg:
 
@@ -1022,11 +1024,11 @@ on its direction, in metres: `leftFoot.fwd(0.3m)` (a small step), `leftFoot.side
   `leftLeg { fwd }` and `rightLeg { back }` over its flight is a split leap. **A leg's row
   wins over `steps`**, so the leg the leap lands on must be put `down` in its row on the
   landing beat, or its foot stays in the air (warning SH2013); the leg it took off from
-  stays as its row holds it (a landing in arabesque) until its row says `down` — and
-  then it is held low behind, as after any leap, until a word of `steps` puts it on the floor:
+  stays as its row holds it (a landing in arabesque) until its row says `down`, which puts
+  it on the floor beside the foot it landed on:
   ```shosa
-  steps    { stand:1 shift.left:1 then:2 | leap.fwd(1.2m):2 stand:2 | }  // off the left foot, onto the right at beat 4; both feet down at 6
-  leftLeg  { skip:3 then:1/2 back:1/2 | then:2 down:2 | }               // behind in the air, let go at beat 6 for the `stand`
+  steps    { stand:1 shift.left:1 then:2 | leap.fwd(1.2m):2 then:2 | }  // off the left foot, onto the right at beat 4
+  leftLeg  { skip:3 then:1/2 back:1/2 | then:2 down:2 | }              // behind in the air, on the floor beside the right at beat 6
   rightLeg { skip:3 then:1/2 fwd:1/2 | down:4 | }                      // in front in the air, down to land on at beat 4
   ```
   The same holds after a `hop` or a `leap` for any word of `steps` that moves a foot
@@ -1051,10 +1053,14 @@ changed**, as a turn of the hips is — across steps, jumps and sections:
 | `high` | On the toes. |
 
 ```shosa
-height { low:2 mid:2 }          // a knee bend: down by beat 2, up again by beat 4
+height { mid:3 low(12cm):3 mid:3 }  // a demi-plié: down through beats 0-3, up through 3-6
 height { { low(8cm) low } q q q }   // a bounce in a low stance
-height { mid high:2 mid }       // up onto the toes on beat 1, down on beat 3
+height { mid high:2 mid }           // up onto the toes by beat 1, down again through beats 1-3
 ```
+
+- **A height moves as a gesture does: through ALL of the word before** (a plié or a rise
+  as slow as you write it). To stay, then go, `then`: `height { mid:2 then:1 low:1 }`
+  stands until beat 2 and is down at 3.
 
 - `low` bends the knees, the hips 16 cm lower: a fighter's stance, a plié — not a squat.
   `low(8cm)` is a slight bend, `low(40cm)` a deep crouch (up to `low(60cm)`).
@@ -1206,11 +1212,6 @@ Do not try to express these; mention them as a limitation instead.
 - A change of tempo or of time in the middle of a section (a section says them where it begins; a dance to a song follows its song).
 - A toe at any place on the other leg but its knee and its ankle; a hand on a leg (the thigh, the knee).
 - A foot that points or flexes when you choose (it points only with its toe on the other leg); standing on pointe.
-- A slow change of height in one word (a plié over three beats, a slow rise): a height,
-  like a step, sets out no more than 0.5 s before its beat, so `low:3` stands still and
-  then goes down in the last half second. Write it in pieces of half a second or less,
-  each straight on into the next (at 120: `height { mid:1 low(4cm):1@linear low(8cm):1@linear low(12cm):1 }`). A slow rise
-  cannot be written (`high` has no amount).
 - Changing the feet in the air (a changement, an entrechat); the third and the fifth position told apart.
 
 ## Checking your work
