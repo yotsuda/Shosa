@@ -1,0 +1,25 @@
+=== saute.shosa — BEFORE ===
+Plan:
+- tempo 96, time 2/4 (beat = 0.625 s). turnout { out(80) } throughout. arms bras bas:
+  fwd.across(30).down(70).bent(40).elbow(side) (the grammar's own example line).
+- First position = steps { together } as first word (turned out: heels touch).
+- height: straight at 0, low(8cm) at 1 (bend through beat 0-1), held through beat 2 (the hold).
+- Jumps: jump.up(8cm) landing on beats 3,4,...,10 (8 jumps). The first jump's bend and flight are
+  in the word before it (beat 2-3); with a written height it waits on the floor first, so beat 1-2
+  plus most of 2-3 is the "hold". Height row stays low(8cm): "lands on straight legs and gives back
+  into the row's plie".
+- After the last landing (beat 10) hold plie to 11, stretch 11-12 (straight), stand 12-14.
+  14 beats = 7 bars of 2/4.
+Hesitations:
+- "hold it one more beat" vs. the jump's bend being in the word before: the take-off eats part of
+  beat 2-3. I chose landing at 3 so the hold (1-2) is a full beat before any jump movement.
+- Is `straight` the right starting height for ballet? Grammar says yes.
+- Whether the jump re-bends deeper than the 8 cm plie: "sinks only as much deeper as it needs"
+  (7 cm for 6 cm of air, 12 cm for 16 cm) -> for 8 cm air maybe ~8-9 cm, so almost none extra.
+Expected diagnostics: none (maybe SH1002 if I miscount bars).
+Predictions:
+ (a) one sinking (straight -> 8 cm plie over beat 0-1), maybe a tiny extra dip (<=1 cm) just
+     before take-off; lowest point about 8.5 cm below standing straight.
+ (b) knee at the top of a jump ~4 deg (stretched).
+ (c) between jumps: lowest ~8.5 cm below straight (landing gives into 8 cm plie, then the next
+     bend sinks maybe a little deeper).

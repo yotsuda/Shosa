@@ -26,12 +26,34 @@ public static class CheckReport
     /// place is the middle between the two ankles (the hips sway with the weight). A loop travels
     /// that far every time round; `inPlace` takes the travel out, and it is said all the same.
     /// </summary>
+    /// <summary>How much higher than the other ankle a foot is held to count as off the floor, metres.</summary>
+    private const double RaisedFoot = 0.01;
+
     private static string? Travel(MotionClip clip, ClipFigure figure)
     {
         if (figure.Frames.Count < 2)
             return null;
         int last = figure.Frames.Count - 1;
-        Vec3 Feet(int frame) => (figure.Joint(frame, Rig.LAnkle) + figure.Joint(frame, Rig.RAnkle)) * 0.5;
+        // A foot held up off the floor (a passé, a coupé) has not gone anywhere: it counts where it
+        // last stood, so a dancer who ends on one foot ends where its feet were (writing trial 24,
+        // DESIGN.md 84.3). Both feet up together (a rise, a jump) are counted where they are.
+        Vec3 Foot(int frame, int joint, int other, int towards)
+        {
+            for (int f = frame; f >= 0 && f <= last; f += towards)
+            {
+                if (figure.Joint(f, joint).Y <= figure.Joint(f, other).Y + RaisedFoot)
+                    return figure.Joint(f, joint);
+            }
+            return figure.Joint(frame, joint);
+        }
+        // A loop's first frame and its last are the same moment of the movement: compare them as they are.
+        Vec3 Feet(int frame)
+        {
+            if (clip.Loop)
+                return (figure.Joint(frame, Rig.LAnkle) + figure.Joint(frame, Rig.RAnkle)) * 0.5;
+            int towards = frame == 0 ? 1 : -1;
+            return (Foot(frame, Rig.LAnkle, Rig.RAnkle, towards) + Foot(frame, Rig.RAnkle, Rig.LAnkle, towards)) * 0.5;
+        }
         // Where the feet and the turns put it, not the line of the hips: the hips can be turned over the feet.
         Vec3 Facing(int frame) => Vec3.Forward(figure.Facing[frame == 0 ? 0 : 1]);
 

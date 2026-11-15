@@ -1,0 +1,18 @@
+title "Saute"
+tempo 96
+time 2/4
+
+role solo
+dancer solo humanoid on solo
+
+section Saute {
+  solo {
+    turnout { out(80) }
+    arms    { fwd.across(30).down(70).bent(40).elbow(side) }
+    height  { straight:1 low(8cm):1 | then:2 | then:2 | then:2 | then:2 | low(8cm):1 then:1 | straight:2 | }
+    steps   { together:2 | then:1 jump.up(8cm):1 | jump.up(8cm):1 jump.up(8cm):1 | jump.up(8cm):1 jump.up(8cm):1 | jump.up(8cm):1 jump.up(8cm):1 | jump.up(8cm):1 then:1 | then:2 | }
+  }
+}
+
+form { Saute }
+score { dancer solo }

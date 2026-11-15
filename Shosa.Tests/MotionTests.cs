@@ -389,8 +389,13 @@ public class MotionTests
         var figure = compilation.Clip.Figures[0];
         Vec3 Left(double beat) => figure.Joint(compilation.Clip.FrameAt(beat), Rig.LHip + 2);
         Vec3 Right(double beat) => figure.Joint(compilation.Clip.FrameAt(beat), Rig.RHip + 2);
-        double widest = Enumerable.Range(0, 21).Max(i => Left(7 + i * 0.05).X - Right(7 + i * 0.05).X);
-        Assert.True(widest < Left(7).X - Right(7).X + 0.01, $"the foot went out to the side: {widest:0.000} m");
+        // It goes round the standing ankle, close by it (DESIGN.md 85), not out through second (the
+        // feet a stance apart): from the back of the ankle to fifth in front it passes beside it.
+        var way = Enumerable.Range(0, 41).Select(i => 7 + i * 0.05).ToList();
+        double widest = way.Max(beat => Left(beat).X - Right(beat).X);
+        Assert.True(widest < 0.15, $"the foot went out to the side: {widest:0.000} m");
+        double nearest = way.Min(beat => new Vec3(Left(beat).X - Right(beat).X, 0, Left(beat).Z - Right(beat).Z).Length);
+        Assert.True(nearest > 0.08, $"the foot went through the standing ankle: {nearest:0.000} m");
         Assert.Equal(Right(9).Z + 0.08, Left(9).Z, 2);    // in fifth, in front
         Assert.Equal(0.08, Left(9).Y, 2);                 // on the floor
 
@@ -1142,6 +1147,11 @@ public class MotionTests
         Assert.Equal("    solo travels 1 m forward each time round", Line("    steps { leftFoot.fwd rightFoot.fwd }", "loop"));
         Assert.Equal("    solo travels 1 m forward each time round (taken out of the movement: inPlace)", Line("    steps { leftFoot.fwd rightFoot.fwd }", "loop inPlace"));
         Assert.Equal("    solo loops on the spot", Line("    arms { side down }", "loop"));
+        // A foot held up at the end has not gone anywhere (writing trial 24, DESIGN.md 85): ending in a
+        // passé or a coupé is ending where the feet were.
+        Assert.Equal("    solo ends where it began", Line("    rightLeg { then:2 otherKnee }"));
+        Assert.Equal("    solo ends where it began", Line("    rightLeg { then:2 otherAnkle }"));
+        Assert.Equal("    solo ends where it began", Line("    height { then:2 high }"));
     }
 
     private static string Two(double apart, string a, string b = "head { then:2 }") => FormattableString.Invariant(

@@ -725,8 +725,9 @@ public static class GrammarDoc
               on past the landing of a step or a jump is all let go when the foot lands. With no step, the
               foot goes back to where it stood before the leg lifted (or, after a hop, stays held in the
               air until a step or a `down` puts it on the floor). To keep a leg as it is, write `then`.
-              (The foot goes the straight way: closing from behind to in front, it passes close by the
-              standing leg.)
+              Seen from above, a foot going between the floor and a shape by the standing foot goes round
+              the standing ankle the shorter way, no nearer to it than its two ends: from the back of the
+              ankle to fifth in front it passes beside the standing foot (about 12 cm out), not through it.
 
             A leg in the air can also send its toe to a place on the other leg:
 
@@ -1045,6 +1046,11 @@ public static class GrammarDoc
               knees give a little after. How high it goes follows from the time that
               word gives it (the longer, up to a second, the higher; a `then` counts as that word, so
               `then:2 jump` is a high one and `then:1/2 jump` a little one).
+              The word before is the jump's time, not the standing: at 120 `together:3 jump` lands on beat 3
+              and takes a whole second of the word before it, bending from beat 1.5 and off the floor near beat 2.
+              To stand still 2 beats and then jump, give the jump only its own time: `together:2 then:1 jump`
+              (bends after beat 2, off the floor near 2.5), or write its height (`together:3 jump.up(10cm)`
+              stands until about beat 2.2). To see when the feet leave the floor, `shosa sheet --step 0.25`, or the ankles' height frame by frame in `shosa clip`.
               A quarter of a second gives 3 cm of air — the sheet shows bent knees and no flight — and
               half a second 10 cm (how far the body rises; a foot swinging through clears the floor by more): a leap that is to be SEEN in the air needs half a second or more before it.
               **To make jumps alike whatever comes before them, write the height**: `hop.up(5cm)`,
@@ -1307,6 +1313,8 @@ public static class GrammarDoc
             `to its left` / `to its right` of there, by the way it faced at the start. `, turned N° to its …`
             is added when it ends facing another way: **without it, the dancer faces as it began**.
             Both ways at once read `ends 2.25 m forward and 0.42 m to its left of where it began`.
+            The place is the middle of the feet; a foot held up at the end (a passé, a coupé) counts
+            where it last stood, so ending on one foot in place says `ends where it began`.
             A looping score says `loops on the spot` or `travels 1 m forward each time round`.
             A score danced to a song is headed `Patrol to song.lys: …`. The marks come last, each with
             its score in front (`score !clap at beat 1 = 0.556 s` for the unnamed one), and with

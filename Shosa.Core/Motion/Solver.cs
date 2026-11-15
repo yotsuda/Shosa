@@ -410,7 +410,11 @@ internal sealed class FigureSolver
         public double Angle;
         public bool Air;
         public double AirHeight;
-        /// <summary>Air: how far the foot opens to the side at the top of the flight and back (the feet of a changement pass each other apart).</summary>
+        /// <summary>
+        /// How far the foot bows aside at the middle of its way and back. In the air, the feet of a
+        /// changement pass each other apart; on the floor, a foot whose straight way would run through
+        /// the standing foot goes round it (<see cref="GoRound"/>).
+        /// </summary>
         public Vec3 Open;
         /// <summary>How high the foot is held off the floor when the move begins and when it ends (a foot left in the air after a hop or a leap stays at LiftTo).</summary>
         public double LiftFrom, LiftTo;
@@ -715,6 +719,7 @@ internal sealed class FigureSolver
         }
 
         static double StepLift(Vec3 from, Vec3 to) => Math.Clamp(0.05 + 0.12 * (to - from).Length, 0.06, 0.15);
+        Vec3 Outward(bool isLeft) => Vec3.Left(s.Yaw) * (isLeft ? 1 : -1);
 
         // A leg's `down` puts a foot left in the air (after a hop or a leap) on the floor, beside the
         // foot it stands on at standing width; the weight stays where it is (DESIGN.md 78.4). Its
@@ -793,6 +798,7 @@ internal sealed class FigureSolver
                         T0 = t0, T1 = t1, From = from, To = target,
                         YawFrom = isLeft ? s.LeftYaw : s.RightYaw, YawTo = s.Yaw, Lift = StepLift(from, target),
                         Along = Math.Clamp((target - from).Dot(fwd) / Rig.Stride, -1, 1),
+                        Open = GoRound(from, target, other, Outward(isLeft)),
                     });
                     if (t1 - t0 <= 1e-9 || seg.Stance)
                     {
@@ -825,6 +831,7 @@ internal sealed class FigureSolver
                         {
                             T0 = t0, T1 = t1, From = from, To = target,
                             YawFrom = moveLeft ? s.LeftYaw : s.RightYaw, YawTo = s.Yaw, Lift = StepLift(from, target),
+                            Open = GoRound(from, target, other, Outward(moveLeft)),
                         });
                     }
                     else
@@ -1185,7 +1192,7 @@ internal sealed class FigureSolver
             }
             else
             {
-                pos = Vec3.Lerp(move.From, move.To, s);
+                pos = Vec3.Lerp(move.From, move.To, s) + move.Open * Math.Sin(Math.PI * s);
                 yaw = move.YawFrom + (move.YawTo - move.YawFrom) * s;
                 lift = move.Lift * Math.Sin(Math.PI * u) + move.LiftFrom + (move.LiftTo - move.LiftFrom) * s;
                 // A step forward rolls through the foot: it leaves heel first, toes last, and
@@ -1194,6 +1201,69 @@ internal sealed class FigureSolver
             }
             break;
         }
+    }
+
+    /// <summary>How far apart two ankles pass at the least, metres: a foot's width and a little.</summary>
+    private const double AnkleClearance = 0.09;
+    /// <summary>How near the standing ankle both ends of a leg's way must be for it to go round it, metres.</summary>
+    private const double NearTheStandingFoot = 0.25;
+
+    /// <summary>
+    /// A leg's ankle on its way between the floor (<paramref name="floor"/>, at 0) and a shape
+    /// (<paramref name="shape"/>, at 1), seen from above as turning about the standing ankle: the
+    /// angle the shorter way round, the distance from one end's to the other's. The height is the
+    /// swing's. Only for a way whose two ends are both by the standing foot (writing trial 24,
+    /// DESIGN.md 85: from a coupé behind into fifth the foot went through the standing ankle).
+    /// </summary>
+    private static Vec3 RoundTheStandingFoot(Vec3 swung, Vec3 floor, Vec3 shape, Vec3 standing, double gesture)
+    {
+        double fx = floor.X - standing.X, fz = floor.Z - standing.Z, sx = shape.X - standing.X, sz = shape.Z - standing.Z;
+        double rf = Math.Sqrt(fx * fx + fz * fz), rs = Math.Sqrt(sx * sx + sz * sz);
+        if (rf > NearTheStandingFoot || rs > NearTheStandingFoot || rf < 0.01 || rs < 0.01)
+            return swung;
+        double af = Math.Atan2(fz, fx), turn = Math.Atan2(sz, sx) - af;
+        turn = Math.IEEERemainder(turn, 2 * Math.PI);
+        double angle = af + turn * gesture, r = rf + (rs - rf) * gesture;
+        return new Vec3(standing.X + r * Math.Cos(angle), swung.Y, standing.Z + r * Math.Sin(angle));
+    }
+
+    /// <summary>
+    /// The bow a foot's way on the floor takes so as not to run through the standing foot: closing
+    /// from behind into fifth in front, or from a coupé behind to fifth behind, the straight line
+    /// goes through the standing ankle (writing trials 23 and 24, DESIGN.md 85). Nothing for a way
+    /// that passes clear of it, or that only begins or ends near it (fifth itself is close).
+    /// The bow goes to the side the standing foot is not on, or outward when it is on the line.
+    /// </summary>
+    private static Vec3 GoRound(Vec3 from, Vec3 to, Vec3 standing, Vec3 outward)
+    {
+        Vec3 Flat(Vec3 v) => new(v.X, 0, v.Z);
+        Vec3 a = Flat(from), b = Flat(to), p = Flat(standing), way = b - a;
+        double length2 = way.Dot(way);
+        if (length2 < 1e-6)
+            return default;
+        double u = Math.Clamp((p - a).Dot(way) / length2, 0, 1);
+        if (u < 0.15 || u > 0.85)
+            return default;
+        var nearest = a + way * u;
+        var aside = nearest - p;
+        double apart = aside.Length;
+        if (apart >= AnkleClearance)
+            return default;
+        var across = new Vec3(-way.Z, 0, way.X).Normalized();
+        var away = apart > 0.01 ? (aside.Dot(across) >= 0 ? across : across * -1) : (outward.Dot(across) >= 0 ? across : across * -1);
+        // The bow is a half sine over the way: at the nearest point it has grown to sin(π u) of itself.
+        return away * Math.Min(0.15, (AnkleClearance - apart) / Math.Sin(Math.PI * u));
+    }
+
+    /// <summary>When the leg's word that takes it back to the floor (a `skip`, a `down`) at <paramref name="t"/> ends; null if it is not on one.</summary>
+    private static double? FadeEnd(List<Seg> row, double t)
+    {
+        foreach (var seg in row)
+        {
+            if (t >= seg.T0 && t < seg.T1)
+                return seg.Kind == SegKinds.Release || IsDown(seg) ? seg.T1 : null;
+        }
+        return null;
     }
 
     private static bool IsDown(Seg seg) => seg.Dir is { } d && d[1] < -0.95;
@@ -1673,9 +1743,27 @@ internal sealed class FigureSolver
             {
                 // The leg swings about the hip from the floor to its shape (and back): a straight leg
                 // lowered from the front stays straight on the way down, as it does between two shapes.
+                var onFloor = ankle;
                 ankle = hip + LegSwing(ankle - hip, offset, gesture);
                 // In the air of a jump both legs may take a shape (a split leap); standing, one leg carries the weight.
                 bool flight = c.LAir && c.RAir;
+                // On its way between the floor and a shape low by the standing foot (lifting to a coupé
+                // behind, closing from it into fifth in front) the swing about the hip runs the foot
+                // through the standing ankle. Seen from above it goes round it instead: the way turns
+                // about the standing ankle the shorter way, and comes no nearer than its two ends.
+                // Letting go, the floor end is where `steps` has the foot when the leg has let go (the
+                // place it is in now would swing the way from one side round to the other as a step
+                // sets out late in the word); lifting, it is where the foot stood.
+                if (!flight && gesture < 1)
+                {
+                    var goal = onFloor;
+                    if (FadeEnd(isLeft ? _leftLeg : _rightLeg, t) is { } end)
+                    {
+                        FootAt(isLeft ? _leftMoves : _rightMoves, isLeft ? _leftStart : _rightStart, 0, end, out var there, out _, out _, out _, out _);
+                        goal = new Vec3(there.X, onFloor.Y, there.Z);
+                    }
+                    ankle = RoundTheStandingFoot(ankle, goal, hip + offset, isLeft ? c.RPos : c.LPos, gesture);
+                }
                 if (!flight && gesture > 0.5 && (otherLift > 0.01 || otherGesture > 0.5))
                     problems.BothFeetOff = isLeft ? Channels.LeftLeg : Channels.RightLeg;
             }
