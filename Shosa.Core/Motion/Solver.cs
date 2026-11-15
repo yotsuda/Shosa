@@ -490,6 +490,8 @@ internal sealed class FigureSolver
     private double _weightTime, _floatTime;
     private readonly List<(double T0, double T1, double From, double To)> _turns = [];
     private readonly List<(double T0, double Up, double Land, double T1, double Height, double Bend, double Give)> _jumps = [];
+    /// <summary>Sissonnes: the leg thrown out, when both feet leave the floor, and when the other lands (DESIGN.md 85.6).</summary>
+    private readonly List<(bool Left, double Up, double Land)> _thrown = [];
     /// <summary>Where in the room each `stay` keeps its hand (found once), and the ones being found.</summary>
     private readonly Dictionary<Seg, Vec3> _stayHands = [];
     private readonly HashSet<Seg> _staying = [];
@@ -648,6 +650,25 @@ internal sealed class FigureSolver
                 var early = seg.Clone();
                 early.T1 = landing.T1;
                 legRow[i] = early;
+            }
+        }
+        // A sissonne pushes off both feet: the leg thrown out leaves the floor with the other, and opens in
+        // the air. Its word into the shape, begun on the floor before the take-off, starts at the take-off
+        // and arrives as written (it slid the foot 30 cm out along the floor through the bend: DESIGN.md 85.6).
+        foreach (var (left, up, land) in _thrown)
+        {
+            var legRow = left ? _leftLeg : _rightLeg;
+            for (int i = 0; i < legRow.Count; i++)
+            {
+                var seg = legRow[i];
+                if (seg.Kind is SegKinds.Hold or SegKinds.Release or SegKinds.Stay || seg.T0 >= up - 1e-9 || seg.T1 <= up + 1e-9 || seg.T1 > land + 1e-9)
+                    continue;
+                // Only a leg that comes off the floor: one already held up was never pushing.
+                if (LegShape(legRow, seg.T0, Vec3.Left(_yawStart), Vec3.Forward(_yawStart), SomewhereBelow, Vec3.Up).Weight > 1e-6)
+                    continue;
+                var late = seg.Clone();
+                late.T0 = up;
+                legRow[i] = late;
             }
         }
         _built = true;
@@ -997,6 +1018,8 @@ internal sealed class FigureSolver
                         Weight(t0, up, middle);
                         Weight(up, land, target);
                         s.On = landLeft ? 'L' : 'R';
+                        if (record && !made)
+                            _thrown.Add((!landLeft, up, land));
                     }
                     else
                     {

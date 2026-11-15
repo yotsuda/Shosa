@@ -35,8 +35,8 @@ public static class CheckReport
             return null;
         int last = figure.Frames.Count - 1;
         // A foot held up off the floor (a passé, a coupé) has not gone anywhere: it counts where it
-        // last stood, so a dancer who ends on one foot ends where its feet were (writing trial 24,
-        // DESIGN.md 84.3). Both feet up together (a rise, a jump) are counted where they are.
+        // last stood (writing trial 24, DESIGN.md 84.3; a dancer ending on one foot is measured by
+        // that foot, below). Both feet up together (a rise, a jump) are counted where they are.
         Vec3 Foot(int frame, int joint, int other, int towards)
         {
             for (int f = frame; f >= 0 && f <= last; f += towards)
@@ -57,7 +57,18 @@ public static class CheckReport
         // Where the feet and the turns put it, not the line of the hips: the hips can be turned over the feet.
         Vec3 Facing(int frame) => Vec3.Forward(figure.Facing[frame == 0 ? 0 : 1]);
 
-        var moved = Feet(last) - Feet(0);
+        // Ending on one foot, the dancer is where that foot is: it is measured from where the same foot
+        // began. (The middle with the other foot where it last stood counted half a sissonne's way, and a
+        // foot that slid out before it rose as far again the other way: DESIGN.md 85.6.)
+        Vec3 moved;
+        double leftUp = figure.Joint(last, Rig.LAnkle).Y - figure.Joint(last, Rig.RAnkle).Y;
+        if (!clip.Loop && Math.Abs(leftUp) > RaisedFoot)
+        {
+            int standing = leftUp > 0 ? Rig.RAnkle : Rig.LAnkle, other = leftUp > 0 ? Rig.LAnkle : Rig.RAnkle;
+            moved = figure.Joint(last, standing) - Foot(0, standing, other, 1);
+        }
+        else
+            moved = Feet(last) - Feet(0);
         if (clip.Inplace && figure.Velocity is [var vx, var vz])
             moved += new Vec3(vx, 0, vz) * clip.SecondsAt(clip.TotalBeats);
         Vec3 fwd = Facing(0), left = Vec3.Up.Cross(fwd), now = Facing(last);

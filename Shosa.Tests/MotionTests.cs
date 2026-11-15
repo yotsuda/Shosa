@@ -458,6 +458,11 @@ public class MotionTests
         Assert.Equal(Rig.AnkleHeight, Joint(3, Rig.LHip + 2).Y, 2);                          // on the left foot
         Assert.True(Joint(3, Rig.RHip + 2).Y > 0.2, "the right leg is out to the side");
         Assert.Equal(0.2, Joint(3, Rig.LHip + 2).X - Joint(0, Rig.LHip + 2).X, 2);         // 0.2 m to its left
+        // Both feet push off: through the bend the thrown foot stays where it stood, and the leg opens in
+        // the air (DESIGN.md 85.6: it slid 30 cm out along the floor before it rose).
+        double takeoff = Enumerable.Range(0, 41).Select(i => 2 + i * 0.025).First(beat => Joint(beat, Rig.LHip + 2).Y > Rig.AnkleHeight + 0.01);
+        Assert.All(Enumerable.Range(0, 41).Select(i => 2 + i * 0.025).Where(beat => beat < takeoff),
+            beat => Assert.True((Joint(beat, Rig.RHip + 2) - Joint(0, Rig.RHip + 2)).Length < 0.02, $"the right foot moved on the floor by beat {beat}"));
         // The foot of a leg lifted in the bend does not go into the floor.
         Assert.All(Enumerable.Range(0, 81).Select(i => i * 0.05), beat => Assert.True(Joint(beat, Rig.RHip + 2).Y > Rig.AnkleHeight - 0.005));
 
@@ -1204,6 +1209,10 @@ public class MotionTests
         Assert.Equal("    solo ends where it began", Line("    rightLeg { then:2 otherKnee }"));
         Assert.Equal("    solo ends where it began", Line("    rightLeg { then:2 otherAnkle }"));
         Assert.Equal("    solo ends where it began", Line("    height { then:2 high }"));
+        // Ending on one foot, the dancer is where that foot is (DESIGN.md 85.6): a sissonne 0.2 m to the
+        // left was said as 0.03 m to the right (the middle with the thrown foot where it last stood).
+        Assert.Equal("    solo ends 0.2 m to its left of where it began",
+            Line("    steps    { together:2 then:1 hop.left(0.2m):1 }\n    rightLeg { skip:2 then:1 side.down(45):1 }"));
     }
 
     private static string Two(double apart, string a, string b = "head { then:2 }") => FormattableString.Invariant(
