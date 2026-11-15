@@ -1,0 +1,31 @@
+title "Shopkeeper"
+tempo 60          // one beat is one second
+time 4/4
+
+role keeper
+dancer keeper humanoid on keeper
+
+// Hands flat on the counter: in front of the belly, a little below the elbows.
+// (The hands themselves cannot be laid flat: the grammar has no hands.)
+pose counter { arms { fwd.down(50).bent(60) } }
+
+section Idle {
+  keeper {
+    arms  { counter:1/4 stay:3.5 then:1/4 }                                 // the hands kept on the counter, in the room
+    torso { up:2 up.fwd(10):2 }                                        // lean 10 deg forward by 2 s, back up by 4 s (the loop)
+    head  { fwd:1/2 fwd.down(15):1/2 fwd:1/2 fwd.down(15):1/2 fwd:2 }  // two nods
+  }
+}
+
+section Greet {
+  keeper {
+    torso { up:1 up.fwd(30):1/2!bow then:1 up:2 }                       // down by 1.0 s, held to 1.5 s, up by 2.5 s
+    arms  { counter:1/4 stay:9/4 then:1 down:1 }                        // on the counter to 2.5 s, hanging by 3.5 s
+  }
+}
+
+form Idle  { Idle }
+form Greet { Greet }
+
+score Idle  { dancer keeper  form Idle  loop  inPlace }
+score Greet { dancer keeper  form Greet }

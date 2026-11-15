@@ -1,0 +1,26 @@
+// Four changements from fifth (right foot front), then a plain sauté.
+title "Changement"
+tempo 120
+time 4/4
+
+role solo
+dancer solo humanoid on solo
+
+pose ballet {
+  turnout { out(80) }
+  arms    { fwd.across(30).down(70).bent(40).elbow(side) }
+}
+
+section Jumps {
+  solo {
+    body   { ballet:4 | then:4 | then:4 | then:4 | }
+    // fifth, right foot front; the weight onto both feet; a changement landing on beats 2, 4, 6, 8; a sauté on 10
+    steps  { rightFoot.fwd(0.08m).across(0.13m):1/2 shift.center:1/2 then:1 jump.change:1 then:1 | jump.change:1 then:1 jump.change:1 then:1 | jump.change:1 then:1 jump:1 then:1 | then:4 | }
+    // a small plié on the beat before each landing, straight legs on the landing
+    height { straight:1 low(8cm):1 straight:1@sharp low(8cm):1 | straight:1 low(8cm):1 straight:1@sharp low(8cm):1 | straight:1 low(8cm):1 straight:1@sharp low(8cm):1 | straight:4 | }
+  }
+}
+
+form { Jumps }
+score { dancer solo }
+

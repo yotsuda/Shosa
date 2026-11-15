@@ -11,8 +11,8 @@ pose third   { steps { rightFoot.fwd(0.08m).across(0.04m) }  height { straight }
 pose fifth   { steps { rightFoot.fwd(0.08m).across(0.13m) }  height { straight } }   // the right heel at the left toes (turned out 80)
 
 // ---- Positions of the arms: rounded with a little @bent, the elbows held out to the side (DESIGN.md 75).
-pose brasBas     { arms { fwd.down(70).bent(30).elbow(side) } }   // low, in front of the thighs, rounded
-pose firstArms   { arms { fwd.down(15).bent(40).elbow(side) } }   // in front of the diaphragm
+pose brasBas     { arms { fwd.across(30).down(70).bent(40).elbow(side) } }   // low, in front of the thighs, rounded: the hands 19 cm apart
+pose firstArms   { arms { fwd.across(15).down(25).bent(50).elbow(side) } }   // in front of the diaphragm: the hands 12 cm apart
 pose secondArms  { arms { side.fwd(20).down(10).bent(15).elbow(back) } }   // out to the side, a little forward and below the shoulders, the palms forward
 pose fifthArms   { arms { fwd.up(70).bent(40).elbow(side) } }    // en haut: above the head, a little forward
 pose demiSeconde { arms { side.down } }
@@ -43,8 +43,8 @@ pose arabesque {
 pose attitude { rightLeg { back.up(20).bent.knee(side.up) }  arms { fifthArms } }   // the knee out and above the foot
 
 // ---- Steps and jumps.
-move saute       { steps { then:1/2 jump:1/2 }  height { low(8cm):1/2 then:1/2 } }
-move changement  { steps { then:1/2 jump.change:1/2 }  height { low(8cm):1/2 then:1/2 } }   // from fifth, lands in fifth with the other foot in front
+move saute       { steps { then:1/2 jump:1/2 } }          // the jump makes its own plié (a height row's would add to it)
+move changement  { steps { then:1/2 jump.change:1/2 } }   // from fifth, lands in fifth with the other foot in front
 move echappe     { steps { jump.apart jump.stand } }
 move glissade    { steps { rightFoot.side(0.41m) together }  height { low(8cm) low } }
 move pasDeBourree { steps { rightFoot.back.across leftFoot.side(0.41m) rightFoot.fwd }  height { high high low } }

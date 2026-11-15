@@ -1,0 +1,139 @@
+Trial 22, subject B. Learned only from trials\22\GRAMMAR_FOR_LLM.md (read whole).
+
+=== 1. fifth.shosa — BEFORE first check ===
+Plan:
+- turnout { out(80) } in a shared pose `ballet` with height straight and arms fwd.down(65).bent(40).elbow(side)
+  (the grammar gives fwd.down(15).bent(40).elbow(side) as "ballet's rounded arms" — that is first position in front;
+  bras bas is lower, so I guessed down 65°. Not given in the grammar.)
+- fifth: steps first word rightFoot.fwd(0.08m).across(0.13m) (grammar: "fwd(0.08m).across(0.13m) is a fifth
+  position turned out"). A step leaves the weight on the right foot, so I add shift.center at beat 1/2 so the
+  pliés are on both feet. Unsure: is there a way to START with the weight on both feet in a crossed position?
+  The grammar mentions only jump.apart as a first word for weight on both. The shift will be a visible
+  small movement at the start (0.25-0.5 beat).
+- third: rightFoot.fwd(0.08m).across(0.04m), dancer bea at 1 0.
+- height { straight:2 low(10cm):2 | straight:2 low(10cm):2 | straight:4 | } (12 beats, 3 bars, tempo 72 => 10 s).
+Expected diagnostics: none, maybe a note "starts with `rightFoot.fwd...` already made". Maybe a complaint that
+body+pose with `then` is odd; possibly the pose's arms/turnout fine.
+Questions, predicted:
+- Distance between ankles of ann: sqrt(0.08^2+0.13^2) = 0.153 m (if "across(0.13m)" is measured ankle to ankle
+  and fwd is ankle to ankle). Horizontal distance. Plié: should NOT change it (feet planted; knees go out).
+- Verify: clip -> JSON, compute |leftAnkle - rightAnkle| in x and z at frame 0, at the bottom of plié (beat 2 =
+  1.667 s, frame 50) and at the end. Look at sheet front and side.
+
+=== 1. fifth.shosa — AFTER ===
+check run 1: "no problems" (plus the expected "starts with `rightFoot.fwd(0.08m).across(0.13m):1/2` already made").
+  0 diagnostics on the first run.
+clip (scratch\ank.ps1; mistake of mine: PowerShell variables $j and $J are the same, script printed nothing at first):
+  ann: L ankle (0.041, z 0.000), R ankle (0.171, z 0.080): dx 0.130 (right ankle to the dancer's LEFT of the left
+       ankle, i.e. crossed), dz 0.080, distance 0.153 m. Same at frames 0, 50 (bottom of plié 1), 100, 150, 299.
+  bea: dx 0.040, dz 0.080, d = 0.089 m, unchanged.
+  Pelvis y 0.963 straight -> 0.863 at beat 2 and 6: exactly 10 cm. Prediction (0.153 m, plié does not change it) CORRECT.
+check --at 0,2,4: knees 54° at the bottom of the plié, 4° standing straight.
+SURPRISE: at beat 0 ann's right knee reads 16° (bea 10°), left 4°: the first word is a step so the weight is on the
+  right foot until my shift.center; the stance at beat 0 is not on two straight legs. Pelvis x moves 0.125 -> 0.106
+  in the first half beat. The grammar has no way I could find to START crossed with the weight on both feet
+  (jump.apart is the only "weight on both from the start" first word, and it opens the feet). Kept the shift.
+Arms: fwd.down(65).bent(40).elbow(side) put the hands straight under the shoulders (hands 38 cm apart, 24 cm in
+  front): not rounded toward each other. Changed to fwd.across(30).down(70).bent(40).elbow(side): hands 19 cm
+  apart, 17 cm in front of the pelvis, at hip height. check run 2: no problems. The grammar gives no bras bas
+  example; the only "rounded arms" example is the one in front (fwd.down(15)).
+Front sheet: legs visibly cross (right foot to the left), knees go out over the toes in the plié. Side view: the two
+  dancers overlap (one behind the other), knees do not come forward: right for turned-out plié.
+Total check runs to no diagnostics: 1 (2 runs in all).
+
+=== 2. changement.shosa — BEFORE first check ===
+Plan: steps { rightFoot.fwd(0.08m).across(0.13m):1/2 shift.center:1/2 then:1 jump.change:1 then:1 | ... jump:1 then:1 | then:4 | }
+  - shift.center so the first jump is from both feet (from one foot a `jump` would be an assemblé, says the table).
+  - each jump has a then:1 (0.5 s) before it: "half a second 7 cm" -> a small jump. Jumps land on 2,4,6,8 (change), 10 (plain).
+  - height: low(8cm) on each odd beat (1,3,5,7,9), straight on the landings. UNSURE: the grammar says the jump bends its
+    own knees "on top of any plié the height row has written", and the height moves through all of the word before, so my
+    height row rises from low to straight DURING the flight (beat 1->2). The plié I write is reached half a beat before
+    takeoff. It may look like a double bend. Will look at the sheet.
+Expected diagnostics: none (maybe SH2003 too fast?).
+Predicted front foot after each jump: 1 left, 2 right, 3 left, 4 right, 5 (plain jump) right.
+Predicted collision: no ("the feet open past each other in the air").
+Verify: clip, ankle z at landing frames 30, 60, 90, 120, 150 (beat = 0.5 s) — larger z is in front (facing front);
+  min ankle-to-ankle distance during each flight (frames 15-30 etc.); sheet front and side with --step 0.125 over 1-3.
+
+=== 2. changement.shosa — AFTER ===
+check run 1: no problems (only the "already made" note). 0 diagnostics.
+clip landing frames (beat 2,4,6,8,10 = frames 30,60,90,120,150; facing front so larger z = in front):
+  after jump 1 (beat 2): L ankle z 0.080, R 0.000 -> LEFT front
+  after jump 2 (beat 4): R front;  jump 3 (6): LEFT front;  jump 4 (8): R front;  jump 5 plain (10): R front.
+  Prediction L,R,L,R,R: CORRECT. The ankles keep their x (the left at x 0.041, the right at 0.171) and slide front/back:
+  in left-front fifth the left ankle is 13 cm to the dancer's right of the right ankle — crossed the right way.
+In the air (frames 23-29): the feet uncross to the sides (frame 26: L at x 0.202, R at 0.009, 19 cm apart, the
+  left foot on the left) and cross back. They pass each other at frame 24 with the ankles 5.6 cm apart front-to-back,
+  same height. scratch\mind.ps1: min distance between the ankle->toe bone lines 0.059 m (frame 29), min shin-shin
+  0.050 m (frame 143, in the plain sauté: the crossed shins). Fifth on the floor has 0.08 m front-to-back between
+  ankles, so in the air they come ~2.5 cm closer than standing. Pictures front (--step 0.0625, 1.25-2.125) and side:
+  no leg goes through the other that I can see; the side view shows the red foot front at 1.25 and back at 2.
+  Prediction "no collision": CORRECT as far as bone lines show (flesh is not modelled in the pictures).
+SURPRISE / change: my first height row (low(8cm) on each odd beat, straight on the landings) gave a double bob:
+  pelvis 0.963 -> 0.883 (my plié, beat 1) -> 0.892 (rising toward straight) -> 0.789 (the jump's own bend: 17 cm below
+  straight) -> flight peak 1.038. Variant with straight@sharp on the landing kept the low until takeoff but the jump bent
+  ON TOP of it (0.769, 19 cm). Variant with no plié written: the jump's own bend 0.963 -> 0.849 (11 cm) and back, peak
+  1.046, knees give to 0.917 after landing. I kept that one (height { straight:4 | then:4 | ... }): the grammar says the
+  jump bends its own knees "on top of any plié the height row has written", so a written "small plié before each" stacks.
+  The task's "small plié before each" is therefore the jump's own bend, not written. check run 2: no problems.
+Flight: then:1 (0.5 s) before each jump: rise ~5-8 cm (pelvis 0.964 -> 1.046 peak including the push).
+Total: 1 run to no diagnostics (2 runs).
+
+=== 3. epaulement.shosa — BEFORE first check ===
+Plan: 12 beats (3 bars) at 60: the arms arrive "down" at beat 8, and a score cannot end on the instant a word arrives,
+  so a third bar holds. Arms: bras bas fwd.across(30).down(70).bent(40).elbow(side) -> beat 2 fwd.down(15).bent(40).elbow(side)
+  (the grammar's "rounded arms") -> beat 4 fwd.up(70).bent(40).elbow(side).body (the grammar's fifth en haut, plus .body to
+  go with the side bend) -> beat 6 side.down(15).bent(20) -> beat 8 bras bas.
+  Torso: up:2 up:2 | up.left(15):2 up:2 | up:4 |  (side bend reached at 4, back by 6).
+  Head: fwd:2 fwd.right(20).tilt(right(10)):2 | then:2 fwd.left(20).tilt(left(10)):2 | fwd:4 |
+  AMBIGUITY: the task gives the head no word at beat 4. "At beat 4 ... the eyes stay tilted as written (not more)" — I read
+  it as: the head HOLDS its right tilt through beat 4 (so `then:2`) and the side bend must not tip it further. Without the
+  then the head would travel 2->6 and be about level at 4.
+Expected diagnostics: none. Maybe SH2001 for arms? (no exact opposites: low->front->up->side->low). Maybe a warning
+  about .body with elbow? Unsure about the order elbow(...).body (grammar order: bent, elbow, knee, round, tilt, body).
+Predicted:
+  check --at 2: face 20° right (and "tilt 10° right" or similar), shoulders 0, hips 0.
+  check --at 6: face 20° left, tilt 10° left.
+  beat 4: eyes tilted 10° toward the right shoulder (as written, measured in the room), not 10-15 = -5 or 25; face 20° right.
+Verify: check --at 2,4,6,8; clip `angles` tilt column; sheet front and side; look whether the arms lean with the torso at 4.
+
+=== 3. epaulement.shosa — AFTER ===
+check run 1 (with --at 2,4,6,8): no problems. 0 diagnostics.
+  beat 2: "hips 0°, shoulders 0°, face 20° right, tilted 10° right; bent: elbows 40°..., knees 4° left, 4° right"
+  beat 4: "face 20° right, tilted 10° right; ... knees 23° left, 4° right"
+  beat 6: "face 20° left, tilted 10° left"
+  beat 8: "face 0°" (no tilt mentioned: level)
+  Predictions for 2, 6 and 4: CORRECT. clip angles `tilt`: -10 from frame 60 to 120 (beats 2-4), -6.9 at 4.5,
+  0 at 5, +10 at 6, 0 from 8 on. So the 15° side bend does not tip the eyes: they are 10° (right ear down) as written.
+SURPRISE 1: at beat 4 the LEFT knee is bent 23° (straight legs written, `straight` in the pose). clip: the pelvis moves
+  6.6 cm to the dancer's right (x 0.125 -> 0.059) while the chest goes left (0.189): a counterbalance that bends the
+  left knee. A ballet side bend keeps both legs straight; nothing in the grammar says a side bend moves the hips or
+  bends a knee, and I found no word to keep the pelvis over the feet.
+SURPRISE 2 (arms): fwd.down(15).bent(40).elbow(side) — the grammar's own "ballet's rounded arms" — put the hands 54 cm
+  in front of the shoulders, at shoulder width (38 cm apart), 1.29 m high: arms held forward, not a rounded first
+  position in front of the chest. Tried across(35)/bent(60) and across(30)/bent(50): the hands CROSSED each other
+  (left hand 16 cm / 9 cm to the right of the right hand). across(20): hands 4 cm apart. Chose
+  fwd.across(15).down(25).bent(50).elbow(side): hands 12.5 cm apart, 47 cm in front, 1.20 m high. check run 2: same
+  --at answers (elbows now 50° at beat 2).
+At beat 4 the arms do lean with the torso (.body): left hand 1.87 m, right 1.97 m, hands' middle 13 cm left of the chest.
+Front sheet: the overhead arms tilt with the bend at 4; the head ring shows the face turned right at 2-4, left at 6.
+Total: 1 run to no diagnostics (2 runs).
+
+=== 4. changement-edit.shosa — BEFORE first check ===
+Copied changement.shosa. Edit 1 (steps only): rightFoot -> leftFoot in the first word (1 token), removed
+  "jump.change:1 then:1 jump.change:1 then:1 |" (one whole bar: 4 words + 1 bar line). body and height rows left as they
+  were (4 bars), so the section will be 16 beats with the last 8 standing (steps end at 12).
+Expected: no diagnostics (a row shorter than another is fine: "A section lasts as long as its longest track").
+  Front foot: start L; jump 1 (beat 2) R; jump 2 (beat 4) L; plain jump (beat 6) L.
+Verify: check, clip ankle z at frames 0, 30, 60, 90.
+
+=== 4. changement-edit.shosa — AFTER ===
+check run 1 (steps edit only): no problems; score 16 beats; front foot L (start), R (beat 2), L (beat 4), L (beat 6
+  plain sauté) — prediction CORRECT. The stance is the mirror of the right-front one (ankles at x -0.171 / -0.041).
+  But the section stayed 16 beats (body and height rows still 4 bars): 10 beats of standing after the last jump.
+Edit 2: removed `then:4 |` from body and from height (2 tokens each) so the tail after the sauté is the same 6 beats as
+  in the original. check run 2: no problems, 12 beats, 6 s. Same answers. Min foot gap in the air 0.059 m as before.
+Token count: 1 changed (rightFoot -> leftFoot) + 5 deleted in steps (jump.change:1 then:1 jump.change:1 then:1 |)
+  = 6 for the change asked; + 4 deleted (then:4 | twice) to keep the ending the same = 10 in all. (Plus 2 comments.)
+  No other word had to change: the feet of each jump.change follow from how they stood.
+Total: 1 run to no diagnostics (2 runs).

@@ -1,0 +1,18 @@
+title "Castle guard"
+tempo 100
+time 4/4
+
+role guard
+dancer guard humanoid on guard
+
+// At attention on straight legs; a grapevine to the right, one step a beat.
+// The right foot travels 0.4 m: from standing width (0.2 m) that leaves the feet 0.6 m apart.
+section Vine {
+  guard {
+    height { straight }
+    steps  { stand rightFoot.side(0.6m) leftFoot.back(0.07m).across(0.10m) rightFoot.side(0.3m) | stand then:3 | }
+  }
+}
+
+form { Vine }
+score { dancer guard }

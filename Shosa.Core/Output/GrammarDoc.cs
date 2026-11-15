@@ -646,12 +646,18 @@ public static class GrammarDoc
             `arms { clap!clap }` is a clap on its beat (add `@sharp` for a crisp one); `arms { shoulder.across }` folds the arms.
 
             **A hand that stays where it is in the room: `stay`.** Every target above is measured from the
-            shoulder, so a hand goes with the body when it leans, bows or sinks. `stay` is timed as `then` and
-            keeps the hand where its word before put it, in the room: the elbow bends and unbends to follow it
-            (a hand on a counter, on a rail, on a wall):
-            `rightArm { fwd.down(40).bent(30):4 stay:1 down }` with `torso { up:2 up.fwd(30):2 up }` keeps the
-            hand on the counter through the bow, and lets it go in beat 5. A body that goes farther from the
-            hand than the arm is long is a warning (SH2015). `stay` is for an arm only.
+            shoulder, so a hand goes with the body when it leans, bows or sinks. `stay` keeps the hand where its
+            word before put it, in the room: the elbow bends and unbends to follow it (a hand on a counter, on a
+            rail, on a wall). **It is timed exactly as `then`: it holds through the time of the word BEFORE it,
+            and its own length is the way to the word after it.**
+            `rightArm { fwd.down(40).bent(30):4 stay:1 down }` with `torso { up:2 up.fwd(30):2 up }`: the hand is
+            put on the counter at beat 0, stays there in the room through beats 0–4 (the 4 of the word before
+            `stay`, while the torso bows and comes up), and goes down in beat 4–5 (the 1 of `stay`).
+            So in a row that loops, a last `stay` is the way back to the first word — its length is NOT held:
+            to keep the hand still all the way round, give the length to the word before and keep the `stay`
+            short (`arms { counter:15/4 stay:1/4 }` in a loop of 4 beats; the body is back where it began, so
+            the way back goes nowhere). A body that goes farther from the hand than the arm is long is a
+            warning (SH2015). `stay` is for an arm only.
 
             An arm or the head can take a place on ANOTHER dancer, by its role:
             `ROLE.PLACE`: `rightArm { b.hand:2 }` reaches for b's right hand, `head { b.head }`
@@ -731,8 +737,10 @@ public static class GrammarDoc
 
         sb.Append("""
             ```shosa
-            arms     { fwd.down(15).bent(40).elbow(side) }   // ballet's rounded arms: the elbows held out
-            arms     { fwd.up(70).bent(40).elbow(side) }     // the same, overhead (fifth, en haut)
+            arms     { fwd.across(30).down(70).bent(40).elbow(side) }   // ballet's low rounded arms (bras bas): the hands 19 cm apart in front of the hips
+            arms     { fwd.across(15).down(25).bent(50).elbow(side) }   // rounded in front of the body (first): the hands 12 cm apart, at the diaphragm
+            arms     { fwd.up(70).bent(40).elbow(side) }                // overhead (fifth, en haut)
+            arms     { fwd.down(15).bent(40).elbow(side) }              // NOT rounded: the hands go forward, a shoulder's width apart
             rightLeg { back.bent.knee(side.up) }             // an attitude: the thigh 30° up, the knee out and above the foot
             torso    { up.fwd(10).round }                    // a boxer's hunch
             ```
@@ -747,6 +755,10 @@ public static class GrammarDoc
               above level and the foot at hip height, `back.down(20).bent` the thigh 12° up,
               `back.up(20).bent` 44° up with the foot above the hip. To give a thigh's angle, write
               it and read it off with `shosa clip` (the hip and the knee).
+            - **Rounded arms bring the HANDS toward the middle**: the direction is where each hand is from its
+              own shoulder, so `fwd` keeps the hands a shoulder's width apart however the elbows are held. Round
+              them with `across` (15 to 30, see the examples above), and read the gap in `shosa clip`: past about
+              `across(30)` with a deeper bend the hands cross (`across(35).down(25).bent(60)` overlaps them 16 cm).
             - **Which way it points**: `elbow(DIRECTION)` / `knee(DIRECTION)`, the direction written
               as an arm's or a leg's (`side`, `side.up`, `back`, `fwd.down`; `side` is the limb's own
               side, so `@mirror` and `arms` are right for both). Without it an elbow hangs down, back
@@ -1020,7 +1032,11 @@ public static class GrammarDoc
               if they were crossed (a sauté in fifth lands in fifth); `jump.change` lands with them mirrored, the foot
               that was behind now in front (a changement: fifth with the right foot front lands in fifth with the left
               front; the feet open past each other in the air). The jump bends its own knees before it
-              takes off, on top of any plié the `height` row has written.
+              takes off, on top of any plié the `height` row has written. **So the plié before a jump is not
+              written**: `jump` already sinks (about 11 cm for half a second before it) and gives on landing.
+              A `low` written in the `height` row on the beat before adds to it — the body sinks, comes up a
+              little and sinks again deeper (a double bob). Write a `height` plié only where the dancer stands in
+              it, not on the way into a jump.
               `jump@turn(right(180))` turns in the air. Jumps in a row, each on its beat: `jump jump jump`.
               `left` / `right` go to the dancer's own left and right (a sidestep or a
               dodge: `jump.right(0.25m)`; a dancer `facing stageLeft` has upstage on its left, so two who

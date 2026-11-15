@@ -1268,8 +1268,39 @@ internal sealed class FigureSolver
         c.Hips = Chain(_hips, t, seg => (seg?.TurnDeg ?? 0) * Math.PI / 180, (a, b, e) => a + (b - a) * e);
         c.HipLeft = c.Left * Math.Cos(c.Hips) - c.Fwd * Math.Sin(c.Hips);
         c.HipFwd = c.Fwd * Math.Cos(c.Hips) + c.Left * Math.Sin(c.Hips);
-        // A leaning torso is balanced by the hips going the other way.
-        p -= new Vec3(c.TorsoUp.X, 0, c.TorsoUp.Z) * 0.18;
+        // A leaning torso is balanced by the hips going the other way. Sideways only as far as it costs the
+        // legs that stand next to no height: over crossed feet (a fifth) the hips going aside take one
+        // hip away from its foot, the pelvis comes down to that leg's reach, and the other knee bent 23° in a
+        // side bend written on straight legs (writing trial 22). A real body tilts its pelvis there; this one
+        // keeps the hip sockets level, so it keeps the hips over the feet instead.
+        bool freeL = c.LAir || c.GwL > 0.05, freeR = c.RAir || c.GwR > 0.05;
+        var lean = new Vec3(c.TorsoUp.X, 0, c.TorsoUp.Z) * 0.18;
+        var aside = c.Left * lean.Dot(c.Left);
+        p -= lean - aside;
+        if (aside.Length > 1e-6 && !freeL && !freeR)
+        {
+            double full = Rig.Leg * Rig.StraightLeg;
+            double StandOver(Vec3 q) => Math.Min(Cap(q + c.HipLeft * Rig.HipHalf, c.LPos, false, 0, full), Cap(q - c.HipLeft * Rig.HipHalf, c.RPos, false, 0, full));
+            // A knee is quick to show what a leg has to spare: 0.5 mm is 4°, 3 mm already 10°.
+            const double spare = 0.0005;
+            double before = StandOver(p);
+            double share = 1;
+            if (StandOver(p - aside) < before - spare)
+            {
+                double lo = 0, hi = 1;
+                for (int i = 0; i < 14; i++)
+                {
+                    double mid = (lo + hi) / 2;
+                    if (StandOver(p - aside * mid) < before - spare)
+                        hi = mid;
+                    else
+                        lo = mid;
+                }
+                share = lo;
+            }
+            aside *= share;
+        }
+        p -= aside;
         c.P = p;
 
         // The height is a row of its own, read like a gesture: it can be taken over half-way.
@@ -1290,7 +1321,6 @@ internal sealed class FigureSolver
             return Rig.AnkleHeight + raise + Math.Sqrt(Math.Max(0.04, reach * reach - distance * distance));
         }
 
-        bool freeL = c.LAir || c.GwL > 0.05, freeR = c.RAir || c.GwR > 0.05;
         double stand = Math.Min(top, Math.Min(Cap(p + c.HipLeft * Rig.HipHalf, c.LPos, freeL, c.Raise, reach),
                                               Cap(p - c.HipLeft * Rig.HipHalf, c.RPos, freeR, c.Raise, reach)));
         // How far the feet hold the hips under the top (a stance, a stride): this has corners where a

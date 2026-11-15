@@ -1,0 +1,130 @@
+Trial 22 / subject A — notes
+================================
+
+== shop.shosa: before first check ==
+Choices: tempo 60 so a beat is a second. Hands = pose `counter { arms { fwd.down(50).bent(60) } }`
+(hand ~0.52 m from the shoulder, ~0.33 m forward and ~0.40 m down: about 1.05 m high, belly; the
+elbow hangs down-back at ~1.15 m so the hand is a little below it). Hands flat: not sayable (no hands).
+Idle: arms { counter:1/4 stay:15/4 }, torso { up:2 up.fwd(10):2 } (loop brings it back up),
+head two nods of 15 deg in the first 2 s.
+Greet: torso { up:1 up.fwd(30):1/2!bow then:1 up:2 }; arms { counter:1/4 stay:9/4 then:1 down:1 }.
+UNCLEAR in grammar: when does `stay` start holding the hand? The example
+`fwd.down(40).bent(30):4 stay:1 down` with `torso { up:2 up.fwd(30):2 up }` says the hand stays on
+the counter "through the bow", but the bow happens during the arm's first word (0-4), before `stay`
+(4-5). And "stay is timed as then", and "lets it go in beat 5" suggests the hand moves to `down`
+DURING stay. So it is unclear whether my `stay:9/4 then:1 down` holds 0.25-2.5 then moves 2.5-3.5,
+or whether the stay itself is the way to the next word. Also unclear whether a pose name can be the
+word before `stay` (I think yes, a pose in an arms row is a target).
+Also unclear: a torso moving during the counter word (0-0.25) moves the hand a bit before stay holds.
+Expected diagnostics: none (maybe a warning about stay + then).
+Predictions:
+ - Greet right hand moves 0-1.0 s: ~0 cm (stay keeps it), maybe ~1 cm from the first 0.25 s.
+ - Right elbow: 0 s ~60 (as written; check reads a few deg off). 1.0 s: shoulder comes ~0.22 m
+   forward, 0.06 m down toward the hand, hand distance 0.52 -> ~0.36 m, so bent ~105. MORE bent.
+Verify: check --at 0,1 for elbows; clip -o json and compute rightHand displacement frames 0 and 30;
+sheet --view side to see the bow and hands.
+
+== shop.shosa: after check 1 ==
+check 1: no problems. --at: Greet elbows 60 at 0 s, 101 at 1.0 s (predicted ~105: close; MORE bent).
+Idle elbows 60 -> 66-68 at the lean.
+clip, rightHand (x,y,z): Greet frames 0-75 exactly (-0.190, 1.047, 0.334): moves 0.0 cm from 0 to 1.0 s
+(and none to 2.5 s). Released 2.5-3.5 s to (-0.250, 0.856, 0.080). Good: `stay:9/4 then:1 down`
+holds through the stay and moves only in the then.
+SURPRISE: in Idle the hand SLIDES: z 0.334 -> 0.361 at 2.5 s and back (2.7 cm forward, 0.4 cm down).
+Guess: in a loop the last word (`stay:15/4`) is the way back to the first word (`counter`), and the
+stay, being "timed as then", makes that way through its whole length, so the hand drifts toward the
+shoulder-relative counter place as the torso leans. Fix try: end the row with a short `then` so the
+stay holds and the way back to `counter` is a short then while the torso is already up:
+`arms { counter:1/4 stay:3.5 then:1/4 }`.
+
+check 2 (after the change to `counter:1/4 stay:3.5 then:1/4`): no problems. Idle rightHand now at
+(-0.190, 1.047, 0.334) in every frame 0-120: no slide. So my guess holds: a `stay` that is the last word
+of a looping row is the way back to the first word; end it with a `then` at a moment the body is back.
+Hand y 1.047 vs elbow y 1.163 (12 cm below the elbow), pelvis 0.975: belly height. OK.
+Sheet --view side (out\shop-Idle.png, out\shop-Greet.png): lean and two nods visible in Idle; Greet bow
+deepest at 1-1.5 with forearms keeping the hand in place, arms hanging by 3.5. Looks as meant.
+shop.shosa: 2 checks; 0 diagnostics either time (the second check was for the sliding hand).
+
+
+== villager.shosa: before first check ==
+Puzzled: head { fwd:2 fwd.tilt(left(15)):2 | fwd.right(20).tilt(right(15)):2 fwd:2 | }
+Lean: torso { up:2 up.right(15):2 | then:2 up:2 | }, head { fwd.tilt(left(0)):8 }.
+Doubt: `fwd.tilt(left(0))` — the grammar writes this to hold the eyes level; written with direction
+`fwd` it also keeps the face level (not following the chest). Doubt 2: going from tilt(left(15)) to
+tilt(right(15)) — does the tilt pass through 0 evenly? ("The tilt goes evenly from word to word.")
+Doubt 3: the last `fwd` without tilt: "sits square on the neck" — upright torso, so level.
+Expected diagnostics: none.
+Predictions:
+ - check --at 4 (Puzzled): "face 20° right" and a tilt of 15° right (the line format says "(and its
+   tilt, when the eyes are off level)"), elbows 10 (hanging), knees 12.
+ - Lean without a head row: the eye line tilts with the chest, ~15° to the right (right ear down),
+   perhaps a bit more than 15 if the spine curves. With `tilt(left(0))`: ~0°.
+Verify: check --at 0,2,4,6 on Puzzled; --at 2,3 on Lean; a copy without the head row in scratch\
+(scratch\lean-nohead.shosa) checked --at 2,3; sheet (front) to see the tilt.
+
+== villager.shosa: after check 1 ==
+check 1: no problems. --at 4 (Puzzled): "face 20° right, tilted 15° right" (as predicted; the line says
+"tilted", the elbows 10, knees 12). beat 2: "face 0°, tilted 15° left". beat 1: tilted 7.5° left, beat 3:
+"face 10° right" with no tilt mentioned (the tilt passes through 0 at 3: it goes evenly, left 15 ->
+right 15). beat 6, 7: face 0°, level.
+Lean with `head { fwd.tilt(left(0)):8 }`: face 0°, no tilt at every beat 0-7 (eyes level).
+scratch\lean-nohead.shosa (no head row): "tilted 15° right" at 2, 3, 4 (7.5 at 1 and 5). Predicted ~15°
+right: right. (exactly 15, not more.)
+Sheets out\villager-Puzzled.png / -Lean.png: the face turn shows in the top-view ring at beat 4 (nose
+toward the dancer's right); the head TILT itself cannot be seen on the sheet (the head is a plain ring,
+and the camera is nearly side-on to the front-facing figure). The lean to the right shows in Lean
+(spine toward the red side). Relied on --at for the tilt.
+villager.shosa: 1 check, 0 diagnostics.
+
+
+== guard.shosa: before first check ==
+steps { stand rightFoot.side(0.6m) leftFoot.back(0.07m).across(0.10m) rightFoot.side(0.3m) | stand then:3 | }
+height { straight }. Lead-in `stand` on beat 0 so the first side step is SEEN (a step on beat 0 is
+already made).
+AMBIGUITY in the task vs grammar: "steps 0.4 m to the right side" — in the grammar side(0.4m) means the
+feet END 0.4 m apart (a foot travel of 0.2 m from standing width). I read the task as the foot travelling
+0.4 m, so side(0.6m). For the second side step, side is measured from the crossed left foot, which is
+0.10 m right of the right foot; to make the right foot travel 0.4 m again I wrote side(0.3m).
+Closing: `stand` (standing width 0.2 m) rather than `together`, so the guard ends as it began.
+Expected diagnostics: none. Maybe the first `stand` warns nothing.
+Predictions (dancer's own frame):
+ - after the cross-behind: left ankle 7 cm behind the right ankle and 10 cm to the RIGHT of it.
+ - end: right foot at 0.9 m right, left at 0.7 m (z -0.07, since the second side step lands level with
+   the crossed left foot): ends ~0.8 m to its right and ~0.07 m back.
+Verify: check (end line), clip ankle positions at beat 2.5 (after the cross lands at beat 2), sheet floor.
+
+== guard.shosa: after check 1 ==
+check 1: no problems. "guard ends 0.07 m back and 0.8 m to its right of where it began" = predicted.
+clip ankles (x: + is the dancer's left): after the cross (frame 36 = beat 2) L (-0.600, z -0.070),
+R (-0.500, z 0): left ankle 7 cm behind and 10 cm to the dancer's RIGHT of the right ankle = predicted.
+Right foot travels 0.4 m on both side steps (x -0.1 -> -0.5, -0.5 -> -0.9). Knees at beat 4: 4° (straight).
+Sheet out\guard.png: the legs cross at beat 2, path on the floor goes toward the dancer's right (left of
+the picture); the second side step and the close land 7 cm upstage of the start line, as the grammar
+warns (side/cross/side drifts). Looks as meant.
+guard.shosa: 1 check, 0 diagnostics.
+
+== shop-edit.shosa: before first check ==
+Copy of shop.shosa. Changes: Greet torso `up.fwd(30)` -> `up.fwd(40)` (1 token: the number);
+arms `counter:1/4 stay:9/4 then:1 down:1` -> `counter:1/4 stay:7/4 then:1 down:3/2`
+(stay shorter by 0.5 s so the hands lift 2.0-3.0 s; down lengthened by 0.5 so the arms row still lasts
+4.5 beats like the torso row, though the score length is set by the longest row anyway).
+Strictly the second change would be 1 token (the stay length) if I accept that the arms row is 0.5 s
+shorter than the torso row (the score length would stay 4.5 from the torso row, and the last word of
+the arms row stays for its length... wait: "The last word of a row stays for its length" and a part no
+track writes stays as it is -> the arms simply stay down). So minimal edit = 2 numbers: 30->40 and 9/4->7/4.
+I choose the minimal edit (2 numbers).
+NOTE: the hands now leave at 2.0 s while the bow comes up 1.5-2.5 s, i.e. the hands lift off during
+the rise, as the task asks ("0.5 s earlier").
+Predictions: no diagnostics; bow 40: elbow at 1.0 s more bent than 101 (maybe ~115); hand still 0 cm
+movement 0-1.0 s. Possible SH2015? No: the body comes nearer the hand, not farther.
+Verify: check --at 0,1,2,3; clip right hand frames 0, 30, 60, 90.
+
+== shop-edit.shosa: after check ==
+check 1 (--score Greet --at ...): no problems. Edits made: `up.fwd(30)` -> `up.fwd(40)` and `stay:9/4` -> `stay:7/4`
+= 2 tokens (two numbers), plus I updated the trailing comment on the arms line ("2.0 s ... 3.0 s") to keep
+it true (comment only). I did NOT lengthen `down:1` in the end (the score keeps 4.5 beats from the torso row).
+Elbows: 60 at 0 s, 116 at 1.0 s (predicted ~115), 87 at 2.0, 43 at 2.5, 10 (hanging) at 3.0.
+clip right hand: (-0.190,1.047,0.334) frames 0-60 (no slide through the bow), released 2.0-3.0 s, hanging
+from 3.0 s. Sheet out\shop-edit-greet.png: deeper bow, arms down by 3. As meant.
+check 2 (whole file): no problems, both scores.
+

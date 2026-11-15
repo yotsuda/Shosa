@@ -272,6 +272,23 @@ public class MotionTests
     }
 
     [Fact]
+    public void A_side_bend_over_crossed_feet_keeps_straight_legs_straight()
+    {
+        // Writing trial 22: in fifth the hips went 6.6 cm aside to balance a side bend, one hip left its foot,
+        // and the other knee bent 23° on legs written straight.
+        var compilation = Compile(Samples.Solo("""
+                height  { straight }
+                turnout { out(80) }
+                steps   { rightFoot.fwd(0.08m).across(0.13m):1/2 shift.center:3/2 then:4 }
+                torso   { up:2 up.left(15):2 up:2 }
+            """, "tempo 60\ntime 4/4\n"));
+        Assert.Empty(compilation.Diagnostics);
+        var angles = compilation.Clip.Figures[0].Angles(compilation.Clip.FrameAt(4));
+        Assert.InRange(angles.LeftKnee, 0, 8);
+        Assert.InRange(angles.RightKnee, 0, 8);
+    }
+
+    [Fact]
     public void A_changement_lands_with_the_feet_mirrored()
     {
         // Writing trial 21 (DESIGN.md 80.3): once a plain jump kept the feet as they stood, nothing changed them.

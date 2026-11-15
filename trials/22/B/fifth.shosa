@@ -1,0 +1,34 @@
+// A true fifth (turned out 80°) beside a third position, two demi-pliés each.
+title "Fifth"
+tempo 72
+time 4/4
+
+role fifthR
+role thirdR
+dancer ann humanoid on fifthR at 0 0
+dancer bea humanoid on thirdR at 1 0
+
+// What the two positions share: turnout, straight legs, low rounded arms (bras bas).
+pose ballet {
+  turnout { out(80) }
+  height  { straight }
+  arms    { fwd.across(30).down(70).bent(40).elbow(side) }
+}
+
+section Plie {
+  fifthR {
+    body   { ballet:4 | then:4 | then:4 | }
+    // the right foot in front: heel at the left toes (8 cm ahead), crossed 13 cm; then the weight between the feet
+    steps  { rightFoot.fwd(0.08m).across(0.13m):1/2 shift.center:7/2 | then:4 | then:4 | }
+    height { straight:2 low(10cm):2 | straight:2 low(10cm):2 | straight:4 | }
+  }
+  thirdR {
+    body   { ballet:4 | then:4 | then:4 | }
+    // the front heel at the middle of the back foot: 8 cm ahead, crossed only 4 cm
+    steps  { rightFoot.fwd(0.08m).across(0.04m):1/2 shift.center:7/2 | then:4 | then:4 | }
+    height { straight:2 low(10cm):2 | straight:2 low(10cm):2 | straight:4 | }
+  }
+}
+
+form { Plie }
+score { dancer ann  dancer bea }

@@ -1,0 +1,29 @@
+// A port de bras in fifth with épaulement of the head and a side bend.
+title "Epaulement"
+tempo 60
+time 4/4
+
+role solo
+dancer solo humanoid on solo
+
+pose ballet {
+  turnout { out(80) }
+  height  { straight }
+}
+
+section PortDeBras {
+  solo {
+    body  { ballet:4 | then:4 | then:4 | }
+    steps { rightFoot.fwd(0.08m).across(0.13m):1/2 shift.center:7/2 | then:4 | then:4 | }
+    // low (bras bas) - in front of the chest (beat 2) - overhead, going with the side bend (4) - side (6) - low (8)
+    arms  { fwd.across(30).down(70).bent(40).elbow(side):2 fwd.across(15).down(25).bent(50).elbow(side):2 | fwd.up(70).bent(40).elbow(side).body:2 side.down(15).bent(20):2 | fwd.across(30).down(70).bent(40).elbow(side):4 | }
+    // a side bend of 15° to the dancer's left at beat 4
+    torso { up:2 up:2 | up.left(15):2 up:2 | up:4 | }
+    // right and toward the right shoulder at 2, left and toward the left shoulder at 6, level and front at 8
+    head  { fwd:2 fwd.right(20).tilt(right(10)):2 | then:2 fwd.left(20).tilt(left(10)):2 | fwd:4 | }
+  }
+}
+
+form { PortDeBras }
+score { dancer solo }
+

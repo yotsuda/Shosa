@@ -1,0 +1,26 @@
+title "Puzzled villager"
+tempo 60
+time 4/4
+
+role villager
+dancer villager humanoid on villager
+
+section Puzzled {
+  villager {
+    // level ahead at 0; tilted 15 deg to the left by 2; face 20 deg right, tilted right by 4; level ahead by 6
+    head { fwd:2 fwd.tilt(left(15)):2 | fwd.right(20).tilt(right(15)):2 fwd:2 | }
+  }
+}
+
+section Lean {
+  villager {
+    torso { up:2 up.right(15):2 | then:2 up:2 | }   // leans right by 2, held to 4, up again by 6
+    head  { fwd.tilt(left(0)):8 }                   // the eyes kept level over the lean
+  }
+}
+
+form Puzzled { Puzzled }
+form Lean    { Lean }
+
+score Puzzled { dancer villager  form Puzzled }
+score Lean    { dancer villager  form Lean }
