@@ -8,13 +8,13 @@ figure solo
 dancer solo humanoid on solo
 
 move kick {
-  rightLeg { hold fwd.low@sharp!hit down hold }
-  arms     { hold side down hold }
+  rightLeg { then fwd.low@sharp!hit down then }
+  arms     { then side down then }
 }
 
 section Kick {
   solo {
-    steps { left.fwd hold:3 | right.fwd hold:3 }
+    steps { left.fwd then:3 | right.fwd then:3 }
     body  { kick | kick@mirror }
   }
 }

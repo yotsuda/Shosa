@@ -28,12 +28,9 @@ public static class ContactSheet
         double yaw = viewDegrees * Math.PI / 180;
         from = Math.Clamp(from, 0, clip.TotalBeats);
         double end = Math.Clamp(to ?? clip.TotalBeats, from, clip.TotalBeats);
-        double stepBeats = step is > 0 ? step.Value : DefaultStep(end - from);
-        // A song that begins with an upbeat has its bar lines off the multiples of the step: start
-        // on the upbeat's grid, so that the poses shown include the first beat of every bar.
-        if (from == 0 && clip.Sections.Count > 0 && clip.Sections[0].Pickup % stepBeats is > 1e-9 and var shift && shift < end)
-            from = shift;
-        int count = Math.Min(400, (int)Math.Floor((end - from) / stepBeats + 1e-9) + 1);
+        var beats = Beats(clip, step, from, end);
+        from = beats[0];
+        int count = beats.Count;
         int columns = Math.Min(Columns, count);
         int rows = (count + columns - 1) / columns;
 
@@ -44,7 +41,7 @@ public static class ContactSheet
         double halfWidth = 1.0;
         for (int i = 0; i < count; i++)
         {
-            double frame = clip.FrameAt(from + i * stepBeats);
+            double frame = clip.FrameAt(beats[i]);
             var centre = Centre(clip, frame);
             foreach (var figure in clip.Figures)
             {
@@ -57,9 +54,10 @@ public static class ContactSheet
         }
         double scale = Math.Min(105, (CellWidth / 2.0 - 6) / halfWidth);
 
+        string tempoShown = "";
         for (int i = 0; i < count; i++)
         {
-            double beat = from + i * stepBeats;
+            double beat = beats[i];
             double frame = clip.FrameAt(beat);
             int cellX = Margin + (i % columns) * CellWidth, cellY = Margin + (i / columns) * CellHeight;
             double originX = cellX + CellWidth / 2.0, floorY = cellY + CellHeight - UnderFloor;
@@ -69,26 +67,32 @@ public static class ContactSheet
             canvas.Line(cellX + 6, floorY, cellX + CellWidth - 6, floorY, 1.2, Grid);
             canvas.Text(cellX + 6, cellY + 4, FormatBeat(beat), TextScale, barStart ? Ink : Faint);
 
-            double after = i == 0 ? from - 1e-6 : beat - stepBeats + 1e-6;   // the pose before has what came up to itself
+            double after = i == 0 ? from - 1e-6 : beats[i - 1] + 1e-6;   // the pose before has what came up to itself
             double upTo = (i == count - 1 ? Math.Max(beat, end) : beat) + 1e-6;
 
             // A clip of several sections says where each begins: its name beside the beat of the
             // first pose in it (and of the first pose shown, whichever section that is in).
-            if (clip.Sections.Count > 1)
+            Semantics.SectionIr? entered = null;
+            foreach (var section in clip.Sections)
             {
-                Semantics.SectionIr? entered = null;
-                foreach (var section in clip.Sections)
-                {
-                    if (section.T0 <= upTo && (section.T0 >= after || i == 0))
-                        entered = section;
-                }
-                if (entered is not null)
-                    canvas.Text(cellX + 6 + (FormatBeat(beat).Length + 1) * Advance, cellY + 4, entered.Name, TextScale, SectionColor);
+                if (section.T0 <= upTo && (section.T0 >= after || i == 0))
+                    entered = section;
+            }
+            if (entered is not null && clip.Sections.Count > 1)
+                canvas.Text(cellX + 6 + (FormatBeat(beat).Length + 1) * Advance, cellY + 4, entered.Name, TextScale, SectionColor);
+
+            // The tempo, under the beat of the first pose and of the first pose of a section that
+            // is played at another: two scores that differ only in speed are not the same picture.
+            int line = 0;
+            if (i == 0 || entered is not null)
+            {
+                string tempo = TempoLabel(clip, i == 0 ? beat : entered!.T0 + entered.Pickup);
+                if (tempo != tempoShown)
+                    canvas.Text(cellX + 6, cellY + 4 + ++line * (LineHeight + 2), tempoShown = tempo, TextScale, SectionColor);
             }
 
             // A mark is written on the first pose at or after its moment (what has arrived is
             // still there), with its beat when the pose is not exactly on it.
-            int line = 0;
             foreach (var mark in clip.Marks)
             {
                 if (mark.Beat < after || mark.Beat > upTo)
@@ -106,6 +110,53 @@ public static class ContactSheet
 
         DrawFloor(canvas, clip, Margin, Margin + rows * CellHeight + 8, canvas.Width - Margin * 2, floorHeight - 16);
         return canvas;
+    }
+
+    /// <summary>
+    /// The beats of the poses. With a step asked for, or a first beat, they are that far apart
+    /// from there. Otherwise each section has its own row of them, from its first bar line —
+    /// and where they would be two beats apart in a time of three, six, nine or twelve beats to
+    /// the bar, they are three apart: the first beat of every bar is among them.
+    /// </summary>
+    private static List<double> Beats(MotionClip clip, double? step, double from, double end)
+    {
+        const int most = 400;
+        var beats = new List<double>();
+        double usual = step is > 0 ? step.Value : DefaultStep(end - from);
+        if (step is > 0 || from > 0 || clip.Sections.Count == 0)
+        {
+            for (int i = 0; i < most && from + i * usual <= end + 1e-9; i++)
+                beats.Add(from + i * usual);
+            return beats;
+        }
+        for (int s = 0; s < clip.Sections.Count; s++)
+        {
+            var section = clip.Sections[s];
+            double first = section.T0 + section.Pickup;
+            double apart = usual == 2 && Semantics.Bars.MeterAt(clip.Meters, first).BeatsPerBar % 3 == 0 ? 3 : usual;
+            bool last = s == clip.Sections.Count - 1;
+            // Back from the first bar line to the section's start (a song's upbeat), then on to its end.
+            for (double beat = first - Math.Floor((first - section.T0) / apart + 1e-9) * apart; beats.Count < most; beat += apart)
+            {
+                if (beat > Math.Min(end, section.T1) + 1e-9 || !last && beat > section.T1 - 1e-9)
+                    break;
+                beats.Add(beat);
+            }
+        }
+        if (beats.Count == 0)
+            beats.Add(from);
+        return beats;
+    }
+
+    /// <summary>The tempo at a beat as the language writes it, by the note that is felt, and the time: `4=120 4/4`, in 6/8 `4.=96 6/8`.</summary>
+    private static string TempoLabel(MotionClip clip, double beat)
+    {
+        var meter = Semantics.Bars.MeterAt(clip.Meters, beat);
+        double bpm = Semantics.TempoMap.BpmAt(Semantics.TempoMap.Of(clip.Tempos, clip.Tempo), beat);
+        string tempo = meter is { BeatUnit: 8, BeatsPerBar: 6 or 9 or 12 }
+            ? "4.=" + FormatBeat(bpm / 3)
+            : FormattableString.Invariant($"{meter.BeatUnit}={FormatBeat(bpm)}");
+        return FormattableString.Invariant($"{tempo} {meter.BeatsPerBar}/{meter.BeatUnit}");
     }
 
     private static string FormatBeat(double beat) =>

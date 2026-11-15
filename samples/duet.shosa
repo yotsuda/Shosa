@@ -11,14 +11,14 @@ dancer ben humanoid on b  at 0.6 0   facing stageRight
 
 section Greet {
   a {
-    steps    { left.fwd@small hold:3 | hold:4 }
-    torso    { hold:2 fwd.60 hold | up hold:3 }
-    rightArm { hold:4 | b.hand:2 down:2 }
+    steps    { then left.fwd@small then:2 | then:4 }       // the step lands on 2
+    torso    { up then fwd.60 then | up then:3 }           // bowed on 3: upright for a beat, then in a beat to the bow
+    rightArm { down:3 then | b.hand:2 then down }          // the hands meet on the 1 of the second bar
   }
   b {
-    head     { a.head hold:3 | hold:4 }
-    torso    { hold:3 fwd.60 | up hold:3 }
-    rightArm { hold:4 | a.hand:2 down:2 }
+    head     { a.head then:3 | then:4 }
+    torso    { up:2 then fwd.60 | up then:3 }
+    rightArm { down:3 then | a.hand:2 then down }
   }
 }
 

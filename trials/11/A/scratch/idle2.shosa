@@ -1,0 +1,37 @@
+title "Hero"
+tempo 120
+time 4/4
+
+figure hero
+dancer hero humanoid on hero
+
+pose guard {
+  steps { left.fwd.low@small }
+  arms  { fwd.high@bent }
+}
+
+section Idle {
+  hero {
+    body  { guard:4 | guard:4 | }
+    steps { { both.low@small both.low } { both.low@small both.low } | { both.low@small both.low } { both.low@small both.low } | % | }
+    head  { fwd.left:2 fwd:2 | fwd.right:2 fwd:2 | }
+  }
+}
+
+section Attack {
+  hero {
+    body     { verse 1 { guard:0 } hold:4 | hold:4 | }
+    leftArm  { fwd:1@sharp!jab guard:1 skip:2 | }
+    rightArm { skip:2 fwd:1@sharp!cross guard:1 | }
+    rightLeg { skip:4 | fwd.low:1@bent fwd:1@sharp!kick fwd.low:1@bent down:1 | }
+  }
+}
+
+form Idle     { Idle }
+form Attack   { Attack }
+form Finisher { Attack tempo 130% Attack }
+
+score Idle     { dancer hero  form Idle  loop }
+score Attack   { dancer hero  form Attack }
+score Replay   { dancer hero  form Attack  tempo 50% }
+score Finisher { dancer hero  form Finisher }

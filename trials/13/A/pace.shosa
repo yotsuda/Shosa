@@ -1,0 +1,16 @@
+title "Pace"
+tempo 100
+time 4/4
+
+figure sentry
+dancer sentry humanoid on sentry
+
+section Pace {
+  sentry {
+    steps { then:2 left.fwd right.fwd | left.back right.back together then | }
+    arms  { down:4 | then:4 | }
+  }
+}
+
+form { Pace }
+score { dancer sentry }

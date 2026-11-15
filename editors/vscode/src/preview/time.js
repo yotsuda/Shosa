@@ -78,3 +78,19 @@ export function barAt(clip, beat) {
   }
   return [bar, 0];
 }
+
+// A score without a song is heard too, or its timing cannot be judged: a wood block on every
+// beat, the high one on the first of a bar, and a hand clap at every mark (`!hit`). The same
+// notes a song gives ([beat, beats, pitch, velocity, timbre]; timbre 9 is the drum kit).
+export function clicksOf(clip) {
+  if (!clip || !(clip.totalBeats > 0)) return null;
+  const notes = [];
+  for (let at = 0; at < clip.totalBeats - 1e-6; at++) {
+    const first = barAt(clip, at)[1] < 1e-6;
+    notes.push([at, 0.25, first ? 76 : 77, first ? 115 : 75, 9]);
+  }
+  for (const at of new Set((clip.marks ?? []).map(m => m.beat))) {
+    if (at >= 0 && at < clip.totalBeats + 1e-6) notes.push([at, 0.25, 39, 120, 9]);
+  }
+  return notes.sort((a, b) => a[0] - b[0]);
+}

@@ -1,0 +1,59 @@
+title "Hero"
+tempo 120          // one beat is 0.5 s
+time 4/4
+
+figure hero
+dancer hero humanoid on hero
+
+pose guard {
+  steps { left.fwd.low@small }
+  arms  { fwd.high@bent }
+}
+
+// A looping guard: a slight bounce, the head looks around.
+section Idle {
+  hero {
+    body  { guard:4 | guard:4 | }
+    steps { { both.low@small both.low } q | % | }
+    head  { fwd.left:2 fwd:2 | fwd.right:2 fwd:2 | }
+  }
+}
+
+// Fists out at 0.5 s, 0.75 s and 1.25 s (beats 1, 1.5 and 2.5).
+// The third stays out for 0.5 s (one beat), then goes back to guard.
+section Attack {
+  time 5/4
+  hero {
+    body     { guard:5 | }
+    leftArm  { guard:1 fwd@sharp!hit:1/2 guard:1.5 fwd@sharp!hit:1 hold:1/2 guard:1/2 | }
+    rightArm { guard:1.5 fwd@sharp!hit:1/2 guard:3 | }
+  }
+}
+
+// Not on any beat: thrown back within 0.15 s, upright again at 0.6 s.
+section Hurt {
+  hero {
+    body  { guard:1s }
+    torso { up:0.15s back.60:0.45s up:0.4s }
+    head  { fwd:0.15s fwd.high:0.45s fwd:0.4s }
+    steps { guard:0.15s right.back.low:0.45s right.back.low@small:0.4s }
+  }
+}
+
+// Feet together, two jumps that land on beats 2 and 3, arms up on the second landing.
+section Victory {
+  hero {
+    steps { guard:1 together:1 jump:1!land jump:1!land | hold:4 | }
+    arms  { guard:2 hold:1 up:1!up | hold:4 | }
+  }
+}
+
+form Idle    { Idle }
+form Attack  { Attack }
+form Hurt    { Hurt }
+form Victory { Victory }
+
+score Idle    { dancer hero  form Idle  loop }
+score Attack  { dancer hero  form Attack }
+score Hurt    { dancer hero  form Hurt }
+score Victory { dancer hero  form Victory }

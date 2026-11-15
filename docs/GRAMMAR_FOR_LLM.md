@@ -21,11 +21,16 @@ dancer hero humanoid on hero     // a body that dances it
 // A pose: a named way of standing and holding the body.
 pose guard {
   steps { left.fwd.low@small }
-  arms  { fwd.high@bent }
+  arms  { fwd.25@bent }          // the fists up in front of the face, the elbows down
+  torso { fwd.80@round }         // leaning 10 degrees forward, the back rounded
+  head  { fwd.25 }               // the face up again, looking ahead
 }
 
-// A move: a named row of events. `!hit` names a moment for the game engine.
-move jab { leftArm { fwd:1@sharp!hit guard:1 } }
+// A move: a named row of words. `!hit` names a moment for the game engine.
+// The fist is out ON the beat the jab is written at, and back in guard a beat later.
+// The same direction as the guard, straight: the fist goes out along one line. (To another
+// direction it would swing: from `fwd.high@bent` to `fwd` it comes down like a chop.)
+move jab { leftArm { fwd.25@sharp!hit guard } }
 
 // A section: what each figure does over a stretch of time.
 section Idle {
@@ -37,7 +42,7 @@ section Idle {
 
 section Punch {
   hero {
-    body { guard:0 jab:1 jab:1 hold:2 | }
+    body { guard jab:1 jab:2 | }       // in guard on beat 0; the jabs land on beats 1 and 2
   }
 }
 
@@ -73,7 +78,7 @@ score { dancer solo }
 |---|---|
 | `title "…"` | Optional. |
 | `tempo N` | Beats per minute. Optional; 90 if not written. Also `tempo 4. = 60` (see "A tempo: three spellings"). |
-| `time N/N` | Beats per bar / beat unit. Optional; 4/4 if not written. One beat is the note of the lower number. |
+| `time N/N` | Beats per bar / beat unit. Optional; 4/4 if not written. One beat is the note of the lower number. It is the time of every section that writes none of its own. |
 | `fps N` | Frames per second of the output, and what a length in frames counts. Optional; 30. |
 | `music "song.lys"` | The song this is danced to (see "Dancing to a song"). Optional. |
 | `figure NAME` | An owner of choreography. Required: at least one (see "Figures and dancers"). |
@@ -135,18 +140,22 @@ score practice { dancer alice  form short  tempo 80 }   // written to dance-prac
 - Inside a score: `dancer NAME` (required, one for each dancer who appears), `form NAME`,
   `loop`, `inplace`, `tempo N` (or `tempo N%`), `title "…"`, `music "…"`. A dancer the score does not
   list is not in it.
-- **A score starts from neutral**: arms hanging, torso upright, head straight, feet side
-  by side. Within it, where a figure is, which way it faces and how it is posed carry
-  over from one section of the form to the next.
+- **A score starts IN the first word of each row**: at beat 0 every part is where its
+  row's first word says, and nothing is seen going there. A part no row writes is
+  neutral: arms hanging, torso upright, head straight, feet side by side. Within the
+  score, where a figure is, which way it faces and how it is posed carry over from one
+  section of the form to the next.
 - **A game character's file has one form and one score per movement** — `Idle`, `Walk`,
   `Attack` …, as in the complete file above: `form Idle { Idle }` and
   `score Idle { dancer hero  form Idle  loop }`.
 - `loop` in a score — the end joins the start. The score is solved as if it followed
-  itself, so it begins already in the state it ends in: a looping walk needs no starting
-  pose, and `body { guard:8 }` in a loop simply stays in guard. The feet must end as
+  itself: the way to the first word of each row is made at the END of the loop, in its
+  last word, so a looping walk's first step lands on beat 0 every time round, and
+  `body { guard:8 }` in a loop simply stays in guard. The feet must end as
   they start (same stance, same facing; travelling is fine) or SH2005 says so.
   A bounce in that guard is one more row, `steps { { both.low@small both.low } q q q }`:
-  `both` changes the height and leaves the stance alone (see "Tracks").
+  `both` changes the height and leaves the stance alone (see "Tracks"). (That row is
+  8 beats, like the guard beside it: with bar lines, `{ both.low@small both.low } q | % |`.)
 - `inplace` in a score — the sections are written the same (`left.fwd` still steps), but
   the even travel over the floor is taken out of the output and reported as a velocity,
   for an engine that moves the character itself. Usually with `loop`.
@@ -160,7 +169,7 @@ the tracks alone; in a file each of them stands inside a figure's block.
 
 | Track | Meaning |
 |---|---|
-| `body` | The whole body. Takes the poses and moves you have defined, `hold` and `skip`; a narrower track written beside it wins for its own part. |
+| `body` | The whole body. Takes the poses and moves you have defined, `then` and `skip`; a narrower track written beside it wins for its own part. |
 | `steps` | The feet on the floor: steps, turns, jumps, changes of height. Where the weight is. |
 | `arms` | Both arms at once, mirrored: `side` is away from the midline for each. |
 | `leftArm` | The left arm: where the hand points from the shoulder, or a place on the body it goes to. |
@@ -172,7 +181,9 @@ the tracks alone; in a file each of them stands inside a figure's block.
 
 Tracks may overlap: `body` covers everything, `arms` covers both arms. **Where two tracks
 write the same part at the same time, the narrower one wins**; when the narrower one has
-ended, or says `skip`, the part follows the wider one again. So `body { guard:8 }` with
+ended, or says `skip`, the part follows the wider one again (it is where the wider
+track's word says at that moment, having gone there through the narrower track's last
+word). So `body { guard:8 }` with
 `head { fwd.left:2 … }` is a guard whose head looks around, and `arms { side:4 }` with
 `leftArm { up:4 }` puts the right arm to the side and the left arm up.
 
@@ -180,70 +191,118 @@ The `steps` row holds two parts: where the feet stand, and how high the body sta
 them. `both.low` writes only the height, so beside a wider track it takes the height
 and leaves the feet: `body { guard:8 }` with `steps { { both.low@small both.low } q q q }`
 is a guard that bounces, `body { walk:4 }` with `steps { both.low:4 }` the same walk
-with bent knees. A step, a turn or a jump writes the feet, and **a step cannot be cut
-short**: where a narrower track moves the feet, a wider track's step that overlaps it
-in time is not taken at all (a pose's stance included).
+with bent knees. A step, a turn or a jump writes the feet, and **a step is taken or it
+is not**: a wider track's step (a pose's stance included) is taken only if that track
+has the feet at the beat the step is written at. One whose beat falls where a narrower
+track has the feet is not taken at all.
 
 ## Events: `target:length@annotation!mark`
 
-A track is a row of events. Each event is a target, then optionally `:` and a length,
+A track is a row of events (words). Each is a target, then optionally `:` and a length,
 `@` annotations and one `!` mark — glued together, no spaces:
 
 ```
-side.high            one beat (the default)
-side.high:2          two beats
-side.high:1/2        half a beat          (also :1.5, :3/4)
-side.high:0.3s       0.3 seconds
-side.high:12f        12 frames (at the file's fps)
-side.high:2@sharp    two beats, with an accent
-fwd:1@sharp!hit      … and the moment it arrives is named `hit`
-hold:3               stay as you are for three beats
+side.high            there for one beat (the default)
+side.high:2          for two beats
+side.high:1/2        for half a beat      (also :1.5, :3/4)
+side.high:0.3s       for 0.3 seconds
+side.high:12f        for 12 frames (at the file's fps)
+side.high:2@sharp    gone to at the last moment: an accent
+fwd@sharp!hit        … and the beat it is there is named `hit`
+then:3               nothing new for three beats
 skip:3               say nothing for three beats (a wider track may)
-skip:3bar            say nothing for three whole bars (also hold:3bar)
+skip:3bar            say nothing for three whole bars (also then:3bar)
 ```
 
-**The part moves during the event and is AT its target when the event ENDS.** To be
-somewhere on beat 3, write the event that ends on beat 3. To arrive and then stay, follow
-it with `hold`. Beats are counted from 0, here, on the sheet and in `shosa check`: beat 2
-is the moment the third beat of the bar begins. A clap that a dancer counts "on 3" is an
-event that ENDS at beat 2: `arms { side.low:3/2 clap:1/2 … }`.
+**A word is written AT the beat the part is THERE. Its length is how long it is that
+part's word: until the beat of the next one.** It is like a note, which sounds from
+where it is written: a step written on beat 1 LANDS on beat 1, a clap written at the
+start of a bar is heard at the start of the bar. The position of a word is the sum of
+the lengths before it in the row. Beats are counted from 0, here, on the sheet and in
+`shosa check`: beat 2 is the moment the third beat of the bar begins, so a clap that a
+dancer counts "on 3" is the word AT beat 2: `arms { side.low:2 clap … }`.
 
+**The way to a word is made BEFORE its beat, in the time of the word before it in the row.**
+How much of that time depends on the part:
+
+| Part | When it sets out |
+|---|---|
+| The feet — everything in `steps`: a step, `together`, a shift, a turn, a height | In the second half of the word before, and no more than 0.5 s before its beat. A foot STANDS on its beat and is carried to the next one late: in `left.side together`, the left foot is down on beat 0, and the right closes between beat 0.5 and beat 1. |
+| A jump | It LANDS on its beat. The bend and the flight are in the word before it (in up to a second of it). |
+| Arms, legs, torso, head | Through ALL of the word before. `arms { side:4 up:4 }` is at the side on beat 0 and travels the whole four beats to be up on beat 4. A gesture sets out for the next word as soon as it has arrived, unless told to stay (`then`, below); it eases in and out, so it slows at each word (for one unbroken movement through a word, `@linear` on that word and on the one after it: `down side@linear up@linear`). |
+| Any word with `@sharp` | At the last moment: it waits, then goes in no more than 0.15 s before its beat. A punch, a clap, a pointing finger. |
+
+- **To stay, and then go: `then`.** `then` is a word that brings nothing new on its
+  beat. The part stays where it is through the word before the `then`, and goes to the
+  NEXT word through the `then`: `arms { up:2 then:2 side }` is up on beat 0, still up
+  on beat 2, and at the side on beat 4, moving only from 2 to 4. Read it as "up for
+  two beats, then in two beats to the side": the length of the
+  `then` is how long the way to the next word takes. A long rest and a quick move is
+  `up:7 then:1 side`. Without the `then`, `up:8 side` drifts to the side for eight beats.
+  Of several `then` in a row only the LAST is the way to the next word
+  (`up:2 then:2 then:1 side` is still up on beat 4 and moves in the last beat), and a
+  `then` with nothing after it simply stays. For the feet and for a `@sharp` word a
+  `then` only waits: they still set out late in it (its second half; its last 0.15 s).
+- **The first word of a row is where the part IS when the score starts.** Nothing is
+  seen going there: `body { guard jab }` starts in guard, and the jab lands on beat 1.
+  To show the body going to its first target, write first where it comes from:
+  `arms { down side:3 }` raises them through beat 0 to 1; `arms { then side:3 }` the same
+  from wherever they are. There is no length 0 (SH1009): every word takes time.
+  The same for the feet: a step written on beat 0 of a score that does not loop is a
+  foot already there. To SEE it land, give the score a lead-in (`steps { then:4 | left.fwd … }`).
+  `shosa check` says it under the score (``solo starts with `left.fwd` already made``; a `left.place` too): count that
+  step out of how far the dancer goes — "two steps forward, two back" from beat 0 ends one step behind.
+  `shosa check` also says where each dancer ends (``solo ends 0.5 m back of where it began``,
+  ``solo ends where it began``): read it instead of adding the steps up.
+- **The last word of a row stays for its length**: the score ends with the body there.
+  `arms { down side }` is two beats: down, then out to the side on beat 1 and still there when it ends.
+- After a `skip` nothing had the part, so the next word sets out when the `skip`
+  begins: `arms { skip:4 side }` rises through all four beats. To go late, end the
+  silence with a `then`: `skip:3 then side` rises in the last beat only.
+- In a later section, the first word of a row is on the section's first beat, and is
+  gone to at the END of the section before: no earlier than the last word that
+  dancer has there (in any row), and no earlier than its last bar. A dancer who
+  stands through an intro stands, and moves to the verse's first words in the intro's last bar.
+  A row may begin with `then` there too (`rightArm { then fwd@sharp … }` keeps the arm as it was one more beat).
 - Seconds and frames are turned into beats by the tempo, so they can be mixed with beats.
   Use them where no beat matters (a hit reaction, a gesture).
-- **`:0` is the pose a score STARTS in**: no time passes, the body is simply there.
-  It can only be written before anything else in the score: `body { guard:0 jab … }`.
-  Not needed in a `loop` (it starts where it ends). In a section the score plays
-  more than once it belongs to the first play: `body { verse 1 { guard:0 } jab … }`.
 - `|` is a bar line. It is optional, but when written **the bar it closes must have exactly
   the beats of the `time`** (error SH1002). Write them: they catch miscounted lengths, and
   they line the tracks up. In a row that has bar lines, the events after the last one must
-  fill a bar too (warning SH1002): pad with `skip` or `hold`.
+  fill a bar too (warning SH1002): pad with `skip` or `then`. A movement that is not
+  counted in bars (a game animation of 2.5 s, a reaction written in seconds) is
+  written without bar lines.
 - **A bar with nothing in it is a bar in which the track says nothing** (a `skip` of one
-  bar, whatever the time): `arms { | | clap:1 hold:3 | }` claps in the third bar. So a
-  line is never decoration: one at the very start of a row, or straight after a `:0`
-  pose, is an empty bar too. For a longer wait count the bars: `skip:10bar` says nothing
-  for ten bars, `hold:2bar` stays as you are for two. A length in bars is for `skip`
-  and `hold` only, starts at the start of a bar, and the next `|` closes it (SH1033):
-  `arms { skip:10bar | clap:1 hold:3 | }`.
+  bar, whatever the time): `arms { | | clap:1 then:3 | }` claps at the start of the third bar. So a
+  line is never decoration: one at the very start of a row is an empty bar too.
+  For a longer wait count the bars: `skip:10bar` says nothing
+  for ten bars, `then:2bar` brings nothing new for two. A length in bars is for `skip`
+  and `then` only, starts at the start of a bar, and the next `|` closes it (SH1033):
+  `arms { skip:10bar | clap:1 then:3 | }`.
 - **An event that runs across a bar line is tied over it**: `~`, the line, then the rest
-  of its length alone. In 4/4, `body { jab:2 kick:2~ | :1 hold:3 | }` is a kick of three
-  beats that starts on beat 3. It is ONE event (annotations and the mark go on the
+  of its length alone. In 4/4, `body { jab:2 kick:2~ | :1 then:3 | }` is a kick of three
+  beats written at beat 2 (the third beat of the bar). It is ONE event (annotations and the mark go on the
   first part). Its length is the sum of the parts as written, for a defined move too:
   a 4-beat `kick` that starts on the last beat of a 3/4 bar is `kick:1~ | :3`
   (`kick~ | :3` would be 4 + 3 beats). One that crosses several lines is tied over each:
-  a 12-beat `drill` is `drill:4~ | :4~ | :4 |`. Staying still needs no tie: `hold:4 | hold:4 |`.
+  a 12-beat `drill` is `drill:4~ | :4~ | :4 |`. Staying still needs no tie: `then:4 | then:4 |`.
 - `{ … } & { … }` — rows that happen together, inside one track. All start at the same
   time; the whole is as long as the longest row. The braces are required on both sides.
   Where two rows write the same part, the LATER row wins:
   `body { { walk:4 } & { wave:4 } }` walks while one arm waves.
-- `!name` marks the moment the part arrives (half-way through a `@sharp` event; the landing
-  of a jump, which is at 0.85 of its length: the feet touch there and the knees give
-  for the rest). It does nothing to the movement; it is written to the output for the engine.
+  A word in front of a group has its length written (`guard:1 { jab } & { stepIn }`):
+  a bare word followed by `{` would read as the name of a track.
+- `!name` marks the beat its word is written at: the moment the hand is there, the
+  foot lands, the jump comes down. (On a move it is the beat the move is written at:
+  the beat of its first word.) It does nothing to the movement; it is written to the output for the engine.
   `shosa check` lists every mark with its beat and its second, and the sheet writes
   it in green over the first pose at or after it. Any event that moves something can
   carry one (a step, a turn, a hand going to a place), and a name may be used as often
   as you like: an engine gets one event for each. A bar done again by `%` gives its
-  marks again.
+  marks again, and so does a section the form plays again: each event says the
+  section that wrote it and which play of it this is (`shosa check`: `!hit at beat 12 = 6 s   Attack, play 2`),
+  so an engine can tell them apart under one name. For a name of its own, write the
+  event per play: `verse 1 { fwd@sharp!first } verse 2 { fwd@sharp!second }`.
 
 ## What a section begins with
 
@@ -256,18 +315,23 @@ section Waltz {
   time 3/4
   upbeat 1
   solo {
-    arms  { up:1 | side:3 | down:3 | }                     // begins one beat BEFORE the section
+    arms  { up:1 | side:3 | down:3 | }                     // begins one beat BEFORE the section: up on that beat, at the side on the section's first
     steps { left.side right.side together | % | }          // begins at the section's first bar line
   }
 }
 ```
 
-- **`tempo N` and `time N/N` are in force from where the section is played UNTIL A
-  SECTION THAT WRITES ANOTHER IS PLAYED.** They do not go back to the top of the file
-  at the next section: after `form { March Waltz Coda }`, a Coda that writes neither is
-  in 3/4 at 90 too. So what a section's bars hold depends on what the form plays before
-  it; a section that must be in one time wherever it is played writes its `time`.
-  The `tempo` and `time` at the top of the file are what the score begins in.
+- **The `time` is the section's own. A section that writes none is in the `time` at
+  the top of the file, WHATEVER IS PLAYED BEFORE IT.** A section's bars are counted
+  in one time, so they hold the same beats wherever the form plays it: after
+  `form { March Waltz Coda }`, a Coda that is in three writes `time 3/4` itself, as
+  Waltz does (without it its bars are the file's 4/4, and SH1002 says so).
+- **The `tempo` goes on. `tempo N` is in force from where the section is played UNTIL
+  A SECTION THAT WRITES ANOTHER IS PLAYED**, and does not go back to the top of the
+  file at the next section: after Waltz's `tempo 90`, a Coda that writes no tempo is
+  at 90 too. So how fast a section goes depends on what the form plays before it; a
+  section that must go at one tempo wherever it is played writes it.
+  The `tempo` at the top of the file is what the score begins at.
 - **One play of a section in another tempo or time: write it in the `form`, before the
   section's name.** `form { March Waltz Coda tempo 132 March }` plays the last March at
   132 and leaves the section as it is; `form { tempo 100 Drill tempo 120 Drill tempo 140 Drill }`
@@ -276,19 +340,23 @@ section Waltz {
   round). **It is for THAT PLAY ONLY: the next name is played as if the form had written
   nothing.** In `form { tempo 144 March March Coda }` the second March and the Coda are
   at what they would be without the `tempo 144` — March's own `tempo 120`, or the tempo
-  in force before the form's line if March writes none. So one play is changed in one
+  in force before the form's line if March writes none. (What a section writes itself
+  still counts for what follows it: after `tempo 144 March`, a section that writes no
+  tempo goes on at March's own 120, not at 144.) So one play is changed in one
   place, and "back to the usual tempo" needs no number. What is to last is written by
   a section (the rule above); a name with nothing before it that follows no section's
   tempo is at the `tempo` at the top of the file.
   In a repeat it belongs to the name it stands before, on every pass. It
   must have a name after it (SH1037). Not in a section: `verse 2 { tempo 132 }` is an error.
-- A bar has the beats of the time in force (bar lines, `%`, `skip:2bar` all follow it),
-  and a beat is the note of its lower number. Where that note changes (4/4 to 6/8) and
+- A bar has the beats of the section's time (bar lines, `%`, `skip:2bar` all follow it),
+  and a beat is the note of its lower number. Where that note changes from one section
+  to the next (4/4 to 6/8) and
   no `tempo` is written with it, the music keeps its speed: 120 becomes 240, since the
   beat is now a quaver (a crotchet lasts as long as before, so six counts of 6/8 take
   half the seconds of six counts of 6/4); the other way, 6/8 at 288 into 3/4 is 144, the
-  quavers running on as they were. Where the note stays the same (6/8 to 9/8) nothing
-  changes but the length of the bar: `time 9/8` alone after a jig at `4. = 100` is a
+  quavers running on as they were — also into a section that writes no time in a file
+  whose own is 3/4. Where the note stays the same (6/8 to 9/8) nothing
+  changes but the length of the bar: a section with `time 9/8` alone after a jig at `4. = 100` is a
   slip jig at `4. = 100`. A section that writes both may write them in either
   order: a plain `tempo 100` counts the beats of the section's own `time`. In 6/8 the tempo is easier said by the note
   that is felt: `tempo 4. = 60` with `time 6/8` (see "A tempo: three spellings").
@@ -300,9 +368,9 @@ section Waltz {
   **Half speed without looking the number up is `tempo 50%`**: a score's percentage is of
   the tempo it would begin at, and every tempo after it keeps its proportion too.
   A score at another speed is the same beats in other seconds, and the body answers to
-  seconds: a jump flies as long as its beats last (a 2-beat jump at half speed is a
-  long, high flight — give a jump one beat if the score is also played slowly), and a
-  strike that was just possible can be too fast (SH2003) in the faster score only. The
+  seconds: a jump has the seconds of the word before it to fly in (up to one), so at
+  half speed it is a longer, higher flight, and a
+  movement that was just possible can be too fast (SH2003) in the faster score only (a `@sharp` word takes its 0.15 s at any tempo: if it is too fast, it is too far). The
   warning then names the score it is in.
 - `shosa check` says, for every score, how long it is in beats and in seconds, and for each
   section it plays: its beats, its bars, its seconds, the tempo and the time it is played in.
@@ -314,25 +382,28 @@ section Waltz {
   In 6/8, 9/8 and 12/8 the tempo is said by the beat and by the dotted crotchet that
   is felt: `at 288 (4. = 96)   6/8`.
   Read it for each score: a score that plays a section alone does not hear what the
-  whole piece plays before it, so a Coda that writes nothing is in the file's own
-  tempo and time there. Its form says them: `form coda { tempo 90 time 3/4 Coda }`.
+  whole piece plays before it, so a Coda that writes no tempo is at the file's own
+  there (its time is its own, as everywhere). Its form says it: `form coda { tempo 90 Coda }`.
 - **`upbeat N`: the section's rows may begin N beats before its first bar line** (`upbeat 1`,
-  `upbeat 1/2`; shorter than a bar, SH1036). It is how a movement ARRIVES on the first
-  beat of a section — a clap on the downbeat of the chorus — without being written at
-  the end of whatever section comes before. A row uses the upbeat by beginning with a
+  `upbeat 1/2`; shorter than a bar, SH1036). It is for a word that is THERE before the
+  section's first beat — the hands apart on the beat before the clap, a step that
+  lands on the last beat of what comes before — without writing it at the end of
+  whatever section that is. (To be somewhere ON the first beat needs no upbeat: the
+  first word of a row is on the section's first beat, and is gone to in the section
+  before.) A row uses the upbeat by beginning with a
   bar of exactly N beats (`arms { up:1 | side:3 | … }`); any other row begins at the
   first bar line as usual. The section is as long as it is from that bar line: the
   upbeat adds nothing to it.
 - The upbeat is done over the last N beats of whatever is played before the section,
   and takes from it only the parts it writes (a `skip` in the upbeat takes nothing):
-  an arm still on its way there never arrives, a step in those beats is not taken.
+  what the earlier section writes for those parts on those beats is not done.
   Those beats are the earlier section's: they go at ITS tempo, and the section's own
   `tempo` and `time` begin at its first bar line. The upbeat bar can hold anything a
   bar can (a `verse 2 { … }`, a mark); a `%` after it does the bars after it again, never the upbeat.
-- Before the first section of a score there is nothing: the body simply STARTS as the
-  upbeat leaves it, like a `:0` pose. In a `loop` what is before the start is the end,
-  so the upbeat is done over the last N beats of the loop (a mark in it is at the
-  loop's last beat: beat 8 of an 8-beat loop, which is its beat 0).
+- Before the first section of a score there is nothing: what an upbeat writes before
+  beat 0 is not seen, and the score starts in the words at its first bar line. In a
+  `loop` what is before the start is the end, so the upbeat is done over the last N
+  beats of the loop (a mark in an `upbeat 1` is at beat 7 of an 8-beat loop).
 
 ## Doing it again
 
@@ -341,7 +412,7 @@ Three signs, by how much is done again. (There is no `repeat`.)
 - **A few events: `{ … }` and `q`.** Put the unit in braces; each `q` after it does it
   again: `rightArm { { up:1/2@bent side.high:1/2@bent } q q }` waves three times.
   `q` is the nearest group in braces written before it in the same track (plain events
-  in between do not matter: `{ a b } hold:1 q`). Without a length it lasts as long as
+  in between do not matter: `{ a b } then:1 q`). Without a length it lasts as long as
   the group; `q:2` stretches or squeezes the group into 2 beats; `q@mirror` swaps left
   and right (`steps { { left.side together } q@mirror }` goes left, then right). A `q`
   with no group before it is an error (SH1026): one event is simply written twice.
@@ -349,7 +420,7 @@ Three signs, by how much is done again. (There is no `repeat`.)
   two bars before it (any number: `%4`, `%8`; one bar sixteen times is `a | % | %2 | %4 | %8 |`): `steps { left.side together right.side together | % | % | % | }`,
   `steps { vine:4 | vine@mirror:4 | %2 | }`. The bars must be whole (no event tied into
   them from before, SH1027; ties between the bars of a `%4` are fine) and in the same
-  row of the same section. A `:0` in them is not done again. **To change one bar of a run, write that bar out instead of its `%`**:
+  row of the same section. **To change one bar of a run, write that bar out instead of its `%`**:
   `a b c clap | % | % | a b c jump |`.
 - **Sections: repeat signs in the `form`.** `form { |: A :| B }` plays A A B;
   `|: A :|*4` four times; numbered endings `form { |: A [1. B] :| [2. C] }` play
@@ -371,15 +442,20 @@ Three signs, by how much is done again. (There is no `repeat`.)
   changes the last beat only. A `%` in a verse is the bar written before it — in
   the same verse, or before the verses (never a bar of the verse beside it).
 - A change INSIDE a longer run is written over it, in a narrower track that says `skip`
-  up to that moment: `body { vine:4 | rock:4 | %2 | }` with `arms { skip:3bar | skip:3 up:1 | }`
-  raises the arms on the last beat only (see "Tracks": the narrower wins).
+  up to that moment: `body { vine:4 | rock:4 | %2 | }` with `arms { skip:3bar | skip:2 then side | }`
+  has the arms out on the last beat only, raised through the `then` (see "Tracks": the narrower wins).
 
 ## Poses and moves
 
 ```
-pose guard { steps { left.fwd.low@small }  arms { fwd.high@bent } }
-move kick  { rightLeg { fwd.low:1@bent fwd:1@sharp!hit fwd.low:1@bent down:1 } }
+pose guard { steps { left.fwd.low@small }  arms { fwd.25@bent } }
+move kick  { rightLeg { fwd.low@bent fwd@sharp!hit fwd.low@bent down } }   // knee up, kick, knee, down
 ```
+
+- **A move is written at the beat of its FIRST word**, and that word is gone to through
+  the word before the move, like any other. `kick` at beat 4 has the knee up on beat 4
+  and kicks on beat 5 (its `!hit`). The words inside keep to the rule too: each is
+  there on its own beat, counted from the beat the move is written at.
 
 - A `pose` holds, per track, ONE target and no length. A `move` holds rows of events.
   Either may hold any track (`leftArm`, `head`, `torso` …), and a move's rows are written
@@ -422,14 +498,14 @@ at most one level.
 
 | Level | Meaning |
 |---|---|
-| `low` | 45 degrees below horizontal. For the feet: knees bent. |
+| `low` | 45 degrees below horizontal. For the feet: knees bent (the hips 16 cm lower; a deep crouch is `both.low@large`). |
 | `mid` | Horizontal (the default). For the feet: normal standing height. |
 | `high` | 45 degrees above horizontal. For the feet: on the toes. |
 
 | Alone | Meaning |
 |---|---|
 | `up` | Straight up. |
-| `down` | Straight down: an arm hanging, a free leg back on the floor. |
+| `down` | Down: an arm hanging at the side as an arm nobody wrote does (the hand by the thigh, a little forward), a free leg back on the floor. |
 
 - Two direction words make a diagonal: `fwd.side`, `back.side.low`, `fwd.left.high`.
 - No level means `mid`. A level with no direction is not a target; use `up` or `down`.
@@ -439,6 +515,13 @@ at most one level.
 - The number is always measured from the HORIZONTAL, also for the torso: `torso { fwd.60 }`
   leans 30° forward of upright (a bow), `fwd.80` is a nod of the whole body, `back.70`
   leans back 20°.
+- **The torso leans with a straight back** (a bow folds at the hips). `@round` rounds it:
+  `torso { fwd.80@round }` is a boxer's hunch, `up@round` a slouch. The direction still
+  says where the chest is from the hips; the spine bows back from that line, so the
+  chest, the shoulders and the head lean about 15° further forward than the word says
+  (lift the face again with the head, by the lean and 15° more: `head { fwd.15 }` over `up@round`,
+  `head { fwd.25 }` over `fwd.80@round`). The back always rounds
+  forward, whichever way the torso leans; there is no word for arching it back.
 - `up` and `down` stand alone: `fwd.up` is not a word — write `fwd.high`.
 - **Arms and legs say `side` / `across`, never `left` / `right`** (error SH1011). That is
   what lets `arms { side }` be right for both arms at once.
@@ -451,13 +534,22 @@ at most one level.
   when the torso leans. The head is measured against the chest, so it follows a bow.
   So in a forward fold `arms { down }` hangs toward the floor, and in a bow unwritten
   arms hang in front of the thighs.
+- **An arm at `down` hangs as an arm nobody wrote does**: the elbow a little bent, the
+  hand by the thigh and a little forward — not a straight line under the shoulder
+  joint, which on a character is inside the hip. So `down` is how an arm is put back,
+  and how a row says "hanging" in its first word (`arms { down:3 then side }`).
 - **An arm follows the torso only when its event says `@body`.** Arms left at `up` stay
   vertical while the torso leans to the side. For a side bend with the arms overhead,
   write the lean and, over the same beats, the arms again with `@body`:
   `torso { left.high:2 up:2 }` with `arms { up:2@body up:2 }`.
 - Bending: `@bent` brings the hand or foot closer along the same direction. A raised
   knee is `fwd@bent` (thigh about horizontal) or `fwd.low@bent` (lower); a guard with
-  the fists near the chin is `fwd.high@bent`.
+  the fists up in front of the face is `fwd.25@bent`.
+  **A hand travels from where it is to the target, so a straight punch is the guard's own
+  direction without `@bent`**: from `fwd.25@bent`, `fwd.25@sharp` goes out along one line
+  (to `fwd` it would come down like a chop). Both hands at a place near the middle of the
+  body (`arms { chin }`, `arms { chest }`) bring the elbows across each other: for two arms
+  side by side use a direction.
 - **Never send a part to the exact opposite of where it is** (`down` straight to `up`,
   `fwd` straight to `back`): the way round is then unwritten (warning SH2001). Go through
   a target in between — `arms { fwd up }` raises them through the front, `arms { side up }`
@@ -471,12 +563,12 @@ An arm can also go to a place on the own body instead of a direction:
 | `chest` | The hand in front of the chest. |
 | `shoulder` | The hand on its own shoulder. |
 | `head` | The hand beside the head. |
-| `chin` | The fist in front of the chin: a guard. |
+| `chin` | The hand in front of the chin: one hand in thought, one fist held close. (Both arms there cross at the elbows: a guard is `fwd.25@bent`.) |
 | `belly` | The hand on the belly. |
 | `across.shoulder` | The hand on the opposite shoulder. With `arms`: arms folded. |
 | `clap` | The hand at the midline in front of the chest. With `arms`: the two hands meet. |
 
-`arms { clap:1/4!clap }` is a clap; `arms { across.shoulder }` folds the arms.
+`arms { clap!clap }` is a clap on its beat (add `@sharp` for a crisp one); `arms { across.shoulder }` folds the arms.
 
 An arm or the head can take a place on ANOTHER figure,
 `FIGURE.PLACE`: `rightArm { b.hand:2 }` reaches for b's right hand, `head { b.head }`
@@ -496,9 +588,13 @@ that does not get there is a warning that says how far short it is (SH2006).
 Two facing dancers whose hands meet in front of them stand about a metre apart; for a
 meeting above the heads or beside the hips (`.high`, `.low`) the arms slant, so about 0.8 m.
 Hands of the same side (both left hands) are diagonal to each other between two who face,
-which costs a little more: about 0.7 m for those `.low`.
+which costs a little more: about 0.7 m for those `.low`. Two who touch low and also
+bend their knees deep stand 0.8 m apart and lean in a little (`torso { fwd.70 }`):
+at 0.7 m the bent knees meet.
 Two bodies are in the same place (SH2007) when their trunks come within about 0.2 m of
 each other: nearer than that in the picture is only one standing behind the other.
+So are two whose legs go through each other, of the legs they stand on (two who face
+at 0.7 m and both bend their knees deep); a leg in the air is not looked at, since a kick is meant to land.
 
 Two hands that reach for each other can meet at another height, when BOTH say the same
 level: `a { rightArm { b.hand.high } }` with `b { rightArm { a.hand.high } }` is a high
@@ -511,11 +607,13 @@ the leg back with `down`.
 
 - From standing on both feet nothing else is needed: the weight goes over the other
   foot by itself as the leg lifts, and comes back as it is put down. `steps` can be
-  left out, or `hold`.
+  left out, or `then`.
 - After a step the weight is on the foot that stepped, so the OTHER leg is free
   (after `left.fwd`, the right leg).
 - While either foot is in the middle of a step, or the other leg is also off the
-  floor, a leg gesture is an error (SH2004).
+  floor, a leg gesture is an error (SH2004). The leg lifts through the word BEFORE its
+  gesture, so keep the steps out of that word: give the leg a `then` of the beat it
+  may lift in (`rightLeg { skip:3 then fwd@bent down }` lifts in beat 3 only).
 - A leg put `down` lands where it stood before the gesture.
 
 ## The feet: `steps`
@@ -523,7 +621,7 @@ the leg back with `down`.
 The `steps` track says where the weight is. Its events are:
 
 **A step** — `FOOT.DIRECTION`, optionally with a level: `left.fwd`, `right.side`,
-`left.back.low`. The foot moves and then carries the weight.
+`left.back.low`. The foot LANDS on the word's beat and carries the weight from then on.
 
 | Foot | Meaning |
 |---|---|
@@ -548,7 +646,11 @@ The `steps` track says where the weight is. Its events are:
   move the stance forward, reach with the front foot and close up with the back one:
   `left.fwd right.back@small` (the right foot ends a small step behind the left).
 - `side` is 0.55 m apart; standing width is 0.2 m.
-  Directions combine: `left.fwd.side`. `back` is the same 0.5 m as `fwd`:
+  Directions combine: `left.fwd.side`. A step with `side` in it carries the body
+  0.35 m that way (`@small` 0.6 of it) once the other foot has followed, and
+  the next plain step lands at standing width beside it: walking with every left step
+  `left.fwd.side` drifts 0.35 m to the left each time. There is no word for a
+  sideways distance in metres. `back` is the same 0.5 m as `fwd`:
   `left.fwd together right.back together` goes out and comes home in one bar, and
   `left.fwd right.fwd left.back right.back together` does it in walking steps (the
   fourth step leaves the left foot a stride ahead; `together` brings it home).
@@ -556,11 +658,12 @@ The `steps` track says where the weight is. Its events are:
   `back.across` just behind it — the cross-behind of a grapevine. A cross is not a
   stride. Since the next step is placed from the crossed foot, a line of
   side / cross / side drifts by that 0.12 m; alternate front and behind to cancel it.
-- A level on a step is the height you arrive at: `low` knees bent, `high` on the toes
+- A level on a step is the height you arrive at: `low` knees bent (the hips 16 cm lower:
+  a fighter's stance, a plié — not a squat), `high` on the toes
   (only these words: degrees are not for the feet).
   **A step with no level arrives at normal height**, so after `right.side.high` a plain
   `left.fwd` comes down again; to stay up, write `.high` on every step.
-  `hold` and a leg gesture keep the height they find: after a `.low` step the knees
+  `then` and a leg gesture keep the height they find: after a `.low` step the knees
   stay bent until a step without a level, or `both.mid`.
 - `@small` and `@large` scale a step (0.6 and 1.4): how far it goes, not its height.
 - `left.fwd@turn(left.quarter)` turns DURING the step: the standing foot swivels, and the
@@ -581,12 +684,14 @@ The `steps` track says where the weight is. Its events are:
 - `together` takes a level like a step: `together.high` closes on the toes. It moves the
   foot that does not carry the weight, so after a step or a `shift.left`. Where the weight
   is on both feet (after `jump.apart`, after `shift.center`) neither is the free one, and
-  BOTH close, each half the way, to under the weight: `jump.apart:1 hold:1 together:2`
+  BOTH close, each half the way, to under the weight: `jump.apart:1 then:1 together:2`
   slides the feet back in (`jump.together` jumps them in).
 - `both.low`, `both.mid`, `both.high` — no foot moves; the height changes (a knee bend,
   a rise onto the toes). The weight stays where it was too. Here `@small` / `@large` scale the bend:
-  `both.low@small` is a slight bend, `both.low@large` a deep crouch, so a light bounce in
-  a low stance is `both.low@small both.low`, and a duck is `both.low@large`.
+  `both.low@small` is a slight bend (8 cm), `both.low` bent knees (16 cm), `both.low@large`
+  a deep crouch (40 cm), so a light bounce in a low stance is `both.low@small both.low`,
+  and a duck or a squat is `both.low@large`. (On a step `@small` / `@large` are the
+  stride: to step into a crouch, the step and then `both.low@large`.)
 - `shift.left`, `shift.right`, `shift.center` — the weight moves over that foot (or
   between them); no foot leaves the floor, and the height stays as it is. The basis
   of standing and waiting.
@@ -610,35 +715,48 @@ The `steps` track says where the weight is. Its events are:
 | `place` | Land where you took off (the default). |
 | `fwd` | Land 0.4 m ahead. |
 | `back` | Land 0.3 m behind. |
+| `left` | Land 0.4 m to the figure's left: a dodge is `jump.left@small`. |
+| `right` | Land 0.4 m to the figure's right. |
 | `apart` | Land with the feet 0.6 m apart. |
 | `together` | Land with the feet at standing width. |
 
-  The figure is in the air in the middle of the event and has landed, on both feet, when it
-  ends. How high it goes follows from the time it has; it is not written. It lands at the
+  A jump LANDS on its beat, on both feet; the bend and the flight are in the word before
+  it, and the knees give a little after. How high it goes follows from the time that
+  word gives it (the longer, up to a second, the higher; a `then` counts as that word, so
+  `then:2 jump` is a high one and `then:1/2 jump` a hop); it is not written.
+  A quarter of a second gives 2 cm of air — the sheet shows bent knees and no flight — and
+  half a second 7 cm: a leap that is to be SEEN in the air needs half a second or more before it. It lands at the
   height it took off from (low stays low), and a plain `jump` keeps the feet as far apart as they were.
-  `jump@turn(right.half)` turns in the air.
+  `jump@turn(right.half)` turns in the air. Jumps in a row, each on its beat: `jump jump jump`.
+  `jump.left` / `jump.right` go to the figure's own left and right (a sidestep or a
+  dodge: `jump.right@small`; a dancer `facing stageLeft` has upstage on its left, so two who
+  face each other and both write `jump.left` go to opposite walls); with `fwd` or `back` they go diagonally (`jump.back.left`).
 - `lift(0.4)` — ONLY for a free body (`@free` on the event, or `free` on the dancer line;
   otherwise SH1022): the feet hang 0.4 m above the floor until told otherwise.
-  `lift.fwd(0.4)` / `lift.back(0.4)` also travel. `land` comes back to the floor.
-  A double jump: `steps { lift(0.4):0.3s@free lift(0.9):0.3s@free land:0.4s@free }`.
-- `hold` — stay.
+  `lift.fwd(0.4)` / `lift.back(0.4)` / `lift.left(0.4)` / `lift.right(0.4)` also travel.
+  `land` comes back to the floor.
+  A double jump: `steps { then:0.3s lift(0.4):0.3s@free lift(0.9):0.3s@free land:0.4s@free }`
+  (0.4 m up at 0.3 s, 0.9 m at 0.6 s, down at 0.9 s).
+- `then` — nothing new: the feet stay, and the next word's foot sets out in its second half.
 
 ## Annotations
 
 | Annotation | Meaning |
 |---|---|
-| `@smooth` | Ease in and out (the default). |
-| `@sharp` | Get there in the first half of the event and stop: an accent. Twice as fast, so it can be too fast (SH2003). |
-| `@linear` | Constant speed. |
+| `@smooth` | The way TO this word eases in and out (the default). |
+| `@sharp` | Go at the last moment: the part waits, then gets there in no more than 0.15 s before its beat. An accent — a punch, a clap. Fast, so it can be too fast (SH2003). |
+| `@linear` | The way TO this word is at constant speed: no slowing as it arrives. |
 | `@bent` | Fold the elbow or the knee: the hand or foot stays in direction but comes closer. |
 | `@body` | For an arm: measure the direction against the torso instead of the room, so the arm leans when the torso leans. |
+| `@round` | For the torso: the back is rounded. The direction still says where the chest is from the hips; the spine bows back from that line, and the chest, the shoulders and the head lean further forward (`torso { fwd.80@round }` is a fighter's guard, `up@round` a slouch). Without it the back is straight, as in a bow from the hips. |
 | `@small` | A shorter step or jump. On `both.low` / `together.low`: a slighter knee bend. |
 | `@large` | A longer step or jump. On `both.low` / `together.low`: a deeper crouch. |
 | `@mirror` | Left and right swapped: `kick@mirror` kicks with the other leg. |
 | `@free` | The rules of weight, gravity and speed do not apply to this event. Bones still keep their length. |
 | `@turn` | For a step or a jump: turn while doing it, `left.fwd@turn(left.quarter)`, `jump@turn(right.half)`. The step lands where it would after the turn. |
 
-`@bent` is for arm and leg directions; `@body` for arm directions; `@small` / `@large`
+`@bent` is for arm and leg directions; `@body` for arm directions; `@round` for torso
+directions; `@small` / `@large`
 for steps, jumps and `both` / `together`; `@turn(…)` for steps and jumps. Several can
 follow one event, and the length, the annotations and the mark may come in any order:
 `fwd:1@bent@sharp`, `kick@mirror:2`.
@@ -685,7 +803,7 @@ score { dancer alice  dancer bob  dancer carol }
 
 ## Dancing to a song
 
-`music "song.lys"` names a song written in Lily#, in a file beside this one. The dance
+`music "song.lys"` names a song written in Lily#: a path from this file's folder (`"song.lys"` beside it, `"../song.lys"` one folder up). The dance
 then takes its tempo, its time and the order of its sections from the song: **the song's
 own form is the form, so this is the one kind of file that writes none.**
 
@@ -768,28 +886,55 @@ Do not try to express these; mention them as a limitation instead.
 ## Checking your work
 
 ```
-shosa check FILE            diagnostics, or "no problems"; every score with its length, and each section in it with its beats, bars, seconds, tempo and time; then every mark
+shosa check FILE            diagnostics, or "no problems"; every score with its length, and each section in it with its beats, bars, seconds, tempo and time, a step or jump the score starts with already made, and where each dancer ends from where it began; then every mark
 shosa check FILE --score Rage   one score only (`--score ""` the unnamed one)
 shosa sheet FILE -o X.png   the movement on one image per score (X.png for the unnamed score, X-Idle.png, X-Punch.png …)
-shosa sheet FILE -o X.png --score Punch --step 0.5 --from 0 --to 4   one score, closer poses
+shosa sheet FILE -o X.png --score Punch --step 0.5 --from 0 --to 4   one score, closer poses (all three in beats; --step 0.1 for a punch)
 shosa sheet FILE -o X.png --view side   seen from stage left: a figure facing front is in profile (one facing stageLeft or stageRight is in profile WITHOUT it)
 shosa sheet FILE -o X.png --score solo  with `score solo { dancer bea }`, bea alone and larger (with `--score`, the file is X.png itself)
 ```
+
+What `check` prints for a file with a looping `score Idle` and a `score Patrol`:
+
+```
+guard.shosa: no problems
+  Idle: 8 beats, 4 s, 1 dancer
+    Idle   0-8   2 bars   4 s   at 120   4/4
+    guard loops on the spot
+  Patrol: 12 beats, 6 s, 1 dancer
+    March   0-8   2 bars   4 s   at 120   4/4
+    Turn   8-12   1 bar   2 s   at 120   4/4
+    guard ends 0.96 m to its left of where it began, turned 90° to its right
+  Patrol !step at beat 1 = 0.5 s
+```
+
+A score is headed by its name (the unnamed one by `score`), then one line for each section
+played, then one line for each dancer: `ends where it began`, or how far `forward` / `back` /
+`to its left` / `to its right` of there, by the way it faced at the start. `, turned N° to its …`
+is added when it ends facing another way: **without it, the dancer faces as it began**.
+Both ways at once read `ends 2.25 m forward and 0.42 m to its left of where it began`.
+A looping score says `loops on the spot` or `travels 1 m forward each time round`.
+A score danced to a song is headed `Patrol to song.lys: …`. The marks come last, each with
+its score in front (`score !clap at beat 1 = 0.556 s` for the unnamed one), and with
+`   Attack, play 2` behind when the score plays that section more than once.
 
 Diagnostics are `FILE(line,column): severity CODE: message`. SH0xxx is syntax, SH1xxx is
 a word or a count that does not make sense, SH2xxx is a movement the body cannot do
 (SH2002 a step longer than the leg, SH2003 too fast, SH2004 both feet off the floor,
 SH2005 a loop that does not join, SH2006 a hand that cannot reach the other dancer,
-SH2007 two dancers whose heads or bodies are in the same place). The message says what to change.
+SH2007 two dancers whose heads, bodies or standing legs are in the same place). The message says what to change.
 
 The sheet shows poses numbered by beat from 0, read left to right, then down. How far
 apart they are depends on the length shown: every half beat up to 8 beats, every beat up
-to 32, every 2 beats beyond. **Anything shorter than that gap is invisible** — a half-beat
+to 32, every 2 beats beyond (every 3 in a section whose bars have 3, 6, 9 or 12 beats, so
+that the first beat of every bar is among them; each section's poses are counted from its first bar line). **Anything shorter than that gap is invisible** — a half-beat
 punch on a per-beat sheet shows nothing — so before concluding that a movement is missing,
 look closer with `--step` and `--from` / `--to`. A movement that comes round as often
 as the poses are taken (a march of two beats on a sheet of every 2 beats) looks like
 standing still: look closer there too. Bold numbers start a bar.
 In a score of several sections, a section's name stands in purple beside the first pose in it.
+Under the first beat are the tempo, by the note that is felt, and the time (`4=120 4/4`; in 6/8 `4.=96 6/8`), and again
+under the first pose of a section played at another tempo or in another time: two scores that differ only in speed differ there.
 With more than one dancer, each one's name is under where it stands, and at its ring on the floor.
 **Left limbs are blue, right limbs are red**; the torso and shoulder line are dark. The camera stands
 in front and a little to stage left, so a figure facing front shows its left on the right
@@ -797,14 +942,17 @@ of the picture; the short line on the head is the nose. From there a punch or a 
 straight ahead is foreshortened: judge those, bows and nods with `--view side`.
 Under the poses is the floor from above,
 audience at the bottom: the grey line is the path of the hips, the blue and red marks are
-footprints, the ring is where the figure started. Always look at the sheet: a file with
+footprints, the ring is where the figure started. Each pose is drawn in the middle of its
+own place in the row, so **travel is seen only on the floor**, not from pose to pose. Always look at the sheet: a file with
 no diagnostics can still be the wrong movement (a mirrored arm, a step the wrong way).
 
 ## Rules and gotchas
 
 - Never leave out `figure`, `dancer`, `form` or `score`; every track is inside a figure's block.
-- A score starts from neutral. Start an action with its pose: `body { guard:0 … }`.
-- An event ends AT its target. `arms { up:4 }` takes four beats to get there.
+- A word is AT its target ON its beat, and stays its length. A step written on beat 1 lands on beat 1.
+- The way there is in the word BEFORE: `arms { down:4 side }` takes four beats to get there.
+  To stay and then go, a `then` before the next word: `down:3 then side`.
+- A score starts IN its first words: `body { guard jab }` starts in guard, the jab lands on beat 1. There is no `:0`.
 - A definition without a length takes its defined length; write the length when counting.
 - Limbs: `side` / `across`. Torso and head: `left` / `right`.
 - Degrees are from the horizontal, for the torso too.
@@ -813,6 +961,6 @@ no diagnostics can still be the wrong movement (a mirrored arm, a step the wrong
 - A leg gesture ends with `down`, and never overlaps a step.
 - A step with no level comes back to normal height.
 - Arms do not lean with the torso unless the event says `@body`.
-- `body` takes only your poses and moves, `hold` and `skip`.
+- `body` takes only your poses and moves, `then` and `skip`.
 - Count every bar and write the `|`. An event across a bar line is tied: `kick:2~ | :1`.
 - Again: `{ … } q` for a few events, `%` for a bar, `|: A :|` in the form for sections.

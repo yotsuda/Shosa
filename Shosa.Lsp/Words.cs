@@ -12,12 +12,12 @@ namespace Shosa.Lsp;
 /// </summary>
 internal static class Words
 {
-    private static readonly Vocabulary.Word Hold = new("hold", "Stay as you are.");
+    private static readonly Vocabulary.Word Hold = new("then", "Nothing new on this beat: the part stays through the word before, and goes to the next word through the `then`. For the feet and a @sharp word it only waits.");
     private static readonly Vocabulary.Word Skip = new("skip", "This track says nothing for this long: a wider track (body, arms) has the part meanwhile.");
     private static readonly Vocabulary.Word Again = new("q", "The group in braces before it, again: { a b } q q. With a length the group is stretched to it; q@mirror swaps left and right.");
 
     private static readonly Vocabulary.Word Verse = new("verse", "verse N { … } — done only the Nth time the score plays this section: verse 2, verse 1,3, verse 1-2. Verses side by side share one place in the row.");
-    private static readonly Vocabulary.Word Bar = new("bar", "Whole bars: skip:3bar says nothing for three bars, hold:2bar stays for two. At the start of a bar; the next | closes it.");
+    private static readonly Vocabulary.Word Bar = new("bar", "Whole bars: skip:3bar says nothing for three bars, then:2bar stays for two. At the start of a bar; the next | closes it.");
 
     private static readonly Vocabulary.Word[] TurnSides =
     [
@@ -59,7 +59,7 @@ internal static class Words
     [
         new("upbeat", "upbeat N — the section's rows may begin N beats before its first bar line, over the end of what is played before. A row uses it by beginning with a bar of N beats."),
         new("tempo", "tempo N — beats per minute from this section on, until a section that writes another is played. tempo 80% is of the tempo before it; tempo 4. = 60 counts a note (a dotted crotchet) instead of the beat."),
-        new("time", "time N/N — the time from this section on, until a section that writes another is played."),
+        new("time", "time N/N — the time of this section, wherever it is played. A section that writes none is in the time at the top of the file."),
     ];
 
     private static readonly Vocabulary.Word[] FormChanges =
@@ -115,8 +115,8 @@ internal static class Words
     public const string VerseSnippet = "verse ${1:2} { $0 }";
 
     /// <summary>
-    /// Whether the cursor stands in the length of a `skip` or a `hold`, after a whole number
-    /// (`skip:3`, `hold:2b`): the one place the unit `bar` can be written.
+    /// Whether the cursor stands in the length of a `skip` or a `then`, after a whole number
+    /// (`skip:3`, `then:2b`): the one place the unit `bar` can be written.
     /// </summary>
     private static bool AtBars(string text, int wordStart, int offset)
     {
@@ -127,7 +127,7 @@ internal static class Words
         int end = wordStart - 1, start = end;   // the colon
         while (start > 0 && char.IsLetter(text[start - 1]))
             start--;
-        return text[start..end] is "skip" or "hold";
+        return text[start..end] is "skip" or "then";
     }
 
     private static IEnumerable<string> DancerNames(SyntaxTree tree) =>
@@ -217,7 +217,7 @@ internal static class Words
                 "turn" => before.Count == 1 ? [.. TurnSides, .. figures] : before.Count == 2 ? Vocabulary.TurnAmounts : [],
                 "jump" => Except(Vocabulary.JumpWords, before.Skip(1)),
                 "shift" => before.Count == 1 ? Vocabulary.ShiftWords : [],
-                "lift" or "land" => before.Count == 1 ? Vocabulary.JumpWords.Where(w => w.Name is "fwd" or "back") : [],
+                "lift" or "land" => Except(Vocabulary.JumpWords.Where(w => w.Name is "fwd" or "back" or "left" or "right"), before.Skip(1)),
                 _ => [],
             };
         }
@@ -235,7 +235,7 @@ internal static class Words
         }
         if (IsArm(track) && before is ["across"])
             return [.. Except([.. directions, .. Vocabulary.Levels], before), new("shoulder", "across.shoulder: the hand on the opposite shoulder.")];
-        if (before[0] is "up" or "down" or "hold" or "skip" || Vocabulary.Has(Vocabulary.Anchors, before[0]) && IsArm(track))
+        if (before[0] is "up" or "down" or "then" or "skip" || Vocabulary.Has(Vocabulary.Anchors, before[0]) && IsArm(track))
             return [];
         bool hasLevel = before.Any(w => Vocabulary.Has(Vocabulary.Levels, w) || double.TryParse(w, out _));
         return Except(hasLevel ? directions : [.. directions, .. Vocabulary.Levels], before);
@@ -245,6 +245,7 @@ internal static class Words
     {
         "bent" => IsLimb(track),
         "body" => IsArm(track),
+        "round" => track is "torso",
         "small" or "large" or "turn" => track is "steps",
         "smooth" or "sharp" or "linear" or "mirror" or "free" => true,
         _ => true,
@@ -429,7 +430,7 @@ internal static class Words
         }
         else if (parent.Kind == SyntaxKind.Mark)
         {
-            word = new Vocabulary.Word("!" + token.Text, "A moment named for the engine: the instant the part arrives. Written to the events of the output.");
+            word = new Vocabulary.Word("!" + token.Text, "A moment named for the engine: the beat this word is written at, when the part is there. Written to the events of the output.");
         }
         else if (parent.Kind == SyntaxKind.Track && first)
         {

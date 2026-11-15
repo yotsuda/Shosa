@@ -1,0 +1,15 @@
+PREDICTIONS (written before the first check of each file)
+
+hero.shosa (tempo 120, 1 beat = 0.5 s)
+  Idle: 8 beats, 4 s, loop. no marks.
+  Attack: 5 beats (time 5/4), 2.5 s. !hit at beat 1 (0.5 s, left), 1.5 (0.75 s, right), 2.5 (1.25 s, left).
+          left arm out 2.5..3.5, moving back 3.5..4, in guard at 4 (2.0 s), stays to 5.
+  Hurt: 2 beats = 1 s. torso/head back at 0.15 s (beat 0.3), right foot lands back at 0.15 s; upright at 0.6 s (beat 1.2).
+        I expect SH2003 (too fast) for the foot (it sets out in the 2nd half of a 0.15 s word).
+  Victory: 8 beats, 4 s. together at beat 1, !land at 2 and 3, arms up (!up) at beat 3, still up to beat 7 and to the end (8).
+
+greet.shosa (tempo 72): 12 beats, 10 s. !bow at beat 2 (both), upright at 5, !shake at beat 8 (both), down at 11.
+exercise.shosa (tempo 80): 20 beats, 15 s. arms fwd 4, up 5, side 6, down 7, fwd 8, up 9, side 10, down 11; !down at 12 and 16, !up at 14 and 18.
+kickline.shosa (tempo 126): 16 beats, 7.62 s. !step at 0,2,4,6,8,10; !kick at 1,3,5,7,9,11; !land 12; !clap 13, 14; !pose 15.
+   I expect trouble at beat 11..12 (kick at 11, jump landing at 12) and maybe SH2003 for kick down in half a beat.
+hero-edit.shosa prediction: Attack still 5 beats; !hit at 1 (0.5 s), 1.5 (0.75 s), 3 (1.5 s); arm out 3..4, back in guard at 4.5 (2.25 s). Other scores unchanged.

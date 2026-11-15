@@ -5,11 +5,21 @@
   "version": "0.0.1",
   "publisher": "yotsuda",
   "author": "Yoshifumi Tsuda",
+  "license": "MIT",
   "icon": "icon.png",
-  "keywords": ["motion", "animation", "choreography", "dance", "character animation", "gltf", "vrm", "bvh"],
+  "keywords": [
+    "motion",
+    "animation",
+    "choreography",
+    "dance",
+    "character animation",
+    "gltf",
+    "vrm",
+    "bvh"
+  ],
   "private": true,
   "engines": {
-    "vscode": "^1.90.0"
+    "vscode": "^1.95.0"
   },
   "categories": [
     "Programming Languages"
@@ -49,6 +59,16 @@
         "title": "New Shosa File",
         "shortTitle": "Shosa File (.shosa)",
         "icon": "$(new-file)"
+      },
+      {
+        "command": "shosa.exportModel",
+        "category": "Shosa",
+        "title": "Export Model File (glTF, VRM Animation, BVH)…"
+      },
+      {
+        "command": "shosa.exportVideo",
+        "category": "Shosa",
+        "title": "Export MP4 Video…"
       }
     ],
     "menus": {
@@ -69,9 +89,115 @@
         {
           "command": "shosa.openPreview",
           "when": "editorLangId == shosa"
+        },
+        {
+          "command": "shosa.exportModel",
+          "when": "editorLangId == shosa"
+        },
+        {
+          "command": "shosa.exportVideo",
+          "when": "editorLangId == shosa"
         }
       ]
     },
+    "languageModelTools": [
+      {
+        "name": "shosa_grammar",
+        "displayName": "Shosa Grammar",
+        "toolReferenceName": "shosaGrammar",
+        "canBeReferencedInPrompt": true,
+        "icon": "$(book)",
+        "tags": [
+          "shosa",
+          "animation",
+          "motion",
+          "choreography"
+        ],
+        "userDescription": "The whole Shosa language, so the assistant can write .shosa files (character movement as text).",
+        "modelDescription": "Returns the complete grammar of Shosa, a language in which the movement of a humanoid character (a dance, an attack combo, an idle, a gesture, a walk) is written as text in a .shosa file and compiled to an animation (glTF, VRM Animation, BVH). Shosa is new and you do not know it: ALWAYS call this once before you write or change any .shosa file, or answer a question about the language, and read all of it. A word that is not in it does not exist; never guess. The result ends with how to work in this editor (tools shosa_check and shosa_sheet). Takes no input.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      {
+        "name": "shosa_check",
+        "displayName": "Shosa Check",
+        "toolReferenceName": "shosaCheck",
+        "canBeReferencedInPrompt": true,
+        "icon": "$(check)",
+        "tags": [
+          "shosa",
+          "animation",
+          "motion",
+          "choreography"
+        ],
+        "userDescription": "Compiles a .shosa file: its problems, and every score with its length, sections, tempo and marks.",
+        "modelDescription": "Compiles a .shosa file (Shosa: character movement as text) as the editor has it, saved or not, and returns what the compiler says: a line 'FILE(line,column): severity CODE: message' for each problem, or 'no problems'; then every score with its beats, seconds and dancers, each section with its beats, bars, seconds, tempo and time, and every mark (!hit) with its beat and second. Call it after EVERY change to a .shosa file and fix until it says 'no problems'. Take lengths and times from this report instead of computing them. If you have not read the grammar in this conversation, call shosa_grammar first.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "file": {
+              "type": "string",
+              "description": "The .shosa file: its full path, or its path from the workspace folder."
+            }
+          },
+          "required": [
+            "file"
+          ]
+        }
+      },
+      {
+        "name": "shosa_sheet",
+        "displayName": "Shosa Sheet",
+        "toolReferenceName": "shosaSheet",
+        "canBeReferencedInPrompt": true,
+        "icon": "$(device-camera)",
+        "tags": [
+          "shosa",
+          "animation",
+          "motion",
+          "choreography"
+        ],
+        "userDescription": "Draws the movement of a .shosa file as an image: a pose per beat and the floor from above.",
+        "modelDescription": "Draws the movement a .shosa file compiles to and returns it as an image for you to look at: for each score, the figures' pose at every beat from left to right (left limbs blue, right limbs red) and their path over the floor from above. Call it after shosa_check says 'no problems', and LOOK at the image of every score you changed: no diagnostics does not mean the right movement. A file with several scores returns an image for each; pass 'score' for one. Movement shorter than a beat falls between the poses: pass 'step' (0.25 or 0.5) with 'from' and 'to'. A punch, a kick or a bow straight ahead does not show from the front: pass 'view': 'side'.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "file": {
+              "type": "string",
+              "description": "The .shosa file: its full path, or its path from the workspace folder."
+            },
+            "score": {
+              "type": "string",
+              "description": "The name of the one score to draw (as shosa_check lists them). Without it, every score."
+            },
+            "step": {
+              "type": "number",
+              "description": "Beats between two poses. Without it, one beat (three in 6/8, 9/8 and 12/8)."
+            },
+            "from": {
+              "type": "number",
+              "description": "The beat to begin at. Without it, 0."
+            },
+            "to": {
+              "type": "number",
+              "description": "The beat to end at. Without it, the end of the score."
+            },
+            "view": {
+              "type": [
+                "string",
+                "number"
+              ],
+              "description": "'front' (the default, a little from the side), 'side' (from stage left: a figure facing front is seen in profile), 'back', or degrees round from the front."
+            }
+          },
+          "required": [
+            "file"
+          ]
+        }
+      }
+    ],
     "keybindings": [
       {
         "command": "shosa.openPreview",
@@ -102,6 +228,7 @@
     "test": "node --test"
   },
   "dependencies": {
+    "mp4-muxer": "5.2.2",
     "spessasynth_core": "4.3.22",
     "spessasynth_lib": "4.3.14",
     "three": "0.160.0",
@@ -109,7 +236,7 @@
   },
   "devDependencies": {
     "@types/node": "20.14.0",
-    "@types/vscode": "1.90.0",
+    "@types/vscode": "1.95.0",
     "esbuild": "0.21.5",
     "typescript": "5.4.5"
   }

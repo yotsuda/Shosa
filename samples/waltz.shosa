@@ -1,5 +1,5 @@
-// A march that turns into a waltz: a section says the tempo and the time from there on,
-// and its upbeat lets a movement arrive on its first beat.
+// A march that turns into a waltz: a section says its time and the tempo from there on,
+// and its upbeat is what is danced before its first beat.
 title "March into a waltz"
 tempo 120
 time 4/4
@@ -14,23 +14,25 @@ section March {
   }
 }
 
-// From here on: three to the bar, at 90. The arms begin one beat before the section
-// (their first bar is the upbeat) and are forward on its first beat; the steps begin at the bar line.
+// From here on: three to the bar, at 90. The arms begin one beat before the section (their
+// first bar is the upbeat): forward on the last beat of the march, and the hands meet on the
+// waltz's first beat. The steps begin at the bar line.
 section Waltz {
   tempo 90
   time 3/4
   upbeat 1
   solo {
     arms  { fwd:1!turn | clap:1!clap side:2 | % | side.high:3 | side:3 | }
-    steps { left.side right.side together | right.side left.side together | jump.apart:1 hold:2 | together:3 | }
+    steps { left.side right.side together | right.side left.side together | jump.apart:1 then:2 | together:3 | }
   }
 }
 
-// Writes neither: still three to the bar, at 90.
+// The tempo goes on (still 90); the time is each section's own, so the bow says its three too.
 section Bow {
+  time 3/4
   solo {
-    torso { fwd.high:2 hold:1 | up:3 | }
-    arms  { down:3 | hold:3 | }
+    torso { up fwd.high then | up:3 | }        // bowed on 2; it comes up through the then
+    arms  { down:3 | then:3 | }
   }
 }
 
@@ -38,10 +40,10 @@ form { March Waltz Bow }
 score { dancer solo }
 
 // One play in another tempo or time is written in the form, before the section's name.
-// The march comes back, faster: March itself is not touched.
-form Encore { March Waltz tempo 132 time 4/4 March }
+// The march comes back, faster: March itself is not touched (and is in the file's four again by itself).
+form Encore { March Waltz tempo 132 March }
 score Encore { dancer solo  form Encore }
 
-// The bow alone, as the whole piece plays it: a score of its own does not hear the waltz before it.
-form Bow { tempo 90 time 3/4 Bow }
+// The bow alone, as the whole piece plays it: a score of its own does not hear the waltz's tempo before it.
+form Bow { tempo 90 Bow }
 score Bow { dancer solo  form Bow }

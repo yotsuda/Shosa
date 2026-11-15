@@ -1,0 +1,20 @@
+title "Canon"
+tempo 120
+time 4/4
+
+figure phrase
+dancer ann humanoid on phrase at -1.5 0
+dancer ben humanoid on phrase at 0 0     delay 2
+dancer cat humanoid on phrase at 1.5 0   delay 4
+
+// A 2-bar phrase. Counted from each dancer's own start:
+// steps on 0 1 2 3 (side, close, side, close), a clap ON beat 3, a jump that lands ON beat 6 with the arms up.
+section Phrase {
+  phrase {
+    steps { left.side together right.side together | hold:2 jump!land hold:1 | }
+    arms  { side.low:3 clap@sharp!clap | side:2 up:1 side:1 | }
+  }
+}
+
+form { Phrase }
+score { dancer ann  dancer ben  dancer cat }

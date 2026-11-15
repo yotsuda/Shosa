@@ -48,7 +48,7 @@ INDEX = {n: i for i, n in enumerate(NAMES)}
 PARENT = [-1 if p is None else INDEX[p] for _, p in SOMA30]
 
 # Shosa's joints (Rig.cs), and the SOMA joint each is compared with.
-SHOSA = ["pelvis", "chest", "head", "nose", "leftShoulder", "leftElbow", "leftHand", "rightShoulder", "rightElbow", "rightHand",
+SHOSA = ["pelvis", "waist", "chest", "head", "nose", "leftShoulder", "leftElbow", "leftHand", "rightShoulder", "rightElbow", "rightHand",
          "leftHip", "leftKnee", "leftAnkle", "leftToe", "rightHip", "rightKnee", "rightAnkle", "rightToe"]
 S = {n: i for i, n in enumerate(SHOSA)}
 SAME = {"pelvis": "Hips", "chest": "Neck1", "leftShoulder": "LeftArm", "leftElbow": "LeftForeArm", "leftHand": "LeftHand",

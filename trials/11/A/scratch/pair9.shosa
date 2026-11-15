@@ -1,0 +1,36 @@
+title "Pair"
+tempo 100
+time 4/4
+
+figure a
+figure b
+dancer ann humanoid on a at -0.45 0 facing stageLeft
+dancer ben humanoid on b at 0.45 0 facing stageRight
+
+section A {
+  tempo 100
+  a {
+    arms  { b.hand.low:2 hold:2 | hold:2 down:2 | }
+     steps { hold:2 both.low@large:2 | both.mid:2 hold:2 | }
+  }
+  b {
+    arms  { a.hand.low:2 hold:2 | hold:2 down:2 | }
+     steps { hold:2 both.low@large:2 | both.mid:2 hold:2 | }
+  }
+}
+
+section B {
+  time 6/8
+  tempo 4. = 60
+  a {
+    steps { left.side:3 together:3 | right.side:3 together:3 | }
+    arms  { side:3 down:3 | % | }
+  }
+  b {
+    steps { left.side:3 together:3 | right.side:3 together:3 | }
+    arms  { side:3 down:3 | % | }
+  }
+}
+
+form { A B tempo 90% A }
+score { dancer ann  dancer ben }

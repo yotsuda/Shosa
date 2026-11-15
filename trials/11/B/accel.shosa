@@ -1,0 +1,23 @@
+title "Accelerando"
+tempo 100
+time 4/4
+
+figure solo
+dancer solo humanoid on solo
+
+section Drill {
+  solo {
+    steps { left.side together right.side together | left.fwd together right.back together | }
+    arms  { side:2 up:2 | side:2 down:2 | }
+  }
+}
+
+section Close {
+  solo {
+    steps { both.low:2 both.mid:2 | }
+    arms  { side:2 down:2 | }
+  }
+}
+
+form { Drill tempo 110% Drill tempo 121% Drill tempo 133.1% Drill Close }
+score { dancer solo }

@@ -1,0 +1,26 @@
+title "Suite"
+
+figure solo
+dancer solo humanoid on solo
+
+section Air {
+  time 9/8
+  tempo 4. = 66
+  solo {
+    steps { left.side:3 together:3 right.side:3 | together:3 hold:6 | }
+    arms  { side:3 up:3!peak side:3 | down:6 hold:3 | }
+    torso { | fwd.60:3!bow up:3 hold:3 | }
+  }
+}
+
+section Gigue {
+  time 6/8
+  tempo 4. = 108
+  solo {
+    steps { left.side:3 together:3 | right.side:3 together:3 | %2 | }
+    arms  { side:3 hip:3 | % | %2 | }
+  }
+}
+
+form { Air Gigue Air }
+score { dancer solo }

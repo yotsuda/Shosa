@@ -1,0 +1,47 @@
+title "Rondo"
+tempo 120
+time 4/4
+
+figure solo
+dancer solo humanoid on solo
+
+section Theme {
+  tempo 120
+  solo {
+    steps { left.side together right.side together | % | }
+    arms  { side:2 up:2 | side:2 down:2 | }
+  }
+}
+
+section Ep1 {
+  tempo 96
+  time 3/4
+  solo {
+    steps { left.fwd right.side together | right.back left.side together | %2 | }
+    arms  { side:3 | down:3 | %2 | }
+  }
+}
+
+section Ep2 {
+  time 6/8
+  tempo 4. = 72
+  solo {
+    steps { left.side:3 together:3 | right.side:3 together:3 | }
+    arms  { fwd:3 up:3 | fwd:3 down:3 | }
+  }
+}
+
+section Ep3 {
+  tempo 75%
+  solo {
+    steps { both.low:2 both.mid:2 | % | }
+    torso { left.high:2 up:2 | right.high:2 up:2 | }
+  }
+}
+
+form { Theme Ep1 Theme Ep2 Theme Ep3 Theme }
+form second { Ep2 }
+
+score        { dancer solo }
+score ep2    { dancer solo  form second }
+score faster { dancer solo  tempo 120% }

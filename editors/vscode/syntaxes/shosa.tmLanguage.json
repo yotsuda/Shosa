@@ -90,7 +90,7 @@
     { "name": "keyword.operator.bar.shosa", "match": "\\|" },
     { "name": "keyword.operator.together.shosa", "match": "&" },
     { "name": "keyword.operator.times.shosa", "match": "\\*" },
-    { "name": "comment.block.hold.shosa", "match": "(?<![.@!\\w])(hold|skip)\\b(?!\\.)" },
+    { "name": "comment.block.hold.shosa", "match": "(?<![.@!\\w])(then|skip)\\b(?!\\.)" },
     { "name": "support.constant.level.shosa", "match": "(?<=\\.)(low|mid|high)\\b" }
   ],
   "repository": {

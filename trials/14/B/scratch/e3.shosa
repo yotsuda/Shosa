@@ -1,0 +1,22 @@
+title "Old man"
+tempo 80
+time 4/4
+
+figure oldman
+dancer oldman humanoid on oldman
+
+// The back rounded over, the face lifted to look ahead.
+pose curled  { torso { fwd.65@round }  head { fwd.40 } }
+pose upright { torso { up }            head { fwd } }
+
+section Main {
+  oldman {
+    // curled: bar 1 and through the walk; straightens beats 14-16, holds 16-18, curls 18-20
+    body  { curled:4 | then:4 | then:4 | then:2 then:2 | upright:2 then:2 | curled:4 | }
+    // eight small steps, landing on beats 4 to 11; three of the left ones reach out to the side
+    steps { then:4 | left.fwd.side right.fwd@small left.fwd@small right.fwd@small | left.fwd@small right.fwd@small left.fwd@small right.fwd@small | }
+  }
+}
+
+form { Main }
+score { dancer oldman }

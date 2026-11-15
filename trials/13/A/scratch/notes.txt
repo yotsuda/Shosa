@@ -1,0 +1,43 @@
+NOTES (predictions written BEFORE the first check of each file)
+
+== guard.shosa (tempo 120: 1 beat = 0.5 s) ==
+Idle (loop): steps { { both.mid:2 both.low@small:2 } q }  arms { down:4 then:4 }
+  predict: 8 beats = 4 s. standing at beat 0 and 4, slightly bent at beats 2 and 6.
+  bend sets out in second half of word before, max 0.5 s -> bends between beat 1 and 2, rises between 3 and 4.
+  At loop end, rises between 7 and 8(=0).
+Alert: rightArm { down:1s then:0.25s fwd!point:1s then:0.5s down:0.25s }  leftArm { down:3s }
+  predict: still 0-1 s (beat 0-2); arm arrives fwd at 1.25 s = beat 2.5, mark !point at beat 2.5 = 1.25 s;
+  stays fwd to 2.25 s (beat 4.5); hanging at 2.75 s = beat 5.5; total 6 beats = 3 s.
+Dodge: grammar has NO sideways jump (jump words: place fwd back apart together). I expect `jump.side` to be an error.
+  Fallback: steps { then:0.5s left.side:0.25s together:0.25s } -> left foot lands at 0.5 s (beat 1), right closes by 0.75 s (beat 1.5), total 2 beats = 1.0 s.
+  Fear: SH2003 too fast for the together (only 0.125 s to close).
+  check will not say "starts with ... already made" because of the then.
+
+== pace.shosa (tempo 100: 1 beat = 0.6 s) ==
+steps { then:2 left.fwd right.fwd | left.back right.back together then | }
+  predict: 8 beats, 2 bars, 4.8 s. Steps land beat 2 (1.2 s), 3 (1.8 s), 4 (2.4 s), 5 (3.0 s); together at beat 6 (3.6 s).
+  Position: after 2 steps right foot 1.0 m ahead of start; after 2 back steps right foot home, left 0.5 ahead; together brings left home.
+  expect no "starts with ... already made" line. Expect sheet floor: last footprints on the start ring.
+
+== salute.shosa (tempo 90: 1 beat = 0.667 s) ==
+rightArm { down:1 then:1 head:2 | then:2 then:1 down:1 | }
+  predict: 8 beats, 2 bars, 5.33 s. hangs 0-1, moves 1-2, at head beat 2 (1.33 s), stays to beat 6 (4 s), moves 6-7, down at 7 (4.67 s).
+
+== salute-edit.shosa ==
+The request "one beat longer" + "comes down in half a beat" + "still hanging on beat 7" do not add up for me:
+leaving one beat later = leaving at 7. I read it as: leaves at 6.5, hanging at 7 (so it stays half a beat longer).
+rightArm { down:1 then:1 head:2 | then:2.5 then:1/2 down:1 | }
+  predict: at head from 2 to 6.5, down at 7. 8 beats.
+
+== ACTUAL (after check + sheets) ==
+guard: 2 check runs. Run 1: error SH1012 "A jump goes place, fwd, back, apart or together." (predicted). Run 2 clean.
+  Idle 8 beats 4 s: right. Bent at 2 and 6, standing at 0/4/8, bend made between 1 and 2: right. (@small bend looks deeper than I pictured for "gentle".)
+  Alert 6 beats 3 s, "!point at beat 2.5 = 1.25 s": right. Sheet (side, step 0.25): still to beat 2, fwd at 2.5, still fwd at 4.5, down at 5.5: right.
+  Dodge 2 beats 1 s. No sideways jump exists. Final: then:0.1s left.side:0.4s jump.together:0.5s -> step out at 0.1 s, hop lands feet together at 0.5 s,
+  about 0.18 m to the dancer's left of the start (sheet floor). Scratch: left.side@large gave warning SH2002; lift.side gave SH1012 "A lift goes place, fwd or back."
+  My feared SH2003 for a 0.125 s together did not come (scratch d1 clean).
+pace: 1 check run, clean. 8 beats 4.8 s: right. Steps seen landing at 2,3,4,5, together at 6: right (sheet).
+  End = start: check prints no position; no "starts with ... already made" line (so all 4 steps are seen); the sheet floor shows the hip path going out and back to the ring and the last pose's feet at the ring.
+salute: 1 run, clean. 8 beats 5.33 s; hangs to 1, at head on 2, still at head on 6, in transit at 6.5, down at 7: right.
+salute-edit: 1 run, clean. at head at 6.5, in transit 6.75, down at 7: right.
+

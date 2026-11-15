@@ -1,0 +1,40 @@
+title "Waltz and march"
+tempo 90
+time 3/4
+
+figure solo
+dancer solo humanoid on solo
+
+// One bar before the waltz: arms down on beats 0 and 1, half-raised on 2, out on the waltz's first beat.
+section Leadin {
+  tempo 90
+  time 3/4
+  solo {
+    arms  { down:1 hold:1 side.low:1 | }
+    steps { hold:3 | }
+  }
+}
+
+// A box step: ON 1 forward or back, low; ON 2 to the side, on the toes; ON 3 the feet close.
+section Waltz {
+  tempo 90
+  time 3/4
+  solo {
+    arms  { side:3 | hold:3bar | }
+    steps { left.fwd.low right.side.high together | right.back.low left.side.high together | %2 | }
+  }
+}
+
+// A step on every beat, and a punch on every beat: left arm on 1 and 3, right arm on 2 and 4.
+section March {
+  tempo 120
+  time 4/4
+  solo {
+    steps    { left.fwd right.fwd left.fwd right.fwd | % | }
+    leftArm  { fwd@sharp!punch chin fwd@sharp!punch chin | % | }
+    rightArm { hold:1 fwd@sharp!punch chin fwd@sharp!punch | chin fwd@sharp!punch chin fwd@sharp!punch | }
+  }
+}
+
+form { Leadin Waltz March }
+score { dancer solo }

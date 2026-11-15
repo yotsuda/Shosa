@@ -17,6 +17,12 @@ public static class Rig
     public const double UpperArm = 0.29;
     public const double Forearm = 0.31;
     public const double Arm = UpperArm + Forearm;
+    /// <summary>Degrees the elbow is bent in an arm that just hangs.</summary>
+    public const double RestElbow = 15;
+    /// <summary>How far the hips come down at the level `low`, in metres.</summary>
+    public const double LowDrop = 0.16;
+    /// <summary>Degrees each half of a rounded back (`@round`) turns from the line between the pelvis and the chest.</summary>
+    public const double RoundAngle = 15;
     public const double HeadUp = 0.24;
     public const double FootLength = 0.17;
 
@@ -25,9 +31,10 @@ public static class Rig
     public const double Stride = 0.50;
     public const double SideStep = 0.35;
 
-    public const int Pelvis = 0, Chest = 1, Head = 2, Nose = 3,
-        LShoulder = 4, LElbow = 5, LHand = 6, RShoulder = 7, RElbow = 8, RHand = 9,
-        LHip = 10, LKnee = 11, LAnkle = 12, LToe = 13, RHip = 14, RKnee = 15, RAnkle = 16, RToe = 17;
+    /// <summary>The waist is the middle of the spine: on the line from the pelvis to the chest unless the back is rounded.</summary>
+    public const int Pelvis = 0, Waist = 1, Chest = 2, Head = 3, Nose = 4,
+        LShoulder = 5, LElbow = 6, LHand = 7, RShoulder = 8, RElbow = 9, RHand = 10,
+        LHip = 11, LKnee = 12, LAnkle = 13, LToe = 14, RHip = 15, RKnee = 16, RAnkle = 17, RToe = 18;
 
     /// <summary>Where an elbow points when it bends: down, back and a little out. Side is 1 for left, -1 for right.</summary>
     public static Vec3 ElbowPole(Vec3 left, Vec3 fwd, int side) => -Vec3.Up - fwd * 0.6 + left * (0.35 * side);
@@ -37,7 +44,7 @@ public static class Rig
 
     public static readonly string[] Joints =
     [
-        "pelvis", "chest", "head", "nose",
+        "pelvis", "waist", "chest", "head", "nose",
         "leftShoulder", "leftElbow", "leftHand", "rightShoulder", "rightElbow", "rightHand",
         "leftHip", "leftKnee", "leftAnkle", "leftToe", "rightHip", "rightKnee", "rightAnkle", "rightToe",
     ];
@@ -45,7 +52,7 @@ public static class Rig
     /// <summary>Joint pairs to draw, each with the side it belongs to: c, l or r.</summary>
     public static readonly (int A, int B, char Side)[] Bones =
     [
-        (Pelvis, Chest, 'c'), (Chest, Head, 'c'), (Head, Nose, 'c'),
+        (Pelvis, Waist, 'c'), (Waist, Chest, 'c'), (Chest, Head, 'c'), (Head, Nose, 'c'),
         // The shoulder line belongs to the torso: coloured as an arm it reads as a bent upper arm.
         (Chest, LShoulder, 'c'), (LShoulder, LElbow, 'l'), (LElbow, LHand, 'l'),
         (Chest, RShoulder, 'c'), (RShoulder, RElbow, 'r'), (RElbow, RHand, 'r'),
@@ -133,6 +140,7 @@ public sealed class ClipFigure
     }
 }
 
-public sealed record ClipMark(double Beat, double Seconds, string Name, string Figure);
+/// <param name="Section">The section that writes the mark, and <paramref name="Play"/>: which play of it in the score (1 the first). With them an engine tells the first `hit` of a section played twice from the second.</param>
+public sealed record ClipMark(double Beat, double Seconds, string Name, string Figure, string Section = "", int Play = 1);
 
 public sealed record ClipSpan(double T0, double T1, int Start, int Length, string Figure, string Channel);

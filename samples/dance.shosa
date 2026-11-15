@@ -29,7 +29,7 @@ section Chorus {
     arms  { side.high up side.high down | % | % | % | }
   }
   chorus {
-    arms { clap:1/2!clap hold:1/2 side.high up:2 | % | % | % | }
+    arms { clap!clap side.high up then | % | % | % | }    // the hands meet on 1; they come down for it through 4 (`then`)
   }
 }
 

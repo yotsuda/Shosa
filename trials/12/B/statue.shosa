@@ -1,0 +1,18 @@
+title "Statue"
+tempo 60
+time 4/4
+
+figure solo
+dancer solo humanoid on solo
+
+section Main {
+  solo {
+    // 0-8: one unbroken rise, hanging -> side (beat 4) -> overhead (beat 8).
+    // 8-12: nothing moves. Beat 12: arms down and knees bent, both gone to at the last moment.
+    arms  { down:4 | side:4@linear | up:3.85@linear side:0.15@sharp | down:4@sharp | }
+    steps { hold:3bar | both.low:4@sharp | }
+  }
+}
+
+form { Main }
+score { dancer solo }

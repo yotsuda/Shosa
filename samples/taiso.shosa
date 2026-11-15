@@ -10,14 +10,14 @@ dancer solo humanoid on solo
 section Stretch {
   solo {
     arms  { fwd up side down | fwd up side down }
-    steps { both.high:2 both.mid:2 | both.low:2 both.mid:2 }
+    steps { both.mid both.high:2 both.mid | both.mid both.low:2 both.mid }   // up on the toes on 2, knees bent on the next 2
   }
 }
 
 section Bend {
   solo {
-    arms  { hip hold:3 | hold:3 down }
-    torso { hold left.high up right.high | up fwd.high up hold }
+    arms  { hip then:3 | then:2 then down }
+    torso { then left.high up right.high | up fwd.high up then }
   }
 }
 

@@ -1,0 +1,40 @@
+title "Guard"
+tempo 120          // one beat is 0.5 s
+time 4/4
+
+figure guard
+dancer guard humanoid on guard
+
+// (a) idle: gentle knee bends, arms hanging
+section Idle {
+  guard {
+    steps { { both.mid:2 both.low@small:2 } q }
+    arms  { down:4 then:4 }
+  }
+}
+
+// (b) alert: 1 s still, 0.25 s to point, 1 s pointing, 0.5 s back down
+section Alert {
+  guard {
+    leftArm  { down:3s }
+    rightArm { down:1s then:0.25s fwd!point:1s then:0.5s down:0.25s }
+  }
+}
+
+// (c) dodge: a jump to the side landing at 0.5 s, still to 1.0 s
+section Dodge {
+  guard {
+    // The language has no sideways jump (jump goes place, fwd, back, apart, together).
+    // Nearest: a quick step out to the left, then a hop that closes the feet, landing at 0.5 s.
+    steps { then:0.1s left.side:0.4s jump.together:0.5s }
+    arms  { down:1s }
+  }
+}
+
+form Idle  { Idle }
+form Alert { Alert }
+form Dodge { Dodge }
+
+score Idle  { dancer guard  form Idle  loop }
+score Alert { dancer guard  form Alert }
+score Dodge { dancer guard  form Dodge }

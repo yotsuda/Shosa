@@ -1,14 +1,15 @@
 param(
     [string]$Out = "$PSScriptRoot\..\artifacts\extension",   # where the .vsix files go
-    [string[]]$Targets = @('win-x64'),                       # the programs to publish, one VSIX each (linux-x64, osx-arm64 … are untried)
+    [string[]]$Targets = @('win-x64'),                       # the programs to publish, one VSIX each (linux-x64 and osx-arm64 package, but have never been run: DESIGN.md 45.2. The last one stays in the stage, so end with win-x64 before deploy-extension.ps1 -SkipPublish)
     [switch]$SkipPublish                                     # reuse the programs of the last run (the extension's code changed, not the server; one target)
 )
 # Shosa as a VS Code extension (editors\vscode), one .vsix per target:
 # shosa-<platform>-<version>.vsix in artifacts\extension.
 #
-# A package carries the language server (Shosa.Lsp) and shosa-music as programs with their own
-# .NET runtime, published into one `server` folder where they share it and where the server
-# finds shosa-music beside itself. So whoever installs it needs nothing but VS Code, and a
+# A package carries the language server (Shosa.Lsp), shosa-music and the compiler (`shosa`, the
+# CLI an AI agent runs: the extension puts it on the PATH of VS Code's terminals) as programs
+# with their own .NET runtime, published into one `server` folder where they share it and where
+# the server and the compiler find shosa-music beside themselves. So whoever installs it needs nothing but VS Code, and a
 # package is specific to a platform. shosa-music needs the checkout of Lily# beside this
 # repository (DESIGN.md 19.1).
 #
@@ -47,28 +48,30 @@ foreach ($rid in $Targets) {
     if (Test-Path $stage) { Get-ChildItem $stage -Force | Where-Object { $SkipPublish -eq $false -or $_.Name -ne 'server' } | Remove-Item -Recurse -Force }
     New-Item -ItemType Directory -Force $stage | Out-Null
     foreach ($item in 'package.json', 'README.md', 'icon.png', 'language-configuration.json', 'syntaxes') { Copy-Item "$ext\$item" $stage -Recurse }
+    Copy-Item "$root\LICENSE" $stage   # MIT: everything but shosa-music (its own licence goes beside it, below)
     New-Item -ItemType Directory -Force "$stage\dist" | Out-Null
     Copy-Item "$ext\dist\*" "$stage\dist" -Exclude *.map
     # Everything in the stage ships: an ignore file that leaves out only itself says so to vsce.
     [IO.File]::WriteAllText("$stage\.vscodeignore", ".vscodeignore`n")
 
     if (-not $SkipPublish) {
-        foreach ($project in 'Shosa.Lsp', 'Shosa.Music') {
+        foreach ($project in 'Shosa.Lsp', 'Shosa.Music', 'Shosa.Cli') {
             cmd /d /s /c "dotnet publish `"$root\$project`" -c Release -r $rid --self-contained true -o `"$server`" -v q -nologo < NUL"
             if ($LASTEXITCODE -ne 0) { throw "dotnet publish $project ($rid) failed" }
         }
         Get-ChildItem $server -Recurse -Filter *.pdb | Remove-Item
     }
+    Copy-Item "$root\Shosa.Music\LICENSE" "$server\LICENSE-shosa-music.txt"   # GPL-3.0-or-later; its source is Shosa.Music in the repository
     $suffix = if ($rid.StartsWith('win')) { '.exe' } else { '' }
-    foreach ($program in "Shosa.Lsp$suffix", "shosa-music$suffix") { if (-not (Test-Path "$server\$program")) { throw "$server\$program is missing$(if ($SkipPublish) { ': run without -SkipPublish' })" } }
+    foreach ($program in "Shosa.Lsp$suffix", "shosa-music$suffix", "shosa$suffix") { if (-not (Test-Path "$server\$program")) { throw "$server\$program is missing$(if ($SkipPublish) { ': run without -SkipPublish' })" } }
     '{0}: server {1:F1} MB' -f $rid, ((Get-ChildItem $server -Recurse -File | Measure-Object Length -Sum).Sum / 1MB)
 
-    # --no-dependencies: what the extension runs is already bundled into dist. No LICENSE yet: the
-    # licence of Shosa is not decided (ROADMAP.md, stage 4), nor is its repository public.
+    # --no-dependencies: what the extension runs is already bundled into dist. The repository is
+    # not public yet (ROADMAP.md, stage 4), so package.json names none.
     $vsix = "$Out\shosa-$($vsceTarget[$rid])-$version.vsix"
     Push-Location $stage
     try {
-        cmd /d /s /c "npx --yes @vscode/vsce package --target $($vsceTarget[$rid]) --no-dependencies --skip-license --allow-missing-repository --out `"$vsix`" < NUL"
+        cmd /d /s /c "npx --yes @vscode/vsce package --target $($vsceTarget[$rid]) --no-dependencies --allow-missing-repository --out `"$vsix`" < NUL"
         if ($LASTEXITCODE -ne 0) { throw "vsce package $rid failed" }
     } finally { Pop-Location }
 }

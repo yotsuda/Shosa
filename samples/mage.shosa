@@ -22,10 +22,12 @@ section Float {
 
 section Cast {
   mage {
-    body  { hover:0 }
-    arms  { side.high:2 up:1 fwd:0.15s@sharp!cast hold:1 side.low:2 }
-    torso { back.80:3 fwd.80:0.15s@sharp up:2 }
-    head  { fwd.20:3 fwd:0.15s@sharp }
+    // The arms rise through the first three beats, the body leans back with them; on 5 (beat 4)
+    // everything is thrown forward at once — `@sharp` goes just before its beat, not all the way there.
+    body  { hover:6 }
+    arms  { skip:2 side.high up fwd@sharp!cast side.low }
+    torso { up:3 back.80 fwd.80@sharp up }
+    head  { fwd:3 fwd.20 fwd:2@sharp }
   }
 }
 

@@ -1,0 +1,3 @@
+section Idle { hero { steps { hold:4 | % | } head { fwd.left:2 fwd:2 | fwd.right:2 fwd:2 | } } }
+form Idle { Idle }
+score Idle { dancer hero form Idle loop }

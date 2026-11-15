@@ -1,0 +1,6 @@
+figure hero
+dancer hero humanoid on hero
+pose guard { steps { left.fwd.low@small } arms { fwd.high@bent } }
+section Idle { hero { body { guard:8 } } }
+form Idle { Idle }
+score Idle { dancer hero form Idle loop }

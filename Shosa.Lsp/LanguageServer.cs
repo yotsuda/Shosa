@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.Json;
 using Shosa.Core;
 using Shosa.Core.Music;
+using Shosa.Core.Output;
 using Shosa.Core.Semantics;
 using Shosa.Core.Syntax;
 
@@ -75,6 +76,22 @@ public sealed class LanguageServer(Action<string> send)
     }
 
     private readonly Dictionary<string, Document> _documents = [];
+
+    /// <summary>
+    /// The text a request is about, compiled (one score of it, or all): the `text` it carries,
+    /// or else the open document of its `uri`. Songs are read beside the file the uri names.
+    /// Null when there is neither. The name is the file's, for the lines of a report.
+    /// </summary>
+    private (ShosaCompilation Compilation, string Text, string Name)? Compiled(JsonElement parameters, string? score)
+    {
+        string uri = parameters.TryGetProperty("uri", out var u) ? u.GetString() ?? "" : "";
+        string? text = parameters.TryGetProperty("text", out var t) && t.ValueKind == JsonValueKind.String ? t.GetString()
+            : _documents.TryGetValue(uri, out var document) ? document.Tree.Text : null;
+        if (text is null)
+            return null;
+        string name = PathOf(uri) is { } path ? Path.GetFileName(path) : "file.shosa";
+        return (ShosaCompilation.Compile(text, score, FolderOf(uri) is { } folder ? new SongReader(folder).Read : null), text, name);
+    }
 
     public bool ExitRequested { get; private set; }
 
@@ -202,6 +219,83 @@ public sealed class LanguageServer(Action<string> send)
                 Reply(id, FolderOf(uri) is { } folder && Said("file") is not null
                     ? new SongReader(folder).Notes(new MusicIr(Said("file")!, Said("score"), order, null))
                     : new SongNotes { Error = "Only a dance that is a file has a song beside it." });
+                break;
+            }
+
+            // ---- For an AI assistant in the editor (the extension's language model tools). Each
+            // takes the text with the request (`text`; without it, the open document's), so it
+            // reads what the editor shows, saved or not, and a file nobody has opened.
+
+            case "shosa/grammar":
+                Reply(id, new { text = Shosa.Core.Output.GrammarDoc.Render() });
+                break;
+
+            case "shosa/check":
+            {
+                // What `shosa check FILE` prints: the diagnostics, then every score with its sections and marks.
+                Reply(id, Compiled(parameters, null) is var (compilation, text, name)
+                    ? new { text = string.Join("\n", CheckReport.Problems(compilation, text, name).Concat(CheckReport.Scores(compilation, name))) }
+                    : null);
+                break;
+            }
+
+            case "shosa/sheet":
+            {
+                // What `shosa sheet FILE` draws: for each score (or the one named) a PNG, as base64.
+                string? Said(string key) => parameters.TryGetProperty(key, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
+                double? Number(string key) => parameters.TryGetProperty(key, out var value) && value.ValueKind == JsonValueKind.Number ? value.GetDouble() : null;
+                if (Compiled(parameters, Said("score")) is not var (compilation, text, name))
+                {
+                    Reply(id, null);
+                    break;
+                }
+                double view = Said("view") switch { "side" => 90, "back" => 180, _ => Number("view") ?? ContactSheet.FrontView };
+                Reply(id, new
+                {
+                    problems = string.Join("\n", CheckReport.Problems(compilation, text, name)),
+                    sheets = compilation.Clips.Where(clip => clip.Figures.Count > 0 && clip.TotalBeats > 0).Select(clip => new
+                    {
+                        score = clip.Name,
+                        beats = clip.TotalBeats,
+                        png = Convert.ToBase64String(ContactSheet.Render(clip, Number("step"), Number("from") ?? 0, Number("to"), view).ToPng()),
+                    }),
+                });
+                break;
+            }
+
+            // ---- For the preview's Export buttons.
+
+            case "shosa/export":
+            {
+                // What `shosa gltf|vrma|bvh FILE --score NAME` writes, as base64: one score in the
+                // format asked for (`glb`, `vrma`, `bvh`). A file is named by its `figure` (null: the
+                // one file; else one per figure, as the CLI's walk.a.bvh) and its `kind` (`model`, or
+                // `events`: the FILE.events.json a BVH or a VRM Animation has beside it).
+                string? Said(string key) => parameters.TryGetProperty(key, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
+                if (Compiled(parameters, Said("score") ?? "") is not var (compilation, text, name))
+                {
+                    Reply(id, null);
+                    break;
+                }
+                string format = Said("format") ?? "glb";
+                var files = new List<object>();
+                void Add(string? figure, string kind, byte[] data) => files.Add(new { figure, kind, data = Convert.ToBase64String(data) });
+                foreach (var clip in compilation.Clips.Where(clip => clip.Figures.Count > 0 && clip.TotalBeats > 0).Take(1))
+                {
+                    if (format == "glb")
+                    {
+                        Add(null, "model", Gltf.Render([clip]));
+                        continue;
+                    }
+                    foreach (var figure in clip.Figures)
+                    {
+                        Add(clip.Figures.Count == 1 ? null : figure.Id, "model",
+                            format == "vrma" ? Gltf.RenderVrma(clip, figure) : System.Text.Encoding.UTF8.GetBytes(Bvh.Render(clip, figure)));
+                    }
+                    if (Gltf.EventsJson(clip) is { } events)
+                        Add(null, "events", System.Text.Encoding.UTF8.GetBytes(events));
+                }
+                Reply(id, new { problems = string.Join("\n", CheckReport.Problems(compilation, text, name)), files });
                 break;
             }
 
@@ -354,21 +448,21 @@ public sealed class LanguageServer(Action<string> send)
         var ir = document.Compilation.Ir;
         var times = document.Compilation.Score.Clips.SelectMany(c => c.Dancers).SelectMany(f => f.Tracks.Values).SelectMany(s => s)
             .Where(s => offset >= s.Src && offset <= s.Src + s.Len)
-            .Select(s => (s.T0, s.T1)).Distinct().OrderBy(t => t.T0).ToList();
+            .Select(s => (T0: s.At, T1: s.Until)).Distinct().OrderBy(t => t.T0).ToList();
         if (times.Count > 0)
         {
             string When((double T0, double T1) t)
             {
                 // The bars of the clip the event is in: a song's upbeat moves them off the multiples of the bar.
                 var clip = document.Compilation.Score.Clips.FirstOrDefault(c => c.Dancers.SelectMany(f => f.Tracks.Values).SelectMany(s => s)
-                    .Any(s => s.T0 == t.T0 && offset >= s.Src && offset <= s.Src + s.Len)) ?? ir;
+                    .Any(s => s.At == t.T0 && offset >= s.Src && offset <= s.Src + s.Len)) ?? ir;
                 var (bar, beat) = Bars.At(clip.Sections, Bars.Of(clip.Meters, clip.BeatsPerBar, clip.BeatUnit), t.T0);
                 return $"bar {bar}, beat {(beat + 1).ToString("0.##", CultureInfo.InvariantCulture)}";
             }
 
             double length = times[0].T1 - times[0].T0;
-            value += $"\n\nStarts at {string.Join("; ", times.Take(4).Select(When))}{(times.Count > 4 ? "; …" : "")}"
-                + $" and takes {length.ToString("0.##", CultureInfo.InvariantCulture)} beat{(length == 1 ? "" : "s")}.";
+            value += $"\n\nThere at {string.Join("; ", times.Take(4).Select(When))}{(times.Count > 4 ? "; …" : "")}"
+                + $", for {length.ToString("0.##", CultureInfo.InvariantCulture)} beat{(length == 1 ? "" : "s")}.";
         }
 
         return new { contents = new { kind = "markdown", value }, range = Range(tree.Text, span) };

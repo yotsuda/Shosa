@@ -83,6 +83,40 @@ public class LanguageServerTests
     }
 
     [Fact]
+    public void An_assistant_in_the_editor_is_given_the_grammar_the_check_and_the_sheet()
+    {
+        var session = new Session(Samples.Walk);
+
+        Assert.Equal(Shosa.Core.Output.GrammarDoc.Render(), session.Request("shosa/grammar", new { }).GetProperty("text").GetString());
+
+        // The open document, as `shosa check` says it.
+        string check = session.Request("shosa/check", new { uri = Uri }).GetProperty("text").GetString()!;
+        Assert.StartsWith("test.shosa: no problems\n  score: 8 beats", check);
+        // The walk begins with a step: the foot is there already, which is no problem and is said.
+        Assert.Contains("\n    solo starts with `left.fwd` already made: the first step is not seen", check);
+
+        // A text sent with the request — unsaved, or a file nobody opened — is what is checked.
+        string broken = session.Request("shosa/check", new { uri = Uri, text = Samples.Walk.Replace("side:2", "sid:2") }).GetProperty("text").GetString()!;
+        Assert.Matches(@"^test\.shosa\(\d+,\d+\): error SH\d+: ", broken);
+        Assert.DoesNotContain("no problems", broken);
+
+        var sheets = session.Request("shosa/sheet", new { uri = Uri, step = 2 }).GetProperty("sheets");
+        byte[] png = Convert.FromBase64String(Assert.Single(sheets.EnumerateArray()).GetProperty("png").GetString()!);
+        Assert.Equal(new byte[] { 0x89, 0x50, 0x4E, 0x47 }, png[..4]);
+
+        // The preview's Export Model: one score as the file asked for, what the CLI writes.
+        byte[] Exported(string format) => Convert.FromBase64String(
+            Assert.Single(session.Request("shosa/export", new { uri = Uri, score = "", format }).GetProperty("files").EnumerateArray()).GetProperty("data").GetString()!);
+        var walk = Shosa.Core.ShosaCompilation.Compile(Samples.Walk, "").Clips[0];
+        Assert.Equal(Shosa.Core.Output.Gltf.Render(walk), Exported("glb"));
+        Assert.Equal(Shosa.Core.Output.Gltf.RenderVrma(walk, walk.Figures[0]), Exported("vrma"));
+        Assert.Equal(Shosa.Core.Output.Bvh.Render(walk, walk.Figures[0]), System.Text.Encoding.UTF8.GetString(Exported("bvh")));
+        Assert.Empty(session.Request("shosa/export", new { uri = Uri, score = "Nope", format = "glb" }).GetProperty("files").EnumerateArray());
+
+        Assert.Equal(JsonValueKind.Null, session.Request("shosa/check", new { uri = "file:///nobody.shosa" }).ValueKind);
+    }
+
+    [Fact]
     public void An_edit_arrives_as_a_range_and_the_rest_of_the_file_is_not_parsed_again()
     {
         var session = new Session(Samples.Walk);
@@ -131,8 +165,8 @@ public class LanguageServerTests
         Assert.Equal(new[] { "solo", "upbeat", "tempo", "time" }, session.Complete("section Walk {\n"));   // what a section may begin with
         Assert.Contains("leftLeg", session.Complete("solo {\n"));
         Assert.Equal(new[] { "Walk", "tempo", "time" }, session.Complete("form { "));   // a tempo or a time for the section named next
-        // After a whole number in the length of a hold or a skip: the unit `bar`. Of nothing else.
-        Assert.Equal(new[] { "bar" }, session.Complete("| hold:4"));
+        // After a whole number in the length of a `then` or a skip: the unit `bar`. Of nothing else.
+        Assert.Equal(new[] { "bar" }, session.Complete("| then:4"));
         Assert.Empty(session.Complete("side:2"));
         Assert.Contains("verse", session.Complete("steps { "));
 
@@ -174,7 +208,7 @@ public class LanguageServerTests
         Assert.Contains("stageLeft", session.Complete("facing "));
         Assert.Empty(session.Complete("section Greet "));   // loop and inplace are said in the score
         Assert.Equal(new[] { "a", "b", "upbeat", "tempo", "time" }, session.Complete("section Greet {\n"));
-        Assert.Equal(new[] { "guard", "jab", "hold", "skip", "q", "verse" }, session.Complete("a { body { "));
+        Assert.Equal(new[] { "guard", "jab", "then", "skip", "q", "verse" }, session.Complete("a { body { "));
         Assert.DoesNotContain("verse", session.Complete("move jab { leftArm { "));   // a move is not played a second time
         Assert.DoesNotContain("verse", session.Complete("rightArm { b."));
         Assert.Contains("hand", session.Complete("rightArm { b."));

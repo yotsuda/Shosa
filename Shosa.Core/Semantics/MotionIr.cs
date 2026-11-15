@@ -209,8 +209,9 @@ public static class Bars
     }
 }
 
-/// <summary>A moment named by the author (`!hit`), for the engine: the beat the part arrives.</summary>
-public sealed record MarkIr(double Beat, string Name, string Dancer, int Src, int Len);
+/// <summary>A moment named by the author (`!hit`), for the engine: the beat its word is written at, which is when the part arrives.</summary>
+/// <param name="Section">The section that writes the mark, and <paramref name="Play"/>: which play of it in the score (1 the first).</param>
+public sealed record MarkIr(double Beat, string Name, string Dancer, int Src, int Len, string Section = "", int Play = 1);
 
 public static class Channels
 {
@@ -259,11 +260,19 @@ public static class SegKinds
 /// <summary>
 /// One segment of one channel: from T0 to T1 the part moves to its target and is there at T1.
 /// A flat record with optional fields rather than a class per kind, so that it is one JSON shape.
+///
+/// The word it came from is written AT a beat, and that is the beat the part arrives (T1): the
+/// way there (T0..T1) is made in the time of the word before. The word then has the part
+/// UNTIL the next one. (A jump lands at At and T1 is a little after it; in a loop the way to
+/// the first word is at the end, one length of the loop later than At.)
 /// </summary>
 public sealed class Seg
 {
     public double T0 { get; set; }
     public double T1 { get; set; }
+    /// <summary>The beat the word is written at, and the beat its time ends: when it is the word being performed.</summary>
+    public double At { get; set; }
+    public double Until { get; set; }
     public string Kind { get; set; } = SegKinds.Hold;
 
     /// <summary>Dir: unit vector in the dancer's frame (x left, y up, z forward).</summary>
@@ -272,6 +281,8 @@ public sealed class Seg
     public double Ext { get; set; } = 1;
     /// <summary>Dir, arms: the direction is in the torso's frame (it leans with the torso), not the room's.</summary>
     public bool Body { get; set; }
+    /// <summary>Dir, torso: the back is rounded. The direction is still the line from the pelvis to the chest; the spine bows back from it.</summary>
+    public bool Round { get; set; }
     /// <summary>Anchor: hip | chest | shoulder | head | chin | belly | across.shoulder | clap.</summary>
     public string? Anchor { get; set; }
     /// <summary>Reach and Turn: the id of the other dancer.</summary>
@@ -281,7 +292,7 @@ public sealed class Seg
 
     /// <summary>Step: left | right. Shift: left | right | center.</summary>
     public string? Foot { get; set; }
-    /// <summary>Step: metres from the supporting foot, toward the stepping foot's own side.</summary>
+    /// <summary>Step: metres from the supporting foot, toward the stepping foot's own side. Jump and Lift: metres to the dancer's left.</summary>
     public double Dx { get; set; }
     /// <summary>Step, Jump and Lift: metres forward.</summary>
     public double Dz { get; set; }
@@ -293,6 +304,8 @@ public sealed class Seg
     public double? Spread { get; set; }
     /// <summary>Lift: metres between the floor and the feet.</summary>
     public double Height { get; set; }
+    /// <summary>Jump: how far through the segment (0..1) the feet come down; 0.85 if not said. Before it the bend and the air, after it the give.</summary>
+    public double? Land { get; set; }
     /// <summary>Step: a stance, not a movement (it came from a `pose`). Already standing so, nothing moves.</summary>
     public bool Stance { get; set; }
 

@@ -1,0 +1,25 @@
+title "Greeting"
+tempo 72
+time 4/4
+
+figure a
+figure b
+dancer ann humanoid on a at -0.5 0 facing stageLeft
+dancer ben humanoid on b at 0.5 0 facing stageRight
+
+// Bar 1: still on count 1, bowed on count 3 (beat 2). Bowed for two counts.
+// Bar 2: upright on count 2 (beat 5).
+// Bar 3: right hands meet on count 1 (beat 8), together for two counts, down on count 4 (beat 11).
+section Greet {
+  a {
+    torso    { up:2 fwd.60:2!bow | hold:1 up:3 | hold:4 | }
+    rightArm { down:4 | hold:2 hold:2 | b.hand:2!shake hold:1 down:1 | }
+  }
+  b {
+    torso    { up:2 fwd.60:2!bow | hold:1 up:3 | hold:4 | }
+    rightArm { down:4 | hold:2 hold:2 | a.hand:2!shake hold:1 down:1 | }
+  }
+}
+
+form { Greet }
+score { dancer ann  dancer ben }

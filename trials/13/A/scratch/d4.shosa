@@ -1,0 +1,6 @@
+tempo 120
+figure g
+dancer g humanoid on g
+section D { g { steps { then:0.25s left.side:0.25s jump.together:0.5s } } }
+form { D }
+score { dancer g }

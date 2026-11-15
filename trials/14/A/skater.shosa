@@ -1,0 +1,20 @@
+title "Skater"
+tempo 120          // one beat is 0.5 s
+time 4/4
+
+figure skater
+dancer skater humanoid on skater
+
+// A dancer's "beat 2" and "beat 4" are beats 1 and 3 counted from 0.
+section Bounds {
+  skater {
+    steps    { both.low jump.left then jump.right | then jump.left then jump.left@large | }
+    torso    { fwd.60@round:4 | then:4 | }
+    head     { fwd.30:4 | then:4 | }
+    leftArm  { down back.side.low then across.-30 | then back.side.low down back.side.low | }
+    rightArm { down across.-30 then back.side.low | then across.-30 down across.-30 | }
+  }
+}
+
+form { Bounds }
+score { dancer skater }

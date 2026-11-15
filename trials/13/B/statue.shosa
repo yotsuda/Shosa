@@ -1,0 +1,18 @@
+title "Statue"
+tempo 60
+time 4/4
+
+figure solo
+dancer solo humanoid on solo
+
+section Main {
+  solo {
+    // out to the sides for 6 beats, then in 2 beats down (there on beat 8), then still
+    arms  { side:4~ | :2 then:2 | down:4!hang | then:4 | }
+    // still for 12 beats; a step forward lands on beat 13, the feet close on beat 14
+    steps { then:3bar | then:1 left.fwd!step together!close then:1 | }
+  }
+}
+
+form { Main }
+score { dancer solo }

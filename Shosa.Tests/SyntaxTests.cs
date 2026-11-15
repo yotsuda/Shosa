@@ -41,8 +41,8 @@ public class SyntaxTests
             move jab { leftArm { fwd.-10:0.3s@sharp!hit guard:12f } }
             section Idle {
               mage {
-                body  { guard:0 | { jab:1/2 jab:1/2 } & { skip:1 } hold:3 }
-                steps { left.fwd@turn(left.quarter) lift.fwd(0.4)@free land@free hold }
+                body  { guard:0 | { jab:1/2 jab:1/2 } & { skip:1 } then:3 }
+                steps { left.fwd@turn(left.quarter) lift.fwd(0.4)@free land@free then }
               }
             }
             form short { Idle }

@@ -1,0 +1,19 @@
+title "Patrol"
+tempo 100          // one beat is 0.6 s
+time 4/4
+
+figure sentry
+dancer sentry humanoid on sentry
+
+section Patrol {
+  sentry {
+    // bar 1: stands (so the first step is seen); bar 2: four steps; bar 3: close and turn round;
+    // bar 4: four steps back; bar 5: close and turn round again.
+    steps    { then:4 | left.fwd right.fwd left.fwd right.fwd | together then turn.left.half:2 | left.fwd right.fwd left.fwd right.fwd | together then turn.left.half:2 | }
+    leftArm  { down:3 then | back.-70 fwd.-70 back.-70 fwd.-70 | down:4 | back.-70 fwd.-70 back.-70 fwd.-70 | down:4 | }
+    rightArm { down:3 then | fwd.-70 back.-70 fwd.-70 back.-70 | down:4 | fwd.-70 back.-70 fwd.-70 back.-70 | down:4 | }
+  }
+}
+
+form { Patrol }
+score { dancer sentry }

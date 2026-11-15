@@ -1,0 +1,23 @@
+title "Song dance"
+music "song.lys"
+
+figure solo
+dancer solo humanoid on solo
+
+// Verse: a foot lands on every beat; the hands clap on counts 2 and 4 (beats 1 and 3 of the bar).
+section Verse {
+  solo {
+    steps { left.place right.place left.place right.place | % | %2 | }
+    arms  { side.low clap@sharp!clap side.low clap@sharp!clap | % | %2 | }
+  }
+}
+
+// Chorus: arms hang through counts 1 and 2, go up only during count 3 (through the side),
+// are overhead on count 4, and hang again on the next bar's first count.
+section Chorus {
+  solo {
+    arms { down:2 then:1/2 side:1/2@linear up:1/2!top side:1/2@linear | % | %2 | }
+  }
+}
+
+score { dancer solo }

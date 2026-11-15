@@ -2,6 +2,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { LanguageClient, ServerOptions, TransportKind } from 'vscode-languageclient/node';
+import { registerExport } from './export';
+import { registerTools } from './tools';
 
 // The extension is thin on purpose. The language server knows the language; the preview
 // knows how to draw. This file starts the one, opens the other, and carries four kinds of
@@ -68,6 +70,29 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     editor.selection = new vscode.Selection(document.positionAt(start), document.positionAt(start + newFileTitle.length));
   }));
 
+  // The compiler the package carries (`shosa check`, `shosa sheet`, `shosa gltf` …) on the PATH
+  // of VS Code's terminals: an AI agent working in one runs it by its name, whatever folder this
+  // version of the extension was installed into. Running from the repository there is none here.
+  const programs = path.join(context.extensionPath, 'server');
+  // A package made on Windows has no execute bits (a zip written there carries none), so on
+  // Linux and macOS the programs would be there and not start. Set them; a failure (a read-only
+  // install) is left to show itself when the server is started.
+  if (process.platform !== 'win32') {
+    for (const program of ['Shosa.Lsp', 'shosa-music', 'shosa']) {
+      try {
+        fs.chmodSync(path.join(programs, program), 0o755);
+      } catch {
+        // not there (running from the repository), or not ours to change
+      }
+    }
+  }
+  if (fs.existsSync(path.join(programs, process.platform === 'win32' ? 'shosa.exe' : 'shosa'))) {
+    context.environmentVariableCollection.description = 'The Shosa compiler (`shosa`)';
+    context.environmentVariableCollection.prepend('PATH', programs + path.delimiter);
+  } else {
+    context.environmentVariableCollection.clear();
+  }
+
   const server = findServer(context);
   if (!server) {
     void vscode.window.showErrorMessage(
@@ -104,6 +129,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   });
   await client.start();
   context.subscriptions.push({ dispose: () => void client?.stop() });
+
+  // The grammar, the check and the sheet as tools of an AI assistant in the editor (tools.ts).
+  registerTools(context, client);
 
   const show = (uri: string) => {
     panelUri = uri;
@@ -143,6 +171,24 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }
   }));
 
+  // The preview's Export buttons (export.ts). A command that presses one opens the preview first
+  // and waits for its page: `pageReady` is set when the page has said 'ready' and been given the clips.
+  let pageReady = false;
+  const exported = registerExport(context, {
+    client,
+    panel: () => panel,
+    uri: () => panelUri,
+    ready: async () => {
+      if (!panel) {
+        await vscode.commands.executeCommand('shosa.openPreview');
+      }
+      for (let i = 0; i < 100 && panel && !(pageReady && panelUri && clips.has(panelUri)); i++) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      return !!panel && pageReady;
+    },
+  });
+
   context.subscriptions.push(vscode.commands.registerCommand('shosa.openPreview', () => {
     const editor = vscode.window.activeTextEditor;
     if (!editor || editor.document.languageId !== 'shosa') {
@@ -164,10 +210,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       editorFor(panelUri)?.setDecorations(performed, []);
       panel = undefined;
       panelUri = undefined;
+      pageReady = false;
     });
 
     panel.webview.onDidReceiveMessage((message: { type: string; spans?: [number, number][]; start?: number; length?: number; key?: string; music?: object }) => {
       const editor = editorFor(panelUri);
+      if (exported(message as Parameters<typeof exported>[0])) {
+        return;
+      }
       switch (message.type) {
         case 'song':
           // The notes of the song the clip is danced to: the server has shosa-music read them.
@@ -184,6 +234,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           if (panelUri) {
             show(panelUri);
           }
+          pageReady = true;
           break;
 
         case 'active':

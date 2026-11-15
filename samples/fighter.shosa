@@ -10,14 +10,21 @@ dancer fighter humanoid on fighter
 
 pose guard {
   steps { left.fwd.low@small }
-  arms  { fwd.high@bent }
+  arms  { fwd.25@bent }
+  torso { fwd.80 }
+  head  { fwd.10 }
 }
 
 // A pose written in a narrower track does only that track's part: `guard` in leftArm
 // is the left arm of the guard.
-move jab       { leftArm  { fwd:1@sharp!hit guard:1 } }
-move cross     { rightArm { fwd:1@sharp!hit guard:1 } }
-move frontKick { rightLeg { fwd.low:1@bent fwd:1@sharp!hit fwd.low:1@bent down:1 } }
+// A move is written at the beat of its first word: `jab` on a beat is the fist out on that beat
+// (`@sharp`: it goes just before the beat, not through all of the word before). The kick is
+// knee up, kick, knee, down: its `!hit` is one word after the beat the kick is written at.
+// The cross draws the elbow back first (`fwd.low@bent`: the fist by the ribs, the elbow behind the
+// body) and goes out from there: its `!hit` too is one word after the beat the cross is written at.
+move jab       { leftArm  { fwd.25@sharp!hit guard } }
+move cross     { rightArm { fwd.low@bent fwd.25@sharp!hit guard } }
+move frontKick { rightLeg { fwd.low@bent fwd@sharp!hit fwd.low@bent down } }
 
 // A step is placed from the other foot: the left foot reaches a full stride ahead, then the
 // right foot closes up to a small stride behind it. Both feet end 0.2 m further on, in guard.
@@ -47,7 +54,7 @@ section Walk {
 
 section Jab {
   fighter {
-    body { guard:0 jab:0.3s }
+    body { guard:0.2s jab:0.4s }              // in guard; the fist is out at 0.2 s (!hit) and back at 0.4 s
   }
 }
 
@@ -55,24 +62,28 @@ section Combo {
   fighter {
     // `&`: the two sides happen together. Punches while stepping in; the weight ends on
     // the right foot, so the kick is the mirrored one (the left leg).
-    body { guard:0 { jab:1/2 jab:1/2 cross:1 } & { stepIn:2 }  frontKick@mirror:2 | hold:4 | }
+    // A word is written at the beat the body is there: the jabs land on 2 and the half after it,
+    // the cross on 3, the kick's knee is up on the next 1 and the kick lands half a beat later.
+    // The cross is a row of its own beside the jabs (`skip`: the row leaves that time to the
+    // others): the right fist is drawn back while the second jab lands, and is out half a beat on.
+    body { guard:1 { jab:1/2 jab:1/2 skip } & { skip:1/2 cross:3/2 } & { stepIn:2 } then | frontKick@mirror:2 guard:2 | }
   }
 }
 
 section Hurt {
   fighter {
-    body  { guard:0 }
-    steps { right.back.low:0.2s!stagger hold:0.4s }   // from guard the right foot goes 0.2 m further back
-    torso { back.70:0.2s@sharp up:0.4s }
-    head  { fwd.-30:0.2s@sharp fwd:0.4s }
+    body  { guard:0.6s }
+    steps { skip:0.2s right.back.low:0.4s!stagger }   // from guard the right foot goes 0.2 m further back
+    torso { up:0.2s back.70:0.2s@sharp up:0.2s }      // thrown back at 0.2 s, upright again at 0.4 s
+    head  { fwd:0.2s fwd.-30:0.2s@sharp fwd:0.2s }
   }
 }
 
 section Victory {
   fighter {
-    body  { guard:0 }
-    steps { together jump jump hold }
-    arms  { down side.high:1/2 up:1/2 hold:2 }
+    body  { guard:4 }
+    steps { skip together jump jump }         // the feet close on 2; the jumps land on 3 and 4
+    arms  { skip down:1/2 side.high:1/2 up:2 }
   }
 }
 

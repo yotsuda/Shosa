@@ -12,7 +12,7 @@ public static class Vocabulary
     /// <summary>Track names. `arms` and `steps` are spellings; the rest are channels as they are.</summary>
     public static readonly Word[] Tracks =
     [
-        new("body", "The whole body. Takes the poses and moves you have defined, `hold` and `skip`; a narrower track written beside it wins for its own part."),
+        new("body", "The whole body. Takes the poses and moves you have defined, `then` and `skip`; a narrower track written beside it wins for its own part."),
         new("steps", "The feet on the floor: steps, turns, jumps, changes of height. Where the weight is."),
         new("arms", "Both arms at once, mirrored: `side` is away from the midline for each."),
         new("leftArm", "The left arm: where the hand points from the shoulder, or a place on the body it goes to."),
@@ -35,7 +35,7 @@ public static class Vocabulary
 
     public static readonly Word[] Levels =
     [
-        new("low", "45 degrees below horizontal. For the feet: knees bent."),
+        new("low", "45 degrees below horizontal. For the feet: knees bent (the hips 16 cm lower; a deep crouch is `both.low@large`)."),
         new("mid", "Horizontal (the default). For the feet: normal standing height."),
         new("high", "45 degrees above horizontal. For the feet: on the toes."),
     ];
@@ -43,7 +43,7 @@ public static class Vocabulary
     public static readonly Word[] Poles =
     [
         new("up", "Straight up."),
-        new("down", "Straight down: an arm hanging, a free leg back on the floor."),
+        new("down", "Down: an arm hanging at the side as an arm nobody wrote does (the hand by the thigh, a little forward), a free leg back on the floor."),
     ];
 
     public static readonly Word[] Anchors =
@@ -52,7 +52,7 @@ public static class Vocabulary
         new("chest", "The hand in front of the chest."),
         new("shoulder", "The hand on its own shoulder."),
         new("head", "The hand beside the head."),
-        new("chin", "The fist in front of the chin: a guard."),
+        new("chin", "The hand in front of the chin: one hand in thought, one fist held close. (Both arms there cross at the elbows: a guard is `fwd.25@bent`.)"),
         new("belly", "The hand on the belly."),
         new("across.shoulder", "The hand on the opposite shoulder. With `arms`: arms folded."),
         new("clap", "The hand at the midline in front of the chest. With `arms`: the two hands meet."),
@@ -105,6 +105,8 @@ public static class Vocabulary
         new("place", "Land where you took off (the default)."),
         new("fwd", "Land 0.4 m ahead."),
         new("back", "Land 0.3 m behind."),
+        new("left", "Land 0.4 m to the figure's left: a dodge is `jump.left@small`."),
+        new("right", "Land 0.4 m to the figure's right."),
         new("apart", "Land with the feet 0.6 m apart."),
         new("together", "Land with the feet at standing width."),
     ];
@@ -119,11 +121,12 @@ public static class Vocabulary
 
     public static readonly Word[] Annotations =
     [
-        new("smooth", "Ease in and out (the default)."),
-        new("sharp", "Get there in the first half of the event and stop: an accent. Twice as fast, so it can be too fast (SH2003)."),
-        new("linear", "Constant speed."),
+        new("smooth", "The way TO this word eases in and out (the default)."),
+        new("sharp", "Go at the last moment: the part waits, then gets there in no more than 0.15 s before its beat. An accent — a punch, a clap. Fast, so it can be too fast (SH2003)."),
+        new("linear", "The way TO this word is at constant speed: no slowing as it arrives."),
         new("bent", "Fold the elbow or the knee: the hand or foot stays in direction but comes closer."),
         new("body", "For an arm: measure the direction against the torso instead of the room, so the arm leans when the torso leans."),
+        new("round", "For the torso: the back is rounded. The direction still says where the chest is from the hips; the spine bows back from that line, and the chest, the shoulders and the head lean further forward (`torso { fwd.80@round }` is a fighter's guard, `up@round` a slouch). Without it the back is straight, as in a bow from the hips."),
         new("small", "A shorter step or jump. On `both.low` / `together.low`: a slighter knee bend."),
         new("large", "A longer step or jump. On `both.low` / `together.low`: a deeper crouch."),
         new("mirror", "Left and right swapped: `kick@mirror` kicks with the other leg."),
@@ -131,7 +134,7 @@ public static class Vocabulary
         new("turn", "For a step or a jump: turn while doing it, `left.fwd@turn(left.quarter)`, `jump@turn(right.half)`. The step lands where it would after the turn."),
     ];
 
-    public const string Hold = "hold";
+    public const string Hold = "then";
     public const string Skip = "skip";
     /// <summary>`q`: the group in braces before it, again.</summary>
     public const string Again = "q";

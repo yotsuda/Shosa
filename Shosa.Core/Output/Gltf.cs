@@ -30,6 +30,46 @@ public static class Gltf
         Pack(clips, clips.Select(c => (IReadOnlyList<ClipFigure>)c.Figures).ToList(), vrma: false, binary);
 
     /// <summary>One figure as a VRM Animation, which is a <c>.glb</c> with the humanoid named.</summary>
+    /// <summary>
+    /// What an engine needs of a clip besides the curves, in the one shape both the extras of a
+    /// glTF animation and FILE.events.json have: <c>loop</c>; <c>velocity</c> (only `inplace`:
+    /// metres a second in glTF's axes, [x, 0, z], for each figure); <c>marks</c> (only if there
+    /// are any: <c>time</c> in seconds, <c>beat</c>, <c>name</c>, <c>figure</c>, <c>section</c>, <c>play</c>).
+    /// </summary>
+    public static JsonObject Extras(MotionClip clip, IReadOnlyList<ClipFigure> figures)
+    {
+        var extras = new JsonObject { ["loop"] = clip.Loop };
+        if (clip.Inplace)
+        {
+            extras["velocity"] = new JsonObject(figures.Where(f => f.Velocity is not null)
+                .Select(f => KeyValuePair.Create(f.Id, (JsonNode?)new JsonArray(f.Velocity![0], 0, f.Velocity[1]))));
+        }
+        var marks = clip.Marks.Where(m => figures.Any(f => f.Id == m.Figure)).ToList();
+        if (marks.Count > 0)
+        {
+            extras["marks"] = new JsonArray([.. marks.Select(m => (JsonNode)new JsonObject
+            {
+                ["time"] = m.Seconds, ["beat"] = m.Beat, ["name"] = m.Name, ["figure"] = m.Figure, ["section"] = m.Section, ["play"] = m.Play,
+            })]);
+        }
+        return extras;
+    }
+
+    /// <summary>
+    /// The text of FILE.events.json, written beside a BVH or a VRM Animation (neither can carry
+    /// extras): the score and its length, then <see cref="Extras"/> field for field. Null for a
+    /// clip with nothing to say (no marks, not `inplace`).
+    /// </summary>
+    public static string? EventsJson(MotionClip clip)
+    {
+        if (clip.Marks.Count == 0 && !clip.Inplace)
+            return null;
+        var events = new JsonObject { ["score"] = clip.Name, ["seconds"] = Math.Round(clip.SecondsAt(clip.TotalBeats), 4) };
+        foreach (var (key, value) in Extras(clip, clip.Figures))
+            events[key] = value?.DeepClone();
+        return events.ToJsonString(new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+    }
+
     public static byte[] RenderVrma(MotionClip clip, ClipFigure figure) => Pack([clip], [[figure]], vrma: true, binary: true);
 
     /// <param name="cast">For each clip, its figures: the same ones in the same order in every clip.</param>
@@ -138,19 +178,7 @@ public static class Gltf
             foreach (var figure in cast[c])
                 Animate(figure, firstNode[figure.Id], frames, time);
 
-            var extras = new JsonObject { ["loop"] = clip.Loop };
-            if (clip.Inplace)
-            {
-                // Metres per second in glTF's axes (y up); the engine moves the character by it.
-                extras["velocity"] = new JsonObject(cast[c].Where(f => f.Velocity is not null)
-                    .Select(f => KeyValuePair.Create(f.Id, (JsonNode?)new JsonArray(f.Velocity![0], 0, f.Velocity[1]))));
-            }
-            var marks = clip.Marks.Where(m => cast[c].Any(f => f.Id == m.Figure)).ToList();
-            if (marks.Count > 0)
-            {
-                extras["marks"] = new JsonArray([.. marks.Select(m =>
-                    (JsonNode)new JsonObject { ["time"] = m.Seconds, ["name"] = m.Name, ["figure"] = m.Figure })]);
-            }
+            var extras = Extras(clip, cast[c]);
             string name = clip.Name.Length > 0 ? clip.Name : clip.Title.Length > 0 ? clip.Title : "shosa";
             animations.Add(new JsonObject { ["name"] = name, ["samplers"] = samplers, ["channels"] = channels, ["extras"] = extras });
         }

@@ -77,16 +77,11 @@ string text = File.ReadAllText(path);
 var songs = new SongReader(Path.GetDirectoryName(Path.GetFullPath(path)) ?? ".");
 var compilation = ShosaCompilation.Compile(text, scoreName, songs.Read);
 
-foreach (var diagnostic in compilation.Diagnostics)
-{
-    var (line, column) = ShosaCompilation.LineColumn(text, diagnostic.Span.Start);
-    string severity = diagnostic.Severity.ToString().ToLowerInvariant();
-    Console.Error.WriteLine($"{path}({line},{column}): {severity} {diagnostic.Code}: {diagnostic.Message}");
-}
+foreach (string problem in CheckReport.Problems(compilation, text, path))
+    Console.Error.WriteLine(problem);
 
 // One solved movement per score.
 var clips = compilation.Clips.ToList();
-string Label(string name) => name == "" ? "score" : name;
 
 var json = new JsonSerializerOptions
 {
@@ -107,72 +102,20 @@ string Target(string score, string extension, string? figure = null)
 
 void WriteEvents(MotionClip c)
 {
-    if (c.Marks.Count == 0 && !c.Inplace)
+    // The score and its length, then what the extras of a glTF animation hold, field for field.
+    if (Gltf.EventsJson(c) is not { } events)
         return;
-    var events = new
-    {
-        score = c.Name,
-        seconds = Math.Round(c.SecondsAt(c.TotalBeats), 4),
-        loop = c.Loop,
-        velocity = c.Inplace ? c.Figures.ToDictionary(f => f.Id, f => f.Velocity) : null,
-        marks = c.Marks,
-    };
     string file = Path.ChangeExtension(Target(c.Name, ".json"), ".events.json");
-    File.WriteAllText(file, JsonSerializer.Serialize(events, new JsonSerializerOptions(json) { WriteIndented = true }));
+    File.WriteAllText(file, events);
     Console.WriteLine(file);
 }
 
 switch (command)
 {
     case "check":
-        if (compilation.Diagnostics.Count == 0)
-            Console.WriteLine($"{path}: no problems");
-        // Every score: how long it is and how many dance in it; then a line for each section it
-        // plays — where it falls, how long it takes, the tempo and the time it is played in.
-        // A cut of the piece may begin in another tempo and time than the file, and a writer
-        // counts in bars and checks a speed in seconds: all of it is said, for every score.
-        foreach (var clip in clips)
-        {
-            string N(double value) => Math.Round(value, 3).ToString(System.Globalization.CultureInfo.InvariantCulture);
-            string Seconds(double from, double to) => (clip.SecondsAt(to) - clip.SecondsAt(from)).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + " s";
-            string head = clip.Music is { } song ? (clip.Name == "" ? "score" : clip.Name) + " to " + song.File : Label(clip.Name);
-            Console.WriteLine($"  {head}: {N(clip.TotalBeats)} beats, {Seconds(0, clip.TotalBeats)}, {clip.Figures.Count} dancer{(clip.Figures.Count == 1 ? "" : "s")}");
-
-            var tempos = Shosa.Core.Semantics.TempoMap.Of(clip.Tempos, clip.Tempo);
-            var meters = Shosa.Core.Semantics.Bars.Of(clip.Meters, clip.BeatsPerBar);
-            var rows = new List<string[]>();
-            foreach (var s in clip.Sections)
-            {
-                // With the bars, since a writer counts in them: "upbeat of 1, then 8 bars from beat 1".
-                int bars = Shosa.Core.Semantics.Bars.Count(meters, s.T0 + s.Pickup, s.T1);
-                string count = $"{bars} bar{(bars == 1 ? "" : "s")}";
-                if (s.Pickup > 0)
-                    count = $"upbeat of {N(s.Pickup)}, then {count} from beat {N(s.T0 + s.Pickup)}";
-                // A song may change tempo or time inside a section: each change with its beat, since the bars are counted by them.
-                bool Inside(double beat) => beat > s.T0 + 1e-9 && beat < s.T1 - 1e-9;
-                string tempo = string.Concat(tempos.Where(t => Inside(t.Beat)).Select(t => $", {N(t.Bpm)} from beat {N(t.Beat)}"));
-                var first = Shosa.Core.Semantics.Bars.MeterAt(meters, s.T0);
-                string time = string.Concat(meters.Where(m => Inside(m.Beat)).Select(m => $", {m.BeatsPerBar}/{m.BeatUnit} from beat {N(m.Beat)}"));
-                // In a compound time (6/8, 9/8, 12/8) the beat is the quaver and the pulse a dancer
-                // feels is the dotted crotchet: the tempo is said by both, "at 288 (4. = 96)".
-                double bpm = Shosa.Core.Semantics.TempoMap.BpmAt(tempos, s.T0);
-                string felt = first is { BeatUnit: 8, BeatsPerBar: 6 or 9 or 12 } ? $" (4. = {N(bpm / 3)})" : "";
-                rows.Add([s.Name, $"{N(s.T0)}-{N(s.T1)}", count, Seconds(s.T0, s.T1),
-                    $"at {N(bpm)}{felt}{tempo}", $"{first.BeatsPerBar}/{first.BeatUnit}{time}"]);
-            }
-            foreach (var row in rows)
-                Console.WriteLine("    " + string.Join("   ", row.Select((cell, i) => cell.PadRight(rows.Max(r => r[i].Length)))).TrimEnd());
-        }
-        // Marks do nothing to the movement, so this is the only place a writer sees where they fell.
-        foreach (var clip in compilation.Clips)
-        {
-            foreach (var mark in clip.Marks)
-            {
-                string who = clip.Figures.Count > 1 ? $" ({mark.Figure})" : "";
-                Console.WriteLine(FormattableString.Invariant(
-                    $"  {Label(clip.Name)} !{mark.Name} at beat {Math.Round(mark.Beat, 3)} = {Math.Round(mark.Seconds, 3)} s{who}"));
-            }
-        }
+        // The report is Core's (CheckReport): the language server gives the same one to an AI assistant in the editor.
+        foreach (string line in CheckReport.Scores(compilation, path))
+            Console.WriteLine(line);
         break;
 
     case "sheet":

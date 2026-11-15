@@ -18,8 +18,8 @@ section Verse {
 section Chorus {
   solo {
     steps { left.fwd together right.back together | % | % | verse 1 { % | } verse 2 { left.fwd both.low jump.together!land both.mid | } }
-    arms  { clap:1/2!clap hold:1/2 side.high up:2 | % | % | % | }
-    head  { verse 2 { skip:3bar | fwd.left:2 fwd:2 | } }
+    arms  { clap!clap side.high up then | % | % | % | }
+    head  { verse 2 { skip:2bar | skip:3 then | fwd.left:2 fwd:2 | } }   // it turns through the `then`, and looks left on the 1
   }
 }
 

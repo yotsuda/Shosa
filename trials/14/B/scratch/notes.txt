@@ -1,0 +1,66 @@
+PREDICTIONS (written before any check)
+
+== song-dance.shosa ==
+Song: tempo 108, 4/4, Verse 4 bars + Chorus 4 bars. 32 beats, 32*60/108 = 17.78 s.
+Key moments: claps at beats 1,3,5,7,9,11,13,15 (0.56 s, 1.67 s, ... 8.33 s).
+Leaps land at 16 (left), 20 (right), 24 (left), 28 (right). Arms overhead at 18, 22, 26, 30; down at 19.5/20 etc.
+Expected check output:
+  no problems
+  score to song.lys: 32 beats, 17.78 s, 1 dancer
+    Verse    0-16    4 bars   8.89 s   at 108   4/4
+    Chorus   16-32   4 bars   8.89 s   at 108   4/4
+    solo starts with `left.place` already made
+    solo ends where it began
+  score verse to song.lys: 16 beats, 8.89 s, 1 dancer
+    Verse    0-16    4 bars   8.89 s   at 108   4/4
+    solo starts with `left.place` already made
+    solo ends where it began
+  !clap at beat 1 = 0.56 s   Verse, play 1     (8 of them: 1,3,...,15; 0.56 1.67 2.78 3.89 5 6.11 7.22 8.33)
+Dancer ends where it began (verse returns home; chorus L R L R cancels).
+
+== oldman.shosa ==
+20 beats, 15 s (5 bars at 80). Steps land beats 4..9. Upright at 12, held to 14, curled again at 16.
+Feet: L .3, R .6, L .9, R 1.2, L 1.5, R 1.8 -> middle of feet 1.65 m forward.
+Expected check:
+  no problems
+  score: 20 beats, 15 s, 1 dancer
+    Main   0-20   5 bars   15 s   at 80   4/4
+    oldman ends 1.65 m forward of where it began
+  (no "starts with ... already made" line, no marks)
+
+== pair.shosa ==
+16 beats, 9.6 s. Leaps land at 4 (upstage) and 6 (back). Bow / curl at 10. Upright at 12.
+Expected check:
+  no problems
+  score: 16 beats, 9.6 s, 2 dancers
+    Main   0-16   4 bars   9.6 s   at 100   4/4
+    a ends where it began
+    b ends where it began
+
+ACTUAL (first check of each, all three: "no problems", 1 run each)
+song-dance: lengths, section lines, "ends where it began" all right. Differences from prediction:
+  - named score's header is "verse to song.lys: ..." not "score verse to song.lys: ..."
+  - the already-made line is longer: "solo starts with `left.place` already made: the first step is not seen (right for a stance, ...)"
+  - marks are "score !clap at beat 1 = 0.556 s" (prefixed with the score, 3 decimals, NO "Verse, play 1" suffix), listed for each score
+oldman: exactly as predicted (20 beats, 15 s, "oldman ends 1.65 m forward of where it began").
+pair: exactly as predicted ("a ends where it began", "b ends where it began").
+
+== oldman-edit.shosa == (prediction before check)
+Edit: body row gets one more `then:4 |` (2 tokens inserted); steps `then:2` replaced by `left.fwd@small right.fwd@small`
+(1 token -> 2); three left steps `left.fwd@small` -> `left.fwd.side@small` (3 tokens changed). Comments aside.
+24 beats, 18 s, 6 bars. Steps land 4..11; upright at 16, held to 18, curled at 20.
+Forward: L 2.1, R 2.4 -> 2.25 m. Side: I guess each left.fwd.side@small lands 0.55*0.6 = 0.33 from the right foot instead of
+0.2, and the right foot then closes to 0.2: 0.13 left per pair, x3 = 0.39.
+Expected check:
+  no problems
+  score: 24 beats, 18 s, 1 dancer
+    Main   0-24   6 bars   18 s   at 80   4/4
+    oldman ends 2.25 m forward and 0.39 m left of where it began   (wording of two directions is a guess)
+
+
+ACTUAL oldman-edit, check 1: no problems; 24 beats, 18 s, 6 bars right; forward 2.25 right;
+  side WRONG: "oldman ends 2.25 m forward and 0.63 m to its left of where it began" (0.21 per side step, not 0.13; wording "to its left").
+Scratch e1-e3: two side steps@small = 0.42, one = 0.21, one `left.fwd.side` without @small = 0.35 (and 0.2 m more forward).
+  So `side` adds 0.35 beyond standing width and @small scales that 0.35. 0.4 exactly is not reachable; took two side steps = 0.42.
+Check 2 (final): predicted "2.25 m forward and 0.42 m to its left".
+

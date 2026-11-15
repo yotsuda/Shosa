@@ -22,7 +22,7 @@ internal static class Samples
         section Walk {
           solo {
             steps { left.fwd right.fwd left.fwd right.fwd | left.fwd right.fwd left.fwd together }
-            arms  { side:2 down:2 | hold:4 }
+            arms  { side:2 down:2 | then:4 }
           }
         }
         form { Walk }

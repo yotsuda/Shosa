@@ -51,7 +51,7 @@ print(f"== fps {scene.render.fps}, frames {scene.frame_start}..{scene.frame_end}
 joints = clip["joints"]
 frames = clip["figures"][figure_index]["frames"]
 bone_joint = {
-    "hips": "pelvis", "neck": "chest", "head": "head",
+    "hips": "pelvis", "chest": "waist", "neck": "chest", "head": "head",
     "leftUpperArm": "leftShoulder", "leftLowerArm": "leftElbow", "leftHand": "leftHand",
     "rightUpperArm": "rightShoulder", "rightLowerArm": "rightElbow", "rightHand": "rightHand",
     "leftUpperLeg": "leftHip", "leftLowerLeg": "leftKnee", "leftFoot": "leftAnkle",

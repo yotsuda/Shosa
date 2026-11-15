@@ -1,0 +1,24 @@
+title "Pair"
+tempo 100
+time 4/4
+
+figure a
+figure b
+// Facing each other, 2 m apart. a faces stage left, so its left is upstage;
+// b faces stage right, so its RIGHT is upstage.
+dancer a humanoid on a at -1 0 facing stageLeft
+dancer b humanoid on b at 1 0 facing stageRight
+
+section Main {
+  a {
+    steps { then:4 | jump.left then:1 jump.right then:1 | then:4 | then:4 | }
+    torso { up:4 | then:4 | then:2 fwd.high then | up:4 | }     // a bow from the hips on beat 10
+  }
+  b {
+    steps { then:4 | jump.right then:1 jump.left then:1 | then:4 | then:4 | }
+    torso { up:4 | then:4 | then:2 fwd.high@round then | up:4 | }   // curled over on beat 10
+  }
+}
+
+form { Main }
+score { dancer a  dancer b }

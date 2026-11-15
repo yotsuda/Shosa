@@ -1,0 +1,11 @@
+PREDICTIONS (written before the first check of each final file)
+statue: 16 beats/16 s. arms side at 4, up at 8; still 8..11.7; arms pass side at 11.85, down at 12; knees start 11.85, bent at 12; still 12..16. no marks.
+statue-edit: 20 beats/20 s. up at 8; still 8..14; side at 15, down at 16; knees start 15.85 bent at 16; still 16..20.
+song-dance (song: Intro 0-8, Verse 8-24, Chorus 24-40, Verse 40-56, Chorus 56-72, Outro 72-80, 4/4 at 108):
+  feet land every beat 8..23 and 40..55; !clap at 9,11,13,15,17,19,21,23 and 41,43,45,47,49,51,53,55 (16 claps)
+  !land at 24,28,32,36 and 56,60,64,68; arms up at 26,30,34,38,58,62,66,70; arms down at each bar's beat 0 and at 72.
+  practice: 16 beats at 81, 11.85 s, loop; !land at 0,4,8,12; arms up 2,6,10,14.
+waltz: Leadin 0-3 (3/4 at 90), Waltz 3-15, March 15-23 (4/4 at 120). 23 beats, 14 s.
+  arms down at 0 and 1, side.low at 2, side at 3. steps: fwd/back low on 3,6,9,12; side high on 4,7,10,13; close on 5,8,11,14.
+  march steps land 15..22; !punch at 15,16,...,22 (10 s, 10.5 ... 13.5 s); left arm on 15,17,19,21, right on 16,18,20,22.
+canon: 2 bars 4/4 at 120, delays 0/2/4 -> 12 beats, 6 s. clap at 3 (A), 5 (B), 7 (C); land at 6 (A), 8 (B), 10 (C).

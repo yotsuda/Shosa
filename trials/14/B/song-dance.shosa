@@ -1,0 +1,33 @@
+title "Song dance"
+music "song.lys"
+
+figure solo
+dancer solo humanoid on solo
+
+// Verse: a foot lands on every beat. March, three forward and close, three back and close,
+// side-close left, side-close right: home again. Claps on the counts "2" and "4" (beats 1 and 3).
+section Verse {
+  solo {
+    steps {
+      left.place right.place left.place right.place |
+      left.fwd right.fwd left.fwd together |
+      left.back right.back left.back together |
+      left.side together right.side together |
+    }
+    arms { side.low clap@sharp!clap side.low clap@sharp!clap | % | % | % | }
+  }
+}
+
+// Chorus: a leap sideways lands on the first beat of every bar (left, right, left, right);
+// the arms are overhead on the third beat and down again before the next bar.
+section Chorus {
+  solo {
+    steps { jump.left then:3 | jump.right then:3 | %2 | }
+    arms  { down side up side:1/2 down:1/2 | % | % | % | }
+  }
+}
+
+form verse { Verse }
+
+score { dancer solo }
+score verse { dancer solo  form verse }

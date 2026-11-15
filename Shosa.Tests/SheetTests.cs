@@ -32,7 +32,11 @@ public class SheetTests
         var one = Sheet(sections + "form { A }\n");
         var two = Sheet(sections + "form { A B }\n");
 
-        Assert.Equal(0, Count(one, SectionColor, 0, 0, one.Width, one.Height));
+        // One section: no name on the first line. The tempo is under the beat of the first pose, and nowhere else.
+        Assert.Equal(0, Count(one, SectionColor, 0, 0, one.Width, 30));
+        Assert.True(Count(one, SectionColor, 14, 32, 204, 50) > 0);
+        Assert.Equal(0, Count(one, SectionColor, 204, 0, one.Width, one.Height));
+        Assert.Equal(0, Count(two, SectionColor, 14, 296, 204, 314));   // B goes on at A's tempo: not said again
         // 8 beats at a pose per half beat, 8 to a row: A is named in the first cell, B at beat 4 (the first cell of the second row).
         Assert.True(Count(two, SectionColor, 14, 14, 204, 30) > 0);
         Assert.True(Count(two, SectionColor, 14, 278, 204, 294) > 0);

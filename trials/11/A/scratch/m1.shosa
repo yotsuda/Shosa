@@ -1,0 +1,46 @@
+title "Medley"
+tempo 112
+time 4/4
+
+figure solo
+dancer solo humanoid on solo
+
+section March {
+  tempo 112
+  solo {
+    steps { left.fwd right.fwd left.fwd together | right.back left.back right.back together | }
+    arms  { fwd.low:2 down:2 | side:2 down:2 | }
+  }
+}
+
+section Waltz {
+  tempo 84
+  time 3/4
+  solo {
+    steps { left.fwd right.side together | right.back left.side together | %2 | }
+    arms  { side:3 | hold:3 | side.high:3 | down:3 | }
+  }
+}
+
+section Bridge {
+  time 3/4
+  solo {
+    steps { left.side together hold | right.side together hold | }
+    arms  { fwd:1 up:2 | side:1 down:2 | }
+  }
+}
+
+section Finale {
+  solo {
+    steps { left.side together right.side together | jump:1 both.low:1 both.mid:2 | }
+    arms  { side:2 up:2 | side:1 down:1 hold:2 | }
+  }
+}
+
+form { March Waltz Bridge tempo 120% March Finale }
+form second { tempo 84 Bridge March Waltz Finale }
+form bridge { tempo 84 Bridge }
+
+score { dancer solo }
+score second { dancer solo  form second }
+score bridge { dancer solo  form bridge }

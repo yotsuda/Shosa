@@ -15,29 +15,36 @@ public sealed record SkeletonBone(string Name, int Parent, Vec3 Offset, int Join
 ///
 /// The spine starts exactly at the hips (a bone of no length): the solver leans the torso
 /// about the pelvis point while the hip sockets stay level, and only this reproduces it.
+///
+/// The shoulders (collar bones) never turn: the solver has no joint there. They are in the
+/// table because a character has them. An engine that keeps a rotation relative to the parent
+/// bone's own axes (Godot's retargeting) plays the upper arm wrong on such a character when
+/// the animation's upper arm hangs from the chest instead.
 /// </summary>
 public static class Skeleton
 {
     private static readonly Vec3 X = new(1, 0, 0), Z = new(0, 0, 1);
     private static readonly Vec3 FootRest = new(0, -0.06, Rig.FootLength);
-    private const double HandLength = 0.08, NoseOut = 0.12;
+    private const double HandLength = 0.08, NoseOut = 0.12, CollarHalf = 0.03;
 
     public const int Hips = 0, Spine = 1, Chest = 2, Neck = 3, Head = 4,
-        LUpperArm = 5, LLowerArm = 6, LHand = 7, RUpperArm = 8, RLowerArm = 9, RHand = 10,
-        LUpperLeg = 11, LLowerLeg = 12, LFoot = 13, RUpperLeg = 14, RLowerLeg = 15, RFoot = 16;
+        LShoulder = 5, LUpperArm = 6, LLowerArm = 7, LHand = 8, RShoulder = 9, RUpperArm = 10, RLowerArm = 11, RHand = 12,
+        LUpperLeg = 13, LLowerLeg = 14, LFoot = 15, RUpperLeg = 16, RLowerLeg = 17, RFoot = 18;
 
     public static readonly SkeletonBone[] Bones =
     [
         new("hips", -1, new Vec3(0, Rig.AnkleHeight + Rig.Leg, 0), Rig.Pelvis),
         new("spine", Hips, default, Rig.Pelvis),
-        new("chest", Spine, new Vec3(0, Rig.Spine / 2, 0)),
+        new("chest", Spine, new Vec3(0, Rig.Spine / 2, 0), Rig.Waist),
         new("neck", Chest, new Vec3(0, Rig.Spine / 2, 0), Rig.Chest),
         new("head", Neck, new Vec3(0, Rig.HeadUp, 0), Rig.Head, new Vec3(0, 0, NoseOut), Rig.Nose),
 
-        new("leftUpperArm", Chest, new Vec3(Rig.ShoulderHalf, Rig.Spine / 2 - Rig.ShoulderDrop, 0), Rig.LShoulder),
+        new("leftShoulder", Chest, new Vec3(CollarHalf, Rig.Spine / 2 - Rig.ShoulderDrop, 0)),
+        new("leftUpperArm", LShoulder, new Vec3(Rig.ShoulderHalf - CollarHalf, 0, 0), Rig.LShoulder),
         new("leftLowerArm", LUpperArm, new Vec3(Rig.UpperArm, 0, 0), Rig.LElbow),
         new("leftHand", LLowerArm, new Vec3(Rig.Forearm, 0, 0), Rig.LHand, new Vec3(HandLength, 0, 0)),
-        new("rightUpperArm", Chest, new Vec3(-Rig.ShoulderHalf, Rig.Spine / 2 - Rig.ShoulderDrop, 0), Rig.RShoulder),
+        new("rightShoulder", Chest, new Vec3(-CollarHalf, Rig.Spine / 2 - Rig.ShoulderDrop, 0)),
+        new("rightUpperArm", RShoulder, new Vec3(-(Rig.ShoulderHalf - CollarHalf), 0, 0), Rig.RShoulder),
         new("rightLowerArm", RUpperArm, new Vec3(-Rig.UpperArm, 0, 0), Rig.RElbow),
         new("rightHand", RLowerArm, new Vec3(-Rig.Forearm, 0, 0), Rig.RHand, new Vec3(-HandLength, 0, 0)),
 
@@ -63,12 +70,19 @@ public static class Skeleton
         var left = Vec3.Up.Cross(fwd);
         world[Hips] = Quat.FromBasis(left, Vec3.Up, fwd);
 
-        // The torso is one rigid piece: its lean goes into the spine, chest and neck follow.
-        var torsoUp = (joints[Rig.Chest] - joints[Rig.Pelvis]).Normalized();
+        // The torso is two pieces, the spine below the waist and the chest above it; the neck and
+        // the shoulders follow the chest. With a straight back the two are one.
         var across = joints[Rig.LShoulder] - joints[Rig.RShoulder];
+        Quat Piece(Vec3 up)
+        {
+            var pieceLeft = (across - up * across.Dot(up)).Normalized();
+            return Quat.FromBasis(pieceLeft, up, pieceLeft.Cross(up));
+        }
+
+        var torsoUp = (joints[Rig.Chest] - joints[Rig.Waist]).Normalized();
         var torsoLeft = (across - torsoUp * across.Dot(torsoUp)).Normalized();
-        var torsoFwd = torsoLeft.Cross(torsoUp);
-        world[Spine] = world[Chest] = world[Neck] = Quat.FromBasis(torsoLeft, torsoUp, torsoFwd);
+        world[Spine] = Piece((joints[Rig.Waist] - joints[Rig.Pelvis]).Normalized());
+        world[Chest] = world[Neck] = world[LShoulder] = world[RShoulder] = Piece(torsoUp);
 
         // The head looks along the nose and stays upright in the torso's frame.
         var gaze = (joints[Rig.Nose] - joints[Rig.Head]).Normalized();

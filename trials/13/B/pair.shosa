@@ -1,0 +1,22 @@
+title "Pair"
+tempo 80
+time 4/4
+
+figure a
+figure b
+dancer ann humanoid on a at -0.5 0 facing stageLeft
+dancer ben humanoid on b at 0.5 0 facing stageRight
+
+section Main {
+  a {
+    torso { up:2 then:1 fwd.50!bowA | up:4 | }      // still 0-2, down in beat 2-3, deepest on 3, upright on 4
+    arms  { down:4 | then:4 | }
+  }
+  b {
+    torso { up:4 | then:1 fwd.50!bowB up:2 | }      // still 0-4, down in beat 4-5, deepest on 5, upright on 6
+    arms  { down:4 | then:4 | }
+  }
+}
+
+form { Main }
+score { dancer ann  dancer ben }

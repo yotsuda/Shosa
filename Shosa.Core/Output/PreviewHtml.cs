@@ -80,7 +80,7 @@ public static class PreviewHtml
   <button id="play">Play</button>
   <div id="track"><input id="seek" type="range" min="0" max="1000" value="0" aria-label="Position"><div id="ticks"></div></div>
   <span id="beat"></span>
-  <label id="soundLabel" hidden><input id="sound" type="checkbox" checked> Sound</label>
+  <label id="soundLabel"><input id="sound" type="checkbox" checked> Sound</label>
   <label>Speed <select id="speed"><option>0.25</option><option>0.5</option><option selected>1</option></select></label>
 </footer>
 <script id="data" type="application/json">/*DATA*/</script>
@@ -95,10 +95,10 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 /*SOUND*/
 
 const { clip, source, notes } = JSON.parse(document.getElementById('data').textContent);
-// The song the clip is danced to, if it has one: played from the figure's own clock.
+// The song the clip is danced to, played from the figure's own clock. Without a song, a click
+// on every beat and a clap at every mark: timing cannot be judged in silence.
 const player = createSound(), soundBox = document.getElementById('sound');
-player.setSong(notes ?? null);
-document.getElementById('soundLabel').hidden = !notes;
+player.setSong(notes ?? clicksOf(clip));
 const frameCount = clip.figures.length ? clip.figures[0].frames.length : 1;
 
 // ---- Source pane: every event of the source becomes a span that knows when it is performed.
@@ -226,7 +226,7 @@ playButton.addEventListener('click', () => {
   if (playing && beat >= clip.totalBeats - 1e-6) beat = 0;
   playButton.textContent = playing ? 'Pause' : 'Play';
   last = performance.now();
-  if (playing && notes) player.start();   // a browser lets sound start only from a click or a key
+  if (playing) player.start();           // a browser lets sound start only from a click or a key
   player.cue(beat);
 });
 soundBox.addEventListener('change', () => player.cue(beat));

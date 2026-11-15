@@ -1,0 +1,36 @@
+title "Song dance"
+music "song.lys"
+
+figure solo
+dancer solo humanoid on solo
+
+// The song: Intro (2 bars), Verse (4), Chorus (4), Verse (4), Chorus (4), Outro (2); 4/4 at 108.
+// The Intro is stood through.
+
+// Verse: side-to-side, a foot down on every beat; a clap on the 2nd and 4th beat of every bar.
+section Verse {
+  solo {
+    steps { left.side together right.side together | % | % | % | }
+    arms  { side.low clap@sharp!clap side.low clap@sharp!clap | % | % | % | }
+  }
+}
+
+// Chorus: a jump that lands on the 1st beat of every bar; arms straight up on the 3rd beat, down on the next 1st.
+section Chorus {
+  solo {
+    steps { jump!land hold:3 | % | % | % | }
+    arms  { down side up side | % | % | % | }
+  }
+}
+
+// The Outro only brings the arms down on its first beat, after the last chorus.
+section Outro {
+  solo {
+    arms { down:4 | hold:4 | }
+  }
+}
+
+form chorus { Chorus }
+
+score { dancer solo }
+score practice { dancer solo  form chorus  tempo 75%  loop }

@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 
 const text = readFileSync(new URL('../src/preview/time.js', import.meta.url), 'utf8');
-const { barAt, beatAt, markText, marksAt, secondsAt, tempoAt } = await import('data:text/javascript,' + encodeURIComponent(text));
+const { barAt, beatAt, clicksOf, markText, marksAt, secondsAt, tempoAt } = await import('data:text/javascript,' + encodeURIComponent(text));
 
 // A: two bars of 4/4 at 120, slowing to 60 after the first. B: two bars of 3/4, still at 60.
 const changing = {
@@ -48,4 +48,16 @@ test('a mark shows from its moment for a little while, by the clock and not the 
   assert.equal(markText(marked, marksAt(marked, 2)), '!hit ann, ben');
   assert.equal(markText({ ...marked, figures: [{}] }, marksAt(marked, 6)), '!land');
   assert.equal(markText(marked, []), '');
+});
+
+test('a score without a song gets a click on every beat and a clap at every mark', () => {
+  const clip = { ...changing, totalBeats: 14, marks: [{ beat: 4.5, name: 'hit' }, { beat: 4.5, name: 'hit' }, { beat: 14, name: 'end' }] };
+  const notes = clicksOf(clip);
+  // The first of a bar is the high block, louder: bars begin on 0, 4, 8 and 11.
+  assert.deepEqual(notes.filter(n => n[2] === 76).map(n => n[0]), [0, 4, 8, 11]);
+  assert.equal(notes.filter(n => n[2] === 77).length, 10);
+  // Two dancers' marks on one beat clap once; a mark on the last beat is still heard.
+  assert.deepEqual(notes.filter(n => n[2] === 39).map(n => n[0]), [4.5, 14]);
+  assert.ok(notes.every(n => n[4] === 9));
+  assert.equal(clicksOf({ totalBeats: 0 }), null);
 });

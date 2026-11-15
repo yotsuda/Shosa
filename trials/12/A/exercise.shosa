@@ -1,0 +1,19 @@
+title "Exercise"
+tempo 80
+time 4/4
+
+figure solo
+dancer solo humanoid on solo
+
+// Bar 1: standing, arms hanging.
+// Bars 2-3: arms forward on 1, up on 2, to the sides on 3, down on 4.
+// Bars 4-5: knees fully bent on 1, standing again on 3.
+section Main {
+  solo {
+    arms  { down:3 hold:1 | fwd up side down | % | hold:4 | hold:4 | }
+    steps { hold:3bar | both.low:2!down both.mid:2!up | % | }
+  }
+}
+
+form { Main }
+score { dancer solo }

@@ -7,35 +7,37 @@ dancer npc humanoid on npc
 
 section Nod {
   npc {
-    head { fwd.-25:0.25s fwd:0.25s fwd.-15:0.2s fwd:0.3s }
+    head { fwd:0.25s fwd.-25:0.25s fwd:0.2s fwd.-15:0.3s fwd:0.2s }   // down at 0.25 s, up, a smaller one at 0.7 s
   }
 }
 
+// A word stays for its length and the next one is gone to through all of that time. To stay
+// and then go, a `then` after it: the part stays through the word, and goes through the then.
 section Point {
   npc {
-    rightArm { fwd.high:0.3s@bent fwd:0.2s@sharp!point hold:1s down:0.6s }
-    head     { fwd.right:0.3s hold:1.2s fwd:0.6s }
+    rightArm { down:0.3s fwd.high:0.2s@bent fwd:1s@sharp!point then:0.6s down:0.1s }
+    head     { fwd:0.3s fwd.right:1.2s then:0.6s fwd:0.1s }
   }
 }
 
 section Applaud {
   npc {
-    arms { fwd.-20:1/4@bent clap:1/4!clap }
+    arms { clap:1/4!clap fwd.-20:1/4@bent }
   }
 }
 
 section PickUp {
   npc {
-    steps    { both.low:0.5s hold:0.3s both.mid:0.6s }
-    torso    { fwd.high:0.5s hold:0.3s up:0.6s }
-    rightArm { fwd.low:0.3s down:0.2s!grab hold:0.3s chest:0.6s }
-    head     { fwd.low:0.5s hold:0.3s fwd:0.6s }
+    steps    { both.mid:0.8s          both.low@large:0.4s          then:0.8s both.mid:0.2s }   // down at 0.8 s, up again at 2 s
+    torso    { up:0.4s then:0.4s      fwd.high:0.4s                then:0.8s up:0.2s }
+    rightArm { down:0.4s then:0.4s    fwd.low:0.2s down:0.4s!grab  then:0.6s chest:0.2s }
+    head     { fwd:0.4s then:0.4s     fwd.low:0.4s                 then:0.8s fwd:0.2s }
   }
 }
 
 section LookAround {
   npc {
-    head  { fwd.left:2 hold:1 fwd:1 fwd.right:2 hold:1 fwd:1 }
+    head  { fwd.left:2 then:1 fwd:1 fwd.right:2 then:1 fwd:1 }
     steps { shift.left:4 shift.right:4 }      // the weight moves; neither foot leaves the floor
   }
 }

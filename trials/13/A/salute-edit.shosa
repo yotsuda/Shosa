@@ -1,0 +1,16 @@
+title "Salute"
+tempo 90
+time 4/4
+
+figure soldier
+dancer soldier humanoid on soldier
+
+section Salute {
+  soldier {
+    leftArm  { down:4 | then:4 | }
+    rightArm { down:1 then:1 head:2 | then:2.5 then:1/2 down:1 | }
+  }
+}
+
+form { Salute }
+score { dancer soldier }

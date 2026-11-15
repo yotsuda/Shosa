@@ -1,0 +1,8 @@
+music "song.lys"
+
+figure solo
+dancer solo humanoid on solo
+
+section Probe { solo { arms { side:4 | } } }
+
+score { dancer solo }

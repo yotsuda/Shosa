@@ -125,9 +125,12 @@ public sealed class Canvas
         }
     }
 
-    public void SavePng(string path)
+    public void SavePng(string path) => File.WriteAllBytes(path, ToPng());
+
+    /// <summary>The image as the bytes of a PNG file.</summary>
+    public byte[] ToPng()
     {
-        using var file = File.Create(path);
+        using var file = new MemoryStream();
         file.Write([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
 
         var header = new byte[13];
@@ -148,6 +151,7 @@ public sealed class Canvas
         }
         Chunk(file, "IDAT", compressed.ToArray());
         Chunk(file, "IEND", []);
+        return file.ToArray();
     }
 
     private static void WriteInt(byte[] buffer, int offset, int value)

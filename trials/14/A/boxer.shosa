@@ -1,0 +1,50 @@
+title "Boxer"
+tempo 120          // one beat is 0.5 s
+time 4/4
+
+figure boxer
+dancer boxer humanoid on boxer
+
+// Fighting stance: knees a little bent, fists in front of the face,
+// the back rounded, the face lifted again to look straight ahead.
+pose guard {
+  steps { left.fwd.low@small }
+  arms  { fwd.25@bent }
+  torso { fwd.80@round }
+  head  { fwd.25 }
+}
+
+// Idle: 2 bars in guard, with a slight bob of the knees.
+section Idle {
+  boxer {
+    body  { guard:4~ | :4 | }
+    steps { { both.low@small both.low } q | % | }
+  }
+}
+
+// Dodge: still for 0.5 s (beat 1), landed to its own right at 0.75 s (beat 1.5),
+// stays, landed back at 1.5 s (beat 3). Not counted in bars.
+section Dodge {
+  boxer {
+    arms  { guard:4 }
+    torso { guard:4 }
+    head  { guard:4 }
+    steps { both.low@small:1 then:1/2 jump.right:1 then:1/2 jump.left:1 }
+  }
+}
+
+// Slump: upright; curled over by 1 s (beat 2); stays to 2 s (beat 4); upright at 3 s (beat 6).
+section Slump {
+  boxer {
+    torso { up:2 fwd.high@round:2 | then:2 up:2 | }
+    head  { fwd:2 fwd.-40:2       | then:2 fwd:2 | }
+  }
+}
+
+form Idle  { Idle }
+form Dodge { Dodge }
+form Slump { Slump }
+
+score Idle  { dancer boxer  form Idle  loop }
+score Dodge { dancer boxer  form Dodge }
+score Slump { dancer boxer  form Slump }

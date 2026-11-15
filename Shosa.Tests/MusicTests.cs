@@ -52,9 +52,12 @@ public class MusicTests
         Assert.Equal(new[] { ("A", 0.0, 12.0), ("B", 12.0, 19.0), ("A", 19.0, 31.0) }, clip.Sections.Select(s => (s.Name, s.T0, s.T1)).ToArray());
         Assert.Equal(new MusicIr("waltz.lys", null, null, null), clip.Music);
 
-        // A section shorter than the song's stands still for the rest; B's dance begins after the upbeat.
+        // A section shorter than the song's says nothing for the rest; B's dance begins after the upbeat.
+        // Each word is there on the beat it is written at, counted from its section's first bar line.
         var arm = compilation.Ir.Dancers[0].Tracks[Channels.LeftArm];
-        Assert.Equal(new[] { 0.0, 3, 13, 16, 19, 22 }, arm.Select(s => s.T0).ToArray());
+        Assert.Equal(new[] { 0.0, 3, 13, 16, 19, 22 }, arm.Select(s => s.At).ToArray());
+        Assert.Equal(new[] { 0.0, 3, 13, 16, 19, 22 }, arm.Select(s => s.T1).ToArray());
+        Assert.Equal(new[] { 3.0, 6, 16, 19, 22, 25 }, arm.Select(s => s.Until).ToArray());
     }
 
     [Fact]
@@ -134,7 +137,11 @@ public class MusicTests
 
         Assert.Empty(compilation.Diagnostics);
         Assert.Equal(31.0, compilation.Clip.TotalBeats);
-        Assert.Equal(13.0, Assert.Single(compilation.Ir.Dancers[0].Tracks[Channels.LeftArm]).T0);
+        // B's one word is there on B's first bar line, after its upbeat. A is stood through: the arm
+        // sets out in A's last bar, not at the start of the song.
+        var arm = Assert.Single(compilation.Ir.Dancers[0].Tracks[Channels.LeftArm]);
+        Assert.Equal((13.0, 13.0, 16.0), (arm.At, arm.T1, arm.Until));
+        Assert.Equal(9.0, arm.T0);
     }
 
     [Theory]
@@ -204,7 +211,8 @@ public class MusicTests
         Assert.Equal(new[] { 2.0, 4.0, 12.0 }, new[] { 4.0, 6, 14 }.Select(clip.SecondsAt).ToArray());
         Assert.Equal(12 * clip.Fps + 1, clip.Figures[0].Frames.Count);
         Assert.Equal(new[] { 4.0, 5.0 }, new[] { 2 * clip.Fps, 3 * clip.Fps }.Select(clip.BeatOfFrame).ToArray());
-        Assert.Equal((6.0, 4.0), (Assert.Single(clip.Marks).Beat, clip.Marks[0].Seconds));
+        // The mark is on the first beat of the bar at 60: two seconds in.
+        Assert.Equal((4.0, 2.0), (Assert.Single(clip.Marks).Beat, clip.Marks[0].Seconds));
     }
 
     [Fact]
@@ -232,7 +240,8 @@ public class MusicTests
         var again = ShosaCompilation.Compile(To("changing.lys", "section B { solo { arms { fwd:1 side:2 | % | } } }"), null, Changing);
         Assert.Contains("time 3/4 has 3", Assert.Single(four.Diagnostics).Message);
         Assert.Empty(again.Diagnostics);
-        Assert.Equal(new[] { 8.0, 9, 11, 12 }, again.Ir.Dancers[0].Tracks[Channels.LeftArm].Select(s => s.T0).ToArray());
+        Assert.Equal(new[] { 8.0, 9, 11, 12 }, again.Ir.Dancers[0].Tracks[Channels.LeftArm].Select(s => s.At).ToArray());
+        Assert.Equal(new[] { 9.0, 11, 12, 14 }, again.Ir.Dancers[0].Tracks[Channels.LeftArm].Select(s => s.Until).ToArray());
     }
 
     [Fact]
@@ -241,8 +250,8 @@ public class MusicTests
         string text = To("changing.lys", "section A { solo { arms { side:1s } } }\nsection B { solo { arms { fwd:1s } } }");
         var arm = ShosaCompilation.Compile(text, null, Changing).Ir.Dancers[0].Tracks[Channels.LeftArm];
 
-        // A second is two beats at 120 and one at 60.
-        Assert.Equal(new[] { (0.0, 2.0), (8.0, 9.0) }, arm.Select(s => (s.T0, s.T1)).ToArray());
+        // A second is two beats at 120 and one at 60: that long each word has the arm.
+        Assert.Equal(new[] { (0.0, 2.0), (8.0, 9.0) }, arm.Select(s => (s.At, s.Until)).ToArray());
     }
 
     private static string SamplePath([CallerFilePath] string here = "") =>
@@ -311,6 +320,9 @@ public class MusicTests
         Assert.DoesNotContain("export function", with);
         Assert.Contains("\"notes\":[[0,", with);
         Assert.Contains("\"notes\":null", without);
+        // Without the song the page clicks on the beats instead.
+        Assert.Contains("function clicksOf(clip)", without);
+        Assert.Contains("player.setSong(notes ?? clicksOf(clip))", without);
     }
 
     [Fact]

@@ -1,0 +1,11 @@
+tempo 60
+time 4/4
+figure solo
+dancer solo humanoid on solo
+section Main {
+  solo {
+    arms  { down:4 | side:4 | up:3.8 hold:0.1 side:0.1 | down:4 | }
+  }
+}
+form { Main }
+score { dancer solo }

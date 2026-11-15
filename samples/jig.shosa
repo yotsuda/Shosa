@@ -18,8 +18,8 @@ section Jig {
 section Close {
   tempo 85%
   solo {
-    steps { jump.apart:3 hold:3 | together:6 | }
-    arms  { side.high:3 hold:3 | down:6 | }
+    steps { jump.apart:3 then:3 | together:6 | }
+    arms  { side.high:3 then:3 | down:6 | }
   }
 }
 
