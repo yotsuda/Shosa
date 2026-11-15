@@ -208,7 +208,7 @@ public class MotionTests
     [MemberData(nameof(Samples.Names), MemberType = typeof(Samples))]
     public void Limbs_keep_their_length(string name)
     {
-        foreach (var figure in Compile(Samples.Read(name)).Clips.SelectMany(clip => clip.Figures))
+        foreach (var figure in Samples.Compile(name).Clips.SelectMany(clip => clip.Figures))
         {
             for (int f = 0; f < figure.Frames.Count; f++)
             {
@@ -235,7 +235,7 @@ public class MotionTests
         // Every step is placed from the other foot, so a side of the square is a rigid motion
         // of (right foot, facing): a quarter turn about some point. Four of them are the
         // identity. (The left foot ends one step ahead: it took the last step.)
-        var figure = Compile(Samples.Read("square")).Clip.Figures[0];
+        var figure = Samples.Compile("square").Clip.Figures[0];
         Vec3 first = figure.Joint(0, Rig.RAnkle), last = figure.Joint(figure.Frames.Count - 1, Rig.RAnkle);
 
         Assert.True((first - last).Length < 0.01, $"ended {(first - last).Length:0.000} m from the start");
@@ -374,11 +374,11 @@ public class MotionTests
     }
 
     [Fact]
-    public void A_twist_turns_the_shoulders_on_the_hips_and_not_the_head()
+    public void The_shoulders_turn_on_the_hips_and_not_the_head()
     {
         // There on beat 2; `left` alone is 30 degrees.
-        var clip = Solve("    twist { center:2 left:2 }\n    arms { side:2@body side:2@body }");
-        var mirrored = Solve("    twist { center:2 left@mirror:2 }");
+        var clip = Solve("    shoulders { center:2 left:2 }\n    arms { side:2@body side:2@body }");
+        var mirrored = Solve("    shoulders { center:2 left@mirror:2 }");
 
         Vec3 Across(FuriClip c, double beat) => (At(c, beat, Rig.LShoulder) - At(c, beat, Rig.RShoulder)).Normalized();
         double sin = Math.Sin(30 * Math.PI / 180);
@@ -401,30 +401,31 @@ public class MotionTests
     }
 
     [Fact]
-    public void A_twist_says_a_side_and_degrees_up_to_45_or_center()
+    public void The_shoulders_say_a_side_and_degrees_from_the_feet_up_to_90_or_center()
     {
-        Assert.Empty(Compile(Body("    twist { right.20:2 left.45@sharp center }")).Diagnostics);
-        Assert.Equal("SH1013", Assert.Single(Compile(Body("    twist { left.60:4 }")).Diagnostics).Code);
-        Assert.Equal("SH1012", Assert.Single(Compile(Body("    twist { fwd:4 }")).Diagnostics).Code);
-        Assert.Equal("SH1012", Assert.Single(Compile(Body("    twist { left.high:4 }")).Diagnostics).Code);
-        Assert.Equal("SH1010", Assert.Single(Compile(Body("    twist { left@large:4 }")).Diagnostics).Code);
+        Assert.Empty(Compile(Body("    shoulders { right.20:2 left.60@sharp center }")).Diagnostics);
+        Assert.Equal("SH1013", Assert.Single(Compile(Body("    shoulders { left.100:4 }")).Diagnostics).Code);
+        Assert.Equal("SH1012", Assert.Single(Compile(Body("    shoulders { fwd:4 }")).Diagnostics).Code);
+        Assert.Equal("SH1012", Assert.Single(Compile(Body("    shoulders { left.high:4 }")).Diagnostics).Code);
+        Assert.Equal("SH1010", Assert.Single(Compile(Body("    shoulders { left@large:4 }")).Diagnostics).Code);
         Assert.Equal("SH1012", Assert.Single(Compile(Body("    torso { center:4 }")).Diagnostics).Code);
     }
 
     [Fact]
-    public void A_move_can_twist_over_any_lean_and_come_back_to_the_pose()
+    public void A_move_can_turn_the_shoulders_over_any_lean_and_come_back_to_the_pose()
     {
-        // The twist is a part of its own: the move does not say the lean, and `guard` in its row is the guard's twist.
+        // The shoulders are a part of their own: the move does not say the lean, and `guard` in its row is the guard's.
         var compilation = Compile(Samples.Solo("    body { guard:2 hook:2 then:2 }", """
             tempo 100
-            pose guard { torso { left.70 }  twist { right.20 } }
-            move hook { twist { left guard } }
+            pose guard { torso { left.70 }  shoulders { right.20 } }
+            move hook { shoulders { left guard } }
 
             """));
         Assert.Empty(compilation.Diagnostics);
         var clip = new FuriClip(compilation.Clip, compilation.Clip.Figures[0]);
 
-        double Turn(double beat) => Math.Asin((At(clip, beat, Rig.RShoulder) - At(clip, beat, Rig.LShoulder)).Normalized().Z) * 180 / Math.PI;
+        // As seen from above: the line from the left shoulder to the right one, on the floor.
+        double Turn(double beat) => (At(clip, beat, Rig.RShoulder) - At(clip, beat, Rig.LShoulder)) is var d ? Math.Atan2(d.Z, -d.X) * 180 / Math.PI : 0;
         Assert.Equal(-20, Turn(0), 0);
         Assert.Equal(30, Turn(2), 0);
         Assert.Equal(-20, Turn(3), 0);
@@ -433,16 +434,16 @@ public class MotionTests
     }
 
     [Fact]
-    public void The_hips_turn_over_feet_that_stay_and_the_chest_goes_round_with_them()
+    public void The_hips_turn_over_feet_that_stay_and_the_shoulders_keep_to_their_own_row()
     {
-        var clip = Solve("    hips { center:2 left:2 left:2 right.20@mirror:2 }\n    twist { center:3 then:1 right:2 left.25:2 }");
+        var clip = Solve("    hips { center:2 left:2 left:2 right.20@mirror:2 }\n    shoulders { center:2 left:2 center:2 left.45:2 }");
         double Line(double beat, int left, int right) => Math.Asin((At(clip, beat, right) - At(clip, beat, left)).Normalized().Z) * 180 / Math.PI;
 
-        // 30 degrees to the left: the right hip comes forward, and the shoulders with it.
+        // 30 degrees to the left: the right hip comes forward, and the right shoulder as far.
         Assert.Equal(0, Line(0, Rig.LHip, Rig.RHip), 0);
         Assert.Equal(30, Line(2, Rig.LHip, Rig.RHip), 0);
         Assert.Equal(30, Line(2, Rig.LShoulder, Rig.RShoulder), 0);
-        // A twist is on top of it: the other way it leaves the shoulders square over turned hips (a twist dance).
+        // Each from the feet: shoulders square over turned hips (a twist dance), and further round than the hips.
         Assert.Equal(30, Line(4, Rig.LHip, Rig.RHip), 0);
         Assert.Equal(0, Line(4, Rig.LShoulder, Rig.RShoulder), 0);
         Assert.Equal(20, Line(6, Rig.LHip, Rig.RHip), 0);
@@ -494,17 +495,17 @@ public class MotionTests
         foreach (string wrong in new[] { "left(30)", "fwd.back(30)", "fwd(30).left", "fwd.left(120)", "fwd.left(left)", "up(30)" })
             Assert.Equal("SH1013", Assert.Single(Compile(Body($"    head {{ {wrong}:4 }}")).Diagnostics).Code);
         Assert.Equal("SH1012", Assert.Single(Compile(Body("    rightArm { chest(30):4 }")).Diagnostics).Code);
-        Assert.Equal("SH1012", Assert.Single(Compile(Body("    twist { left(30):4 }")).Diagnostics).Code);
+        Assert.Equal("SH1012", Assert.Single(Compile(Body("    shoulders { left(30):4 }")).Diagnostics).Code);
     }
 
     [Fact]
-    public void Two_rows_of_an_and_that_twist_at_the_same_time_are_told_the_first_is_not_seen()
+    public void Two_rows_of_an_and_that_turn_the_shoulders_at_the_same_time_are_told_the_first_is_not_seen()
     {
         const string Definitions = """
             tempo 100
-            pose guard { arms { fwd.25@bent }  twist { right.20 } }
-            move jab { leftArm { fwd@sharp guard }  twist { right.30@sharp guard } }
-            move cross { rightArm { fwd.low@bent fwd@sharp guard }  twist { right.35 left@sharp guard } }
+            pose guard { arms { fwd.25@bent }  shoulders { right.20 } }
+            move jab { leftArm { fwd@sharp guard }  shoulders { right.30@sharp guard } }
+            move cross { rightArm { fwd.low@bent fwd@sharp guard }  shoulders { right.35 left@sharp guard } }
             move reach { rightArm { side guard } }
 
             """;
@@ -530,20 +531,20 @@ public class MotionTests
         // row before it just the same. What is lost is what counts; one warning names the hips and the chest.
         const string Square = """
             tempo 100
-            pose loose { arms { fwd.25@bent }  hips { center }  twist { center } }
-            move hook { hips { loose:1 right@sharp:1/2 loose:1/2 }  twist { loose:1 right@sharp:1/2 loose:1/2 } }
-            move upper { hips { loose:1 left@sharp:1/2 loose:1/2 }  twist { loose:1 left@sharp:1/2 loose:1/2 } }
+            pose loose { arms { fwd.25@bent }  hips { center }  shoulders { center } }
+            move hook { hips { loose:1 right@sharp:1/2 loose:1/2 }  shoulders { loose:1 right.60@sharp:1/2 loose:1/2 } }
+            move upper { hips { loose:1 left@sharp:1/2 loose:1/2 }  shoulders { loose:1 left.60@sharp:1/2 loose:1/2 } }
 
             """;
         string flurry = Samples.Solo("    body { loose:1 { hook:2 skip:1 } & { skip:1 upper:2 } then }", Square);
         var hidden = Assert.Single(Compile(flurry).Diagnostics);
         Assert.Equal("SH2009", hidden.Code);
-        Assert.Contains("turn the hips and twist the chest", hidden.Message);
+        Assert.Contains("turn the hips and the shoulders", hidden.Message);
         Assert.Equal("hook:2", flurry.Substring(hidden.Span.Start, hidden.Span.Length));
         // The other way round the upper's whip comes after the hook is home: nothing done is lost.
         Assert.Empty(Compile(Samples.Solo("    body { loose:1 { skip:1 upper:2 } & { hook:2 skip:1 } then }", Square)).Diagnostics);
         // Written as rows of the section, a narrower track over a wider one is the way to take a part over.
-        Assert.Empty(Compile(Samples.Solo("    body { guard:1 jab:1 then }\n    twist { skip:1 left:1 then }", Definitions)).Diagnostics);
+        Assert.Empty(Compile(Samples.Solo("    body { guard:1 jab:1 then }\n    shoulders { skip:1 left:1 then }", Definitions)).Diagnostics);
     }
 
     [Fact]
@@ -563,16 +564,57 @@ public class MotionTests
         string Line(string tracks, params (double, bool)[] moments) =>
             Shosa.Core.Output.CheckReport.At(Compile(Samples.Solo(tracks, "tempo 120\ntime 4/4\n")), moments).Single();
 
-        // The numbers written are the numbers read: the shoulders are the hips and the twist together.
+        // The numbers written are the numbers read.
         Assert.Equal("  score at beat 2 = 1 s: hips 20° left, shoulders 45° left, face 30° right and 10° up",
-            Line("    hips { center left.20:3 }\n    twist { center left.25:3 }\n    head { fwd fwd.right(30).10:3 }", (2, false)));
+            Line("    hips { center left.20:3 }\n    shoulders { center left.45:3 }\n    head { fwd fwd.right(30).10:3 }", (2, false)));
         // In seconds, and against each other: the hips to the right under shoulders to the left.
         Assert.Equal("  score at beat 2 = 1 s: hips 20° right, shoulders 10° left, face 0°",
-            Line("    hips { center right.20:3 }\n    twist { center left.30:3 }", (1, true)));
+            Line("    hips { center right.20:3 }\n    shoulders { center left.10:3 }", (1, true)));
         // From the feet, not from the room: after a quarter turn nothing is turned on them.
         Assert.Equal("  score at beat 3 = 1.5 s: hips 0°, shoulders 0°, face 0° (the feet face 90° left of the front)",
             Line("    steps { then:2 turn.left.quarter then:2 }", (3, false)));
         Assert.Equal("  score at beat 9: not in the score (4 beats, 2 s)", Line("    steps { then:4 }", (9, false)));
+        // Over a lean too, the shoulders are where they are seen from above (the chest turns 49° on
+        // the hips for 45 on the floor); and a face looking steeply down over them: the line of the
+        // ears says the few degrees the head is turned (the nose on the floor said 9).
+        Assert.Equal("  score at beat 4 = 2 s: hips 40° right, shoulders 85° right, face 3.5° left and 69.9° down",
+            Line("    torso { fwd.60:4 }\n    head { fwd.-40:4 }\n    hips { center:2 right.40:2 }\n    shoulders { center:2 right.85:2 }", (4, false)));
+    }
+
+    [Fact]
+    public void Shoulders_the_chest_cannot_turn_to_on_the_hips_are_told_how_far_they_get()
+    {
+        // Upright the chest turns 60° on the hips: 90 from the feet over hips at 30 is in reach, over square hips it is not.
+        Assert.Empty(Compile(Body("    hips { center:2 right:2 }\n    shoulders { center:2 right.90:2 }")).Diagnostics);
+        var upright = Assert.Single(Compile(Body("    shoulders { center:2 right.90:2 }")).Diagnostics);
+        Assert.Equal("SH2010", upright.Code);
+        Assert.Equal(DiagnosticSeverity.Warning, upright.Severity);
+        Assert.Contains("get to 60° right of the feet here, not 90° right", upright.Message);
+        Assert.DoesNotContain("lean", upright.Message);
+        // Bent 60° forward, a turn of the chest about the spine shows half as much from above: 60° of chest is 40.9 on the floor.
+        string bent = Body("    torso { fwd.30:4 }\n    shoulders { center:2 right.60:2 }");
+        var warning = Assert.Single(Compile(bent).Diagnostics);
+        Assert.Equal("SH2010", warning.Code);
+        Assert.Contains("get to 40.9° right of the feet here, not 60° right", warning.Message);
+        Assert.Contains("over a lean of 60°", warning.Message);
+        Assert.StartsWith("right.60", bent.Substring(warning.Span.Start));
+        // Leaning far to the side, hips turned 45° under shoulders nobody wrote: the hips' row is the one told.
+        string aside = Body("    torso { left.30:4 }\n    hips { center:2 left.45:2 }");
+        var hips = Assert.Single(Compile(aside).Diagnostics);
+        Assert.Equal("SH2010", hips.Code);
+        Assert.Contains("not square to the feet", hips.Message);
+        Assert.Contains("With no `shoulders` row", hips.Message);
+        Assert.StartsWith("left.45", aside.Substring(hips.Span.Start));
+        // Bent level and turned toward the aim with the torso's own direction: every turn about that
+        // spine shows the same line from above, so the row is met and nothing is warned (writing trial 18).
+        string level = Body("    torso { up:2 fwd.right(70):2 }\n    hips { center:2 right.30:2 }\n    shoulders { center:2 right.70:2 }");
+        Assert.Empty(Compile(level).Diagnostics);
+        // Bent level straight ahead, the shoulders' row cannot show at all: the warning says to bend toward that side.
+        var flat = Assert.Single(Compile(Body("    torso { up:2 fwd:2 }\n    shoulders { center:2 right.60:2 }")).Diagnostics);
+        Assert.Equal("SH2010", flat.Code);
+        Assert.Contains("stay square to the feet here, not 60° right", flat.Message);
+        Assert.Contains("`torso { fwd.right(60) }`", flat.Message);
+        Assert.Empty(Compile(Body("    torso { up:2 fwd.right(60):2 }\n    shoulders { center:2 right.60:2 }")).Diagnostics);
     }
 
     [Fact]
@@ -748,11 +790,11 @@ public class MotionTests
     public void A_hand_held_out_is_not_fast_because_the_hips_whip_round_under_it()
     {
         // The arm's `fwd` is measured from the feet: the hand stays where it is in the room (under 6 m/s, the
-        // shoulder's own way) while hips and chest go 180 degrees in 0.15 s. Judged against the line of the hips
+        // shoulder's own way) while hips and shoulders go 90 and 180 degrees in 0.15 s. Judged against the line of the hips
         // it was a hand at 10 m/s, and a warning for an arm that does nothing.
         string Whip(string arms) => $"tempo 120\ntime 4/4\n{Samples.SoloCast}"
             + "section S { solo { steps { jump.apart:8 } arms { " + arms + " }\n"
-            + "  hips { center:2 left.45:2 right.45@sharp:2 center:2 } twist { center:2 left.45:2 right.45@sharp:2 center:2 } } }\n"
+            + "  hips { center:2 left.45:2 right.45@sharp:2 center:2 } shoulders { center:2 left.90:2 right.90@sharp:2 center:2 } } }\n"
             + "form { S }\nscore { dancer solo }\n";
         Assert.Empty(ShosaCompilation.Compile(Whip("down:2 down:2 fwd:2 down:2")).Diagnostics);
 
@@ -938,13 +980,13 @@ public class MotionTests
     {
         // A ends on a word of one beat. B's first word had that one beat to come in; done again by `%`,
         // the same word comes after `left:2` and has its two beats (trial 15: it had one).
-        string first = "solo { twist { left:3 right:1 | } }";
-        var signs = Compile(Sections(first, "solo { twist { center:2 left:2 | % | } }"));
-        var written = Compile(Sections(first, "solo { twist { center:2 left:2 | center:2 left:2 | } }"));
+        string first = "solo { shoulders { left:3 right:1 | } }";
+        var signs = Compile(Sections(first, "solo { shoulders { center:2 left:2 | % | } }"));
+        var written = Compile(Sections(first, "solo { shoulders { center:2 left:2 | center:2 left:2 | } }"));
 
         Assert.Empty(signs.Diagnostics);
         Same(written, signs);
-        var again = signs.Ir.Dancers[0].Tracks["twist"].Single(s => Math.Abs(s.At - 8) < 1e-9);
+        var again = signs.Ir.Dancers[0].Tracks["shoulders"].Single(s => Math.Abs(s.At - 8) < 1e-9);
         Assert.Equal(6, again.T0, 6);
     }
 

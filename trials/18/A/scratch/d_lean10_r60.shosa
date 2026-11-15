@@ -1,0 +1,18 @@
+title "Picker"
+tempo 60           // one beat is 1 s
+
+figure worker
+dancer worker humanoid on worker
+
+section Pick {
+  worker {
+    // stand 1 s, bend over 2 s, hold 1 s, stand up over 2 s, hold 1 s
+    torso     { up:1     then:2 fwd.right(60).10:1       then:2 up:1 }
+    hips      { center:1 then:2 right.30:1  then:2 right.30:1 }
+    shoulders { center:1 then:2 right.70:1  then:2 right.70:1 }
+    arms      { down:4                      then:2 fwd@body:1 }
+  }
+}
+
+form { Pick }
+score { dancer worker }

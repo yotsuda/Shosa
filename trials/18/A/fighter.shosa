@@ -1,0 +1,40 @@
+title "Fighter"
+tempo 120          // one beat is 0.5 s
+time 4/4
+
+figure hero
+dancer hero humanoid on hero
+
+// Orthodox guard: left foot forward, fists up by the face, hips 15 right, shoulders 40 right.
+// The knees' bend is written in the steps rows (both.low@small), so the stance itself is at normal height.
+pose guard {
+  steps     { left.fwd@small }
+  arms      { fwd.25@bent }
+  torso     { fwd.80@round }
+  head      { fwd.25 }
+  hips      { right.15 }
+  shoulders { right.40 }
+}
+
+section Idle {
+  hero {
+    body  { guard:4 }
+    steps { { both.low@small both.low } q }      // a small bob: 8 cm, 16 cm, 8 cm, 16 cm
+  }
+}
+
+section Uppercut {
+  hero {
+    body      { guard:2s }
+    steps     { both.low@small:0.4s both.low:0.3s both.low@small:1.3s }
+    rightArm  { guard:0.4s fwd.low@bent:0.3s fwd.across(18).25@bent@sharp!hit:0.3s then:0.6s guard:0.4s }
+    hips      { guard:0.4s right.25:0.3s left.20@sharp:0.3s then:0.6s guard:0.4s }
+    shoulders { guard:0.4s right.55:0.3s left.30@sharp:0.3s then:0.6s guard:0.4s }
+  }
+}
+
+form Idle     { Idle }
+form Uppercut { Uppercut }
+
+score Idle     { dancer hero  form Idle  loop }
+score Uppercut { dancer hero  form Uppercut }

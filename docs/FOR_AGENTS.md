@@ -57,6 +57,9 @@ Movement is written in `anim/*.shosa` and compiled; never edit the `.glb` files.
 - Then `shosa gltf anim/hero.shosa --combined -o assets/hero.glb`.
 - One movement of the character = one `section`, one `form` and one `score` of the same
   name. The score's name is the animation's name in the engine.
+- The character's poses and moves (its guard, its punches) are in `anim/hero.parts.shosa`
+  and brought in with `using "hero.parts.shosa"`. Use them; add a new one there, not in
+  the file of one movement.
 ```
 
 ## The loop
@@ -77,14 +80,20 @@ Movement is written in `anim/*.shosa` and compiled; never edit the `.glb` files.
    its left of where it began, turned 90° to its left``, ``solo ends where it began``; for a
    loop, how far it travels each time round (``loops on the spot`` when it does not).
    Forward and left are the dancer's own at the start. Check "comes back to where it began" here.
+   A file with `using` lines lists the files they bring in (`using hero.parts.shosa`); a
+   problem in one of them is reported on the `using` line, with that file and its line. On a
+   file of parts alone (poses and moves, no score) `check` lists what it offers, with each
+   move's length: `a file of parts, for using: pose guard, move jab (2 beats)`.
 4. **`shosa sheet FILE -o X.png`** and look. How to read the image, and what it cannot
    show at its default spacing, is under "Checking your work" in the grammar.
    Under each pose the figure is drawn from above (hips grey with a dot at each end, shoulders
-   blue and red, the nose): which way it faces and which shoulder or hip is ahead in a
-   `twist` or under `hips` are read there — the direction, not the degrees.
+   blue and red, the nose): which way it faces and which shoulder or hip is ahead under
+   `shoulders` or `hips` are read there — the direction, not the degrees.
    The degrees are in **`shosa check FILE --at 3,0.75s`** (beats; seconds with an `s`): a line
    for each moment, ``Punch at beat 3 = 0.75 s: hips 20° left, shoulders 45° left, face 30°
-   right and 10° up``, all from the way the feet face.
+   right and 10° up``, all from the way the feet face — the numbers the `hips`, `shoulders`
+   and `head` rows are written in, so a line that differs from the rows is worth a look (SH2010
+   says where the shoulders do not get to).
    What is left (by how many centimetres, how high a fist
    arrives, whether the head moved) is in **`shosa clip FILE -o X.json`**: every joint's
    x y z at every frame, and the same angles at every frame (the layout is in the same place

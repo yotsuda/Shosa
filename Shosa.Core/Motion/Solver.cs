@@ -148,6 +148,29 @@ public static class Solver
                 if (problems.BothFeetOff is { } leg)
                     Flag(leg, t, "SH2004", DiagnosticSeverity.Error,
                         "This leg leaves the floor while the other one is not carrying the weight. Step onto the other foot first.");
+                if (problems.ShouldersShort is { } shoulders)
+                {
+                    static string Side(double degrees) => FormattableString.Invariant($"{Math.Abs(degrees):0.#}° {(degrees >= 0 ? "left" : "right")}");
+                    // Without a word of their own the shoulders are square to the feet: it is the hips that turned them away.
+                    string row = SegAt(dancer, Channels.Shoulders, t) is null ? Channels.Hips : Channels.Shoulders;
+                    // Said of where the word arrives (on the way the numbers are between two words), if it is short there too.
+                    if (SegAt(dancer, row, t) is { } word && solver.ShouldersShortAt(word.T1) is { } arrived)
+                        shoulders = arrived;
+                    bool leaning = shoulders.Lean >= 5;
+                    string lean = leaning ? FormattableString.Invariant($", and over a lean of {shoulders.Lean:0}° a turn of the chest shows less from above") : "";
+                    string wanted = Math.Abs(shoulders.Wanted) < 0.05 ? "square to the feet" : $"{Side(shoulders.Wanted)} of the feet";
+                    string stand = leaning ? ", stand up more" : "";
+                    // Bent nearly level, a turn about the spine hardly shows from above (at level, not at
+                    // all): what turns the shoulders there is the way the bend points (writing trial 18).
+                    string way = shoulders.Wanted >= 0 ? "left" : "right";
+                    string help = row == Channels.Shoulders && shoulders.Lean >= 75
+                        ? FormattableString.Invariant($"Bent this far, a turn about the spine hardly shows from above: bend toward that side instead (`torso {{ fwd.{way}({Math.Abs(shoulders.Wanted):0.#}) }}`), the hips further that way, or stand up more.")
+                        : row == Channels.Shoulders
+                        ? $"Turn the hips further that way{stand}, or write what they reach."
+                        : $"With no `shoulders` row they stay square to the feet over these hips: turn them with the hips (`shoulders {{ {(shoulders.Reached >= 0 ? "left" : "right")}.20 }}`){stand}, or turn the hips less.";
+                    Flag(row, t, "SH2010", DiagnosticSeverity.Warning, FormattableString.Invariant(
+                        $"The shoulders {(Math.Abs(shoulders.Reached) < 0.05 ? "stay square to the feet" : $"get to {Side(shoulders.Reached)} of the feet")} here, not {wanted}: the chest turns at most {Vocabulary.MaxChestTurn:0}° on the hips{lean}. {help}"));
+                }
 
                 if (previous is not null)
                 {
@@ -301,6 +324,8 @@ internal struct PoseProblems
     public bool Overreach;
     /// <summary>The channel of a leg gesture made while the other foot is not planted.</summary>
     public string? BothFeetOff;
+    /// <summary>The shoulders do not get where their row says: degrees from the feet reached and wanted, and the lean.</summary>
+    public (double Reached, double Wanted, double Lean)? ShouldersShort;
 }
 
 /// <summary>Shape-preserving cubic through keys: no overshoot, and at rest wherever a value repeats.</summary>
@@ -397,8 +422,8 @@ internal sealed class FigureSolver
         public Vec3 TorsoUp;
         /// <summary>How far the back is rounded: 0 a straight spine, 1 the whole of `@round`.</summary>
         public double Round;
-        /// <summary>How far the chest is turned on the hips about the spine, radians, positive to the left.</summary>
-        public double Twist;
+        /// <summary>Where the `shoulders` row puts the line of the shoulders on the floor: radians from the feet, positive to the left.</summary>
+        public double Shoulders;
         /// <summary>How far the hips are turned over the feet about the vertical, radians, positive to the left; and their own left and forward.</summary>
         public double Hips;
         public Vec3 HipLeft, HipFwd;
@@ -413,10 +438,15 @@ internal sealed class FigureSolver
         /// <summary>Up, Left and Fwd are the chest's own: with a rounded back the chest leans further than the line from the pelvis to it.</summary>
         public Vec3 Pelvis, Waist, Chest, Head, Up, Left, Fwd;
         /// <summary>
-        /// The chest's frame before the twist: what the head is measured against. A twist turns the
-        /// shoulders under the head, so the face keeps looking where the head's own word says.
+        /// The chest's frame square to the feet: what the head is measured against. The hips and the
+        /// shoulders turn under the head, so the face keeps looking where the head's own word says.
         /// </summary>
         public Vec3 FaceLeft, FaceFwd;
+        /// <summary>
+        /// When the chest would have to turn on the hips further than it can to put the shoulders where
+        /// their row says: the degrees from the feet they reach instead, and the lean that takes the rest.
+        /// </summary>
+        public (double Reached, double Wanted, double Lean)? Short;
         public readonly Vec3 Shoulder(int side) => Chest + Left * (Rig.ShoulderHalf * side) - Up * Rig.ShoulderDrop;
     }
 
@@ -433,7 +463,7 @@ internal sealed class FigureSolver
     private double _weightTime, _floatTime;
     private readonly List<(double T0, double T1, double From, double To)> _turns = [];
     private readonly List<(double T0, double Up, double Land, double T1, double Height, double Give)> _jumps = [];
-    private readonly List<Seg> _height, _leftArm, _rightArm, _leftLeg, _rightLeg, _hips, _torso, _twist, _head;
+    private readonly List<Seg> _height, _leftArm, _rightArm, _leftLeg, _rightLeg, _hips, _torso, _shoulders, _head;
     private bool _built;
     private int _posing;
 
@@ -454,7 +484,7 @@ internal sealed class FigureSolver
         _leftLeg = Row(Channels.LeftLeg);
         _rightLeg = Row(Channels.RightLeg);
         _torso = Row(Channels.Torso);
-        _twist = Row(Channels.Twist);
+        _shoulders = Row(Channels.Shoulders);
         _hips = Row(Channels.Hips);
         _head = Row(Channels.Head);
     }
@@ -991,7 +1021,7 @@ internal sealed class FigureSolver
         var torso = Direction(_torso, t, Vec3.Up, new Vec3(0, 0, 1));
         c.TorsoUp = (c.Left * torso.X + Vec3.Up * torso.Y + c.Fwd * torso.Z).Normalized();
         c.Round = Chain(_torso, t, seg => seg is { Round: true } ? 1.0 : 0.0, (a, b, e) => a + (b - a) * e);
-        c.Twist = Chain(_twist, t, seg => (seg?.TurnDeg ?? 0) * Math.PI / 180, (a, b, e) => a + (b - a) * e);
+        c.Shoulders = Chain(_shoulders, t, seg => (seg?.TurnDeg ?? 0) * Math.PI / 180, (a, b, e) => a + (b - a) * e);
         // The hips turn over the feet: the sockets go round the pelvis, the feet stay, and the knees follow.
         c.Hips = Chain(_hips, t, seg => (seg?.TurnDeg ?? 0) * Math.PI / 180, (a, b, e) => a + (b - a) * e);
         c.HipLeft = c.Left * Math.Cos(c.Hips) - c.Fwd * Math.Sin(c.Hips);
@@ -1054,6 +1084,9 @@ internal sealed class FigureSolver
         return (root + axis * along + bend.Normalized() * height, root + axis * distance);
     }
 
+    /// <summary>Whether the shoulders get where their row says at a moment (null) or how far they get (SH2010).</summary>
+    public (double Reached, double Wanted, double Lean)? ShouldersShortAt(double t) => TrunkAt(Clamp(t)).Short;
+
     private Trunk TrunkAt(double t)
     {
         var c = Core(t);
@@ -1077,10 +1110,31 @@ internal sealed class FigureSolver
         trunk.Chest = trunk.Pelvis + line * (Rig.Spine * cos);
         trunk.Up = line * cos + ahead * sin;
         var before = across.Cross(trunk.Up);
-        // A twist turns the chest about its own up, on from where the hips have it: the shoulders,
-        // and what is said against the chest (`@body`, a hand on the chest), go round with it.
-        // The head does not, with the twist or with the hips: its frame is the hips' turned back.
-        double hipsCos = Math.Cos(c.Hips), hipsSin = Math.Sin(c.Hips), turnCos = Math.Cos(c.Twist), turnSin = Math.Sin(c.Twist);
+        // The shoulders' row says where their line lies on the floor, from the feet. The chest turns
+        // about its own up, on from where the hips have it, to put it there: upright that is the
+        // difference of the two rows, under a lean more (a turn about a slanting spine shows less
+        // from above). The shoulders, and what is said against the chest (`@body`, a hand on the
+        // chest), go round with it. The head does not: its frame is the hips' turned back.
+        var aim = c.Left * Math.Cos(c.Shoulders) - c.Fwd * Math.Sin(c.Shoulders);
+        var square = Vec3.Up.Cross(aim);
+        // A level spine that points square to the aim (bent over, turned toward it with the
+        // torso's own direction): every turn about it shows the same line from above, so the
+        // row is already met and the chest stays where the hips have it (atan2 of two rounding
+        // errors would pick any turn, and warn of a shortfall that is not there).
+        double a = across.Dot(square), b = before.Dot(square);
+        double turn = Math.Abs(a) < 1e-9 && Math.Abs(b) < 1e-9 ? 0 : Math.Atan2(a, b);
+        if ((across * Math.Cos(turn) - before * Math.Sin(turn)).Dot(aim) < 0)
+            turn += Math.PI;
+        turn = Math.Atan2(Math.Sin(turn), Math.Cos(turn));
+        double most = Vocabulary.MaxChestTurn * Math.PI / 180;
+        if (Math.Abs(turn) > most + 1e-9)
+        {
+            turn = Math.Sign(turn) * most;
+            var reached = across * Math.Cos(turn) - before * Math.Sin(turn);
+            trunk.Short = (Math.Atan2(-reached.Dot(c.Fwd), reached.Dot(c.Left)) * 180 / Math.PI, c.Shoulders * 180 / Math.PI,
+                Math.Acos(Math.Clamp(line.Y, -1, 1)) * 180 / Math.PI);
+        }
+        double hipsCos = Math.Cos(c.Hips), hipsSin = Math.Sin(c.Hips), turnCos = Math.Cos(turn), turnSin = Math.Sin(turn);
         trunk.FaceLeft = across * hipsCos + before * hipsSin;
         trunk.FaceFwd = before * hipsCos - across * hipsSin;
         trunk.Left = across * turnCos - before * turnSin;
@@ -1160,6 +1214,7 @@ internal sealed class FigureSolver
     {
         problems = default;
         var trunk = TrunkAt(t);
+        problems.ShouldersShort = trunk.Short;
         var c = trunk.C;
         Vec3 pelvis = trunk.Pelvis, chest = trunk.Chest, head = trunk.Head;
         Vec3 torsoUp = trunk.Up, torsoLeft = trunk.Left, torsoFwd = trunk.Fwd;
@@ -1255,7 +1310,7 @@ internal sealed class FigureSolver
                     {
                         "hip" => pelvis + c.HipLeft * (0.17 * side) + Vec3.Up * 0.06 + c.HipFwd * 0.02,
                         "chest" => chest + torsoFwd * 0.13 - torsoUp * 0.14 + torsoLeft * (0.04 * side),
-                        // The head and the belly are not turned by a twist: the head is over it, the belly under it.
+                        // The head and the belly are not turned with the chest on the hips: the head is over it, the belly under it.
                         "head" => head + faceLeft * (0.13 * side) + torsoUp * 0.02,
                         "chin" => head + faceFwd * 0.14 - torsoUp * 0.12 + faceLeft * (0.06 * side),
                         // The belly is on the hips: it goes round with them, and no further.

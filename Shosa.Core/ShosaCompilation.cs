@@ -12,15 +12,27 @@ namespace Shosa.Core;
 /// </summary>
 public sealed class ShosaCompilation
 {
-    private ShosaCompilation(SyntaxTree tree, ScoreIr score, List<MotionClip> clips, List<Diagnostic> diagnostics)
+    private ShosaCompilation(SyntaxTree tree, SyntaxTree bound, ScoreIr score, List<MotionClip> clips, List<Diagnostic> diagnostics, IReadOnlyList<IncludedFile> included)
     {
         Tree = tree;
+        Bound = bound;
+        Included = included;
         Score = score;
         Clips = clips;
         Diagnostics = diagnostics;
     }
 
+    /// <summary>The file as written. With `using` lines, what is bound is this and the files they bring in, after it.</summary>
     public SyntaxTree Tree { get; }
+
+    /// <summary>
+    /// What was bound: <see cref="Tree"/>, and after its text the text of every file the `using`
+    /// lines brought in (<see cref="Included"/> says where each is). The same tree when there are none.
+    /// </summary>
+    public SyntaxTree Bound { get; }
+
+    /// <summary>The files the `using` lines brought in, every one (theirs too): an editor compiles this again when one of them changes.</summary>
+    public IReadOnlyList<IncludedFile> Included { get; }
 
     /// <summary>The score that was asked for: one <see cref="MotionIr"/> per clip.</summary>
     public ScoreIr Score { get; }
@@ -44,13 +56,26 @@ public sealed class ShosaCompilation
     /// Reads the song a `music` line names (<see cref="Music.SongReader.For"/> for a file on
     /// disk). Without one the file is compiled by what it says itself.
     /// </param>
-    public static ShosaCompilation Compile(string text, string? score = null, SongSource? songs = null) =>
-        Compile(SyntaxTree.Parse(text), score, songs);
+    /// <param name="usings">
+    /// Reads the files the `using` lines name (<see cref="UsingSource.For"/> for a file on disk).
+    /// Without one a `using` line brings in nothing.
+    /// </param>
+    public static ShosaCompilation Compile(string text, string? score = null, SongSource? songs = null, UsingSource? usings = null) =>
+        Compile(SyntaxTree.Parse(text), score, songs, usings);
 
-    public static ShosaCompilation Compile(SyntaxTree tree, string? score = null, SongSource? songs = null)
+    public static ShosaCompilation Compile(SyntaxTree tree, string? score = null, SongSource? songs = null, UsingSource? usings = null)
     {
+        var main = tree;
+        IReadOnlyList<IncludedFile> included = [];
+        var diagnostics = new List<Diagnostic>();
+        if (usings is not null && Usings.Any(tree))
+        {
+            var combined = Usings.Expand(tree, usings);
+            (tree, included) = (combined.Tree, combined.Files);
+            diagnostics.AddRange(combined.Diagnostics);
+        }
         var (bound, found) = Binder.Bind(tree, score, songs);
-        var diagnostics = tree.Diagnostics.Concat(found).ToList();
+        diagnostics.AddRange(tree.Diagnostics.Concat(found));
         var seen = diagnostics.Select(d => (d.Code, d.Span)).ToHashSet();
         var clips = new List<MotionClip>();
         // A section danced in two clips is solved twice; say each thing once, and which scores it
@@ -76,7 +101,19 @@ public sealed class ShosaCompilation
             diagnostics.Add(scores.Count == clips.Count ? first
                 : first with { Message = $"{first.Message} (In {string.Join(", ", scores.Select(Named))}.)" });
         }
-        return new ShosaCompilation(tree, bound, clips, diagnostics.OrderBy(d => d.Span.Start).ToList());
+        if (included.Count > 0)
+        {
+            // A word of a used file is not in the text being edited: nothing there to light up.
+            int mainLength = main.Text.Length;
+            foreach (var clip in clips)
+                clip.Spans.RemoveAll(s => s.Start >= mainLength);
+            // What is said of a used file is said on the `using` line it came by; what is said of the end, at the end of this one.
+            string? folder = usings!.MainPath is { } path ? Path.GetDirectoryName(path) : null;
+            diagnostics = diagnostics
+                .Select(d => d.Span.Start >= tree.Text.Length ? d with { Span = new TextSpan(mainLength, 0) } : Usings.Attribute(d, tree.Text, mainLength, included, folder))
+                .DistinctBy(d => (d.Code, d.Span, d.Message)).ToList();
+        }
+        return new ShosaCompilation(main, tree, bound, clips, diagnostics.OrderBy(d => d.Span.Start).ToList(), included);
     }
 
     /// <summary>1-based line and column of a position in the text.</summary>

@@ -1,0 +1,28 @@
+title "Song dance"
+music "song.lys"
+
+figure d
+dancer d humanoid on d
+
+section Verse {
+  d {
+    // a step on every beat, on the spot
+    steps     { left.place right.place left.place right.place | % | % | % | }
+    // counted 1 2 3 4: hips right on 2 (beat 1), left on 4 (beat 3)
+    hips      { center right.20 center left.20 | % | % | % | }
+    shoulders { center:4 | % | % | % | }
+    head      { fwd:4 | % | % | % | }
+  }
+}
+
+section Chorus {
+  d {
+    // the block: left in bar 1, right in bar 2 ..., held to beat 2, then on its way
+    hips      { left.30:2 then:2 | right.30:2 then:2 | %2 | }
+    shoulders { left.30:2 then:2 | right.30:2 then:2 | %2 | }
+    // the face with the block on the bar, the other way on beat 2 (counted "3")
+    head      { fwd.left(30):2 fwd.right(30):2 | fwd.right(30):2 fwd.left(30):2 | %2 | }
+  }
+}
+
+score { dancer d }

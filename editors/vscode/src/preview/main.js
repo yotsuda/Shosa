@@ -141,7 +141,7 @@ function channelOfBone(index) {
   if (/Hip/.test(name)) return ['hips', side + 'Leg', 'support', 'height'];   // the line of the hips is what `hips` turns
   if (/Knee|Ankle|Toe/.test(name)) return [side + 'Leg', 'support', 'height'];
   if (/head|nose/.test(name)) return ['head', 'torso'];
-  if (/Shoulder/.test(name)) return ['twist', 'torso'];   // the shoulder line is what a twist turns
+  if (/Shoulder/.test(name)) return ['shoulders', 'torso'];   // the shoulder line is what `shoulders` turns
   return ['torso'];
 }
 

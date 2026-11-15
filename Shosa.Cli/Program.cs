@@ -78,7 +78,7 @@ if (output is not null && Path.GetDirectoryName(Path.GetFullPath(output)) is { L
 
 string text = File.ReadAllText(path);
 var songs = new SongReader(Path.GetDirectoryName(Path.GetFullPath(path)) ?? ".");
-var compilation = ShosaCompilation.Compile(text, scoreName, songs.Read);
+var compilation = ShosaCompilation.Compile(text, scoreName, songs.Read, Shosa.Core.Semantics.UsingSource.For(path));
 
 foreach (string problem in CheckReport.Problems(compilation, text, path))
     Console.Error.WriteLine(problem);
@@ -112,6 +112,10 @@ void WriteEvents(MotionClip c)
     File.WriteAllText(file, events);
     Console.WriteLine(file);
 }
+
+// A file of parts has no score: it is written out by the files that bring it in.
+if (clips.Count == 0 && command is not ("check" or "grammar") && compilation.Score.Scores.Count == 0)
+    Console.Error.WriteLine($"shosa: {path} has no score, so nothing is written. A file of parts (poses and moves) is written out by the files that bring it in with `using`.");
 
 switch (command)
 {
@@ -256,7 +260,7 @@ switch (command)
     case "clip":
     {
         // With the joints, how the body is turned at every frame (what `check --at` says of one
-        // moment): a writer checking a twist should not have to take an arctangent of two hips.
+        // moment): a writer checking a turn should not have to take an arctangent of two hips.
         System.Text.Json.Nodes.JsonNode Clip(MotionClip clip)
         {
             var node = JsonSerializer.SerializeToNode(clip, json)!;

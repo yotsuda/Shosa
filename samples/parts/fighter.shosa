@@ -1,0 +1,35 @@
+// The fighter's poses and moves: a file of parts. It has no figure, section or score of its own:
+// samples\fighter.shosa brings it in with `using "parts/fighter.shosa"`, and so can any other
+// file of the same character.
+
+// A pose is a stance: being in it again moves nothing.
+pose guard {
+  steps { left.fwd.low@small }
+  arms  { fwd.25@bent }
+  torso { fwd.80@round }                    // leaning 10 degrees forward, the back rounded
+  hips      { right.10 }                    // half sideways: the hips turned over the feet,
+  shoulders { right.20 }                    // and the shoulders further round: the left shoulder ahead
+  head      { fwd.25 }                      // the face up again (the head does not turn with them)
+}
+
+// A pose written in a narrower track does only that track's part: `guard` in leftArm
+// is the left arm of the guard.
+// A move is written at the beat of its first word: `jab` on a beat is the fist out on that beat
+// (`@sharp`: it goes just before the beat, not through all of the word before). The kick is
+// knee up, kick, knee, down: its `!hit` is one word after the beat the kick is written at.
+// The cross draws the elbow back first (`fwd.low@bent`: the fist by the ribs, the elbow behind the
+// body) and goes out from there: its `!hit` too is one word after the beat the cross is written at.
+// The hips and the shoulders go with it, each in a row of its own and each from the feet: drawn
+// back with the elbow (hips 20, shoulders 40 to the right), then round with the fist (`left`: the
+// right hip and the right shoulder come forward), and back to the guard's.
+move jab       { leftArm  { fwd.25@sharp!hit guard } }
+move cross     {
+  rightArm  { fwd.low@bent fwd.25@sharp!hit guard }
+  hips      { right.20     left.15@sharp       guard }
+  shoulders { right.40     left.35@sharp       guard }
+}
+move frontKick { rightLeg { fwd.low@bent fwd@sharp!hit fwd.low@bent down } }
+
+// A step is placed from the other foot: the left foot reaches a full stride ahead, then the
+// right foot closes up to a small stride behind it. Both feet end 0.2 m further on, in guard.
+move stepIn    { steps { left.fwd.low!step right.back.low@small!step } }

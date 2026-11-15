@@ -70,6 +70,7 @@ internal static class Words
 
     public static readonly Vocabulary.Word[] TopLevel =
     [
+        new("using", "using \"parts.shosa\" — another .shosa file joins this one, as in Lily#: its poses and moves (and anything else it writes) can be used here. A file of poses and moves alone needs no score."),
         new("title", "title \"…\""),
         new("tempo", "tempo N — beats per minute. tempo 4. = 60 counts a note (a dotted crotchet) instead of the beat; in a file danced to a song, tempo 80% is of the song's."),
         new("time", "time N/N — beats per bar / beat unit."),
@@ -100,6 +101,7 @@ internal static class Words
             "time" => "time ${1:4}/${2:4}",
             "fps" => "fps ${1:30}",
             "music" => "music \"$1\"",
+            "using" => "using \"$1\"",
             "figure" => "figure ${1:" + figure + "}",
             "dancer" => "dancer ${1:" + dancer + "} humanoid on ${2:" + figure + "}",
             "pose" => "pose ${1:name} {\n  ${2:arms} { $0 }\n}",
@@ -138,15 +140,38 @@ internal static class Words
 
     /// <summary>The poses and moves a file defines, as words: they can be written in any track that shares a part with them.</summary>
     /// <param name="lengths">The beats each move takes when written without a length (<see cref="ScoreIr.MoveLengths"/>), to say them.</param>
-    public static List<Vocabulary.Word> Definitions(SyntaxTree tree, IReadOnlyDictionary<string, double>? lengths = null) =>
-        tree.Root.ChildNodes().Where(n => n.Kind is SyntaxKind.PoseDecl or SyntaxKind.MoveDecl)
+    /// <param name="brought">The poses and moves the file's `using` lines bring in (<see cref="Brought"/>).</param>
+    public static List<Vocabulary.Word> Definitions(SyntaxTree tree, IReadOnlyDictionary<string, double>? lengths = null, IReadOnlyList<Vocabulary.Word>? brought = null) =>
+        Described(tree.Root.ChildNodes(), "this file", lengths)
+            .Concat((brought ?? []).Where(b => !tree.Root.ChildNodes().Any(n => n.Kind is SyntaxKind.PoseDecl or SyntaxKind.MoveDecl && n.Token(SyntaxKind.Identifier, 1)?.Text == b.Name)))
+            .ToList();
+
+    /// <summary>
+    /// The poses and moves the `using` lines of a compiled file bring in, as words, each saying
+    /// which file it is from.
+    /// </summary>
+    public static List<Vocabulary.Word> Brought(Shosa.Core.ShosaCompilation compilation, string? folder)
+    {
+        if (compilation.Included.Count == 0)
+            return [];
+        var words = new List<Vocabulary.Word>();
+        foreach (var file in compilation.Included)
+        {
+            string name = folder is null ? Path.GetFileName(file.Path) : Path.GetRelativePath(folder, file.Path).Replace('\\', '/');
+            var nodes = compilation.Bound.Root.ChildNodes().Where(n => n.Span.Start >= file.Start && n.Span.Start < file.End);
+            words.AddRange(Described(nodes, name, compilation.Score.MoveLengths));
+        }
+        return words;
+    }
+
+    private static IEnumerable<Vocabulary.Word> Described(IEnumerable<SyntaxNode> items, string from, IReadOnlyDictionary<string, double>? lengths) =>
+        items.Where(n => n.Kind is SyntaxKind.PoseDecl or SyntaxKind.MoveDecl)
             .Select(n => (Node: n, Name: n.Token(SyntaxKind.Identifier, 1)?.Text)).Where(d => d.Name is not null)
-            .Select(d => new Vocabulary.Word(d.Name!, (d.Node.Kind == SyntaxKind.PoseDecl ? "Pose" : "Move") + " of this file: "
+            .Select(d => new Vocabulary.Word(d.Name!, (d.Node.Kind == SyntaxKind.PoseDecl ? "Pose" : "Move") + $" of {from}: "
                 + string.Join(", ", d.Node.ChildNodes(SyntaxKind.Track).Select(t => t.Token(SyntaxKind.Identifier)?.Text)) + "."
                 + (d.Node.Kind == SyntaxKind.MoveDecl && lengths is not null && lengths.TryGetValue(d.Name!, out double beats)
                     ? $" Written without a length it takes {Beats(beats)}; with one ({d.Name}:{Math.Max(1, Math.Round(beats * 2)).ToString(CultureInfo.InvariantCulture)}) it is stretched to it."
-                    : d.Node.Kind == SyntaxKind.PoseDecl ? " Written without a length it is reached in 1 beat." : "")))
-            .ToList();
+                    : d.Node.Kind == SyntaxKind.PoseDecl ? " Written without a length it is reached in 1 beat." : "")));
 
     private static string Beats(double beats) => beats.ToString("0.###", CultureInfo.InvariantCulture) + (beats == 1 ? " beat" : " beats");
 
@@ -222,10 +247,10 @@ internal static class Words
             };
         }
 
-        if (track is "twist" or "hips")
+        if (track is "shoulders" or "hips")
         {
             if (before.Count == 0)
-                return [.. track == "hips" ? Vocabulary.HipsWords : Vocabulary.TwistWords, .. definitions, Hold, Skip, Again];
+                return [.. track == "hips" ? Vocabulary.HipsWords : Vocabulary.ShouldersWords, .. definitions, Hold, Skip, Again];
             return [];   // after left / right comes a number of degrees
         }
 
@@ -273,7 +298,7 @@ internal static class Words
     }
 
     /// <summary>What can be typed at a position, and what kind of thing it is.</summary>
-    public static (IEnumerable<Vocabulary.Word> Words, string Kind) At(SyntaxTree tree, int offset)
+    public static (IEnumerable<Vocabulary.Word> Words, string Kind) At(SyntaxTree tree, int offset, IReadOnlyList<Vocabulary.Word>? brought = null)
     {
         string text = tree.Text;
         int wordStart = offset;
@@ -294,7 +319,7 @@ internal static class Words
                 return ([Bar], "value");
             if (trigger is ':' or '!' or '(' || (trigger != '.' && wordStart > 0 && char.IsAsciiDigit(text[wordStart - 1])))
                 return ([], "none");
-            var targets = ForTarget(name, trigger == '.' ? ChainBefore(text, wordStart - 1) : [], Definitions(tree), figures);
+            var targets = ForTarget(name, trigger == '.' ? ChainBefore(text, wordStart - 1) : [], Definitions(tree, null, brought), figures);
             // A verse is written where an event is, in a section's row: a move is not played a first and a second time.
             bool inSection = Enclosing(tree, SyntaxKind.PoseDecl, offset) is null && Enclosing(tree, SyntaxKind.MoveDecl, offset) is null;
             return (trigger != '.' && inSection ? targets.Append(Verse) : targets, "word");
@@ -403,7 +428,7 @@ internal static class Words
     }
 
     /// <summary>The documentation of the word at a position, or null.</summary>
-    public static (Vocabulary.Word Word, TextSpan Span)? Describe(SyntaxTree tree, int offset, IReadOnlyDictionary<string, double>? lengths = null)
+    public static (Vocabulary.Word Word, TextSpan Span)? Describe(SyntaxTree tree, int offset, IReadOnlyDictionary<string, double>? lengths = null, IReadOnlyList<Vocabulary.Word>? brought = null)
     {
         var token = tree.Root.DescendantTokens()
             .FirstOrDefault(t => t.Kind == SyntaxKind.Identifier && !t.IsMissing && offset >= t.Span.Start && offset <= t.Span.End);
@@ -424,12 +449,12 @@ internal static class Words
             var before = parent.ChildTokens().Where(t => t.Kind is SyntaxKind.Identifier or SyntaxKind.Number && !t.IsMissing && t.Span.Start < token.Span.Start)
                 .Select(t => t.Text).ToList();
             var figures = FigureNames(tree).Select(n => new Vocabulary.Word(n.Id, $"Figure {n.Label}")).ToList();
-            word = ForTarget(track, before, Definitions(tree, lengths), figures).FirstOrDefault(w => w.Name == token.Text);
+            word = ForTarget(track, before, Definitions(tree, lengths, brought), figures).FirstOrDefault(w => w.Name == token.Text);
         }
         else if (parent.Kind is SyntaxKind.PoseDecl or SyntaxKind.MoveDecl && token == parent.Token(SyntaxKind.Identifier, 1))
         {
             // The name where it is defined says the same as where it is used.
-            word = Definitions(tree, lengths).FirstOrDefault(w => w.Name == token.Text);
+            word = Definitions(tree, lengths, brought).FirstOrDefault(w => w.Name == token.Text);
         }
         else if (parent.Kind == SyntaxKind.Annotation)
         {

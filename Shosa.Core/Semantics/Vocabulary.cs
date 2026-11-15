@@ -19,29 +19,33 @@ public static class Vocabulary
         new("rightArm", "The right arm."),
         new("leftLeg", "The left leg when it carries no weight: where it points from the hip."),
         new("rightLeg", "The right leg when it carries no weight."),
-        new("hips", "The hips turned over feet that stay where they stand: `left` (30 degrees), `right.20`, `center`. The chest goes round with them; the head does not."),
+        new("hips", "The hips turned over feet that stay where they stand: `left` (30 degrees), `right.20`, `center`. The shoulders and the head do not go round with them."),
         new("torso", "The spine: `up` is upright, `fwd.high` leans forward 45 degrees."),
-        new("twist", "The chest turned on the hips, about the spine: `left` (30 degrees), `right.20`, `center`. The feet and the hips stay."),
-        new("head", "Where the face looks: `fwd` is straight ahead. It nods with the chest's lean, but does not turn with a `twist`."),
+        new("shoulders", "The line of the shoulders turned from the feet, as seen from above: `left` (30 degrees), `right.85`, `center`. The chest turns on the hips to put it there; the feet stay."),
+        new("head", "Where the face looks: `fwd` is straight ahead. It nods with the chest's lean, but does not turn with the hips or the shoulders."),
     ];
 
-    /// <summary>What the `twist` track says. A number after the side is degrees, up to <see cref="MaxTwist"/>.</summary>
-    public static readonly Word[] TwistWords =
+    /// <summary>What the `shoulders` track says. A number after the side is degrees from the feet, up to <see cref="MaxShoulders"/>.</summary>
+    public static readonly Word[] ShouldersWords =
     [
-        new("left", "The chest turns to the figure's left, the right shoulder comes forward: 30 degrees, or `left.N` for N degrees (up to 45)."),
-        new("right", "The chest turns to the figure's right, the left shoulder comes forward: 30 degrees, or `right.N`."),
-        new("center", "No twist: the shoulders square over the hips."),
+        new("left", "The shoulders turn to the figure's left, the right shoulder comes forward: 30 degrees from the feet, or `left.N` for N degrees (up to 90)."),
+        new("right", "The shoulders turn to the figure's right, the left shoulder comes forward: 30 degrees, or `right.N`."),
+        new("center", "The shoulders square over the feet."),
     ];
 
-    /// <summary>What the `hips` track says: the same three words as a twist, of the hips over the feet.</summary>
+    /// <summary>What the `hips` track says: the same three words, of the hips over the feet, up to <see cref="MaxHips"/>.</summary>
     public static readonly Word[] HipsWords =
     [
-        new("left", "The hips turn to the figure's left, the right hip comes forward: 30 degrees, or `left.N` for N degrees (up to 45). The chest and the shoulders go round with them."),
+        new("left", "The hips turn to the figure's left, the right hip comes forward: 30 degrees from the feet, or `left.N` for N degrees (up to 45)."),
         new("right", "The hips turn to the figure's right, the left hip comes forward: 30 degrees, or `right.N`."),
         new("center", "The hips square over the feet."),
     ];
 
-    public const double DefaultTwist = 30, MaxTwist = 45;
+    /// <summary>
+    /// Degrees. A side without a number turns 30. The hips turn up to 45 over the feet, the shoulders
+    /// up to 90 from them; the chest turns on the hips, about the spine, up to <see cref="MaxChestTurn"/>.
+    /// </summary>
+    public const double DefaultTurn = 30, MaxHips = 45, MaxShoulders = 90, MaxChestTurn = 60;
 
     public static readonly Word[] Directions =
     [
@@ -161,7 +165,7 @@ public static class Vocabulary
 
     /// <summary>Every word that means something on its own, so that a definition cannot take its name.</summary>
     public static IEnumerable<string> Reserved =>
-        new[] { Tracks, Directions, Levels, Poles, Anchors, Feet, StepDirections, SupportActions, JumpWords, TurnAmounts, TwistWords, HipsWords }
+        new[] { Tracks, Directions, Levels, Poles, Anchors, Feet, StepDirections, SupportActions, JumpWords, TurnAmounts, ShouldersWords, HipsWords }
             .SelectMany(words => words).Select(w => w.Name).Append(Hold).Append(Skip).Append(Again);
 
     public static double TurnDegrees(string amount) => amount switch

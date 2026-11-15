@@ -1,0 +1,20 @@
+tempo 80
+figure a
+figure b
+dancer a humanoid on a at -1 0 facing stageLeft
+dancer b humanoid on b at 1 0 facing stageRight
+pose stand  { torso { up }  hips { center }  shoulders { center } }
+pose bowed  { torso { fwd } hips { center }  shoulders { center } }
+pose lower  { torso { fwd.30 } hips { center }  shoulders { center } }
+section Bow {
+  a {
+    body      { stand:4 | then:2 bowed:2 | then:2 lower:2 | then:2 stand:2 | }
+    shoulders { skip:4 | skip:4 | then:2 right.41:2 | then:2 center:2 | }
+  }
+  b {
+    body      { stand:4 | then:2 bowed:2 | then:2 lower:2 | then:2 stand:2 | }
+    shoulders { skip:4 | skip:4 | then:2 right.41:2 | then:2 center:2 | }
+  }
+}
+form { Bow }
+score { dancer a  dancer b }

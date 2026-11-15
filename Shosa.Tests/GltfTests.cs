@@ -17,7 +17,7 @@ public class GltfTests
     [MemberData(nameof(Samples.Names), MemberType = typeof(Samples))]
     public void A_reader_of_the_glb_file_finds_the_same_joints(string name)
     {
-        var clip = ShosaCompilation.Compile(Samples.Read(name)).Clip;
+        var clip = Samples.Compile(name).Clip;
         var file = GltfFile.Parse(Gltf.Render(clip));
         int bones = Skeleton.Bones.Length;
 
@@ -77,7 +77,7 @@ public class GltfTests
     [Fact]
     public void A_vrma_file_names_every_humanoid_bone_and_holds_one_figure()
     {
-        var clip = ShosaCompilation.Compile(Samples.Read("duet")).Clip;
+        var clip = Samples.Compile("duet").Clip;
         Assert.True(clip.Figures.Count > 1);
 
         foreach (var figure in clip.Figures)
@@ -103,7 +103,7 @@ public class GltfTests
     [Fact]
     public void Rotations_are_unit_quaternions_that_do_not_jump_to_the_other_sign()
     {
-        var clip = ShosaCompilation.Compile(Samples.Read("taiso")).Clip;
+        var clip = Samples.Compile("taiso").Clip;
         var file = GltfFile.Parse(Gltf.Render(clip));
         var animation = file.Json["animations"]![0]!;
 

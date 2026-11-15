@@ -1,0 +1,17 @@
+title "Twister"
+tempo 100
+time 4/4
+
+figure solo
+dancer solo humanoid on solo
+
+section Twist {
+  solo {
+    hips      { left right left right | left:2 right:2 | left:2 right:2 | center:4 | }
+    shoulders { center:3 then:1 | left:2 right:2 | right.20:2 left.20:2 | center:4 | }
+    arms      { down:4 | then:4 | then:4 | then:2 fwd:1 up:1 | }
+  }
+}
+
+form { Twist }
+score { dancer solo }

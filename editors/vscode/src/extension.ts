@@ -116,11 +116,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     });
   };
 
-  // A dance follows its song: when a .lys is saved, the server compiles the dances again.
+  // A dance follows its song, and the files of parts it brings in with `using`: when a .lys or
+  // a .shosa is saved, the server compiles the dances again.
   const songs = vscode.workspace.createFileSystemWatcher('**/*.lys');
-  context.subscriptions.push(songs);
+  const parts = vscode.workspace.createFileSystemWatcher('**/*.shosa');
+  context.subscriptions.push(songs, parts);
   client = new LanguageClient('shosa', 'Shosa', serverOptions,
-    { documentSelector: [{ language: 'shosa' }], synchronize: { fileEvents: songs } });
+    { documentSelector: [{ language: 'shosa' }], synchronize: { fileEvents: [songs, parts] } });
   client.onNotification('shosa/clip', (message: ClipMessage) => {
     clips.set(message.uri, message);
     if (panel && panelUri === message.uri) {

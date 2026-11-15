@@ -25,6 +25,7 @@ $temp = Join-Path ([IO.Path]::GetTempPath()) "shosa-hosttest-$PID"
 $work = Join-Path $temp 'work'
 New-Item -ItemType Directory -Force $work | Out-Null
 Copy-Item (Join-Path $root 'samples\fighter.shosa') $work   # a copy: the test edits it (and reverts)
+Copy-Item (Join-Path $root 'samples\parts') $work -Recurse   # what fighter.shosa brings in with `using`
 Copy-Item (Join-Path $root 'samples\dance.shosa'), (Join-Path $root 'samples\song.lys') $work   # a dance to a song: the MP4 with sound
 
 $env:SHOSA_HOSTTEST_OUT = Join-Path $temp 'report.json'

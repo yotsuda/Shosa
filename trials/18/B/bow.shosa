@@ -1,0 +1,27 @@
+title "Bow"
+tempo 80
+
+figure a
+figure b
+dancer a humanoid on a at -1 0 facing stageLeft
+dancer b humanoid on b at 1 0 facing stageRight
+
+pose stand  { torso { up }     hips { center }  shoulders { center } }
+pose bowed  { torso { fwd }    hips { center }  shoulders { center } }   // chest level with the floor, straight back
+// Bar 3: over a chest level with the floor a turn of the chest shows nothing from above (SH2010: 0 deg),
+// and over square hips 60 deg is reachable only upright. So the bow eases up to a 60-degree lean,
+// where the shoulders get to 40 deg (SH2010 said 40.9 is the most there).
+pose turned { torso { fwd.30 } hips { center }  shoulders { right.40 } }
+
+section Bow {
+  a {
+    body      { stand:4 | then:2 bowed:2 | then:2 turned:2 | then:2 stand:2 | }
+  }
+  b {
+    body      { stand:4 | then:2 bowed:2 | then:2 turned:2 | then:2 stand:2 | }
+    rightArm  { down:4 | down:4 | then:2 side:2 | then:2 down:2 | }
+  }
+}
+
+form { Bow }
+score { dancer a  dancer b }

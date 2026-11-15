@@ -15,7 +15,7 @@ public class SkeletonTests
     [MemberData(nameof(Samples.Names), MemberType = typeof(Samples))]
     public void Rotations_put_every_joint_back_where_the_solver_had_it(string name)
     {
-        var clip = ShosaCompilation.Compile(Samples.Read(name)).Clip;
+        var clip = Samples.Compile(name).Clip;
         foreach (var figure in clip.Figures)
         {
             Assert.Equal(figure.Frames.Count, figure.Rotations.Count);
@@ -32,7 +32,7 @@ public class SkeletonTests
     [MemberData(nameof(Samples.Names), MemberType = typeof(Samples))]
     public void A_reader_of_the_bvh_file_finds_the_same_joints(string name)
     {
-        var clip = ShosaCompilation.Compile(Samples.Read(name)).Clip;
+        var clip = Samples.Compile(name).Clip;
         foreach (var figure in clip.Figures)
         {
             var bvh = BvhFile.Parse(Bvh.Render(clip, figure));
@@ -70,7 +70,7 @@ public class SkeletonTests
         // Positions can be right while a limb is twisted half a turn about its own length from
         // one frame to the next (the bending plane read the other way round). A stick figure
         // does not show it; a mesh does.
-        var clip = ShosaCompilation.Compile(Samples.Read(name)).Clip;
+        var clip = Samples.Compile(name).Clip;
         foreach (var figure in clip.Figures)
         {
             for (int f = 1; f < figure.Rotations.Count; f++)

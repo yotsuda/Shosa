@@ -10,7 +10,7 @@ public class SyntaxTests
     public void A_sample_compiles_without_errors_and_the_tree_reproduces_its_text(string name)
     {
         string text = Samples.Read(name);
-        var compilation = ShosaCompilation.Compile(text);
+        var compilation = Samples.Compile(name);   // with the files its `using` lines bring in, beside it
 
         Assert.Equal(text, compilation.Tree.ToFullString());
         Assert.DoesNotContain(compilation.Diagnostics, d => d.Severity == DiagnosticSeverity.Error);

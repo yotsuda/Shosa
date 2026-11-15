@@ -1,0 +1,110 @@
+=== Task 1: fighter.shosa — PREDICTIONS (before first check) ===
+Expected check output:
+  fighter.shosa: no problems   (risk: SH2003 too fast on the @sharp hit, wind-up to hit in 0.15 s)
+    Idle: 4 beats, 2 s, 1 dancer
+      Idle   0-4   1 bar   2 s   at 120   4/4
+      hero loops on the spot
+    Uppercut: 4 beats, 2 s, 1 dancer
+      Uppercut   0-4   1 bar   2 s   at 120   4/4
+      hero starts with `left.fwd` ... ? (probably nothing: a pose places the foot)
+      hero ends where it began
+    Uppercut !hit at beat 1.4 = 0.7 s
+Answers predicted:
+  - 0.55 s: the hit's hips/shoulders are @sharp, so they wait until 0.15 s before 0.7 s = 0.55 s:
+    hips 25 right, shoulders 55 right (still at the wind-up).
+  - 0.4 s chest relative to hips: 55 - 25 = 30 deg (to the right).
+  - Face at 0.7 s: straight ahead (0 deg), about level (head fwd.25 over fwd.80@round). The head does not follow the shoulders.
+Planned confirmations: check --at 0.4s,0.55s,0.7s; clip for the fist height (target ~1.57 m chin).
+
+--- Task 1 ACTUAL ---
+check run 1 (with rightArm fwd.40@bent at the hit): no problems, check lines exactly as predicted
+  (no "already made" line, "hero ends where it began", "Idle loops on the spot", !hit at beat 1.4 = 0.7 s).
+Fist height (shosa clip --score Uppercut, frame 21): fwd.40@bent put the fist at 1.59 m, head-centre height, x=-0.14
+  (out in front of the right shoulder). Too high for the chin (nose 1.58, head centre 1.58 in this lean).
+  Changed to fwd.across(18).25@bent: clip frame 21 rightHand = (-0.01, 1.49, 0.70): chin height, in front of the middle.
+check run 2: no problems.
+Answers (confirmed with `shosa check fighter.shosa --at 0.4s,0.55s,0.7s`):
+  - 0.55 s: hips 24.2 right, shoulders 53.5 right.  Prediction (25 / 55, not yet moved) was NEARLY right:
+    the @sharp move has already just begun at 0.55 s (0.15 s before 0.7 s).
+  - 0.4 s chest on hips: hips 25 right, shoulders 55 right -> 30 deg to the right. Right (subtraction by hand; check gives the two rows, not the difference).
+  - face at 0.7 s: 1.2 left and 0.8 up -> essentially straight ahead, level. Right.
+Sheet looked at: out\fighter-Idle.png, out\fighter-Uppercut.png (step 0.2): the right (red) fist rises at 1.4, top view
+  shows the right shoulder forward at the hit, left foot forward in the footprints.
+
+=== Task 2: twister.shosa — PREDICTIONS ===
+Expected check:
+  twister.shosa: no problems
+    score: 16 beats, 9.6 s, 1 dancer
+      Twist   0-16   4 bars   9.6 s   at 100   4/4
+      solo ends where it began
+Answers predicted (beats from 0):
+  beat 2:  hips 30 left, shoulders 0 (square), face 0
+  beat 8:  hips 30 left, shoulders 20 right, face 0   (chest 50 deg on the hips: within 60, no SH2010)
+  beat 10: hips 30 right, shoulders 20 left, face 0
+
+--- Task 2 ACTUAL ---
+check run 1: no problems; header lines exactly as predicted. But `check twister.shosa --at 2,8,10,15`
+  gave beat 2: hips 30 left, shoulders 15 LEFT (prediction 0 was wrong): `center:4` drifts toward the next
+  word (`left` at beat 4) through all four beats. My own mistake; the grammar says so ("Without the then, up:8 side drifts").
+  Changed shoulders to `center:3 then:1 | ...` so they stay square through beat 3 and turn in beat 3-4.
+check run 2: no problems. `check --at 1,2,3,8,10,15`:
+  beat 2:  hips 30 left, shoulders 0, face 0     (now right)
+  beat 8:  hips 30 left, shoulders 20 right, face 0   (right)
+  beat 10: hips 30 right, shoulders 20 left, face 0   (right)
+  beat 15: all 0 (square), arms up on the sheet.
+Sheet out\twister.png looked at: top-view lines turn as written, arms through fwd (14) to up (15).
+
+=== Task 3: picker.shosa — PREDICTIONS ===
+Plan: torso fwd (straight back, horizontal), hips right.30 and shoulders right.70 at the grab (beat 3),
+  right arm down (toward floor; arms measured against the room), then upright with hips right.30, shoulders right.70,
+  arms fwd@body (in front of the turned chest) at shoulder height.
+Expected check:
+  picker.shosa: warning SH2010 at the grab: with the spine horizontal a turn of the chest hardly shows from above,
+    so shoulders 70 over hips 30 (40 on the hips) will not be reached; I expect it to say ~35-45 deg.
+    score: 7 beats, 7 s, 1 dancer
+      Pick   0-7   2 bars   7 s   at 60   4/4
+      worker ends where it began
+Answers predicted: grab: hips 30 right, shoulders < 70 right (SH2010); shelf: hips 30 right, shoulders 70 right.
+
+--- Task 3 ACTUAL ---
+check run 1 (`check picker.shosa --at 3,4,6,7`): 2x warning SH2010 (12,33 and 12,52): "The shoulders get to 0° left of
+  the feet here, not 70° right ... over a lean of 90° a turn of the chest shows less from above. Turn the hips further,
+  stand up more, or write what they reach." At beat 3: hips 30 right, shoulders 0, face 0 and 60 down.
+  Prediction (SH2010) right in kind, wrong in amount: I guessed 35-45, it was 0 (a horizontal spine pointing straight
+  ahead: turning about it only tilts the shoulder line).
+  Header lines as predicted.
+Experiments in scratch\ (p2, p3, a_sh69, b_lean5, c_lean10, d_lean10_r60):
+  - torso fwd.right(70) (spine pointing 70 to the right, level): check --at 3 says shoulders 70 right, clip angles frame 90
+    say -70 exactly, but SH2010 still fires: "The shoulders get to 70° right of the feet here, not 70° right of the feet"
+    -- a self-contradictory message (degenerate case at exactly 90 deg of lean?). With right.69: "get to 70, not 69"
+    and "get to 69.9, not 69". Hips 45 instead of 30: same message.
+  - torso fwd.right(70).5 (5 deg above level): no problems, shoulders 70 right.  <- chosen
+  - fwd.right(70).10 and fwd.right(60).10 also clean.
+check run 2 (final picker.shosa): no problems.
+  The bend now leans toward the box (70 right) instead of straight ahead: the "turn" at the grab is carried by the
+  torso's direction, not by the chest turning on the hips. Chest is 5 deg short of level (85 deg bend).
+Answers (confirmed with `shosa check picker.shosa --at 3,4,6,7`):
+  grab (3-4 s): hips 30 right, shoulders 70 right (face 66.6 right, 55.5 down -- looks toward the box).
+  shelf (6-7 s): hips 30 right, shoulders 70 right, face 0.
+Sheet out\picker.png (step 0.5): the head goes down to the figure's right-front; arms at 6 point to the figure's right (fwd@body).
+
+=== Task 4: fighter-edit.shosa — PREDICTIONS ===
+Edits planned (Uppercut section only):
+  shoulders: right.55 -> right.70 (wind-up); left.30 -> center (hit)
+  hips: left.20 -> left.10 (hit)
+  hold 0.5 s: in rightArm, hips, shoulders rows the hit's :0.3s -> :0.5s and the following then:0.6s -> then:0.4s
+    (so the score stays 0.4+0.3+0.5+0.4+0.4 = 2.0 s; guard arrives at 1.6 s as before)
+  = 3 words/numbers for the angles + 6 lengths = 9 changes.
+Expected check: no problems (risk SH2003: shoulders 70 right -> 0 in 0.15 s @sharp), Uppercut 4 beats 2 s,
+  !hit at beat 1.4 = 0.7 s.
+Answers predicted: at the hit hips 10 left, shoulders 0 (square).
+
+--- Task 4 ACTUAL ---
+check run 1: no problems (no SH2003). !hit at beat 1.4 = 0.7 s, 4 beats, 2 s. All as predicted.
+`check fighter-edit.shosa --score Uppercut --at 0.4s,0.7s,1.2s,1.6s`:
+  0.4 s: hips 25 right, shoulders 70 right; 0.7 s and 1.2 s: hips 10 left, shoulders 0; 1.6 s back in guard (15/40 right).
+  Answer: at the hit hips 10 left, shoulders 0 (square). Right.
+Changes: 9 (right.55->right.70, left.30->center, left.20->left.10, three :0.3s->:0.5s, three then:0.6s->then:0.4s).
+Fist at the hit (clip frame 21): (-0.04, 1.53, 0.61) -- with square shoulders slightly higher and nearer; left as is (minimal edit).
+Sheet out\fighter-edit.png: the hit holds from 1.4 to 2.4 beats (0.7-1.2 s), square shoulder line in the top view.
+Final: all four files `shosa check` -> no problems.

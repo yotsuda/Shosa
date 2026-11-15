@@ -85,7 +85,7 @@ public static class CheckReport
     /// `shosa check --at`: how each dancer's body is turned at the moments asked for (a beat, or
     /// seconds), a line for each score and dancer. The hips, the shoulders and the face are counted
     /// as the language counts them — from the way the feet face, on the floor — so what was written
-    /// (`hips { left.20 }`, a `twist` on top, `head { fwd.right(30) }`) is read back as numbers.
+    /// (`hips { left.20 }`, `shoulders { left.45 }`, `head { fwd.right(30) }`) is read back as the same numbers.
     /// </summary>
     public static IEnumerable<string> At(ShosaCompilation compilation, IReadOnlyList<(double Value, bool Seconds)> moments)
     {
@@ -135,6 +135,17 @@ public static class CheckReport
 
         if (compilation.Diagnostics.Count == 0)
             yield return $"{path}: no problems";
+
+        // What the `using` lines brought in, and what a file of parts offers: a writer uses the names without opening the file.
+        string folder = Path.GetDirectoryName(Path.GetFullPath(path)) ?? "";
+        foreach (var file in compilation.Included)
+            yield return $"  using {Path.GetRelativePath(folder, file.Path).Replace('\\', '/')}";
+        if (compilation.Score.Scores.Count == 0 && (compilation.Score.Poses.Count > 0 || compilation.Score.MoveLengths.Count > 0))
+        {
+            var offered = compilation.Score.Poses.Select(p => $"pose {p}")
+                .Concat(compilation.Score.MoveLengths.Select(m => $"move {m.Key} ({N(m.Value)} {(m.Value == 1 ? "beat" : "beats")})"));
+            yield return $"  a file of parts, for using: {string.Join(", ", offered)}";
+        }
 
         foreach (var clip in compilation.Clips)
         {

@@ -32,6 +32,8 @@ public static class Binder
             result.Clips.AddRange(bound.Clips);
             foreach (var (move, length) in bound.MoveLengths)
                 result.MoveLengths.TryAdd(move, length);
+            foreach (var pose in bound.Poses.Where(p => !result.Poses.Contains(p)))
+                result.Poses.Add(pose);
             diagnostics.AddRange(found.Where(d => seen.Add((d.Code, d.Span.Start, d.Span.Length))));
         }
         return (result, diagnostics);
@@ -444,11 +446,14 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         var cast = new List<SyntaxToken>();
         var attributes = new HashSet<string>();
         SyntaxNode? scoreNode = null;
+        // A file of parts — poses and moves, for files that bring it in with `using` — writes nothing out itself.
+        bool parts = _defs.Count > 0 && _figures.Count == 0 && _dancerNodes.Count == 0 && _sections.Count == 0 && _forms.Count == 0;
         if (scoreName is null)
         {
             string who = _dancerNodes.Select(d => d.Token(SyntaxKind.Identifier, 1)?.Text).FirstOrDefault(n => n is not null) ?? "NAME";
-            Error("SH1030", new TextSpan(tree.Text.Length, 0),
-                $"A file needs a score: what is written out, and who dances in it. Add: score {{ dancer {who} }}");
+            if (!parts)
+                Error("SH1030", new TextSpan(tree.Text.Length, 0),
+                    $"A file needs a score: what is written out, and who dances in it. Add: score {{ dancer {who} }}");
         }
         else if (_scores.TryGetValue(scoreName, out scoreNode))
         {
@@ -512,6 +517,8 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         {
             if (definition.Kind == SyntaxKind.MoveDecl)
                 result.MoveLengths[name] = Natural(name);
+            else
+                result.Poses.Add(name);
         }
 
         return (result, _diagnostics);
@@ -964,7 +971,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         "body" => Channels.All,
         "steps" => [Channels.Support, Channels.Height],
         "arms" => [Channels.LeftArm, Channels.RightArm],
-        Channels.LeftArm or Channels.RightArm or Channels.LeftLeg or Channels.RightLeg or Channels.Hips or Channels.Torso or Channels.Twist or Channels.Head => [trackName],
+        Channels.LeftArm or Channels.RightArm or Channels.LeftLeg or Channels.RightLeg or Channels.Hips or Channels.Torso or Channels.Shoulders or Channels.Head => [trackName],
         _ => null,
     };
 
@@ -1173,7 +1180,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                 before = Math.Max(last, LastBar(clip.Sections[i]) + dancer.Delay);
             }
             Place(null);
-            CheckTwistsAtOnce(sink);
+            CheckTurnsAtOnce(sink);
             foreach (string channel in Channels.All)
             {
                 if (sink.TryGetValue(channel, out var raws))
@@ -1752,7 +1759,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
             var seg = isHold ? new Seg { Kind = SegKinds.Hold }
                 : channel == Channels.Support ? feet
                 : channel == Channels.Height ? height
-                : channel is Channels.Twist or Channels.Hips ? BindTwist(channel, words, arguments, annotations, mirror)
+                : channel is Channels.Shoulders or Channels.Hips ? BindTurned(channel, words, arguments, annotations, mirror)
                 : BindGesture(channel, words, arguments, annotations, mirror, ctx);
             if (seg is null)
                 continue;
@@ -1858,24 +1865,24 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
     private static bool Beats(Raw a, Raw b) => Compare(a.Priority, b.Priority) is var c && (c > 0 || (c == 0 && a.Order > b.Order));
 
     /// <summary>
-    /// SH2009. Two rows of an `&amp;` that both twist at the same time. Any part two rows write goes
-    /// to the later row, and for an arm that is what was meant: one move over another. The chest
-    /// is the one part two moves that look apart — a punch of each arm — both need, so the
-    /// twist of one is lost without a word of the source saying so. A pose's own twist is where
-    /// the chest is kept, not something done: a move that comes back to it, or a row that only
-    /// stands in it, loses nothing.
+    /// SH2009. Two rows of an `&amp;` that both turn the shoulders at the same time. Any part two rows
+    /// write goes to the later row, and for an arm that is what was meant: one move over another. The
+    /// shoulders are the one part two moves that look apart — a punch of each arm — both need, so the
+    /// turn of one is lost without a word of the source saying so. A pose's own turn is where
+    /// the shoulders are kept, not something done: a move that comes back to it, or a row that only
+    /// stands in it, loses nothing. The same for the hips.
     /// </summary>
-    private void CheckTwistsAtOnce(Dictionary<string, List<Raw>> sink)
+    private void CheckTurnsAtOnce(Dictionary<string, List<Raw>> sink)
     {
-        // A move used in a row has one place in the text for its `hips` and its `twist`: one warning says both.
-        var twists = sink.TryGetValue(Channels.Twist, out var chest) ? TurnsLost(chest) : [];
+        // A move used in a row has one place in the text for its `hips` and its `shoulders`: one warning says both.
+        var shoulders = sink.TryGetValue(Channels.Shoulders, out var chest) ? TurnsLost(chest) : [];
         var hips = sink.TryGetValue(Channels.Hips, out var pelvis) ? TurnsLost(pelvis) : [];
-        foreach (var span in twists.Union(hips))
+        foreach (var span in shoulders.Union(hips))
         {
-            var (both, goes) = (twists.Contains(span), hips.Contains(span)) switch
+            var (both, goes) = (shoulders.Contains(span), hips.Contains(span)) switch
             {
-                (true, true) => ("turn the hips and twist the chest", "they go"),
-                (true, false) => ("twist the chest", "the chest goes"),
+                (true, true) => ("turn the hips and the shoulders", "they go"),
+                (true, false) => ("turn the shoulders", "the shoulders go"),
                 _ => ("turn the hips", "the hips go"),
             };
             Report("SH2009", DiagnosticSeverity.Warning, span,
@@ -2054,20 +2061,20 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
     }
 
     /// <summary>
-    /// A word of the `twist` track: `left`, `right.20`, `center`. How far the chest is turned on the
-    /// hips, about the spine; the hips do not come along, so it is no more than <see cref="Vocabulary.MaxTwist"/> degrees.
+    /// A word of the `hips` or the `shoulders` track: `left`, `right.20`, `center`. How far the line
+    /// of the hips or the shoulders is turned from the way the feet face, on the floor. The feet stay
+    /// where they stand, so the hips turn no more than <see cref="Vocabulary.MaxHips"/> degrees, the
+    /// shoulders no more than <see cref="Vocabulary.MaxShoulders"/>. How far the chest then turns on
+    /// the hips depends on the lean, so its own limit is the solver's (SH2010).
     /// </summary>
-    /// <remarks>
-    /// The `hips` track says the same of the hips over the feet: the feet stay where they stand, so
-    /// that too is no more than 45 degrees.
-    /// </remarks>
-    private Seg? BindTwist(string channel, List<SyntaxToken> words, SyntaxNode? arguments, List<SyntaxNode> annotations, bool mirror)
+    private Seg? BindTurned(string channel, List<SyntaxToken> words, SyntaxNode? arguments, List<SyntaxNode> annotations, bool mirror)
     {
         bool hips = channel == Channels.Hips;
-        string what = hips ? "a turn of the hips" : "a twist";
+        string what = hips ? "a turn of the hips" : "a turn of the shoulders";
+        double max = hips ? Vocabulary.MaxHips : Vocabulary.MaxShoulders;
         string Form = hips
-            ? "The hips turn `left`, `right` (30 degrees), `left.N` / `right.N` for N degrees up to 45, or `center`: hips { right.20 left center }"
-            : "A twist is `left`, `right` (30 degrees), `left.N` / `right.N` for N degrees up to 45, or `center`: twist { right.20 left center }";
+            ? "The hips turn `left`, `right` (30 degrees), `left.N` / `right.N` for N degrees from the feet up to 45, or `center`: hips { right.20 left center }"
+            : "The shoulders turn `left`, `right` (30 degrees), `left.N` / `right.N` for N degrees from the feet up to 90, or `center`: shoulders { right.40 left center }";
         foreach (var annotation in annotations)
         {
             var name = annotation.Token(SyntaxKind.Identifier)!;
@@ -2086,10 +2093,10 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
             Error("SH1012", arguments.Span, $"There are no brackets in {what}: how far it goes is the number after the dot, left.20");
 
         if (words.Count == 1 && words[0].Text == "center")
-            return new Seg { Kind = SegKinds.Twist, TurnDeg = 0 };
+            return new Seg { Kind = SegKinds.Turned, TurnDeg = 0 };
         if (words.Count is 1 or 2 && words[0].Text is "left" or "right")
         {
-            double degrees = Vocabulary.DefaultTwist;
+            double degrees = Vocabulary.DefaultTurn;
             if (words.Count == 2)
             {
                 if (words[1].Kind != SyntaxKind.Number)
@@ -2098,18 +2105,18 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                     return null;
                 }
                 degrees = Number(words[1]);
-                if (degrees is < 0 or > Vocabulary.MaxTwist)
+                if (degrees < 0 || degrees > max)
                 {
                     Error("SH1013", words[1].Span, hips
-                        ? "The hips turn up to 45 degrees over feet that stay where they stand (the chest can twist 45 more on them: twist { left.45 }). To face another way, the feet turn: steps { turn.left.quarter }"
-                        : "The chest turns up to 45 degrees on the hips (the hips can turn 45 more over the feet: hips { left.45 }). To face another way, the feet turn: steps { turn.left.quarter }");
+                        ? "The hips turn up to 45 degrees over feet that stay where they stand (the shoulders can be further round: shoulders { left.75 }). To face another way, the feet turn: steps { turn.left.quarter }"
+                        : "The shoulders turn up to 90 degrees from feet that stay where they stand. To face another way, the feet turn: steps { turn.left.quarter }");
                     return null;
                 }
             }
-            return new Seg { Kind = SegKinds.Twist, TurnDeg = (words[0].Text == "left") != mirror ? degrees : -degrees };
+            return new Seg { Kind = SegKinds.Turned, TurnDeg = (words[0].Text == "left") != mirror ? degrees : -degrees };
         }
 
-        var known = Vocabulary.TwistWords.Select(w => w.Name).Append(Vocabulary.Hold).Append(Vocabulary.Skip).Concat(_defs.Keys);
+        var known = (hips ? Vocabulary.HipsWords : Vocabulary.ShouldersWords).Select(w => w.Name).Append(Vocabulary.Hold).Append(Vocabulary.Skip).Concat(_defs.Keys);
         Error("SH1012", words[0].Span, $"'{words[0].Text}' is not {what}. {Form}{Hint(words[0].Text, known)}");
         return null;
     }

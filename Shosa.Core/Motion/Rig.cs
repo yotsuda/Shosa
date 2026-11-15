@@ -123,7 +123,7 @@ public sealed class ClipFigure
 
     /// <summary>
     /// How the body is turned at a position between frames, as the language counts it: the hips
-    /// (`hips`), the line of the shoulders (`hips` and `twist` together) and the face, each from
+    /// (`hips`), the line of the shoulders (`shoulders`) and the face, each from
     /// the way the feet face, measured on the floor.
     /// </summary>
     public BodyAngles Angles(double frame)
@@ -140,10 +140,17 @@ public sealed class ClipFigure
             var across = Joint(frame, leftJoint) - Joint(frame, rightJoint);
             return Degrees(Math.Atan2(-across.Dot(fwd), across.Dot(left)));
         }
+        // The face is turned as the line of the ears is, like the hips and the shoulders: the nose
+        // on the floor would swing wide for a face looking down, a small turn of the head pointing
+        // it far across the floor below. The ears are square to the nose and to the torso's up, as
+        // the head is posed (Skeleton), so their line says the head's left and right whatever its up and down.
         var nose = Joint(frame, Rig.Nose) - Joint(frame, Rig.Head);
+        var torsoUp = (Joint(frame, Rig.Head) - Joint(frame, Rig.Chest)).Normalized();
+        var ears = torsoUp.Cross(nose.Normalized());
+        double face = ears.Length < 1e-6 ? Line(Rig.LShoulder, Rig.RShoulder) : Degrees(Math.Atan2(-ears.Dot(fwd), ears.Dot(left)));
         double ahead = nose.Dot(fwd), aside = nose.Dot(left);
         return new BodyAngles(Degrees(Math.Atan2(Math.Sin(yaw), Math.Cos(yaw))), Line(Rig.LHip, Rig.RHip), Line(Rig.LShoulder, Rig.RShoulder),
-            Degrees(Math.Atan2(aside, ahead)), Degrees(Math.Atan2(nose.Y, Math.Sqrt(ahead * ahead + aside * aside))));
+            face, Degrees(Math.Atan2(nose.Y, Math.Sqrt(ahead * ahead + aside * aside))));
     }
 
     /// <summary>

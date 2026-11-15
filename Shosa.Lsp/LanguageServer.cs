@@ -22,15 +22,50 @@ public sealed class LanguageServer(Action<string> send)
 {
     private static readonly JsonSerializerOptions Json = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
-    private sealed class Document(SyntaxTree tree, int version, string? folder)
+    private sealed class Document(SyntaxTree tree, int version, string? path)
     {
         public SyntaxTree Tree { get; set; } = tree;
         public int Version { get; set; } = version;
+        /// <summary>The document's file; null for a document that is not a file.</summary>
+        public string? Path { get; } = path;
         /// <summary>Where the document's file is, and so its songs; null for a document that is not a file.</summary>
-        public string? Folder { get; } = folder;
+        public string? Folder { get; } = path is null ? null : System.IO.Path.GetDirectoryName(path);
         /// <summary>Reads the songs the document names, beside its file; null for a document that is not a file.</summary>
-        public SongSource? Songs { get; } = folder is null ? null : new SongReader(folder).Read;
-        public ShosaCompilation Compilation { get; set; } = ShosaCompilation.Compile(tree, null, folder is null ? null : new SongReader(folder).Read);
+        public SongSource? Songs { get; } = path is null ? null : new SongReader(System.IO.Path.GetDirectoryName(path) ?? ".").Read;
+        /// <summary>Set by the server's Compile as soon as the document is made, and after every change.</summary>
+        public ShosaCompilation Compilation { get; set; } = null!;
+    }
+
+    /// <summary>
+    /// Compiles a document: its songs beside it, and the files its `using` lines bring in — as
+    /// they are in the editor when they are open there (unsaved), else as they are on disk.
+    /// </summary>
+    private ShosaCompilation Compile(SyntaxTree tree, string? path, string? score = null)
+    {
+        SongSource? songs = path is null ? null : new SongReader(Path.GetDirectoryName(path) ?? ".").Read;
+        var usings = path is null ? null : new UsingSource(path, OpenText);
+        return ShosaCompilation.Compile(tree, score, songs, usings);
+    }
+
+    private void Compile(Document document) => document.Compilation = Compile(document.Tree, document.Path);
+
+    /// <summary>The text of a file that is open in the editor, by its full path.</summary>
+    private string? OpenText(string path) =>
+        _documents.Values.FirstOrDefault(d => d.Path is not null && string.Equals(d.Path, path, StringComparison.OrdinalIgnoreCase))?.Tree.Text;
+
+    /// <summary>The open documents that bring in a file with `using` (any depth), compiled again and published: a file of parts was edited.</summary>
+    private void CompileUsers(string? path)
+    {
+        if (path is null)
+            return;
+        foreach (var (uri, document) in _documents)
+        {
+            if (document.Compilation.Included.Any(f => string.Equals(f.Path, path, StringComparison.OrdinalIgnoreCase)))
+            {
+                Compile(document);
+                Publish(uri);
+            }
+        }
     }
 
     private static string? FolderOf(string uri) => PathOf(uri) is { } path ? Path.GetDirectoryName(path) : null;
@@ -91,7 +126,7 @@ public sealed class LanguageServer(Action<string> send)
         if (text is null)
             return null;
         string name = PathOf(uri) is { } path ? Path.GetFileName(path) : "file.shosa";
-        return (ShosaCompilation.Compile(text, score, FolderOf(uri) is { } folder ? new SongReader(folder).Read : null), text, name);
+        return (Compile(SyntaxTree.Parse(text), PathOf(uri), score), text, name);
     }
 
     public bool ExitRequested { get; private set; }
@@ -134,7 +169,8 @@ public sealed class LanguageServer(Action<string> send)
             {
                 var item = parameters.GetProperty("textDocument");
                 string uri = item.GetProperty("uri").GetString()!;
-                _documents[uri] = new Document(SyntaxTree.Parse(item.GetProperty("text").GetString() ?? ""), item.GetProperty("version").GetInt32(), FolderOf(uri));
+                var opened = _documents[uri] = new Document(SyntaxTree.Parse(item.GetProperty("text").GetString() ?? ""), item.GetProperty("version").GetInt32(), PathOf(uri));
+                Compile(opened);
                 Publish(uri);
                 break;
             }
@@ -164,29 +200,33 @@ public sealed class LanguageServer(Action<string> send)
 
                 document.Tree = tree;
                 document.Version = item.GetProperty("version").GetInt32();
-                document.Compilation = ShosaCompilation.Compile(tree, null, document.Songs);
+                Compile(document);
                 Publish(uri);
+                CompileUsers(document.Path);   // a file of parts: the open dances that bring it in follow its unsaved text
                 break;
             }
 
             case "textDocument/didClose":
             {
                 string uri = parameters.GetProperty("textDocument").GetProperty("uri").GetString()!;
+                string? closed = _documents.TryGetValue(uri, out var gone) ? gone.Path : null;
                 _documents.Remove(uri);
                 Notify("textDocument/publishDiagnostics", new { uri, diagnostics = Array.Empty<object>() });
+                CompileUsers(closed);   // closed unsaved: what is on disk again
                 break;
             }
 
             case "workspace/didChangeWatchedFiles":
             {
-                // A song was saved (the editor watches .lys files). The dances that name a song
-                // are compiled again: the reader notices by the file's time which songs to read
+                // A song or a file of parts changed on disk (the editor watches .lys and .shosa
+                // files). The dances that name a song, or bring in a file with `using`, are
+                // compiled again: the song reader notices by the file's time which songs to read
                 // anew, so a song nobody changed costs nothing.
                 foreach (var (uri, document) in _documents)
                 {
-                    if (document.Songs is null || !document.Tree.Text.Contains("music", StringComparison.Ordinal))
+                    if (document.Path is null || !(document.Tree.Text.Contains("music", StringComparison.Ordinal) || document.Compilation.Included.Count > 0 || Usings.Any(document.Tree)))
                         continue;
-                    document.Compilation = ShosaCompilation.Compile(document.Tree, null, document.Songs);
+                    Compile(document);
                     Publish(uri);
                 }
                 break;
@@ -418,7 +458,7 @@ public sealed class LanguageServer(Action<string> send)
         if (Words.AtMusic(document.Tree, offset, SongsFor(document)) is { } music)
             (words, kind, from) = music;
         else
-            (words, kind) = Words.At(document.Tree, offset);
+            (words, kind) = Words.At(document.Tree, offset, Words.Brought(document.Compilation, document.Folder));
         int itemKind = kind switch
         {
             "keyword" => 14,                 // Keyword
@@ -458,7 +498,7 @@ public sealed class LanguageServer(Action<string> send)
 
         var tree = document.Tree;
         int offset = Offset(tree.Text, parameters.GetProperty("position"));
-        if (Words.Describe(tree, offset, document.Compilation.Score.MoveLengths) is not (var word, var span))
+        if (Words.Describe(tree, offset, document.Compilation.Score.MoveLengths, Words.Brought(document.Compilation, document.Folder)) is not (var word, var span))
             return null;
 
         string value = $"**`{word.Name}`** — {word.Doc}";

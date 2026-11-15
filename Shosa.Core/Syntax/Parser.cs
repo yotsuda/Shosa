@@ -16,7 +16,7 @@ namespace Shosa.Core.Syntax;
 internal sealed class Parser
 {
     private static readonly HashSet<string> TopKeywords =
-        ["title", "tempo", "time", "fps", "music", "figure", "dancer", "pose", "move", "section", "form", "score"];
+        ["using", "title", "tempo", "time", "fps", "music", "figure", "dancer", "pose", "move", "section", "form", "score"];
     private static readonly HashSet<string> ClauseKeywords = ["on", "at", "facing", "mirror", "delay", "free", "in"];
     private static readonly HashSet<string> ScoreItemKeywords = ["form", "tempo", "title", "music", "dancer", "loop", "inplace"];
 
@@ -103,6 +103,7 @@ internal sealed class Parser
                         ExpectOnLine(SyntaxKind.Number, "The beat unit"),
                     ]);
                 case "music": return new GreenInner(SyntaxKind.Header, ParseMusic());
+                case "using": return new GreenInner(SyntaxKind.Header, [Next(), ExpectOnLine(SyntaxKind.String, "A file name in quotes")]);
                 case "figure": return ParseFigure();
                 case "dancer": return ParseDancer();
                 case "pose": return ParseDefinition(SyntaxKind.PoseDecl, "A pose name");

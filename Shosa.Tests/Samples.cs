@@ -14,6 +14,13 @@ internal static class Samples
 
     public static string Read(string name) => File.ReadAllText(Path.Combine(Directory(), name + ".shosa"));
 
+    /// <summary>A sample compiled as the command line does: with the files its `using` lines bring in (samples\parts).</summary>
+    public static Shosa.Core.ShosaCompilation Compile(string name)
+    {
+        string path = Path.GetFullPath(Path.Combine(Directory(), name + ".shosa"));
+        return Shosa.Core.ShosaCompilation.Compile(File.ReadAllText(path), null, null, Shosa.Core.Semantics.UsingSource.For(path));
+    }
+
     public const string Walk = """
         tempo 100
         time 4/4

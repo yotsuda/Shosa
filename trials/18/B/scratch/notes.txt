@@ -1,0 +1,100 @@
+=== Task 1: song-dance.shosa — predictions (before first check) ===
+Interpretation: "beat 2 / beat 4 / beat 3" in the task are counted 1-based (a dancer's count),
+so beat 2 = beat 1 in Shosa, beat 4 = beat 3, beat 3 = beat 2.
+Expected check output:
+  song-dance.shosa: no problems   (maybe a note that d starts with `left.place` already made)
+  score to song.lys: 32 beats, ~17.8 s, 1 dancer
+    Verse    0-16    4 bars   8.89 s   at 108   4/4
+    Chorus   16-32   4 bars   8.89 s   at 108   4/4
+    d starts with `left.place` already made ...
+    d ends where it began
+Answers (predicted):
+  First beat of Chorus (beat 16): hips 30 left, shoulders 30 left, face 30 left.
+  Chorus bar 1 "beat 3" (beat 18): hips 30 left, shoulders 30 left, face 30 right.
+  Verse bar 1 "beat 2" (beat 1): shoulders square (0), hips 20 right, face 0.
+
+--- Task 1 actual (check run 1; command: shosa check song-dance.shosa --at 1,16,18) ---
+  no problems; 32 beats, 17.78 s; Verse 0-16, Chorus 16-32 at 108 4/4; starts with left.place already made; ends where it began.
+  beat 1: hips 20 right, shoulders 0, face 0         -> prediction right (shoulders square: YES)
+  beat 16: hips 30 L, shoulders 30 L, face 29.9 L    -> right
+  beat 18: hips 30 L, shoulders 30 L, face 30 R      -> right
+  Predictions of the check lines: all right (seconds 8.89 right).
+
+=== Task 2: golfer.shosa — predictions (before first check) ===
+Expected check output:
+  golfer.shosa: no problems  (maybe a note that g starts with `jump.apart` already made)
+  score: 4 beats, 4 s, 1 dancer
+    Swing   0-4   1 bar   4 s   at 60   4/4
+    g ends where it began
+Answers (predicted):
+  2.0 s: hips 45 R, shoulders 90 R, face ~0 (a few degrees from the chest turn), ~70 down
+  2.4 s: hips 20 L, shoulders 10 R, face ~0, ~70 down
+  2.7 s: hips ~30-40 L, shoulders ~30-60 L (on the way to 90 L), face ~10-20 L and coming up
+  Chest on the hips at the top: 45 deg as seen from above (90 - 45); about the slanting spine
+  somewhat more (maybe ~50), which the tool cannot state directly.
+
+--- Task 2 actual ---
+check run 1 (shosa check golfer.shosa --at 2s,2.4s,2.7s):
+  2 x warning SH2003 "Too fast to perform: the hand would move at about 24 m/s / 19 m/s" on the right arm's
+  across.-70 (2.5 s) and across.high@body (3.0 s). I had written the top/finish with @body (side.high@body@bent,
+  across.high@body). Prediction "no problems" was WRONG.
+  Change: wrote the arms in room terms (no @body): top leftArm across.high / rightArm side.high@bent, finish mirrored.
+check run 2: no problems. 4 beats, 4 s; Swing 0-4 1 bar 4 s at 60 4/4; jump.apart already made; ends where it began.
+  2.0 s: hips 45 R, shoulders 90 R, face 3.6 L and 69.8 down   -> right (face "a few degrees": yes)
+  2.4 s: hips 20 L, shoulders 10 R, face 2.2 R and 69.9 down   -> right
+  2.7 s: hips 32.5 L, shoulders 40 L, face 10.6 L and 60.9 down -> within my guessed ranges (hips ~30-40, sh 30-60, face 10-20)
+  (all answers confirmed with: shosa check golfer.shosa --at 2s,2.4s,2.7s)
+  Chest on hips at top: 90 - 45 = 45 deg as seen from above (subtraction by hand of the two rows;
+  the grammar says upright it is the difference). The twist about the leaning spine itself is not printed by
+  any command (check --at and clip angles give hips/shoulders from above only), so "somewhat more than 45" is unconfirmed.
+  No SH2010, so the chest does get there.
+  Looked at out\golfer.png: address hands meet/cross slightly in front, top hands up on the right, finish up on the left.
+
+=== Task 3: bow.shosa — predictions (before first check) ===
+Expected: a warning SH2010 on the shoulders right.60 in bar 3: with the torso horizontal (fwd), a twist of the
+chest about a horizontal spine shows almost nothing from above, so the shoulders "get to" only a few degrees.
+Otherwise:
+  score: 16 beats, 12 s, 2 dancers
+    Bow   0-16   4 bars   12 s   at 80   4/4
+    a ends where it began
+    b ends where it began
+Answers (predicted, as written): in bar 3 each dancer's shoulders 60 deg to its own right (if reachable).
+Room: a faces stageLeft, so its right is downstage (toward the audience); b faces stageRight, its right is
+upstage. They turn toward OPPOSITE walls (a's chest toward the audience, b's toward the back).
+
+--- Task 3 actual ---
+check run 1 (shosa check bow.shosa --at 10,12): 4 x warning SH2010, as predicted: "The shoulders get to 0 deg left
+  of the feet here, not 60 deg right ... over a lean of 90 deg a turn of the chest shows less from above. Turn the
+  hips further that way, stand up more, or write what they reach." (two per dancer: at right.60 and at the
+  center that follows, which "gets to 0.2 right, not 59.9"). Prediction right.
+  --at 10: shoulders 0 for both. But shosa clip showed the chest DOES twist about the horizontal spine
+  (a's left shoulder y 1.12, right 0.79): the movement asked for is made, only the from-above number is 0 and warned.
+  "Write what they reach" (0) would remove that twist; hips must stay square, so the only fix is to stand up.
+  Over square hips 60 is reachable only fully upright (chest max 60 on the hips), so 60 + bowed is impossible.
+Trial in scratch\bow-try.shosa (not counted as a bow.shosa check): torso fwd.30 (60-deg lean) + right.41:
+  SH2010 "get to 40.9". So 40 at a 60-degree lean.
+CHANGE: bar 2 keeps the chest level (torso fwd); bar 3 eases up to torso fwd.30 with shoulders right.40 (pose `turned`).
+check run 2 (shosa check bow.shosa --at 6,10,12): no problems. 16 beats, 12 s; both end where they began.
+  beat 6: hips 0, shoulders 0, face 0 and 90 down (chest level)
+  beat 10/12: hips 0, shoulders 40 R, face 60 down, for a and b (a's feet 90 L of front, b's 90 R).
+Answer: bar 3 shoulders 40 deg to each dancer's own right (60 asked, not reachable bowed with square hips).
+  Room: a faces stageLeft -> its right is downstage: a's chest turns toward the audience; b faces stageRight ->
+  its right is upstage: b's chest turns toward the back wall. Opposite walls (prediction right).
+  Confirmed with: check --at (feet 90 L/R of front, shoulders R) and the from-above drawings in out\bow.png
+  (both shoulder lines lie parallel in bar 3, i.e. both rotated clockwise from above = toward opposite walls).
+
+=== Task 4: golfer-edit.shosa — predictions (before first check) ===
+Changes from golfer.shosa: 8 numbers, no words:
+  hips right.45->right.20, shoulders right.90->right.45 (the top);
+  hips left.20:0.6->:1.1, shoulders right.10:0.6->:1.1, leftArm across.-70:0.5->:1, rightArm across.-70:0.5->:1,
+  torso then:0.4->then:0.9, head then:0.4->then:0.9 (the finish, the arms and my own stand-up/look-up at 3.5 s).
+  (The finish words keep their length 1, so the score grows to 4.5 s by itself.)
+Expected: no problems; score: 4.5 beats, 4.5 s, 1 dancer; Swing 0-4.5  2 bars  4.5 s at 60 4/4; ends where it began.
+Answers: top 2.0 s: hips 20 R, shoulders 45 R, face ~3 L, ~70 down.
+         finish 3.5 s: hips 45 L, shoulders 90 L, face 70 L, ~0 down. (Held to 4.5 s.)
+
+--- Task 4 actual (check run 1; shosa check golfer-edit.shosa --at 2s,3.5s,4.5s) ---
+  no problems; 4.5 beats, 4.5 s; Swing 0-4.5 2 bars; jump.apart already made; ends where it began.  -> right
+  2.0 s: hips 20 R, shoulders 45 R, face 2.2 L and 69.9 down   -> right
+  3.5 s: hips 45 L, shoulders 90 L, face 70 L (level)           -> right; 4.5 s the same (held)
+  Changed: 8 numbers, 0 words (counted with Compare-Object golfer.shosa golfer-edit.shosa: 6 lines differ).
