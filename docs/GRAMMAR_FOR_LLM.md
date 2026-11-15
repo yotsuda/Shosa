@@ -509,6 +509,11 @@ move kick  { rightLeg { fwd.down.bent fwd@sharp!hit fwd.down.bent down } }   // 
   ```
   As a pose it is one: `pose attitude { rightLeg { back.bent } arms { up.bent(30) } head { fwd.left(20) } }`
   and `body { attitude:4 then:12 }`. A change of the hold is one number.
+  One part of the pose a little behind the rest: a row for that part beside the `body` row,
+  holding it where it was and then waiting, gives it back to the pose late. With
+  `body { closed:1 attitude:3 }`, `arms { closed:1/2 then:1 }` keeps the arms where they are
+  to beat 1/2 and has them arrive in the attitude's arms at 1 1/2, half a beat after the leg
+  (`arms { closed:3/2 }` would have them arrive at 1 1/2 too, but setting out at once).
 - A pose takes `@mirror`, `@free`, `@smooth`, `@sharp`, `@linear`, `@through`; a move takes `@mirror`
   and `@free`. Definitions take no arguments: a variation is the same word with the
   change written over it (a narrower track, or a later `&` row). A move may hold a
