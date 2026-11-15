@@ -399,7 +399,7 @@ internal sealed class Curve
 
 internal sealed class FigureSolver
 {
-    private bool _toForehead;   // while an arm is on its way to the forehead (ArmBlend)
+    private bool _toForehead, _fromForehead;   // while an arm is on its way to the forehead, or away from it (ArmBlend)
 
     private sealed class FootMove
     {
@@ -794,6 +794,19 @@ internal sealed class FigureSolver
                         if (Math.Abs(apart.Dot(fwd) - seg.Dz) < 0.02 && Math.Abs(apart.Dot(isLeft ? leftward : -leftward) - seg.Dx) < 0.02)
                         {
                             Weight(t0, t1, s.Weight);
+                            break;
+                        }
+                    }
+                    if (seg.Kept is { } kept)
+                    {
+                        // A loop's first step, already made at its start: standing so already, no foot moves, and
+                        // the weight goes back between the feet over all of the word before, as a shift does.
+                        var apart = (isLeft ? s.Left : s.Right) - (isLeft ? s.Right : s.Left);
+                        if (Math.Abs(apart.Dot(fwd) - seg.Dz) < 0.02 && Math.Abs(apart.Dot(isLeft ? leftward : -leftward) - seg.Dx) < 0.02
+                            && Math.Abs((isLeft ? s.LeftYaw : s.RightYaw) - s.Yaw) < 0.02)
+                        {
+                            s.On = 'B';
+                            Weight(kept + offset, t1, (s.Left + s.Right) * 0.5);
                             break;
                         }
                     }
@@ -2060,15 +2073,18 @@ internal sealed class FigureSolver
                 var offset = Blend(a.Offset, b.Offset, e, c.Fwd);
                 // On the way to the forehead the hand comes in across late, rising on its own side, and the elbow goes
                 // out at once, so the hand does not cross the chest (DESIGN.md 87.4).
-                bool toBrow = _toForehead;
-                if (toBrow)
+                // Away from it the other way round: the hand goes out to its side at once and the elbow comes in last
+                // (trial 27: down from the salute the hand crossed 17 cm past the middle of the chest).
+                bool toBrow = _toForehead, fromBrow = _fromForehead;
+                if (toBrow || fromBrow)
                 {
                     double la = a.Offset.Dot(torsoLeft), lb = b.Offset.Dot(torsoLeft), now = offset.Dot(torsoLeft);
-                    offset += torsoLeft * ((la + (lb - la) * e * e) - now);
+                    double side = toBrow ? e * e : 1 - (1 - e) * (1 - e);
+                    offset += torsoLeft * ((la + (lb - la) * side) - now);
                 }
                 var axis = offset.Normalized();
                 Vec3? from = Carry(a.Bend, a.Offset.Normalized(), axis), to = Carry(b.Bend, b.Offset.Normalized(), axis);
-                double eb = toBrow ? Math.Min(1, 3 * e) : e;
+                double eb = toBrow ? Math.Min(1, 3 * e) : fromBrow ? Math.Max(0, 3 * e - 2) : e;
                 var between = from is null || to is null ? from ?? to ?? pole : Vec3.Slerp(from.Value, to.Value, eb);
                 return (offset, Across(between, axis));
             }
@@ -2091,9 +2107,16 @@ internal sealed class FigureSolver
                 return kept;
             }
 
-            _toForehead = armSegs.LastOrDefault(s => s.T0 <= t) is { Kind: SegKinds.Anchor, Anchor: "forehead" } brow && t < brow.T1;
+            int going = armSegs.FindLastIndex(s => s.T0 <= t);
+            bool moving = going >= 0 && t < armSegs[going].T1;
+            static bool Brow(Seg s) => s is { Kind: SegKinds.Anchor, Anchor: "forehead" };
+            int came = going - 1;
+            while (came >= 0 && armSegs[came].Kind == SegKinds.Hold)
+                came--;
+            _toForehead = moving && Brow(armSegs[going]);
+            _fromForehead = moving && !_toForehead && armSegs[going].Kind != SegKinds.Hold && came >= 0 && Brow(armSegs[came]);
             var (reach, bend) = Chain(armSegs, t, Posed, ArmBlend, (a, b) => Dist(a.Offset, b.Offset));
-            _toForehead = false;
+            _toForehead = _fromForehead = false;
             if (armSegs.LastOrDefault(s => s.T0 <= t + 1e-9) is { Kind: SegKinds.Stay } staying && !_staying.Contains(staying)
                 && reach.Length > Rig.UpperArm + Rig.Forearm + 0.01)
                 problems.HandShort = isLeft ? Channels.LeftArm : Channels.RightArm;

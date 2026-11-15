@@ -567,6 +567,30 @@ public class MotionTests
             return figure.Joint(frame, Rig.RHand).X - figure.Joint(frame, Rig.Chest).X;
         });
         Assert.True(past < 0.01, $"the hand went {past * 100:0.0} cm past the middle of the chest");
+
+        // DESIGN.md 88: and on the way down from it the hand goes out to its side first (trial 27: 17 cm past).
+        var down = Compile(Samples.Solo("    rightArm { down:1 forehead:1 then:2 down:1 }", "tempo 60\ntime 4/4\n"));
+        double pastDown = Enumerable.Range(0, 41).Max(i =>
+        {
+            var frame = down.Clip.FrameAt(3 + i / 40.0);
+            return down.Clip.Figures[0].Joint(frame, Rig.RHand).X - down.Clip.Figures[0].Joint(frame, Rig.Chest).X;
+        });
+        Assert.True(pastDown < 0.01, $"on the way down the hand went {pastDown * 100:0.0} cm past the middle of the chest");
+    }
+
+    [Fact]
+    public void A_loop_does_not_take_its_first_step_again_when_the_feet_stand_so()
+    {
+        // DESIGN.md 88 (trial 27): the stance step a loop begins with was taken again at its end, the foot lifted 6 cm.
+        var compilation = Compile(Samples.Solo("    steps { leftFoot.side(0.4m):2 shift.right:4 shift.left:2 }", "tempo 60\ntime 4/4\n", "loop"));
+        Assert.Empty(compilation.Diagnostics);
+        var figure = compilation.Clip.Figures[0];
+        double highest = Enumerable.Range(0, 81).Max(i => figure.Joint(compilation.Clip.FrameAt(i / 10.0), Rig.LHip + 2).Y);
+        Assert.True(highest - figure.Joint(compilation.Clip.FrameAt(0), Rig.LHip + 2).Y < 0.005, "the left foot stays on the floor");
+        // The weight goes back to the middle over all of the last word, never standing still.
+        double Pelvis(double beat) => figure.Joint(compilation.Clip.FrameAt(beat), Rig.Pelvis).X;
+        Assert.True(Math.Abs(Pelvis(7) - Pelvis(6)) > 0.03, "it sets out at once");
+        Assert.True(Math.Abs(Pelvis(7.5) - Pelvis(7)) > 0.03, "and goes on");
     }
 
     [Fact]

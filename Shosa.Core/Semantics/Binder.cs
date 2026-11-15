@@ -2170,6 +2170,10 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
             // A leg let go (`skip` in its row) goes back to the steps over the time of the skip itself.
             if (seg.Kind == SegKinds.Release)
                 (t0, t1) = (run.Start, run.End);
+            // A loop's first step is already made at its start: the way back to it at the end, a way of standing
+            // when the feet already stand so (trial 27: the stance step was taken again, the foot lifted 6 cm).
+            if (loop && steps && seg.Kind == SegKinds.Step && seg.TurnDeg == 0 && run.Start <= origin + Epsilon)
+                seg.Kept = floor + (t0 < -Epsilon ? total : 0);
             if (loop && t0 < -Epsilon)
                 (t0, t1) = (t0 + total, t1 + total);
             (seg.T0, seg.T1) = (t0, t1);

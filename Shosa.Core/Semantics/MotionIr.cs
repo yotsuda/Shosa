@@ -345,6 +345,10 @@ public sealed class Seg
     public double? Land { get; set; }
     /// <summary>Step: a stance, not a movement (it came from a `pose`). Already standing so, nothing moves.</summary>
     public bool Stance { get; set; }
+    /// <summary>Step: the first word of a loop's feet, already made at its start, as the way back to it at the
+    /// end; the beat the word before it begins. If the feet already stand so, it is a way of standing: no foot
+    /// moves, and the weight goes back between them from this beat (DESIGN.md 88).</summary>
+    public double? Kept { get; set; }
 
     /// <summary>smooth | sharp | linear.</summary>
     public string Ease { get; set; } = "smooth";

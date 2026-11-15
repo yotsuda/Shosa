@@ -218,7 +218,9 @@ public static class GrammarDoc
             with bent knees. A step, a turn or a jump writes the feet, and **a step is taken or it
             is not**: a wider track's step (a pose's stance included) is taken only if that track
             has the feet at the beat the step is written at. One whose beat falls where a narrower
-            track has the feet is not taken at all.
+            track has the feet is not taken at all — a `shift` has the feet too: `body { wide:8 }` with
+            `steps { shift.left:4 shift.right:4 }` never takes `wide`'s stance. Write the stance
+            as the first step of `steps` instead.
 
             ## Events: `target:length@annotation!mark`
 
@@ -268,8 +270,12 @@ public static class GrammarDoc
               `up:7 then:1 side`. Without the `then`, `up:8 side` drifts to the side for eight beats.
               Of several `then` in a row only the LAST is the way to the next word
               (`up:2 then:2 then:1 side` is still up on beat 4 and moves in the last beat), and a
-              `then` with nothing after it simply stays. For the feet and for a `@sharp` word a
+              `then` with nothing after it simply stays. For a step, a turn and a `@sharp` word a
               `then` only waits: they still set out late in it (its second half; its last 0.15 s).
+              A `shift` goes through all of the `then`, as a gesture does.
+              A slow way that crosses a bar line is ONE tied `then`: `shift.right:2 then:2~ | :2 shift.center:2`
+              goes back to the middle over beats 2 to 6; `then:2 | then:2 shift.center:2` would go in
+              the last two beats only (the first `then` stays).
             - **The first word of a row is where the part IS when the score starts.** Nothing is
               seen going there: `body { guard jab }` starts in guard, and the jab lands on beat 1.
               To show the body going to its first target, write first where it comes from:
@@ -289,6 +295,10 @@ public static class GrammarDoc
               and a `together` or `stand` straight after closes both feet to the middle.
               `shosa check` also says where each dancer ends (``solo ends 0.5 m back of where it began``,
               ``solo ends where it began``): read it instead of adding the steps up.
+              In a `loop` the first step is already made too: when the feet end standing so, it is not
+              taken again at the end (no foot lifts), and the weight goes back between the feet over
+              the last word: `steps { leftFoot.side(0.4m):2 shift.right:4 shift.left:2 }` looping is a
+              stance 0.4 m wide whose weight drifts right, left and back to the middle, never still.
             - **The last word of a row stays for its length**: the score ends with the body there.
               `arms { down side }` is two beats: down, then out to the side on beat 1 and still there when it ends.
             - After a `skip` nothing had the part, so the next word sets out when the `skip`
@@ -733,7 +743,9 @@ public static class GrammarDoc
             - A leg put `down` lands where it stood before the gesture. A foot held in the air after a
               `hop` or a `leap` is put on the floor by `down` beside the foot it stands on, at standing
               width; the weight stays on the standing foot.
-            - **`skip` in a leg's row lets the leg go back to `steps`** over the time of the `skip`: its
+            - **`skip` in a leg's row lets the leg go back to `steps`** over the time of the `skip`, not
+              in the word before it (`rightLeg { side:4 skip:4 }` holds the leg out for four beats, still,
+              and lets it go in the next four): its
               foot goes to where the steps have it, and a step of that foot in that time carries it there
               straight from the air. So a foot closes from the ankle into fifth without passing out to the
               side (where `down` would put it): `leftLeg { otherAnkle.back:4 skip:1 }` with
@@ -1316,7 +1328,8 @@ public static class GrammarDoc
             - Arm swing while walking is not added for you: unwritten arms hang still.
             - A change of tempo or of time in the middle of a section (a section says them where it begins; a dance to a song follows its song).
             - A toe at any place on the other leg but its knee and its ankle; a hand on a leg (the thigh, the knee).
-            - A foot that points or flexes when you choose (it points only with its toe on the other leg or on the floor, `side.floor`); standing on pointe.
+            - A foot that points or flexes when you choose (it points only with its toe on the other leg or on the floor, `side.floor`); standing on pointe; one foot on its toes (demi-pointe) while the other is flat — `height { high }` puts both up.
+            - A turn of the feet over a written time: a `turn` pivots in the last 0.5 s before its beat, like a step.
             - Beating the legs in the air (an entrechat; a changement is `jump.change`).
 
             ## Checking your work
@@ -1442,6 +1455,9 @@ public static class GrammarDoc
             in front and a little to stage left, so a role facing front shows its left on the right
             of the picture; the short line on the head is the nose. From there a punch or a kick
             straight ahead is foreshortened: judge those, bows and nods with `--view side`.
+            A bent knee can look straighter than it is too (in a deep plié in second, a knee bent 60° looked
+            about 30°): read the angles in `shosa check --at`. And from a little to the side, the two arms of
+            a symmetric pose do not look the same.
             Under the poses is the floor from above,
             audience at the bottom: the grey line is the path of the hips, the blue and red marks are
             footprints, the ring is where the role started. Each pose is drawn in the middle of its

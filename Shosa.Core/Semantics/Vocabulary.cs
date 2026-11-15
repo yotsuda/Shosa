@@ -151,7 +151,7 @@ public static class Vocabulary
         new("back", "One stride behind the supporting foot: `back(0.3m)`."),
         new("side", "Apart from the supporting foot, to the stepping foot's own side: the feet 0.55 m apart, or `side(0.4m)`."),
         new("across", "Crossing over the supporting foot's line, 0.08 m past it (`across(0.13m)`: how far the feet cross, as `side` says how far apart), just in front of it (0.12 m; with `back`, just behind). How far in front is said by `fwd`: `fwd(0.08m).across(0.13m)`."),
-        new("place", "Beside the supporting foot: a step on the spot."),
+        new("place", "Beside the supporting foot, at standing width: a step on the spot. After a step across or behind it is beside THAT foot, so the stance moves (a balancé's third step is `rightFoot.fwd(0.08m)` after `leftFoot.back(0.08m)`, not `place`)."),
     ];
 
     public static readonly Word[] SupportActions =
