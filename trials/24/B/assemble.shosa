@@ -1,0 +1,23 @@
+title "Assemble"
+tempo 96
+time 2/4
+
+role solo
+dancer solo humanoid on solo
+
+pose basArms    { arms { fwd.across(30).down(70).bent(40).elbow(side) } }
+pose secondArms { arms { fwd.side(70).down(15).bent(20) } }
+
+section Main {
+  solo {
+    turnout  { out(80) }
+    height   { straight:2 | then:2 | then:2 | then:2 | then:2 | then:2 | }
+    arms     { basArms:1 then:1 | secondArms:1 basArms:1 | secondArms:1 basArms:1 | secondArms:1 basArms:1 | secondArms:1 basArms:1 | then:2 | }
+    steps    { rightFoot.fwd(0.08m).across(0.13m):2 | then:1 jump.change.up(12cm):1 | then:1 jump.change.up(12cm):1 | then:1 jump.change.up(12cm):1 | then:1 jump.change.up(12cm):1 | then:2 | }
+    leftLeg  { skip:1 then:1 | side.down(45):1/2 skip:1/2 skip:1 | skip:1 then:1 | side.down(45):1/2 skip:1/2 skip:1 | skip:2 | skip:2 | }
+    rightLeg { skip:2 | skip:1 then:1 | side.down(45):1/2 skip:1/2 skip:1 | skip:1 then:1 | side.down(45):1/2 skip:1/2 skip:1 | skip:2 | }
+  }
+}
+
+form { Main }
+score { dancer solo }

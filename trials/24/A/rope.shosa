@@ -1,0 +1,20 @@
+title "Rope"
+tempo 120
+time 4/4
+
+role villager
+dancer villager humanoid on villager
+
+// Two beats standing, eight small jumps on both feet (one every half beat), the weight to
+// the right foot, four hops on the right foot (one a beat) with the left foot held up
+// behind, and an assemble onto both feet, standing for the last beat.
+section Rope {
+  villager {
+    arms    { side.fwd(30).down(55).bent(60) }      // turning the rope: hands at the waist, a little forward
+    steps   { together:2 { jump.up(2.7cm):1/2 } q q q | q q q q shift.right:1 hop.up(8cm):1 | hop.up(8cm):1 hop.up(8cm):1 hop.up(8cm):1 jump.together:1 | }
+    leftLeg { skip:4 | skip:2 then:1/2 back.down(60).bent(70):3/2 | then:5/2 then:1/2 down:1 | }
+  }
+}
+
+form { Rope }
+score { dancer villager }

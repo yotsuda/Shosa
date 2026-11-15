@@ -370,6 +370,19 @@ public class MotionTests
         Assert.True(widest < Left(7).X - Right(7).X + 0.01, $"the foot went out to the side: {widest:0.000} m");
         Assert.Equal(Right(9).Z + 0.08, Left(9).Z, 2);    // in fifth, in front
         Assert.Equal(0.08, Left(9).Y, 2);                 // on the floor
+
+        // Writing trial 24 (DESIGN.md 84): a skip longer than the landing it covers kept a third of the leg up
+        // when the foot came down (SH2013). It is all let go on the landing.
+        var assemble = Compile(Samples.Solo("""
+                turnout { out(80) }
+                steps   { rightFoot.fwd(0.08m).across(0.13m):2 then:1 jump.change.up(12cm):1 then:2 }
+                leftLeg { skip:1 then:1 side.down(45):1/2 skip:3/2 then:2 }
+            """, "tempo 60\ntime 4/4\n"));
+        Assert.Empty(assemble.Diagnostics);
+        var landed = assemble.Clip.Figures[0];
+        Vec3 Foot(double beat, int hip) => landed.Joint(assemble.Clip.FrameAt(beat), hip + 2);
+        Assert.Equal(0.08, Foot(3, Rig.LHip).Y, 2);                        // on the floor when it lands
+        Assert.Equal(Foot(3, Rig.RHip).Z + 0.08, Foot(3, Rig.LHip).Z, 2);  // in fifth, in front
     }
 
     [Fact]

@@ -1,0 +1,28 @@
+title "Hopper"
+tempo 120
+time 4/4
+
+role hopper
+dancer hopper humanoid on hopper
+
+// Idle: stand with the feet together, then four small jumps, one a beat, all 6 cm.
+// The jumps land on beats 2, 3, 4, 5; the loop is 6 beats.
+section Idle {
+  hopper {
+    steps { together:2 { jump.up(6cm):1 } q q q }
+  }
+}
+
+// Leap: from standing on both feet, one jump 0.4 m forward and 25 cm high, landing on
+// both feet on beat 2, then standing one beat.
+section Leap {
+  hopper {
+    steps { together:2 jump.fwd(0.4m).up(25cm):1 }
+  }
+}
+
+form Idle { Idle }
+form Leap { Leap }
+
+score Idle { dancer hopper  form Idle  loop }
+score Leap { dancer hopper  form Leap }

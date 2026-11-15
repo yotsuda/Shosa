@@ -1,0 +1,233 @@
+Trial 24, subject B — notes
+
+=====================================================================
+saute.shosa — BEFORE
+=====================================================================
+Plan:
+- tempo 80 (1 beat = 0.75 s), time 2/4. turnout { out(80) } from the start, steps first word
+  `together` (turned out: heels touch = first position). height { straight } as the ballet base.
+  arms bras bas = the grammar's example `fwd.across(30).down(70).bent(40).elbow(side)`, held.
+- Timeline: beat 0 standing; beats 0-1 down into the prep plie (height low(8cm) at beat 1);
+  sautes land at beats 2,3,4,5 as `jump.up(10cm)` (the written height makes them equal; 10 cm
+  needs 0.49 s, a beat is 0.75 s, so no SH2016).
+- Into fifth: after the 4th saute (beat 5), `rightFoot.fwd(0.08m).across(0.13m)` lands at 5.5
+  (placed from the left foot = right in front), `shift.center` at 6 (weight on both again).
+  Changements `jump.change.up(15cm)` land at 7,8,9,10 (word before each = 1 beat = 0.75 s >= 0.69 s
+  needed for 15 cm... close, maybe SH2016 at the edge). Straight legs at 11, stand to 12 (6 bars).
+- Height row: straight:1 low(8cm):1 then hold low through all jumps, back to straight at 11.
+
+Hesitations:
+- The grammar says "the plie before a jump is not written" and a height plie on the way in
+  makes a double bob. But the task explicitly asks for a prep beat of plie. I write it as a
+  height the dancer stands in at beat 1 and keep it (the jumps then take off from and land at
+  low). Unsure whether that is the intended reading or whether the jump adds its own bend on top
+  (it says it does) -> the sheet will tell.
+- How to go from first into fifth: no jump word lands "in fifth"; I use a step + shift.center.
+  An alternative was a leg gesture with skip. Not a jump into fifth (the task did not say).
+- "1 拍立つ" at the end: straight at 11, held to 12.
+
+Expected diagnostics: maybe SH2016 on the changements (15 cm needs ~0.69 s, a beat is 0.75 s,
+but the step/shift before the first changement is short: shift.center is 1 beat, ok).
+Maybe something on the step from both feet (rightFoot step while weight is on both).
+
+Predictions:
+(a) saute ankle peak: ankle rest height ~8 cm + 10 cm rise = ~18 cm, the same for all 4
+    (18, 18, 18, 18). Possibly a little less if the takeoff is from low.
+(b) after the 4th changement: right foot front (R->L->R->L->R).
+
+saute.shosa — AFTER
+- check runs: 1. "no problems" on the first run (ends 0.04 m forward, 0.11 m left: the step into
+  fifth moved the middle of the feet).
+- Sheet (per beat) shows only landings: every pose on a whole beat is a landing, so no flight is
+  seen at all at --step 1. With --step 0.25 the flights are at x.75 (feet off the floor, same look
+  each time), the deep bend at x.5. Changements: feet open apart in the air at x.75 and cross again.
+- Answers from the sheet first: (a) the four flights look the same; feet ~10 cm up -> ankle ~18 cm
+  each. (b) side view, beat 12: the red (right) foot is drawn ahead -> right front.
+- clip: (a) 18.0, 18.0, 18.0, 18.0 cm (ankle at rest 8.0 cm). HIT. Changements 23.0 cm each.
+  (b) beat 12: right ankle z 0.080, left 0.000 -> right front. HIT.
+- What I saw that I did not want: the double bob the grammar warns about. Pelvis 0.978 standing,
+  0.898 in the prep plie (beat 1), then the jump's own bend takes it to 0.783 at 1.5 before the
+  flight. So "a prep beat of plie" + "the jump bends itself" = plie, then deeper. The grammar has
+  no way to say "this plie IS the jump's preparation" (take off from the height I am in, no extra
+  bend). Between sautes the same: land, give, sink to 0.778, fly. Visually acceptable as a ballet
+  saute (land in plie, push off), but the prep beat is two-stage.
+- Surprise: nothing in the grammar says how to change from first to fifth inside a jump sequence;
+  I used a step + shift.center in a half-beat each. It worked without a diagnostic.
+
+=====================================================================
+coupe.shosa — BEFORE
+=====================================================================
+Plan:
+- tempo 72 (0.833 s a beat), 3/4. turnout out(80), height straight, arms bras bas held.
+- steps first word `rightFoot.fwd(0.08m).across(0.13m)` = fifth, right front, already made, so on
+  both feet (the grammar says so explicitly).
+- Bar 1: rightLeg { down:1 otherAnkle.back:2 | ... } — lifts through beat 0-1 to the coupe
+  derriere, held to beat 3. No shift written: "from standing on both feet the weight goes over
+  the other foot by itself" (I rely on that also for a stance that is a first step already made).
+- Bar 2: rightLeg `skip:1` at 3-4 (the leg goes back to steps), steps `then:1
+  rightFoot.fwd(0.08m).across(0.13m):1 shift.center:1` — the step lands at 4 as the skip ends
+  (the grammar's own recipe for closing from the ankle into fifth without passing through second),
+  shift.center at 5 (weight on both), stand to 6.
+- Bars 3-4 mirrored: leftLeg { skip:2bar | down:1 otherAnkle:2 | skip:1 }, steps bar 4
+  `then:1 leftFoot.back(0.08m).across(0.13m):1 shift.center:1` — placed from the right foot:
+  behind it, crossed.
+Hesitations:
+- Whether a leg row may begin with `down` in the middle of a section (after skip:2bar) and
+  whether the down-then-gesture lifts in the right beat.
+- After the skip ends the leg row ends; the rest of the bar has nothing in the leg row (fine?).
+- Whether a step of the right foot from "weight on left (because the leg lifted)" is placed from
+  the left foot: yes, steps are placed from the other foot.
+Expected diagnostics: maybe SH2004 if the shift.center / step overlaps the leg lift of bar 3
+  (the leg lifts through beat 6-7, the shift.center lands at 5, stand 5-6: should be clear).
+Predictions:
+(a) bar 2, right ankle's largest sideways distance from the left ankle's centre: 13 cm (in the
+    final fifth, toward the dancer's left: the crossed 0.13 m); in the coupe it is ~6 cm the
+    other way. Answer: 13 cm.
+(b) end of bar 4: right foot front (left closed behind).
+
+coupe.shosa — AFTER
+- check runs: 2. Run 1: two SH1002 warnings (the leg rows ended mid-bar after `skip:1`;
+  bar lines elsewhere in the row made the last bar count). Padded with `skip:2 |`. Run 2: no problems.
+  (I had not predicted SH1002; my own slip — I treated the leg row as ending, forgetting the rule
+  that a row with bar lines must fill its last bar.)
+- Sheet first (--step 0.5, front and side): side view shows the right foot behind the left ankle
+  in beats 1-3 (derriere), the left foot in front of the right ankle in beats 7-9 (devant), and at
+  the end the red foot ahead. Front view: the right foot goes straight in to the crossed fifth; no
+  pose shows it out to the side. My sheet answer: (a) ~13 cm (in the final fifth), (b) right front.
+- clip: (a) right ankle minus left ankle, sideways: -10.2 cm (dancer's right) in the coupe at beat 3,
+  crosses 0 at ~3.5, +13.0 cm in the fifth from beat 4. Largest = 13.0 cm at the end (fifth). The path
+  never goes wider than its two ends: it did not pass through second. HIT on 13; my side remark
+  "~6 cm the other way in the coupe" was off (10.2 cm).
+  (b) end: right ankle z 0.080, left 0.000 -> right front. HIT.
+- The automatic weight shift worked from a first step already made (no shift written in bar 1/3).
+- Small oddity: the closing foot drops from 14.7 cm to 8 cm (floor) only in the last 0.2 beat; it
+  travels at coupe height and lands late, which is right for a "direct close".
+
+=====================================================================
+assemble.shosa — BEFORE
+=====================================================================
+Reading of the task: it says "右、左、右、左" but also "後ろにある足" (the foot that is behind).
+Starting in fifth right front, the foot behind is the LEFT. Dessus = the working (back) foot
+lands in front. So the working feet are L, R, L, R (landing fronts L, R, L, R). I follow the
+"back foot" rule, since the task insists on it ("ここでは後ろにある足").
+Plan:
+- tempo 96 (0.625 s a beat), 2/4. turnout out(80), height straight, steps first word
+  `rightFoot.fwd(0.08m).across(0.13m)` (fifth, on both feet).
+- Bar 1 [0,2) is the preparation (the first assemble needs a brush before it; beat 0 cannot hold a
+  movement). Assembles in bars 2-5: take off near each bar's head, land on its 2nd beat: beats
+  3, 5, 7, 9. Bar 6: stand in fifth, arms en bas.
+- The landing in fifth with the working foot in front: `jump.change.up(12cm)` — "lands with the
+  feet as they stood, mirrored". The steps row still thinks the feet stand in fifth, so the change
+  puts the working foot (the back one) in front. The working leg's row brushes it out and then
+  `skip` hands it back to steps for the landing (the grammar's "skip lets the leg go back to steps").
+- Leg rows: leftLeg { skip:1 then:1 | side.down(45):1/2 skip:3/2 | skip:1 then:1 | side.down(45):1/2 skip:3/2 | skip:2 | skip:2 | }
+  — lifts in beat 1-2 (then:1), at 45° at beat 2 (bar head), held to 2.5, then skip during the
+  flight, the foot joins the other in the air and lands at 3. Right leg the same, one bar later.
+- Arms: basArms -> second (`fwd.side(70).down(15).bent(20)`) at the bar head (take-off), back to
+  bas at the landing; repeated.
+Hesitations:
+- Is a jump from one foot with jump.change allowed (change is defined from "how the feet stood")?
+  The table says a jump from one foot is an assemble, but does not say where the free foot lands.
+- "Brush along the floor" (擦って): there is no word for a foot sliding out along the floor into a
+  gesture (a battement tendu/glissé). A leg gesture lifts; I accept that it lifts off.
+- The leg lift during then:1 happens while the previous jump has just landed (right after the
+  landing at 3 the right leg lifts in 3-4). Maybe SH2004 if the landing counts as "in a step".
+- The brush 45° = `side.down(45)`.
+Expected diagnostics: maybe SH2004 (leg gesture right after a landing), maybe SH2016 (12 cm needs
+  ~0.55 s; a beat is 0.625 s, ok), maybe SH2013 if the skip does not put the foot down.
+Predictions:
+(a) after each assemble the front foot: L, R, L, R.
+(b) assemble 1, the working (left) ankle's highest point above the floor: ~33 cm.
+
+assemble.shosa — AFTER
+- check runs: 2.
+  Run 1: four SH2013 ("puts the left foot on the floor at beat 3, but the leftLeg row still holds
+  that leg up"). My leg rows were `side.down(45):1/2 skip:3/2` — a skip that began before the
+  landing and ran past it. The grammar says "skip ... a step of that foot in that time carries it
+  there", so I thought a skip spanning the landing was enough. It is not (or a jump landing is not
+  "a step of that foot"): the message's own advice was `down`, which would put the foot back where
+  it stood (behind) — wrong for dessus.
+  Run 2: split the skip so it ENDS exactly at the landing (`skip:1/2 skip:1`, the grammar's example
+  "landing as the skip ends"). No problems. Surprise: `skip:1/2 skip:1` and `skip:3/2` are
+  different to the compiler; the SH2013 message did not mention skip as the fix.
+- Sheet first: front view --step 0.25 shows the brush out to the side at the bar heads (2, 4, 6, 8),
+  the take-off bend at 2.25, the feet together in the air near 2.75, crossed landing at 3. Side view:
+  at 3 red is behind (left front), 5 red ahead, 7 red behind, 9 red ahead. Sheet answers: (a) L, R,
+  L, R; (b) the brushed foot looks about knee-low, ~30-35 cm.
+  The arms in second look lopsided on the front sheet (red horizontal, blue 45° down): it is the
+  camera angle plus the whole body shifted over the standing foot — clip says both hands at
+  1.288 m, equal.
+- clip: (a) just after each landing (beat x.05): 3 left front (Lz 0.080), 5 right front, 7 left
+  front, 9 right front. HIT (L, R, L, R). Final stance right front.
+  (b) left ankle peak 37.0 cm at beat 2.56 (in the take-off/flight; pelvis peaks 1.099 m at 2.77,
+  12 cm over standing as written). Predicted 33 -> MISS by 4 cm (I underestimated the lift the
+  jump gives the held leg).
+  The 4 jumps are identical (pelvis 1.099 each; working ankle 37.0/36.9/37.0/36.9).
+- Not expressible: the brush "along the floor" (battement glisse). The leg goes up through the air
+  from the closed position (`then:1` lift); there is no word for the toe sliding out along the floor
+  first. Also no word for the dessus/dessous itself: it came out of `jump.change` + the leg row,
+  which is a trick: "change" is defined for both-feet jumps (changement); its meaning for a jump
+  from one foot was a guess that happened to work.
+- Arms in second: I made up `fwd.side(70).down(15).bent(20)`; the grammar lists bras bas, first and
+  fifth but not second.
+
+=====================================================================
+coupe-edit.shosa — BEFORE
+=====================================================================
+Plan (copy of coupe.shosa, three edits):
+1. bar 2 step: `rightFoot.fwd(0.08m).across(0.13m)` -> `rightFoot.back(0.08m).across(0.13m)`
+   (one word inside the token: fwd -> back). The leg row is unchanged: the coupe derriere and
+   `skip:1` now close the right foot straight behind the left.
+2. bar 4 step: `leftFoot.back(0.08m)...` -> `leftFoot.fwd(0.08m)...` (fwd <-> back).
+3. new bar 5 in the height row only: `then:1/2 high:1 then:1/2 straight:1 |` — up on the toes by
+   12.5, held to 13.5, down by 14, stand to 15. The other rows end at 12 and their last words hold
+   (steps: shift.center = both feet in fifth; arms: bras bas).
+Count of changes: 2 tokens edited (one direction word each) + 5 tokens added (4 events and a bar
+line) in one row. Lines touched: 2 (steps, height).
+Hesitation: after edit 1 the left foot is in front from bar 2 on; in bar 3 the left (now the front
+foot) goes to the cou-de-pied devant of the right, closing in front again (left front). Fine.
+Expected diagnostics: none. Maybe SH1002 if I miscounted the new bar (1/2+1+1/2+1 = 3, ok).
+Predictions (my own, not asked): end: left front; right ankle closing behind passes about 10 cm
+to the dancer's right of the left ankle (the coupe point) and ends ~13 cm the other way crossed.
+
+coupe-edit.shosa — AFTER
+- check runs: 1, no problems. "solo ends 0.08 m back of where it began" (both closings now go
+  behind/in front so the stance walks back one fifth's depth: right behind, then the left placed in
+  front of the right... the middle of the feet moved 8 cm back). Expected-ish; not a mistake.
+- Changes: 2 tokens edited (`fwd`->`back` in bar 2, `back`->`fwd` in bar 4) and 5 tokens added in
+  the height row (`then:1/2 high:1 then:1/2 straight:1 |`). 2 lines touched. Nothing else.
+- Sheet (side, --step 0.5): right foot behind from beat 4, left foot ahead at the end; the rise is
+  hardly visible (the head a little higher at 12.5-13.5). From the sheet alone I could not have said
+  how high the relevé is.
+- clip: end left front (Lz 0, Rz -0.080): HIT. Relevé: both ankles 8 -> 15 cm, head 1.703 -> 1.773
+  (7 cm), up at 12.5, held to 13.5, down at 14: as written.
+  Right ankle path in bar 2 (coupe derriere -> fifth behind): dx -10.2 cm (beat 3) -> +13 cm (beat
+  4), dz -4.8 -> +2.0 (at 3.6!) -> -8.0 cm. At beat 3.6 the right ankle is 4 cm beside and 2 cm IN
+  FRONT of the left ankle's centre: the closing foot goes straight through the standing ankle
+  (a straight line from the coupe point to the crossed-behind fifth). The grammar warns only for
+  closing behind -> front ("passes close by the standing leg"). A real dancer would go round behind.
+  SURPRISE / probable defect: no diagnostic for the foot passing through the standing leg.
+  (Re-reading coupe.shosa's numbers: there too, at beat 3.4 the right ankle is 3.0 cm beside and
+  0.9 cm behind the left ankle's centre — the same straight line through the standing ankle,
+  though the grammar calls it "close by".)
+
+=====================================================================
+Summary of grammar issues (for the report)
+=====================================================================
+1. Prep plie before a jump: the task asks for one; the grammar says don't write it (the jump bends
+   itself) and a written one makes a double bob. There is no way to say "take off from the plie I
+   am standing in" (e.g. a jump whose bend is the height row's). Got: 8 cm plie, then down to 20 cm
+   below standing before take-off.
+2. Skip spanning a jump landing -> SH2013; skip ending exactly at the landing -> ok. The grammar's
+   sentence "a step of that foot in that time carries it there" suggests any skip covering the step
+   works. And SH2013's message suggests only `down` (which would put the foot back where it stood).
+   Improve: "the skip must END on the beat of the step/landing", and mention `skip` in SH2013.
+3. jump.change from one foot (assemble dessus) worked, but the table defines `change` only for a
+   jump from both feet (changement) and calls a jump from one foot "an assemble" with no word for
+   where the free foot lands (front/back). Add an example: assemble dessus/dessous =
+   leg row brush + skip ending at the landing + jump.change / plain jump.
+4. No second-position arms in the examples (bras bas, first, fifth are given).
+5. No brush along the floor (tendu / glisse) before a gesture.
+6. A foot closing straight passes through the standing ankle (both in front and behind closes):
+   no warning; grammar says "close by".
+7. Changing first -> fifth between jumps: no hint; step + shift.center worked.

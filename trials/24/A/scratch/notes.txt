@@ -1,0 +1,336 @@
+Trial 24 / subject A — notes
+(only trials\24\GRAMMAR_FOR_LLM.md read)
+
+==================================================================
+1. hopper.shosa — BEFORE
+==================================================================
+Plan
+- tempo 120, time 4/4, role/dancer hopper. Two sections Idle, Leap; form Idle {Idle},
+  form Leap {Leap}; score Idle loop, score Leap.
+- Idle steps: `together:2 { jump.up(6cm) } q q q`.  The first word `together` is
+  "already made" at beat 0 (feet touching). The jumps LAND on beats 2,3,4,5; the score
+  is 6 beats (1.5 bars, so no bar lines). In the loop, the time from the 4th landing
+  (beat 5) to the 1st take-off (about beat 6+1.3) is a bit over 2 beats: that is how
+  I read "2 beats standing before the first one".
+  Written height `up(6cm)` so the first jump (2-beat word before) is no higher than
+  the others (grammar: "To make jumps alike ... write the height").
+  1 beat = 0.5 s, and 5 cm needs 0.34 s, 10 cm 0.49 s -> 6 cm about 0.37 s: fits.
+- Leap steps: `together:2 jump.fwd(0.4m).up(25cm):1`. 20 cm needs 0.69 s; 25 cm maybe
+  ~0.75-0.8 s; the word before is 2 beats = 1 s, so it fits. Lands at beat 2 (1.0 s),
+  stands 1 beat. Score 3 beats.
+
+Hesitations
+- "6 cm from the floor (feet)" vs `up(Ncm)` = "how high the body rises". I take them as
+  the same number (feet leave the floor by about what the body rises).
+- Where the 2 standing beats are: jumps landing on beat 2 (take-off around 1.3) or on
+  beat 3. I chose landing at 2 with a 6-beat loop (see above). Not bar-aligned.
+- Is `together` OK as a first word? (feet unwritten are "side by side"; together closes
+  them touching). Is `{ jump.up(6cm) } q q q` with a plain `jump` landing "with the
+  feet as they stood" -> together. Loop joins (same stance).
+- `jump.fwd(0.4m).up(25cm)` order of the jump words: fwd before up, as in the grammar
+  example `jump.fwd(0.3m).up(20cm)`.
+
+Expected diagnostics: none. Maybe a note that the loop "travels"? no (jumps in place).
+Possibly something about `together` on a first word. Guess: 0 diagnostics on 1st check.
+
+Predictions
+(a) Idle, highest ankle above the floor, each of the 4 jumps: the ankle stands at about
+    8 cm (joint height); it rises by 6 cm -> about 14 cm, the same each time:
+    14, 14, 14, 14 cm (i.e. a rise of 6.0 cm each, within 0.5 cm of each other).
+(b) Leap: air time for 25 cm = 2*sqrt(2*0.25/9.8) = 0.45 s. Lands at 1.00 s (beat 2);
+    take-off at about 0.55 s.
+
+------------------------------------------------------------------
+1. hopper.shosa — AFTER
+------------------------------------------------------------------
+check runs: 1 (no problems on the first run). Expected 0 diagnostics: right.
+check said: Idle 6 beats "2 bars" (1.5 bars counted as 2, as the grammar says), loops on
+the spot; Leap ends 0.4 m forward.
+
+Sheet first (side view, --step 0.25 / 0.125):
+- Idle: a bend at 1.5, 2.5, 3.5, 4.5 and the body in the air at 1.75, 2.75, 3.75, 4.75,
+  the four look alike in the side view -> answer from the sheet: four equal jumps, height
+  not readable in cm (the figure is small; maybe "a few cm").
+- Leap: deep bend 0.625-1.0 beats, in the air from about 1.25 to 1.875, on the floor at 2.
+  Answer from the sheet: take-off about beat 1.1-1.2 (0.55-0.6 s), landing beat 2 (1.0 s).
+
+Numbers (clip, 30 fps):
+(a) ankle (joint) standing 8.0 cm; peak 13.9 cm in each of the 4 jumps (frames 27, 42,
+    57, 72). Pelvis rises 97.4 -> 103.5 = 6.1 cm. Toe 2.0 -> 8.9 (the foot stays level,
+    so the sole leaves the floor by about 6 cm). Prediction 14,14,14,14: HIT (13.9 x4).
+    The first jump (2-beat word before it) is exactly like the others: the written
+    height waits on the floor as the grammar says.
+(b) Leap: the feet leave the floor between frame 16 (0.533 s) and 17 (0.567 s) -> about
+    0.55 s; land at frame 30 = 1.00 s. Pelvis 97.4 -> 122.5 = 25.1 cm; ankle 8.0 -> 33.0.
+    Travel 0.40 m. Prediction 0.55 s / 1.00 s: HIT.
+Small surprises:
+- The leap's bend starts early (pelvis already going down at 0.33 s and lowest 0.40 s):
+  the "plie before" is part of the written height's time. Fine.
+- Leap's forward travel of the pelvis is all in the air (no lean before), OK.
+- In the Idle the landing gives (pelvis 92.8 for two frames) and then the bend for the
+  next jump begins 1 frame later: the bounces are continuous, no standing between them
+  in the 1-beat jumps.
+
+
+==================================================================
+2. jig.shosa — BEFORE
+==================================================================
+Plan (tempo 100, 2/4: a beat 0.6 s, a bar 1.2 s)
+- Bar 1, beats 0-2:
+    steps    shift.left:1/2  hop:1/2  rightFoot.fwd(0.08m).across(0.13m):1/4  shift.center:3/4
+    rightLeg skip:1/2  otherAnkle.back:1/4  skip:1/4
+  The weight is on the left at beat 0 (a first `shift.left` is "already made"), the hop
+  lands on the left at 0.5 with the right leg arriving at the back of the left ankle
+  (lifted through 0-0.5, in the air of the hop), held to 0.75, then `skip:1/4` gives the
+  foot back to `steps`, and the step lands on beat 1 (= "2拍目") straight from the ankle,
+  crossed in front (the grammar's fifth: fwd(0.08m).across(0.13m)), not out to the side
+  (exactly the grammar's `leftLeg { otherAnkle.back:4 skip:1 }` recipe).
+  Then `shift.center` at 1.25: weight on both feet.
+- Bar 2: the same mirrored: `q@mirror` on the steps group; leftLeg row written out.
+- Bars 3-4: `%2` in every row.
+- turnout { out(70) }: the task says "5 番のように" and the grammar's fifth is "a fifth
+  position turned out"; with parallel feet a 0.08 m / 0.13 m cross would overlap the
+  feet. (Not asked for explicitly; my choice, a folk dancer turned out moderately.)
+- Arms not written (hang). Irish-style.
+
+Hesitations
+- "Stands with feet together at the start" vs my first word `shift.left` (already made,
+  so weight on the left from beat 0, the feet as neutral = side by side; with turnout the
+  heels are drawn in). I can't write both `together` and `shift.left` at beat 0 and there is
+  no time for a lead-in inside bar 1 if the hop must be a hop. Accept.
+- Is `q@mirror` allowed after a bar line (the group in bar 1, the q in bar 2)? and `%2`
+  over a bar that is a `q`?
+- The hop gets only half a beat (0.3 s) before it: plain `hop` -> ~2-3 cm (the grammar:
+  0.25 s gives 2 cm). "小さく跳び" so OK; no written height (all four hops have the same
+  word before, so they will be alike).
+- Would the leg row lifting during the shift's half-beat be SH2004? The shift at 0 is
+  already made, at beat 4 it arrives on beat 4; I think the leg may lift after it.
+- In bar 3 the shift.left starts from both feet with the LEFT foot in front (after bar 2).
+
+Expected diagnostics: 1 or 2 (my guesses: something about the q/%2 across bars, or
+SH2004 for the leg lifting while a shift is going on at beat 2/4, or SH2013).
+
+Predictions
+(a) the right ankle never goes out to the side: its rightmost while closing is where it
+    starts, behind the left ankle: about 12 cm to the right of the pelvis (turned out,
+    the right foot behind the left ankle points to the right, its ankle a foot-length
+    off the toe), and then it only moves left. Say: rightmost = 12 cm right of the pelvis,
+    and no more than 2 cm further right than at the coupé moment.
+(b) each crossing step puts the stepping foot 0.08 m ahead of the other and crosses
+    0.13 m: R(x=+0.23,z=.08) L(.10,.16) R(.23,.24) L(.10,.32) -> the middle of the feet
+    ends about 0.28 m forward and 0.16 m to the dancer's left.
+
+
+------------------------------------------------------------------
+2. jig.shosa — AFTER
+------------------------------------------------------------------
+check runs: 1, no problems. Expected 1-2 diagnostics: MISS (pleasantly). `q@mirror`
+after a bar line and `%2` over a group + q bar were accepted.
+check said: "folk starts with `shift.left:1/2` already made: the first shift is not seen"
+(expected, I knew it) and "ends 0.28 m forward and 0.11 m to its left".
+
+Sheet first (front, --step 0.25, beats 0-4):
+- 0.25-0.75: the red (right) leg lifted with the knee out to the side (turnout) and the
+  red foot at the blue ankle; at 1 it is crossed in front. The knee goes out, the FOOT
+  does not seem to: from the sheet I'd say the right ankle never goes right of where it
+  stood. 2.25-2.75 the same on the blue side. Floor plan: a zig-zag of prints creeping
+  toward the audience and to the dancer's left.
+- Not readable from the sheet: whether the hop leaves the floor (2.4 cm: invisible at this
+  size), and how many cm the ankle is off the midline.
+
+Numbers (clip; x + = dancer's left; beat = 0.6 s):
+(a) right ankle x: stands at -4.4 (heels drawn in by the turnout; pelvis at +3.7, already
+    over the left foot), goes to -5.8..-6.3 at the back of the left ankle (beats 0.5-0.78),
+    then straight across to +17.4 at beat 1. Rightmost during the close = -5.9 cm, i.e.
+    10.3 cm right of the pelvis (+4.4) and 1.5 cm right of where it stood; from 0.78 on it
+    only moves left. Prediction "12 cm right of the pelvis, no more than 2 cm right of the
+    coupe": HIT within 2 cm (10.3 vs 12), and the shape (never out to the side) HIT.
+    Left foot in bar 2 is the exact mirror (27.6 = 10.2 cm left of the right ankle 17.4).
+(b) end: middle of the feet 0.28 m forward, 0.11 m to the left (feet: L x 4.4, R x 17.4;
+    z 32 / 24). Prediction 0.28 fwd / 0.16 left: forward HIT, sideways off by 5 cm (I
+    assumed a 0.2 m start width; with out(70) the ankles start 8.8 cm apart, and the
+    across(0.13m) is ankle-to-ankle, so the feet alternate between x=4.4 and 17.4).
+Other numbers: the hops rise 2.4 cm (ankle 8.0 -> 10.4), the right ankle at the coupe is
+27.9 cm high. After `shift.center` the pelvis is at 10.9-12.8 between the ankles 4.4 /
+17.4 (middle 10.9): on both feet.
+Surprises / hesitations confirmed:
+- The `otherAnkle.back` + `skip` recipe did exactly what the task wanted on the first try.
+- I could not write "start with the feet together AND weight on the left at beat 0".
+  The score starts on the left foot, heels in (turnout). Fine for this but it is a small
+  gap: "together" is not a first word I can combine with a shift.
+
+
+==================================================================
+3. rope.shosa — BEFORE
+==================================================================
+Plan (tempo 120, 4/4, beat 0.5 s), 3 bars:
+  steps   { together:2 { jump.up(4cm):1/2 } q q q | q q q q shift.right:1 hop.up(8cm):1 |
+            hop.up(8cm):1 hop.up(8cm):1 hop.up(8cm):1 jump.together:1 | }
+  - both-feet jumps land on 2, 2.5, ... 5.5 (8 of them); `shift.right` on 6 (a hop from
+    both feet is SH2012, so the weight must go to the right foot first: this costs one
+    beat between the two kinds of jump); right hops land on 7, 8, 9, 10; `jump.together`
+    (an assemble, from one foot to both) lands on 11; stand to 12.
+  leftLeg { skip:4 | skip:2 then:1/2 back.down(60).bent(70):3/2 | then:5/2 then:1/2 down:1 | }
+  - lifted in 6-6.5 (after the shift), held behind with the knee bent until 10.5, and put
+    down on 11 (the landing of the assemble: the leg row wins over steps, so it must say
+    `down` on that beat).
+  arms { side.fwd(30).down(55).bent(60) }  hands out to the sides a little forward, elbows
+    bent, hands at about waist height (shoulder 1.45 m, the bent arm reaches ~0.52 m, 55°
+    down -> hand at ~1.02 m). Held the whole time (one word).
+Hesitations
+- 4 cm in half a beat (0.25 s): the grammar says 0.25 s gives 2 cm and 5 cm needs 0.34 s.
+  So `up(4cm)` will NOT fit: SH2016 expected. The task wants 4 cm, all the same. If check
+  warns, the only way to clear it at this tempo is a lower height. I will then write the
+  greatest height the check accepts and report the conflict.
+- 8 cm in 0.5 s: 10 cm needs 0.49 s, so 8 cm fits.
+- "続けて" from both-feet jumps to right hops: there is no word for a jump from both feet
+  landing on one (a "sissonne"-like); hop/leap from both is SH2012. I insert a 1-beat shift.
+- Whether the left leg may begin to lift right as the shift arrives (SH2004?).
+- `side.fwd(30)` - side first, then 30 degrees toward fwd: legal I think.
+Expected diagnostics: SH2016 on the half-beat jumps: 7 (the first has 2 beats before it,
+so it gets its 4 cm). Maybe something about the left leg. Guess: 7-8 diagnostics.
+Predictions
+(a) heights of the 8 half-beat jumps (as first written): 4, 2, 2, 2, 2, 2, 2, 2 cm.
+    (After making them fit: all equal, about 2 cm.)
+(b) the left foot does not touch the floor during the 4 right hops (it is held ~25 cm up).
+
+
+------------------------------------------------------------------
+3. rope.shosa — AFTER
+------------------------------------------------------------------
+check runs: 2.
+ 1st: 7 x SH2016 "not time enough before this jump to rise 4 cm: it rises 2.7 cm" (on the
+      2nd..8th jumps; the first, after the 2-beat `together`, is fine). Predicted 7: HIT.
+      (The columns point at the `q`s, 14,47 ... 14,61: good, I can tell which repeat.)
+      Also: "villager ends 0.06 m back of where it began" (see surprise below).
+ 2nd: `jump.up(4cm)` -> `jump.up(2.7cm)` (the height check said is possible): no problems.
+      (Decimal centimetres are accepted.) So the file does NOT do the task's "about 4 cm":
+      4 cm every half beat at 120 is impossible in this model (0.25 s gives 2.7 cm). The
+      only ways: a slower tempo or fewer jumps. I kept the tempo and the count and lowered
+      the height, all 8 still equal. This is a real conflict in the task; reported.
+
+Sheet first:
+- every half beat (--step 0.5): the 8 jumps land exactly on the poses, so they look like
+  standing still (the grammar warns of this); --step 0.25 side view shows them only
+  faintly (2.7 cm is a few pixels). From the sheet: "the first jump (bend at 1.5, air at
+  1.75) looks bigger than the rest; the rest are alike and tiny". Heights in cm: not
+  readable. The left leg held behind with the knee bent from 6.5 to 10.5 is very clear,
+  foot well off the floor; the right knee bends before each hop.
+Numbers (v1, up(4cm)): ankle peaks 11.9 (first, = 3.9 cm), then 10.6 x 7 (2.6 cm).
+  Prediction 4,2,2,2,2,2,2,2: first HIT, rest 2.6 instead of 2: near (the grammar's
+  "a quarter of a second gives 2 cm" is for an unwritten height; a written one gets 2.7).
+Numbers (final, up(2.7cm)): ankle peaks 10.7, 10.6, 10.6, 10.6, 10.6, 10.6, 10.6, 10.6
+  -> all 2.6-2.7 cm. Equal: yes.
+(b) left foot during the 4 right hops (beats 7-10.5): left ankle never below 21.3 cm,
+  toe never below 16.4 cm. Does not touch: HIT. Right hops rise 8.1 cm (16.1 - 8.0).
+Arms: hands at 1.018 m (pelvis 0.974), 0.45 m out from the midline, 0.15 m forward,
+  elbows bent: what was asked.
+Surprises
+- `jump.together` from the right foot (an assemble) with the left foot held 37 cm behind
+  lands with BOTH feet 6 cm behind where they started (the feet meet between where the
+  standing foot was and where the held foot was). check says "ends 0.06 m back". The
+  grammar does not say where a jump from one foot onto both lands. I had expected it to
+  close the free foot to the standing one in place. Acceptable, but surprising.
+- No word for a jump from both feet onto one foot (sissonne-like): I needed a one-beat
+  `shift.right` between the two kinds of jumping, so "続けて" has a 1-beat gap.
+- The landings give a lot: the pelvis drops 10.7 cm (97.4 -> 86.7) between half-beat
+  jumps of 2.7 cm. Looks bouncy rather than a light rope skip. Not controllable by me
+  (the bend is the jump's own; the grammar says not to write a plie).
+
+
+==================================================================
+4. rope-edit.shosa — BEFORE
+==================================================================
+Plan: copy rope.shosa, then change these tokens only:
+  1. steps: `{ jump.up(2.7cm):1/2 }` -> `{ jump.up(6cm):1/2 }`   (1 token: the 8 jumps are
+     one group with q's, so one edit changes all 8)
+  2. steps: the last `hop.up(8cm):1` -> `hop.up(12cm):1`           (1 token)
+  3. steps: `jump.together:1` -> `then:1`  (no landing on both: stays on the right foot) (1)
+  4. leftLeg: `down:1` -> `otherAnkle:1`   (the left toe at the front of the right ankle,
+     a coupe devant, reached on beat 11 through the `then:1/2` 10.5-11, held to 12) (1)
+  = 4 tokens (plus the comment line, which I will also update; not counted).
+Hesitations
+- 6 cm every half beat: impossible by rope's own check (0.25 s gives 2.7 cm). SH2016 x7
+  certain. 12 cm in one beat (0.5 s): 10 cm needs 0.49 s -> 12 cm will not fit either.
+  SH2016 x1 expected ("it rises ~10 cm").
+- Then, to clear diagnostics I must deviate from "6 cm" and "12 cm" (or from the timing,
+  which the task says not to change). I will keep the timing and use the heights check
+  says are possible, and report.
+- The coupe: is `otherAnkle` reachable from `back.down(60).bent(70)` in half a beat
+  without SH2003 (too fast)? Probably OK.
+Expected diagnostics: 8 x SH2016 on the first run (7 jumps + the 12 cm hop).
+Predictions (for the written version):
+  8 half-beat jumps: 6?, then 2.7 x 7  -> first maybe 6, rest 2.7.
+  the last hop: about 10 cm instead of 12.
+  left foot: off the floor to the end (toe at the right ankle, ~10 cm up).
+
+
+------------------------------------------------------------------
+4. rope-edit.shosa — AFTER
+------------------------------------------------------------------
+Edits as written first: 4 tokens (1 group height, 1 hop height, 1 steps word, 1 leg word)
++ the comment. Thanks to `{ jump.up(..):1/2 } q q q | q q q q |`, "all 8 heights" is ONE
+token. The `then:1/2` before the leg's last word was already there, so the coupe needed no
+new timing.
+check runs: 2.
+ 1st: 8 x SH2016 — 7 for the 6 cm jumps ("rises 2.7 cm"), 1 for the 12 cm hop ("rises
+      10.6 cm"). Predicted 8 (7 + 1), "about 10 cm": HIT. Also "ends 0.07 m forward and
+      0.04 m to its right" (see surprise).
+ 2nd: `up(6cm)` -> `up(2.7cm)`, `up(12cm)` -> `up(10.6cm)`: no problems.
+So the final file has 3 tokens different from rope.shosa (hop height 8 -> 10.6, jump.together
+-> then, down -> otherAnkle); the "6 cm" change could not survive the check at all: the
+jumps are back at 2.7 cm, the same as rope.shosa. The task's 6 cm and 12 cm are not
+possible at 120 bpm with jumps every half beat / every beat; the warning says how much IS
+possible, which made the fix a copy of a number.
+Sheet (side, beats 8-12, v1): the 4th hop looks clearly higher than the 3 before; from
+10.75 the left knee comes forward and at 11 the left toe is at the right ankle, held to 12.
+Readable. The rope's 6 cm vs 2.7 cm jumps: not readable on the sheet.
+Numbers (v1 with 6/12 cm): first jump 5.9 cm (ankle 13.9), others 2.6; hops 8.1, 8.1, 8.1,
+10.6. Prediction "first maybe 6, rest 2.7; last hop ~10": HIT.
+End pose: left toe at x -5.0 (= right ankle's x), 6 cm in front of the right ankle, 13 cm
+high (the ankle 27.9 cm): the coupe devant. Left foot never below 13 cm from beat 6.7 on.
+Surprise: check says the dancer "ends 0.07 m forward and 0.04 m to its right" although
+the standing foot did not move: the "where it ends" counts the foot in the air (the coupe
+foot 13.6 cm forward). For one-legged endings that line is misleading.
+
+==================================================================
+General
+==================================================================
+Where I hesitated in the grammar
+- "Two beats standing, then the jumps": since a jump is written at its LANDING and its
+  flight is in the word before, "stand 2 beats, then jump" can mean the first jump lands
+  on 2 (takes off ~1.3) or on 3. The grammar's rule is clear, but a task in plain words is
+  not; nothing in the grammar shows the "stand N beats and then jump" idiom.
+- What `up(Ncm)` measures: "how high the body rises". The task says "feet 6 cm off the
+  floor". They turned out equal (the feet stay level), but the grammar could say so:
+  "the feet leave the floor by the same height".
+- Where a jump from ONE foot onto both (`jump`, `jump.together`) lands: not said. It landed
+  halfway toward the foot that was held up (6 cm back).
+- `together` + a weight already on one foot at beat 0: no way to say both as first words.
+Things I could not say
+- A jump from both feet onto one foot (sissonne / rope skipping from two feet to one):
+  hop/leap from both is SH2012, so I needed a `shift` beat in between.
+- 4 cm / 6 cm jumps every half beat, 12 cm hop every beat at 120: the model's minimum
+  times forbid them. Only SH2016 tells you; the grammar's numbers (5 cm 0.34 s, 10 cm
+  0.49 s, "0.25 s gives 2 cm") let me predict it, but a table "at tempo T, one jump every
+  N beats can reach H cm" would help a game-animation writer.
+Grammar improvement proposals
+1. In "A jump", add the idiom: "stand for N beats and then jump: the jump word is written
+   where it lands; with a written height the body stands until (height time) before it.
+   `together:2 jump.up(6cm)` takes off at about beat 1.3 and lands on 2."
+2. Give the height-time table up to 30 cm, and the max height for 0.25 s (2.7 cm written)
+   and 0.5 s (10.6 cm): "the most a written height can get in the time".
+3. Say where `jump` from one foot lands (between the feet? beside the standing foot?).
+4. Say that `ends ... of where it began` measures the middle of both feet, including one
+   held in the air, or change it to the standing foot when one foot is up.
+5. Say that `q` may follow a bar line and repeat a group written in an earlier bar, and
+   that `%2` may repeat a bar made of a `q` (both worked; I was not sure).
+6. A cheat line for "jump from two feet onto one" (even if the answer is "shift first,
+   which costs a word").
+What the sheet showed / did not show
+- Shown well: the coupe behind/in front and the crossing (front view), the held leg
+  behind during hops, bends before jumps (side view, closer --step), and travel on the
+  floor plan.
+- Not shown: jump heights in cm (2-6 cm are a few pixels); half-beat jumps on a
+  half-beat sheet look like standing; whether a small hop (2.4 cm) leaves the floor.
+

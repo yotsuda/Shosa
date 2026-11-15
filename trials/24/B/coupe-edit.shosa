@@ -1,0 +1,22 @@
+title "Coupe"
+tempo 72
+time 3/4
+
+role solo
+dancer solo humanoid on solo
+
+pose basArms { arms { fwd.across(30).down(70).bent(40).elbow(side) } }
+
+section Main {
+  solo {
+    turnout  { out(80) }
+    height   { straight:3 | then:3 | then:3 | then:3 | then:1/2 high:1 then:1/2 straight:1 | }
+    arms     { basArms:3 | then:3 | then:3 | then:3 | }
+    steps    { rightFoot.fwd(0.08m).across(0.13m):3 | then:1 rightFoot.back(0.08m).across(0.13m):1 shift.center:1 | then:3 | then:1 leftFoot.fwd(0.08m).across(0.13m):1 shift.center:1 | }
+    rightLeg { down:1 otherAnkle.back:2 | skip:1 skip:2 | }
+    leftLeg  { skip:2bar | down:1 otherAnkle:2 | skip:1 skip:2 | }
+  }
+}
+
+form { Main }
+score { dancer solo }

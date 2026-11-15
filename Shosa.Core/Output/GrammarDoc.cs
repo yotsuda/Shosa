@@ -721,7 +721,8 @@ public static class GrammarDoc
               foot goes to where the steps have it, and a step of that foot in that time carries it there
               straight from the air. So a foot closes from the ankle into fifth without passing out to the
               side (where `down` would put it): `leftLeg { otherAnkle.back:4 skip:1 }` with
-              `steps { … leftFoot.fwd(0.08m).across(0.13m) }` landing as the `skip` ends. With no step, the
+              `steps { … leftFoot.fwd(0.08m).across(0.13m) }` landing as the `skip` ends. A `skip` that goes
+              on past the landing of a step or a jump is all let go when the foot lands. With no step, the
               foot goes back to where it stood before the leg lifted (or, after a hop, stays held in the
               air until a step or a `down` puts it on the floor). To keep a leg as it is, write `then`.
               (The foot goes the straight way: closing from behind to in front, it passes close by the
@@ -1051,13 +1052,21 @@ public static class GrammarDoc
               0.49 s, 20 cm 0.69 s, bend and air) and the body stands through the rest of the word before:
               `shift.right:3/2 hop.up(5cm):1 hop.up(5cm):1 hop.up(5cm):1` is three hops of the same
               5 cm, where without `up` the first, after the longer word, would go twice as high. With
-              less time than that before it, it rises what the time gives (warning SH2016). It lands at the
+              less time than that before it, it rises what the time gives (warning SH2016, which says how
+              high it gets): jumps every half beat at 120 go up 2.7 cm at most, every beat 10.6 cm. It lands at the
               height it took off from (the `height` row), and a plain `jump` lands with the feet as they stood: as far apart, one as far ahead, crossed
               if they were crossed (a sauté in fifth lands in fifth); `jump.change` lands with them mirrored, the foot
               that was behind now in front (a changement: fifth with the right foot front lands in fifth with the left
-              front; the feet open past each other in the air). The jump bends its own knees before it
+              front; the feet open past each other in the air). From one foot, `jump` lands with the
+              feet centred under where the two of them were, the one held in the air counted (after a
+              `hop`, about 6 cm behind the foot it stood on). An assemblé from fifth: the back leg brushes
+              out in its row and is let go (`skip`) over the landing, and `jump.change` brings it down in front:
+              `steps { rightFoot.fwd(0.08m).across(0.13m):2 then:1 jump.change.up(12cm):1 }` with
+              `leftLeg { skip:1 then:1 side.down(45):1/2 skip:3/2 }` (arms in second for it: `side.fwd(20).down(15).bent(20)`).
+              The jump bends its own knees before it
               takes off, on top of any plié the `height` row has written. **So the plié before a jump is not
-              written**: `jump` already sinks (about 11 cm for half a second before it) and gives on landing.
+              written**: `jump` already sinks as deep as it will go high (5 cm for a little jump of 2 cm, 8 cm for
+              half a second before it, 12 cm for 16 cm of air and more) and gives on landing.
               A `low` written in the `height` row on the beat before adds to it — the body sinks, comes up a
               little and sinks again deeper (a double bob). Write a `height` plié only where the dancer stands in
               it, not on the way into a jump.

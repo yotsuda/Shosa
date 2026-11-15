@@ -94,7 +94,7 @@ public static class Solver
             foreach (var (seg, leg, at) in solver.FeetHeldUp())
                 if (flagged.Add((seg, "SH2013")))
                     diagnostics.Add(new Diagnostic("SH2013", DiagnosticSeverity.Warning, new TextSpan(seg.Src, seg.Len), FormattableString.Invariant(
-                        $"This puts the {(leg == Channels.LeftLeg ? "left" : "right")} foot on the floor at beat {at:0.##}, but the {leg} row still holds that leg up, and a leg's own row wins: the foot stays in the air. Put the leg down in its row by then (`down`){(seg.Kind == SegKinds.Jump ? ": the leg a jump lands on, shaped in the air, needs it" : "")}.")));
+                        $"This puts the {(leg == Channels.LeftLeg ? "left" : "right")} foot on the floor at beat {at:0.##}, but the {leg} row still holds that leg up, and a leg's own row wins: the foot stays in the air. Put the leg down in its row by then (`down`, beside the other foot), or let it go to the steps (`skip`, landing where they put it){(seg.Kind == SegKinds.Jump ? ": the leg a jump lands on, shaped in the air, needs it" : "")}.")));
 
             // `inPlace`: the even part of the travel is taken out and handed to the engine as a velocity.
             clipFigure.Facing = [solver.FacingAt(0), solver.FacingAt(ir.TotalBeats)];
@@ -483,7 +483,7 @@ internal sealed class FigureSolver
     private readonly Curve _weightX = new(), _weightZ = new(), _float = new();
     private double _weightTime, _floatTime;
     private readonly List<(double T0, double T1, double From, double To)> _turns = [];
-    private readonly List<(double T0, double Up, double Land, double T1, double Height, double Give)> _jumps = [];
+    private readonly List<(double T0, double Up, double Land, double T1, double Height, double Bend, double Give)> _jumps = [];
     /// <summary>Where in the room each `stay` keeps its hand (found once), and the ones being found.</summary>
     private readonly Dictionary<Seg, Vec3> _stayHands = [];
     private readonly HashSet<Seg> _staying = [];
@@ -556,7 +556,7 @@ internal sealed class FigureSolver
     {
         var segs = _dancer.Tracks.TryGetValue(channel, out var found) ? found : [];
         if (!_loop)
-            return segs;
+            return [.. segs];    // its own list: Build may put a seg it shortened in it
         var row = new List<Seg>();
         for (int turn = -1; turn <= 1; turn++)
         {
@@ -624,6 +624,25 @@ internal sealed class FigureSolver
         else
         {
             Play(stand, support, 0, record: true);
+        }
+        // A leg let go (`skip` in its row) over a step of its foot is all let go when that step lands: the foot
+        // cannot be on the floor and still a third held up. A skip longer than the landing is the time the leg
+        // had, not the time it takes (writing trial 24: `side.down(45):1/2 skip:3/2` over an assemblé's landing).
+        foreach (var (moves, legRow) in new[] { (_leftMoves, _leftLeg), (_rightMoves, _rightLeg) })
+        {
+            for (int i = 0; i < legRow.Count; i++)
+            {
+                var seg = legRow[i];
+                if (seg.Kind != SegKinds.Release)
+                    continue;
+                var landing = moves.FirstOrDefault(m => m.Seg is not null && m.LiftTo <= 0 && !m.Orbit
+                    && m.T1 > seg.T0 + 1e-9 && m.T1 < seg.T1 - 1e-9);
+                if (landing is null)
+                    continue;
+                var early = seg.Clone();
+                early.T1 = landing.T1;
+                legRow[i] = early;
+            }
         }
         _built = true;
     }
@@ -962,9 +981,12 @@ internal sealed class FigureSolver
                         Turn(up, land, angle);
                     if (record && !made)
                     {
-                        // The knees give 8 cm on landing, less where there is no time for it.
+                        // The knees bend before it as deep as the jump is high (12 cm for 16 cm of air and more; a
+                        // skip of a rope bends a little, writing trial 24: 12 cm under 2.7 cm of air was a heavy
+                        // bob), and give on landing up to 8 cm, less where there is no time for it.
                         double giveSeconds = TempoMap.Seconds(_tempos, t1) - TempoMap.Seconds(_tempos, land);
-                        _jumps.Add((t0, up, land, t1, height, 0.08 * Math.Min(1, giveSeconds / 0.15)));
+                        double bend = Math.Min(0.12, 0.04 + 0.5 * height), give = Math.Min(0.08, 0.02 + 0.4 * height);
+                        _jumps.Add((t0, up, land, t1, height, bend, give * Math.Min(1, giveSeconds / 0.15)));
                     }
                     break;
                 }
@@ -1361,7 +1383,7 @@ internal sealed class FigureSolver
             if (t < jump.T0 || t > jump.T1)
                 continue;
             if (t < jump.Up)
-                return -0.12 * Math.Sin(Math.PI * (t - jump.T0) / (jump.Up - jump.T0));
+                return -jump.Bend * Math.Sin(Math.PI * (t - jump.T0) / (jump.Up - jump.T0));
             if (t < jump.Land)
             {
                 double u = (t - jump.Up) / (jump.Land - jump.Up);

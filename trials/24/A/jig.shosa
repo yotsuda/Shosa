@@ -1,0 +1,21 @@
+title "Jig"
+tempo 100
+time 2/4
+
+role folk
+dancer folk humanoid on folk
+
+// Bar 1: a small hop on the left foot, the right foot to the back of the left ankle in the
+// air; on beat 1 the right foot closes straight from there to cross in front of the left
+// (fifth), and the weight goes onto both feet. Bar 2 the other side. Bars 3-4 again.
+section Jig {
+  folk {
+    turnout  { out(70) }
+    steps    { { shift.left:1/2 hop:1/2 rightFoot.fwd(0.08m).across(0.13m):1/4 shift.center:3/4 } | q@mirror | %2 | }
+    rightLeg { skip:1/2 otherAnkle.back:1/4 skip:1/4 skip:1 | skip:2 | %2 | }
+    leftLeg  { skip:2 | skip:1/2 otherAnkle.back:1/4 skip:1/4 skip:1 | %2 | }
+  }
+}
+
+form { Jig }
+score { dancer folk }

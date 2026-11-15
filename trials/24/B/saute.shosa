@@ -1,0 +1,20 @@
+title "Saute"
+tempo 80
+time 2/4
+
+role solo
+dancer solo humanoid on solo
+
+pose basArms { arms { fwd.across(30).down(70).bent(40).elbow(side) } }
+
+section Main {
+  solo {
+    turnout { out(80) }
+    arms    { basArms:2 | then:2 | then:2 | then:2 | then:2 | then:2 | }
+    height  { straight:1 low(8cm):1 | then:2 | then:2 | then:2 | then:2 | then:1 straight:1 | }
+    steps   { together:2 | jump.up(10cm):1 jump.up(10cm):1 | jump.up(10cm):1 jump.up(10cm):1/2 rightFoot.fwd(0.08m).across(0.13m):1/2 | shift.center:1 jump.change.up(15cm):1 | jump.change.up(15cm):1 jump.change.up(15cm):1 | jump.change.up(15cm):1 then:1 | }
+  }
+}
+
+form { Main }
+score { dancer solo }
