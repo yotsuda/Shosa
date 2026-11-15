@@ -399,6 +399,8 @@ internal sealed class Curve
 
 internal sealed class FigureSolver
 {
+    private bool _toForehead;   // while an arm is on its way to the forehead (ArmBlend)
+
     private sealed class FootMove
     {
         public double T0, T1;
@@ -2056,9 +2058,18 @@ internal sealed class FigureSolver
             (Vec3 Offset, Vec3 Bend) ArmBlend((Vec3 Offset, Vec3 Bend) a, (Vec3 Offset, Vec3 Bend) b, double e)
             {
                 var offset = Blend(a.Offset, b.Offset, e, c.Fwd);
+                // On the way to the forehead the hand comes in across late, rising on its own side, and the elbow goes
+                // out at once, so the hand does not cross the chest (DESIGN.md 87.4).
+                bool toBrow = _toForehead;
+                if (toBrow)
+                {
+                    double la = a.Offset.Dot(torsoLeft), lb = b.Offset.Dot(torsoLeft), now = offset.Dot(torsoLeft);
+                    offset += torsoLeft * ((la + (lb - la) * e * e) - now);
+                }
                 var axis = offset.Normalized();
                 Vec3? from = Carry(a.Bend, a.Offset.Normalized(), axis), to = Carry(b.Bend, b.Offset.Normalized(), axis);
-                var between = from is null || to is null ? from ?? to ?? pole : Vec3.Slerp(from.Value, to.Value, e);
+                double eb = toBrow ? Math.Min(1, 3 * e) : e;
+                var between = from is null || to is null ? from ?? to ?? pole : Vec3.Slerp(from.Value, to.Value, eb);
                 return (offset, Across(between, axis));
             }
 
@@ -2080,7 +2091,9 @@ internal sealed class FigureSolver
                 return kept;
             }
 
+            _toForehead = armSegs.LastOrDefault(s => s.T0 <= t) is { Kind: SegKinds.Anchor, Anchor: "forehead" } brow && t < brow.T1;
             var (reach, bend) = Chain(armSegs, t, Posed, ArmBlend, (a, b) => Dist(a.Offset, b.Offset));
+            _toForehead = false;
             if (armSegs.LastOrDefault(s => s.T0 <= t + 1e-9) is { Kind: SegKinds.Stay } staying && !_staying.Contains(staying)
                 && reach.Length > Rig.UpperArm + Rig.Forearm + 0.01)
                 problems.HandShort = isLeft ? Channels.LeftArm : Channels.RightArm;

@@ -2147,6 +2147,9 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
             double perSecond = TempoMap.BpmAt(tempos, Math.Max(0, (loop && run.Start <= Epsilon ? total : run.Start) - 1e-6)) / 60;
             double lead = seg.Kind == SegKinds.Hold ? 0
                 : seg.Ease == "sharp" ? Math.Min(steps ? room / 2 : room, SharpSeconds * perSecond)
+                // The weight moves over all of the word before, as the body and the arms do: a step is the foot's
+                // own move, but a shift is the body's (DESIGN.md 87.4).
+                : steps && seg.Kind == SegKinds.Shift ? room
                 : steps ? Math.Min(room / 2, StepSeconds * perSecond)
                 : room;
             double t0 = run.Start - lead, t1 = run.Start;

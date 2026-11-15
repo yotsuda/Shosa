@@ -558,6 +558,28 @@ public class MotionTests
         Assert.InRange(hand.Y, 0.04, 0.1);      // above the eyes
         Assert.InRange(hand.X, -0.08, 0);       // a little to its own (right) side
         Assert.True(Joint(Rig.RElbow).X < Joint(Rig.RShoulder).X - 0.1, "the elbow is out to the side");
+
+        // DESIGN.md 87.4: on the way up the hand rises on its own side and does not cross the chest (it went 7 cm
+        // past the middle), the elbow going out first.
+        double past = Enumerable.Range(0, 41).Max(i =>
+        {
+            var frame = compilation.Clip.FrameAt(i / 40.0);
+            return figure.Joint(frame, Rig.RHand).X - figure.Joint(frame, Rig.Chest).X;
+        });
+        Assert.True(past < 0.01, $"the hand went {past * 100:0.0} cm past the middle of the chest");
+    }
+
+    [Fact]
+    public void A_shift_moves_the_weight_over_all_of_the_word_before()
+    {
+        // DESIGN.md 87.4: a shift is the body's, not a foot's, and goes as a gesture does (it waited, then went in 0.5 s).
+        var compilation = Compile(Samples.Solo("    steps { leftFoot.side(0.5m):2 shift.right:2 then:2 }", "tempo 60\ntime 4/4\n"));
+        Assert.Empty(compilation.Diagnostics);
+        var figure = compilation.Clip.Figures[0];
+        double Pelvis(double beat) => figure.Joint(compilation.Clip.FrameAt(beat), Rig.Pelvis).X;
+        double over = (Pelvis(1) - Pelvis(0)) / (Pelvis(2) - Pelvis(0));
+        Assert.InRange(over, 0.3, 0.7);
+        Assert.True(Math.Abs(Pelvis(0.5) - Pelvis(0)) > 0.01, "it sets out at once");
     }
 
     [Fact]
