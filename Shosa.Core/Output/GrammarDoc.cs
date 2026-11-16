@@ -255,7 +255,7 @@ public static class GrammarDoc
 
             | Part | When it sets out |
             |---|---|
-            | The feet — in `steps`: a step, `stand` | In the second half of the word before, and no more than 0.5 s before its beat. A foot STANDS on its beat and is carried to the next one late: in `leftFoot.side stand`, the left foot is down on beat 0, and the right closes between beat 0.5 and beat 1. |
+            | The feet — in `steps`: a step, `stand` | A step straight after a step (or a `stand`, a `together`) WALKS: its foot leaves the floor soon after the other lands and swings through 80% of the word before, no more than 0.6 s, and the body goes on over the feet without stopping at each landing. In `leftFoot.fwd rightFoot.fwd leftFoot.fwd` at 120 the right foot is off the floor from beat 0.2 to beat 1. After anything else (a `then`, a shift, a jump, the start) a step sets out in the second half of the word before, no more than 0.5 s before its beat, from standing still: `leftFoot.side then stand` closes between beat 1.5 and beat 2. A foot always STANDS on its beat. |
             | A turn in `steps` (`turn.right(90)`, …) | Through ALL of the word before, as a gesture: it is the body that turns over the foot. `together:2 turn.right(90):2` turns from beat 0 to beat 2. A quick pivot is a short word: `together:3/2 turn.right(90):1/2` turns in the half beat before beat 2. |
             | A shift in `steps` (`shift.right`, …) | Through ALL of the word before, as a gesture: the weight is the body's, not a foot's. `leftFoot.side(0.5m):2 shift.right:2` stands wide on beat 0 and moves the weight over from beat 0 to beat 2. To move it later, stand first: `leftFoot.side(0.5m):1 then:1 shift.right:2` (`then`, below) moves it from beat 1 to beat 2. Unlike a gesture it does not slow at a word on its way: `shift.right:2 shift.center:2 shift.left:2` goes on through the middle at one speed, and slows only where it turns back (so `@through` is not needed on a shift, and is not taken). |
             | A jump, a hop, a leap | It LANDS on its beat. The bend and the flight are in the word before it (in up to a second of it). |
@@ -293,7 +293,7 @@ public static class GrammarDoc
               `steps { rightFoot.fwd(0.08m).across(0.13m):4 }` stands in fifth on both legs, with no
               `shift.center`. To begin on the foot it stepped onto, shift to it next
               (`rightFoot.fwd shift.right:1/4 hop:3/4`; a `leap` straight after does not know its foot, SH2012, nor a `hop` unless a leg row throws the other leg out),
-              and a `together` or `stand` straight after closes both feet to the middle.
+              and a `together` or `stand` straight after closes the left foot to the right (the weight goes over the right first; `shift.left` before it to close onto the left).
               `shosa check` also says where each dancer ends (``solo ends 0.5 m back of where it began``,
               ``solo ends where it began``): read it instead of adding the steps up.
               In a `loop` the first step is already made too: when the feet end standing so, it is not
@@ -1043,10 +1043,12 @@ public static class GrammarDoc
             - `together` and `stand` move the foot that does not carry the weight, so after a step or
               a `shift.left`: `together` closes it touching (turned out, heel to heel), `stand` to
               standing width. Where the weight is on both feet (after `jump.apart`, after
-              `shift.center`, after a first step already made) neither is the free one, and BOTH close,
-              each half the way, to under the weight, sliding on the floor (neither foot lifts: lifting
-              both at once would leave the body on nothing): `jump.apart:1 then:1 stand:2` slides the feet back
-              in (`jump.stand` jumps them in). To STAND with the feet apart from the start, the first
+              `shift.center`, after a first step already made) neither is the free one: the weight goes
+              over the foot it is nearer first (the RIGHT foot when it is between them), from a little
+              before the word sets out, and the other foot closes to it alone (two feet do not slide in
+              at once): `jump.apart:1 then:1 stand:2` ends with the feet together where the right foot
+              stood. To close onto the left foot, shift to it first: `jump.apart:1 shift.left:1 stand:2`.
+              To come in to the middle, jump them in: `jump.stand`. To STAND with the feet apart from the start, the first
               word of `steps` is `leftFoot.side` (or `jump.apart`): a first word is already made, and
               stands on both feet.
             - `shift.left`, `shift.right`, `shift.center` — the weight moves over that foot (or

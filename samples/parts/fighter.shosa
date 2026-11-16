@@ -29,7 +29,20 @@ move cross     {
   hips      { right(20)     left(15)@sharp       guard }
   shoulders { right(40)     left(35)@sharp       guard }
 }
-move frontKick { rightLeg { fwd.down.bent fwd@sharp!hit fwd.down.bent down } }
+// The front kick is a push with the whole body behind it: the knee comes up, and as the foot goes out
+// the hips drive forward (`left`: the right hip comes through), the back leans away to carry the hips,
+// the standing foot rises onto its toes and the arm of the kicking side swings down and back. The foot
+// then lands ahead, a long stride on, and the back foot follows to the guard's stride: the body has gone
+// into the one it kicked.
+move frontKick {
+  rightLeg  { fwd.down.bent:1/2  fwd:1/4@sharp!hit   skip:5/4 }
+  torso     { up.back(5):1/2     up.back(25):1/2@sharp  up:1/2         guard:1/2 }
+  hips      { right(10):1/2      left(25):1/2@sharp  left(10):1/2       guard:1/2 }
+  shoulders { right(20):1/2      left(15):1/2@sharp  center:1/2         guard:1/2 }
+  rightArm  { guard:1/2          back.down(50):1/2   guard:1/2          guard:1/2 }
+  height    { mid:1/2            high:1/2@sharp      mid:1/2            guard:1/2 }
+  steps     { skip:5/4           rightFoot.fwd(0.6m):1/4@sharp          leftFoot.back(0.3m):1/2 }
+}
 
 // A step is placed from the other foot: the left foot reaches a full stride ahead, then the
 // right foot closes up to a small stride behind it. Both feet end 0.2 m further on, in guard.

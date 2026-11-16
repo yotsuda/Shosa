@@ -71,6 +71,16 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
     private const double StepSeconds = 0.5, SharpSeconds = 0.15;
 
     /// <summary>
+    /// A step that follows a step (DESIGN.md 90): its foot swings through this much of the word before, up
+    /// to <see cref="WalkSeconds"/>. In a walk each foot is in the air about 40% of a stride of two steps,
+    /// 80% of one step; the rest the two feet share the floor.
+    /// </summary>
+    private const double WalkSwing = 0.8, WalkSeconds = 0.6;
+
+    /// <summary>A word of the feet that walks: a step, or a close (`together`, `stand`) that moves one foot.</summary>
+    internal static bool Walks(Seg seg) => seg.Kind is SegKinds.Step or SegKinds.Together && seg.TurnDeg == 0 && !seg.Stance && seg.Ease != "sharp";
+
+    /// <summary>
     /// A jump comes down on its beat. Before it — the bend and the air — it has this much of the
     /// word before (of no more than so many seconds of it), and after it, for the knees to
     /// give, the rest of as much of its own time: two jumps one after the other just fit.
@@ -2151,6 +2161,10 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                 // own move, but a shift is the body's (DESIGN.md 87.4). A turn on the spot too: it is the body that
                 // turns over the foot, and "two beats to face right" is written so (DESIGN.md 89).
                 : steps && seg.Kind is SegKinds.Shift or SegKinds.Turn ? room
+                // A step straight after a step is walking: the foot leaves the floor soon after the other lands
+                // and swings through most of the word, and the body goes on over the feet without stopping
+                // (DESIGN.md 90: both feet flat for half of every step, the body stopping and going, was a robot's walk).
+                : steps && joined && Walks(seg) && Walks(before!.Value.Raw.Seg) ? Math.Min(room * WalkSwing, WalkSeconds * perSecond)
                 : steps ? Math.Min(room / 2, StepSeconds * perSecond)
                 : room;
             double t0 = run.Start - lead, t1 = run.Start;

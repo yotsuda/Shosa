@@ -270,22 +270,23 @@ public class DefinitionTests
     [Fact]
     public void A_word_arrives_on_its_beat_and_the_way_there_is_in_the_time_of_the_word_before()
     {
-        // An arm has all of the word before; a foot the second half of it, and no more than half a second (a beat at tempo 120).
+        // An arm has all of the word before. A step after a step walks: its foot swings through 80% of the word
+        // before, and no more than 0.6 s (1.2 beats at tempo 120; DESIGN.md 90).
         var compilation = Clean(Samples.Solo(" arms { side fwd:4 up }\n steps { leftFoot.fwd rightFoot.fwd:4 leftFoot.fwd }", "tempo 120\n"));
         var clip = compilation.Clip;
 
         Assert.Equal(new[] { (0.0, 0.0), (0.0, 1.0), (1.0, 5.0) }, Moves(compilation, Channels.LeftArm));
-        Assert.Equal(new[] { (0.0, 0.0), (0.5, 1.0), (4.0, 5.0) }, Moves(compilation, Channels.Support));
+        Assert.Equal(new[] { (0.0, 0.0), (0.2, 1.0), (3.8, 5.0) }, Moves(compilation, Channels.Support));
         Assert.Equal(new[] { (0.0, 1.0), (1.0, 5.0), (5.0, 6.0) }, Track(compilation, Channels.Support).Select(s => (s.At, s.Until)).ToArray());
 
         Vec3 Arm(double beat) => (At(clip, beat, Rig.LHand) - At(clip, beat, Rig.LShoulder)).Normalized();
         Assert.True(Arm(0).X > 0.99 && Arm(1).Z > 0.99 && Arm(5).Y > 0.99, "each where its word says, on its beat");
         Assert.True(Arm(3).Z > 0.2 && Arm(3).Y > 0.2, "and on the way up through the four beats of the word before");
-        // The right foot stands for the first half of the beat and is a stride ahead on the next one.
-        Assert.Equal(At(clip, 0, Rig.RAnkle), At(clip, 0.4, Rig.RAnkle));
+        // The right foot stands for the first fifth of the beat and is a stride ahead on the next one.
+        Assert.Equal(At(clip, 0, Rig.RAnkle), At(clip, 0.15, Rig.RAnkle));
         Assert.Equal(Rig.Stride, At(clip, 1, Rig.RAnkle).Z - At(clip, 1, Rig.LAnkle).Z, 2);
-        // The left foot stands through three of the four beats it has to wait, not two.
-        Assert.Equal(At(clip, 2, Rig.LAnkle), At(clip, 4, Rig.LAnkle));
+        // The left foot stands through most of the four beats it has to wait, not two.
+        Assert.Equal(At(clip, 2, Rig.LAnkle), At(clip, 3.75, Rig.LAnkle));
         Assert.True((At(clip, 4.5, Rig.LAnkle) - At(clip, 4, Rig.LAnkle)).Length > 0.1, "on its way in the last beat");
         Assert.Equal(Rig.Stride, At(clip, 5, Rig.LAnkle).Z - At(clip, 5, Rig.RAnkle).Z, 2);
     }
@@ -338,14 +339,14 @@ public class DefinitionTests
 
         // Nothing moves to get to the first word: it is a segment of no time at beat 0.
         Assert.Equal(new[] { (0.0, 0.0), (0.0, 2.0) }, Moves(once, Channels.LeftArm));
-        Assert.Equal(new[] { (0.0, 0.0), (1.0, 2.0) }, Moves(once, Channels.Support));
+        Assert.Equal(new[] { (0.0, 0.0), (0.8, 2.0) }, Moves(once, Channels.Support));
         Vec3 Arm(MotionClip clip, double beat) => (At(clip, beat, Rig.LHand) - At(clip, beat, Rig.LShoulder)).Normalized();
         Assert.True(Arm(once.Clip, 0).X > 0.99 && At(once.Clip, 0, Rig.LAnkle).Z > At(once.Clip, 0, Rig.RAnkle).Z + 0.4, "in it at the first frame");
 
         // In a loop the word is still written at beat 0, and the part arrives there as the loop ends: in the time of the last word.
         Assert.Equal(4, loop.Clip.TotalBeats);
         Assert.Equal(new[] { (0.0, 2.0), (2.0, 4.0) }, Moves(loop, Channels.LeftArm));
-        Assert.Equal(new[] { (1.0, 2.0), (3.0, 4.0) }, Moves(loop, Channels.Support));
+        Assert.Equal(new[] { (0.8, 2.0), (2.8, 4.0) }, Moves(loop, Channels.Support));
         var first = Track(loop, Channels.LeftArm).Single(s => s.At == 0);
         Assert.Equal((2.0, 4.0, 2.0), (first.T0, first.T1, first.Until));
         Assert.True(Arm(loop.Clip, 0).X > 0.99 && Arm(loop.Clip, 2).Z > 0.99 && Arm(loop.Clip, 4).X > 0.99, "the end is the start");

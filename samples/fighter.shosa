@@ -65,7 +65,12 @@ section Victory {
   fighter {
     body  { guard:4 }
     steps { skip stand jump jump }         // the feet close on 2; the jumps land on 3 and 4
-    arms  { skip down:1/2 side.up:1/2 up:2 }
+    // Upright out of the guard's hunch, square to the front, and the fists up in a V: a little out
+    // and a little forward of straight up (60 degrees round from ahead, 65 above level), in front of the head.
+    torso     { skip up:3 }
+    hips      { skip center:3 }
+    shoulders { skip center:3 }
+    arms  { skip down:1/2 fwd.side(60).up(30):1/2 fwd.side(60).up(65):2 }
   }
 }
 

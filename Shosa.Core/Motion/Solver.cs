@@ -682,11 +682,13 @@ internal sealed class FigureSolver
     /// </summary>
     private void Play(Stand s, List<Seg> support, double offset, bool record)
     {
+        // A step straight after a step: the body goes on over the feet, not stopping at each landing (DESIGN.md 90).
+        bool flowing = false;
         void Weight(double t0, double t1, Vec3 to)
         {
             if (record)
             {
-                if (t0 > _weightTime)
+                if (t0 > _weightTime && !flowing)
                 {
                     // Nothing was written since the last key: stay there until this segment starts.
                     _weightX.Add(t0, s.Weight.X);
@@ -773,10 +775,18 @@ internal sealed class FigureSolver
             }
         }
 
+        // In a loop the word before the first is the last (of the turn before).
+        Seg? previous = _loop && support.Count > 0 ? support[^1] : null;
         foreach (var seg in support)
         {
             // A `down` that has arrived before this word sets out has put its foot on the floor.
             PutDown(seg.T0 + offset);
+            double gap = previous is null ? 1 : seg.At - previous.Until;
+            if (_loop && gap < -1e-6)
+                gap += _length;
+            double previousEnd = previous is null || (_loop && seg == support[0]) ? offset + Math.Min(0, seg.T0) : previous.T1 + offset;
+            flowing = previous is not null && BinderRun.Walks(previous) && BinderRun.Walks(seg) && seg.T1 > seg.T0 + 1e-9 && Math.Abs(gap) < 1e-6;
+            previous = seg;
             current = seg;
             double t0 = seg.T0 + offset, t1 = seg.T1 + offset;
             var fwd = Vec3.Forward(s.Yaw);
@@ -872,22 +882,26 @@ internal sealed class FigureSolver
                     }
                     else
                     {
-                        // The weight is on both feet (after a jump, a `shift.center`): neither is the
-                        // free one, so both close, each as far as the other, to under the weight.
-                        var middle = (s.Left + s.Right) * 0.5;
+                        // The weight is on both feet (after a jump, a `shift.center`): neither is the free one.
+                        // Two feet do not slide together at once (DESIGN.md 90; they did, trial 23 to here): the
+                        // weight goes over one first, the one it is nearer (the right when it is between them), from
+                        // a little before the word sets out, and the other closes to it.
                         var apart = s.Left - s.Right;
                         if (Math.Abs(apart.Dot(leftward) - closed) > 0.02 || Math.Abs(apart.Dot(fwd)) > 0.02)
                         {
-                            foreach (bool isLeft in new[] { true, false })
+                            bool moveLeft = (s.Weight - s.Left).Length > (s.Weight - s.Right).Length - 1e-6;
+                            var standing = moveLeft ? s.Right : s.Left;
+                            var from = moveLeft ? s.Left : s.Right;
+                            var target = standing + (moveLeft ? leftward : -leftward) * closed;
+                            double d = t1 - t0;
+                            double over = Math.Max(previousEnd, t0 - d / 2), sets = t0 + 0.25 * d;
+                            Weight(over, sets, Vec3.Lerp((s.Left + s.Right) * 0.5, standing, 0.85));
+                            Move(moveLeft, new FootMove
                             {
-                                var from = isLeft ? s.Left : s.Right;
-                                Move(isLeft, new FootMove
-                                {
-                                    T0 = t0, T1 = t1, From = from, To = middle + (isLeft ? leftward : -leftward) * (closed / 2),
-                                    // Slid on the floor: lifted both at once, the body would hang on nothing (trial 23).
-                                    YawFrom = isLeft ? s.LeftYaw : s.RightYaw, YawTo = s.Yaw, Lift = 0,
-                                });
-                            }
+                                T0 = sets, T1 = t1, From = from, To = target,
+                                YawFrom = moveLeft ? s.LeftYaw : s.RightYaw, YawTo = s.Yaw, Lift = StepLift(from, target),
+                                Open = GoRound(from, target, standing, Outward(moveLeft)),
+                            });
                         }
                     }
                     s.On = 'B';
@@ -1344,6 +1358,10 @@ internal sealed class FigureSolver
                 yaw = move.YawFrom + (move.YawTo - move.YawFrom) * s;
                 lift = move.AirHeight * 4 * u * (1 - u) + move.LiftFrom + (move.LiftTo - move.LiftFrom) * u;
                 air = true;
+                // Off the floor the foot points: the push off the toes leaves it pointed at once, and it comes back
+                // under the leg only to land, toes first (DESIGN.md 90: it hung level through the air).
+                if (move.AirHeight > 1e-6)
+                    pitch = -AirPoint * Smooth(Math.Min(1, u / 0.15)) * Smooth(Math.Min(1, (1 - u) / 0.3));
             }
             else
             {
@@ -1357,6 +1375,9 @@ internal sealed class FigureSolver
             break;
         }
     }
+
+    /// <summary>How far a foot in the air points, radians: about 50° from square to the shin.</summary>
+    private const double AirPoint = 0.85;
 
     /// <summary>How far apart two ankles pass at the least, metres: a foot's width and a little.</summary>
     private const double AnkleClearance = 0.09;
@@ -1627,11 +1648,27 @@ internal sealed class FigureSolver
     /// standing straight, so a plié already stood in is part of them, and the legs are straight from the
     /// take-off to the landing (DESIGN.md 84.5: a plié written before a jump was a second bend under it).
     /// </summary>
+    /// <summary>A landing's give and the next jump's bend are one when no more than this many seconds stand between them.</summary>
+    private const double JoinGap = 0.15;
+    private double PerSecond(double t) => TempoMap.BpmAt(_tempos, Math.Max(0, t)) / 60;
+
     private double JumpOffset(double t, double drop)
     {
         static double Smooth(double x) => x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x);
-        foreach (var jump in _jumps)
+        for (int i = 0; i < _jumps.Count; i++)
         {
+            var jump = _jumps[i];
+            // Jump after jump (jumping jacks, a skip of a rope): the give of one landing is the bend of the next
+            // take-off, one going down and up between them. Two (the give, back up, the bend) shook the knees
+            // twice in a quarter of a second (DESIGN.md 90).
+            if (i + 1 < _jumps.Count && _jumps[i + 1] is var next && next.T0 <= jump.T1 + 1e-9 + JoinGap * PerSecond(jump.T1)
+                && t >= jump.Land && t < next.Up && next.Up > jump.Land + 1e-9)
+            {
+                double w = (t - jump.Land) / (next.Up - jump.Land);
+                return drop - Math.Max(drop, Math.Max(jump.Give, next.Bend)) * Math.Sin(Math.PI * w);
+            }
+            if (i > 0 && _jumps[i - 1] is var last && jump.T0 <= last.T1 + 1e-9 + JoinGap * PerSecond(last.T1) && t >= last.Land && t < jump.Up)
+                continue;
             if (t < jump.T0 || t > jump.T1)
                 continue;
             if (t < jump.Up)
@@ -1967,6 +2004,9 @@ internal sealed class FigureSolver
             double pitch = (isLeft ? c.LPitch : c.RPitch) * (1 - gesture);
             var toe = reached + footFwd * (Rig.FootLength * Math.Cos(pitch));
             toe = new Vec3(toe.X, offFloor ? Math.Max(0.02, reached.Y - 0.05 + Rig.FootLength * Math.Sin(pitch)) : 0.02, toe.Z);
+            // In the air of a jump a leg in a shape points its foot too, as the one the steps carry does (DESIGN.md 90).
+            if (gesture > 0 && c.LAir && c.RAir)
+                point = Math.Max(point, Math.Clamp(-(isLeft ? c.LPitch : c.RPitch) / AirPoint, 0, 1));
             // A toe sent to the other leg: the foot pointed on along the shin.
             if (point > 0)
             {

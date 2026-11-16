@@ -1474,17 +1474,60 @@ public class MotionTests
     }
 
     [Fact]
-    public void A_close_with_the_weight_on_both_feet_brings_both_feet_in_alike()
+    public void Steps_one_after_another_walk_on_without_stopping()
     {
-        // After a jump the weight is on both feet: neither is the free one, so each comes half the way.
+        // DESIGN.md 90: the body goes on over the feet at an even pace, and both feet share the floor only a little
+        // of each step (it stopped at every landing, both feet flat half of the time).
+        var clip = Solve("    steps { leftFoot.fwd rightFoot.fwd leftFoot.fwd rightFoot.fwd }");
+        double mean = (At(clip, 3, Rig.Pelvis).Z - At(clip, 1, Rig.Pelvis).Z) / 2;
+        for (double beat = 1; beat < 2.5; beat += 0.1)   // not the last beat: it comes to a stop on the last step
+        {
+            double pace = (At(clip, beat + 0.1, Rig.Pelvis).Z - At(clip, beat, Rig.Pelvis).Z) / 0.1;
+            Assert.True(pace > 0.8 * mean, $"at beat {beat:0.0} the body goes {pace:0.00} a beat, against {mean:0.00}");
+        }
+        // The left foot comes down on beat 2, and the right foot behind it is off the floor a quarter of a beat later.
+        Assert.True(At(clip, 2.25, Rig.RAnkle).Y > At(clip, 2, Rig.RAnkle).Y + 0.01, "the back foot leaves soon after the other lands");
+    }
+
+    [Fact]
+    public void Jump_after_jump_bends_the_knees_once_between_them()
+    {
+        // The give of one landing is the bend of the next take-off: the hips go down and up once (DESIGN.md 90).
+        var clip = Solve("    steps { jump.apart jump.together jump.apart jump.together }");
+        var heights = Enumerable.Range(0, 31).Select(i => At(clip, 1 + i / 30.0, Rig.Pelvis).Y).ToArray();
+        int turns = 0;
+        for (int i = 1; i + 1 < heights.Length; i++)
+            if (heights[i] < heights[i - 1] - 1e-4 && heights[i] < heights[i + 1] - 1e-4)
+                turns++;
+        Assert.Equal(1, turns);
+    }
+
+    [Fact]
+    public void In_the_air_the_feet_point()
+    {
+        // A foot off the floor in a jump points (DESIGN.md 90: it hung level), and is flat again to land. The air is before beat 1, where it lands.
+        var clip = Solve("    steps { then jump.up(12cm) }");
+        double Drop(double beat) => At(clip, beat, Rig.LAnkle).Y - At(clip, beat, Rig.LToe).Y;
+        double peak = Enumerable.Range(0, 21).Select(i => 0.5 + i / 40.0).OrderByDescending(b => At(clip, b, Rig.LAnkle).Y).First();
+        Assert.True(Drop(peak) > Drop(0) + 0.06, $"pointed at the top: the toe {Drop(peak):0.00} m below the ankle, against {Drop(0):0.00} standing");
+        Assert.Equal(Drop(0), Drop(2), 2);
+    }
+
+    [Fact]
+    public void A_close_with_the_weight_on_both_feet_goes_over_one_foot_and_brings_the_other_in()
+    {
+        // After a jump the weight is on both feet. Two feet do not slide together at once (DESIGN.md 90): the weight
+        // goes over the one it is nearer (the right, between them), and the other closes to it alone.
         // The jump comes down on beat 1, the close is there on beat 3 and is made in the second half of the `then` before it.
         var clip = Solve("    steps { then jump.apart then stand:2 }");
         Vec3 Foot(double beat, int joint) => At(clip, beat, joint) - At(clip, 0, joint);
 
         Assert.True(Foot(1, Rig.LAnkle).X > 0.1 && Foot(1, Rig.RAnkle).X < -0.1, "apart as the jump comes down");
-        Assert.True(Foot(2.5, Rig.LAnkle).X > 0.1 && Foot(2.5, Rig.RAnkle).X < -0.1, "and until the close sets out");
-        Assert.True(Foot(3, Rig.LAnkle).Length < 0.01 && Foot(3, Rig.RAnkle).Length < 0.01, "and back where they stood");
-        Assert.True(Math.Abs(At(clip, 2.75, Rig.Pelvis).X - At(clip, 0, Rig.Pelvis).X) < 0.01, "the weight stays between them");
+        Assert.True(Foot(2, Rig.LAnkle).X > 0.1 && Foot(2, Rig.RAnkle).X < -0.1, "and until the close sets out");
+        Assert.True(At(clip, 2.6, Rig.Pelvis).X < At(clip, 1, Rig.RAnkle).X + 0.08, "the weight over the right foot first");
+        Assert.True((At(clip, 3, Rig.RAnkle) - At(clip, 1, Rig.RAnkle)).Length < 0.01, "which stays");
+        Assert.True(Math.Abs((At(clip, 3, Rig.LAnkle) - At(clip, 3, Rig.RAnkle)).X - (At(clip, 0, Rig.LAnkle) - At(clip, 0, Rig.RAnkle)).X) < 0.01,
+            "and the left closes to it, as near as they stood");
 
         // A foot made free closes alone; feet that already stand together have nothing to do (a knee bend).
         var one = Solve("    steps { then jump.apart shift.left stand:2 }");

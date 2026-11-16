@@ -15,7 +15,8 @@ section Nod {
 // and then go, a `then` after it: the part stays through the word, and goes through the then.
 section Point {
   npc {
-    rightArm { down:0.3s fwd.up.bent:0.2s fwd:1s@sharp!point then:0.6s down:0.1s }
+    // The arm points where the face looks: ahead and to the right, 45 degrees (`fwd.side` for a right arm).
+    rightArm { down:0.3s fwd.side.up.bent:0.2s fwd.side:1s@sharp!point then:0.6s down:0.1s }
     head     { fwd:0.3s fwd.right:1.2s then:0.6s fwd:0.1s }
   }
 }
@@ -31,21 +32,26 @@ section PickUp {
     steps    { then:0.8s          then:0.4s          then:0.8s then:0.2s }
     height { mid:0.4s then:0.4s  low(40cm):0.4s then:0.8s mid:0.2s }   // goes down with the torso, from 0.4 s to 0.8 s; up again with it, by 2 s
     torso    { up:0.4s then:0.4s      fwd.up:0.4s                then:0.8s up:0.2s }
-    rightArm { down:0.4s then:0.4s    fwd.down:0.2s down:0.4s!grab  then:0.6s chest:0.2s }
+    // The hand goes straight to the thing on the floor as the body goes down, takes it at the bottom (1 s),
+    // and comes up with the body to the chest: no feeling about along the floor.
+    rightArm { down:0.4s then:0.6s    fwd.down(70):0.2s!grab        then:0.8s chest:0.2s }
     head     { fwd:0.4s then:0.4s     down:0.4s                     then:0.8s fwd:0.2s }
   }
 }
 
 section LookAround {
   npc {
-    head  { fwd.left:2 then:1 fwd:1 fwd.right:2 then:1 fwd:1 }
+    // A look is a glance: the head stays on one thing, then turns to the next in 0.4 s and stays there.
+    head  { fwd:1.2 then:0.4 fwd.left(50):2 then:0.4 fwd:1.2 then:0.4 fwd.right(50):2 then:0.4 }
     steps { shift.left:4 shift.right:4 }      // the weight moves; neither foot leaves the floor
   }
 }
 
 section Wait {
   npc {
-    arms  { shoulder.across:4 }               // arms folded: each hand to the opposite shoulder.
+    // Arms folded: the forearms level across the front of the body, each hand by the other arm
+    // (not on the opposite shoulder: that is hugging oneself).
+    arms  { fwd.across(50).down(40).bent(100):4 }
     steps { shift.right:4 }                   // a loop follows itself, so it is already there
   }
 }

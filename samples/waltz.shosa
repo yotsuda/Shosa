@@ -32,7 +32,9 @@ section Bow {
   time 3/4
   solo {
     torso { up fwd.up then | up:3 | }        // bowed on 2; it comes up through the then
-    arms  { down:3 | then:3 | }
+    // The hands stay by the thighs and the arms lean with the back (`.body`: measured from the chest),
+    // not hanging to the floor.
+    arms  { down.body:3 | % | }
   }
 }
 
