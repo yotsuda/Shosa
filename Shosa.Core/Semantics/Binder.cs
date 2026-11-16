@@ -2148,8 +2148,9 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
             double lead = seg.Kind == SegKinds.Hold ? 0
                 : seg.Ease == "sharp" ? Math.Min(steps ? room / 2 : room, SharpSeconds * perSecond)
                 // The weight moves over all of the word before, as the body and the arms do: a step is the foot's
-                // own move, but a shift is the body's (DESIGN.md 87.4).
-                : steps && seg.Kind == SegKinds.Shift ? room
+                // own move, but a shift is the body's (DESIGN.md 87.4). A turn on the spot too: it is the body that
+                // turns over the foot, and "two beats to face right" is written so (DESIGN.md 89).
+                : steps && seg.Kind is SegKinds.Shift or SegKinds.Turn ? room
                 : steps ? Math.Min(room / 2, StepSeconds * perSecond)
                 : room;
             double t0 = run.Start - lead, t1 = run.Start;

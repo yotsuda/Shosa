@@ -255,7 +255,8 @@ public static class GrammarDoc
 
             | Part | When it sets out |
             |---|---|
-            | The feet — in `steps`: a step, `stand`, a turn | In the second half of the word before, and no more than 0.5 s before its beat. A foot STANDS on its beat and is carried to the next one late: in `leftFoot.side stand`, the left foot is down on beat 0, and the right closes between beat 0.5 and beat 1. |
+            | The feet — in `steps`: a step, `stand` | In the second half of the word before, and no more than 0.5 s before its beat. A foot STANDS on its beat and is carried to the next one late: in `leftFoot.side stand`, the left foot is down on beat 0, and the right closes between beat 0.5 and beat 1. |
+            | A turn in `steps` (`turn.right(90)`, …) | Through ALL of the word before, as a gesture: it is the body that turns over the foot. `together:2 turn.right(90):2` turns from beat 0 to beat 2. A quick pivot is a short word: `together:3/2 turn.right(90):1/2` turns in the half beat before beat 2. |
             | A shift in `steps` (`shift.right`, …) | Through ALL of the word before, as a gesture: the weight is the body's, not a foot's. `leftFoot.side(0.5m):2 shift.right:2` stands wide on beat 0 and moves the weight over from beat 0 to beat 2. To move it later, stand first: `leftFoot.side(0.5m):1 then:1 shift.right:2` (`then`, below) moves it from beat 1 to beat 2. Unlike a gesture it does not slow at a word on its way: `shift.right:2 shift.center:2 shift.left:2` goes on through the middle at one speed, and slows only where it turns back (so `@through` is not needed on a shift, and is not taken). |
             | A jump, a hop, a leap | It LANDS on its beat. The bend and the flight are in the word before it (in up to a second of it). |
             | Arms, legs, torso, head, and the `height` | Through ALL of the word before. `arms { side:4 up:4 }` is at the side on beat 0 and travels the whole four beats to be up on beat 4. A gesture sets out for the next word as soon as it has arrived, unless told to stay (`then`, below); it eases in and out, so it slows at each word (to pass a word without stopping — a point on an arc — `@through` on that word: `down side:1@through up:1` goes from down over the side to up in one sweep). A back-and-forth (`fwd:1 back:1 fwd:1`, a breath, a sway) already moves as a sine wave does: it slows to nothing only at the ends, as a swing does. |
@@ -270,9 +271,9 @@ public static class GrammarDoc
               `up:7 then:1 side`. Without the `then`, `up:8 side` drifts to the side for eight beats.
               Of several `then` in a row only the LAST is the way to the next word
               (`up:2 then:2 then:1 side` is still up on beat 4 and moves in the last beat), and a
-              `then` with nothing after it simply stays. For a step, a turn and a `@sharp` word a
+              `then` with nothing after it simply stays. For a step and a `@sharp` word a
               `then` only waits: they still set out late in it (its second half; its last 0.15 s).
-              A `shift` goes through all of the `then`, as a gesture does.
+              A `shift` and a `turn` go through all of the `then`, as a gesture does.
               A slow way that crosses a bar line is ONE tied `then`: `shift.right:2 then:2~ | :2 shift.center:2`
               goes back to the middle over beats 2 to 6; `then:2 | then:2 shift.center:2` would go in
               the last two beats only (the first `then` stays).
@@ -1066,6 +1067,8 @@ public static class GrammarDoc
               A turn pivots on the foot that carries the weight: the one that took the last step or
               that a `shift` went to (on both, if the feet are together). A free leg may gesture during a turn.
               After it "forward" is the new facing. `turn.b` turns to face the dancer of role b.
+              It turns through all of the word before it (see "When it sets out"): `then:1 turn.right(360):1`
+              is a pirouette in one beat, `together:2 turn.right(90):2` a slow quarter turn.
             - **A jump: `jump`, `hop`, `leap`** — each word says which foot it LANDS on; which it
               takes off from is how the feet stood before it (a jump from one foot or from both):
 
@@ -1329,7 +1332,6 @@ public static class GrammarDoc
             - A change of tempo or of time in the middle of a section (a section says them where it begins; a dance to a song follows its song).
             - A toe at any place on the other leg but its knee and its ankle; a hand on a leg (the thigh, the knee).
             - A foot that points or flexes when you choose (it points only with its toe on the other leg or on the floor, `side.floor`); standing on pointe; one foot on its toes (demi-pointe) while the other is flat — `height { high }` puts both up.
-            - A turn of the feet over a written time: a `turn` pivots in the last 0.5 s before its beat, like a step.
             - Beating the legs in the air (an entrechat; a changement is `jump.change`).
 
             ## Checking your work

@@ -607,6 +607,24 @@ public class MotionTests
     }
 
     [Fact]
+    public void A_turn_turns_over_all_of_the_word_before()
+    {
+        // Writing trial 27 (DESIGN.md 89): a turn pivoted in the last 0.5 s, so "two beats to face right" was a staircase.
+        var compilation = Compile(Samples.Solo("    steps { together:2 turn.right(90):2 }", "tempo 60\ntime 4/4\n"));
+        Assert.Empty(compilation.Diagnostics);
+        var figure = compilation.Clip.Figures[0];
+        double Turned(double beat)
+        {
+            var frame = compilation.Clip.FrameAt(beat);
+            var line = figure.Joint(frame, Rig.LHip) - figure.Joint(frame, Rig.RHip);
+            return Math.Abs(Math.Atan2(line.Z, line.X) * 180 / Math.PI);
+        }
+        Assert.True(Turned(0.5) > 5, $"it sets out at once ({Turned(0.5):F1}°)");
+        Assert.InRange(Turned(1), 25, 65);
+        Assert.InRange(Turned(2), 85, 95);
+    }
+
+    [Fact]
     public void A_shift_goes_on_through_a_word_on_its_way()
     {
         // Writing trial 27 (DESIGN.md 89): a shift does not slow at the middle on its way across, so it needs no @through.
