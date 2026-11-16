@@ -607,6 +607,19 @@ public class MotionTests
     }
 
     [Fact]
+    public void A_shift_goes_on_through_a_word_on_its_way()
+    {
+        // Writing trial 27 (DESIGN.md 89): a shift does not slow at the middle on its way across, so it needs no @through.
+        var compilation = Compile(Samples.Solo("    steps { leftFoot.side(0.6m):2 shift.right:2 | shift.center:2 shift.left:2 | shift.center:2 then:2 | }", "tempo 60\ntime 4/4\n"));
+        Assert.DoesNotContain(compilation.Diagnostics, d => d.Severity == DiagnosticSeverity.Error);
+        var figure = compilation.Clip.Figures[0];
+        double Pelvis(double beat) => figure.Joint(compilation.Clip.FrameAt(beat), Rig.Pelvis).X;
+        double across = Pelvis(4.25) - Pelvis(3.75), before = Pelvis(3.25) - Pelvis(2.75);
+        Assert.True(across > 0.025, $"through the middle at speed ({across:F3} m in half a beat)");
+        Assert.True(across > before * 0.8, "no slower at the middle than on the way to it");
+    }
+
+    [Fact]
     public void A_changement_lands_with_the_feet_mirrored()
     {
         // Writing trial 21 (DESIGN.md 80.3): once a plain jump kept the feet as they stood, nothing changed them.
