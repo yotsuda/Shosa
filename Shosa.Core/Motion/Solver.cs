@@ -434,6 +434,8 @@ internal sealed class FigureSolver
         /// <summary>How high each foot is held off the floor between moves: 0 on the floor, more after landing a hop or a leap on the other foot.</summary>
         public double LeftUp, RightUp;
         public char On = 'B';   // the supporting foot: L, R or Both
+        /// <summary>A shift that did not get the weight over its foot (a wide stance): the other foot still carries some, and slides to close.</summary>
+        public bool Short;
         public Stand Clone() => (Stand)MemberwiseClone();
     }
 
@@ -478,6 +480,9 @@ internal sealed class FigureSolver
         public (double Reached, double Wanted, double Lean)? Short;
         public readonly Vec3 Shoulder(int side) => Chest + Left * (Rig.ShoulderHalf * side) - Up * Rig.ShoulderDrop;
     }
+
+    /// <summary>A share of the way from the middle to a foot at which the weight is over that foot, and the other may lift.</summary>
+    private const double OverTheFoot = 0.8;
 
     private readonly DancerIr _dancer;
     private readonly Func<string, FigureSolver?> _others;
@@ -743,6 +748,42 @@ internal sealed class FigureSolver
             s.Yaw += angle;
         }
 
+        // How far (0..0.85 of the way from the middle) the weight goes toward one foot. Only as far as the hips sink
+        // 3 cm below where the dancer stands (DESIGN.md 86.4): in a wide stance the other leg is all but straight
+        // already, and every cm toward the foot costs height (`shift.right` 0.7 m apart was a side lunge, the knee at
+        // 75°). A lunge is written in the height row, and then the hips go on over the foot.
+        double ShareOver(bool onLeft, double at)
+        {
+            var middle = (s.Left + s.Right) * 0.5;
+            double share = 0.85;
+            var hipLeft = Vec3.Left(s.Yaw) * Rig.HipHalf;
+            double full = Rig.Leg * Rig.StraightLeg;
+            double Reach(Vec3 hip, Vec3 foot)
+            {
+                double d = (new Vec3(hip.X, 0, hip.Z) - new Vec3(foot.X, 0, foot.Z)).Length;
+                return Math.Sqrt(Math.Max(0.04, full * full - d * d));
+            }
+            double StandAt(Vec3 q) => Math.Min(Reach(q + hipLeft, s.Left), Reach(q - hipLeft, s.Right));
+            // The far leg straightens out of the bend the height row stands in then (soft knees, a `low`: Core),
+            // and then the hips may sink 3 cm more below where they stand.
+            double level = Chain(_height, at, x => x?.Level ?? 0, (a, b, e) => a + (b - a) * e, Dist);
+            double softness = Chain(_height, at, x => x is { Straight: true } ? 0.0 : 1.0, (a, b, e) => a + (b - a) * e, Dist);
+            double drop = Math.Max(softness * Rig.Leg * (Rig.StraightLeg - Rig.BentShare(Rig.Thigh, Rig.Shin, Rig.SoftKnee)), Rig.LowDrop * Math.Max(0, -level));
+            double floor = StandAt(middle) - drop - 0.03;
+            var foot = onLeft ? s.Left : s.Right;
+            if (StandAt(Vec3.Lerp(middle, foot, share)) < floor)
+            {
+                double lo = 0, hi = share;
+                for (int i = 0; i < 20; i++)
+                {
+                    double mid = (lo + hi) / 2;
+                    if (StandAt(Vec3.Lerp(middle, foot, mid)) < floor) hi = mid; else lo = mid;
+                }
+                share = lo;
+            }
+            return share;
+        }
+
         static double StepLift(Vec3 from, Vec3 to) => Math.Clamp(0.05 + 0.12 * (to - from).Length, 0.06, 0.15);
         Vec3 Outward(bool isLeft) => Vec3.Left(s.Yaw) * (isLeft ? 1 : -1);
 
@@ -786,6 +827,7 @@ internal sealed class FigureSolver
                 gap += _length;
             double previousEnd = previous is null || (_loop && seg == support[0]) ? offset + Math.Min(0, seg.T0) : previous.T1 + offset;
             flowing = previous is not null && BinderRun.Walks(previous) && BinderRun.Walks(seg) && seg.T1 > seg.T0 + 1e-9 && Math.Abs(gap) < 1e-6;
+            var previous2 = previous;   // the word before this one
             previous = seg;
             current = seg;
             double t0 = seg.T0 + offset, t1 = seg.T1 + offset;
@@ -859,7 +901,11 @@ internal sealed class FigureSolver
                     s.On = isLeft ? 'L' : 'R';
                     // At the landing the weight is between the feet, a little toward the new one.
                     // Keyed only at landings, the pelvis passes over the standing foot in mid-step.
-                    Weight(t0, t1, Vec3.Lerp((s.Left + s.Right) * 0.5, target, 0.3));
+                    // A step out of standing still: the body sets off before the foot does, as long again before it
+                    // (in a `then` too: it is what a lead-in is written with): in the foot's own half second it went
+                    // 1.3 to 1.6 m/s, a burst out of every start (trial 28).
+                    double sets = flowing ? t0 : Math.Max(previous2 is { Kind: SegKinds.Hold } ? previous2.T0 + offset : previousEnd, t0 - (t1 - t0));
+                    Weight(sets, t1, Vec3.Lerp((s.Left + s.Right) * 0.5, target, 0.3));
                     break;
                 }
 
@@ -873,10 +919,12 @@ internal sealed class FigureSolver
                         var from = moveLeft ? s.Left : s.Right;
                         var other = moveLeft ? s.Right : s.Left;
                         var target = other + (moveLeft ? leftward : -leftward) * closed;
+                        // A shift that did not get over its foot (a wide stance: DESIGN.md 86.4) leaves the other foot
+                        // with weight on it: it slides in along the floor, the weight coming with it (trial 28).
                         Move(moveLeft, new FootMove
                         {
                             T0 = t0, T1 = t1, From = from, To = target,
-                            YawFrom = moveLeft ? s.LeftYaw : s.RightYaw, YawTo = s.Yaw, Lift = StepLift(from, target),
+                            YawFrom = moveLeft ? s.LeftYaw : s.RightYaw, YawTo = s.Yaw, Lift = s.Short ? 0 : StepLift(from, target),
                             Open = GoRound(from, target, other, Outward(moveLeft)),
                         });
                     }
@@ -884,8 +932,10 @@ internal sealed class FigureSolver
                     {
                         // The weight is on both feet (after a jump, a `shift.center`): neither is the free one.
                         // Two feet do not slide together at once (DESIGN.md 90; they did, trial 23 to here): the
-                        // weight goes over one first, the one it is nearer (the right when it is between them), from
-                        // a little before the word sets out, and the other closes to it.
+                        // weight goes toward one first, the one it is nearer (the right when it is between them), from
+                        // a little before the word sets out, as far as a `shift` goes (no deeper than 3 cm: trial 28, a
+                        // 15 cm lunge out of second), and the other closes to it: lifted when the weight got over the
+                        // standing foot, slid along the floor when it did not (the user, DESIGN.md 90).
                         var apart = s.Left - s.Right;
                         if (Math.Abs(apart.Dot(leftward) - closed) > 0.02 || Math.Abs(apart.Dot(fwd)) > 0.02)
                         {
@@ -895,15 +945,17 @@ internal sealed class FigureSolver
                             var target = standing + (moveLeft ? leftward : -leftward) * closed;
                             double d = t1 - t0;
                             double over = Math.Max(previousEnd, t0 - d / 2), sets = t0 + 0.25 * d;
-                            Weight(over, sets, Vec3.Lerp((s.Left + s.Right) * 0.5, standing, 0.85));
+                            double share = ShareOver(!moveLeft, sets);
+                            Weight(over, sets, Vec3.Lerp((s.Left + s.Right) * 0.5, standing, share));
                             Move(moveLeft, new FootMove
                             {
                                 T0 = sets, T1 = t1, From = from, To = target,
-                                YawFrom = moveLeft ? s.LeftYaw : s.RightYaw, YawTo = s.Yaw, Lift = StepLift(from, target),
+                                YawFrom = moveLeft ? s.LeftYaw : s.RightYaw, YawTo = s.Yaw, Lift = share < OverTheFoot ? 0 : StepLift(from, target),
                                 Open = GoRound(from, target, standing, Outward(moveLeft)),
                             });
                         }
                     }
+                    s.Short = false;
                     s.On = 'B';
                     Weight(t0, t1, (s.Left + s.Right) * 0.5);
                     break;
@@ -913,39 +965,8 @@ internal sealed class FigureSolver
                 {
                     var middle = (s.Left + s.Right) * 0.5;
                     s.On = seg.Foot == "left" ? 'L' : seg.Foot == "right" ? 'R' : 'B';
-                    double share = 0.85;
-                    // The weight goes over the foot only as far as the hips sink 3 cm below where the dancer stands
-                    // (DESIGN.md 86.4). In a wide stance the other leg is all but straight already, and every cm
-                    // toward the foot costs height: `shift.right` 0.7 m apart was a side lunge, the knee at 75°.
-                    // A lunge is written in the height row, and then the hips go on over the foot.
-                    if (s.On != 'B')
-                    {
-                        var hipLeft = Vec3.Left(s.Yaw) * Rig.HipHalf;
-                        double full = Rig.Leg * Rig.StraightLeg;
-                        double Reach(Vec3 hip, Vec3 foot)
-                        {
-                            double d = (new Vec3(hip.X, 0, hip.Z) - new Vec3(foot.X, 0, foot.Z)).Length;
-                            return Math.Sqrt(Math.Max(0.04, full * full - d * d));
-                        }
-                        double StandAt(Vec3 q) => Math.Min(Reach(q + hipLeft, s.Left), Reach(q - hipLeft, s.Right));
-                        // The far leg straightens out of the bend the height row stands in at the end of the shift
-                        // (soft knees, a `low`: Core), and then the hips may sink 3 cm more below where they stand.
-                        double level = Chain(_height, t1, x => x?.Level ?? 0, (a, b, e) => a + (b - a) * e, Dist);
-                        double softness = Chain(_height, t1, x => x is { Straight: true } ? 0.0 : 1.0, (a, b, e) => a + (b - a) * e, Dist);
-                        double drop = Math.Max(softness * Rig.Leg * (Rig.StraightLeg - Rig.BentShare(Rig.Thigh, Rig.Shin, Rig.SoftKnee)), Rig.LowDrop * Math.Max(0, -level));
-                        double floor = StandAt(middle) - drop - 0.03;
-                        var foot = s.On == 'L' ? s.Left : s.Right;
-                        if (StandAt(Vec3.Lerp(middle, foot, share)) < floor)
-                        {
-                            double lo = 0, hi = share;
-                            for (int i = 0; i < 20; i++)
-                            {
-                                double mid = (lo + hi) / 2;
-                                if (StandAt(Vec3.Lerp(middle, foot, mid)) < floor) hi = mid; else lo = mid;
-                            }
-                            share = lo;
-                        }
-                    }
+                    double share = s.On == 'B' ? 0 : ShareOver(s.On == 'L', t1);
+                    s.Short = s.On != 'B' && share < OverTheFoot;
                     Weight(t0, t1, s.On == 'L' ? Vec3.Lerp(middle, s.Left, share) : s.On == 'R' ? Vec3.Lerp(middle, s.Right, share) : middle);
                     break;
                 }
@@ -1359,9 +1380,14 @@ internal sealed class FigureSolver
                 lift = move.AirHeight * 4 * u * (1 - u) + move.LiftFrom + (move.LiftTo - move.LiftFrom) * u;
                 air = true;
                 // Off the floor the foot points: the push off the toes leaves it pointed at once, and it comes back
-                // under the leg only to land, toes first (DESIGN.md 90: it hung level through the air).
+                // under the leg only to land, toes first (DESIGN.md 90: it hung level through the air). The body has
+                // risen onto the toes to leave the floor, so the ankle is higher by what the pointed foot reaches down:
+                // the height of the jump is how far the toes clear the floor (trial 28: a 5 cm skip never left it).
                 if (move.AirHeight > 1e-6)
-                    pitch = -AirPoint * Smooth(Math.Min(1, u / 0.15)) * Smooth(Math.Min(1, (1 - u) / 0.3));
+                {
+                    pitch = AirPitch(u, move.AirHeight);
+                    lift += OntoTheToes(pitch);
+                }
             }
             else
             {
@@ -1376,8 +1402,15 @@ internal sealed class FigureSolver
         }
     }
 
-    /// <summary>How far a foot in the air points, radians: about 50° from square to the shin.</summary>
-    private const double AirPoint = 0.85;
+    /// <summary>How far a foot in the air points, radians (about 35°: the toe 9 cm further below the ankle than standing).</summary>
+    private const double AirPoint = 0.6;
+
+    /// <summary>The foot about its ankle a part <paramref name="u"/> of the way through the air: pointed soon after the take-off, back to land.</summary>
+    private static double AirPitch(double u, double height) =>
+        -AirPoint * Math.Clamp(height / 0.12, 0.4, 1) * Smooth(Math.Min(1, u / 0.35)) * Smooth(Math.Min(1, (1 - u) / 0.4));
+
+    /// <summary>How much higher the ankle is when the foot points so far down (<paramref name="pitch"/>, negative) with its toe where it was.</summary>
+    private static double OntoTheToes(double pitch) => Rig.FootLength * Math.Sin(Math.Max(0, -pitch));
 
     /// <summary>How far apart two ankles pass at the least, metres: a foot's width and a little.</summary>
     private const double AnkleClearance = 0.09;
@@ -1680,7 +1713,8 @@ internal sealed class FigureSolver
             if (t < jump.Land)
             {
                 double u = (t - jump.Up) / (jump.Land - jump.Up);
-                return drop + jump.Height * 4 * u * (1 - u);
+                // Up onto the pointed toes, as the feet are (FootAt): the height is the toes' off the floor.
+                return drop + jump.Height * 4 * u * (1 - u) + (jump.Height > 1e-6 ? OntoTheToes(AirPitch(u, jump.Height)) : 0);
             }
             // Straight legs touch, and give into the height row's plié, and as much more as the give is deeper.
             if (jump.T1 - jump.Land < 1e-9)

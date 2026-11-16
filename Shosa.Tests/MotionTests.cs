@@ -344,9 +344,12 @@ public class MotionTests
 
         var written = Compile(Samples.Solo("    steps { shift.right:3 hop.up(5cm):1 hop.up(5cm):1 hop.up(5cm):1 then:2 }", "tempo 96\ntime 4/4\n"));
         Assert.Empty(written.Diagnostics);
-        double standing = written.Clip.Figures[0].Joint(written.Clip.FrameAt(0), Rig.Pelvis).Y;
+        // The height is how far the toes clear the floor (DESIGN.md 90.5): the hips go higher by what the pointed foot reaches down.
+        double Toes(ShosaCompilation c, double from, double to) =>
+            Enumerable.Range(0, 41).Max(i => c.Clip.Figures[0].Joint(c.Clip.FrameAt(from + (to - from) * i / 40), Rig.RToe).Y);
+        double standing = written.Clip.Figures[0].Joint(written.Clip.FrameAt(0), Rig.RToe).Y;
         foreach (var (from, to) in new[] { (2.0, 3.0), (3.0, 4.0), (4.0, 5.0) })
-            Assert.InRange(Peak(written, from, to) - standing, 0.045, 0.065);
+            Assert.InRange(Toes(written, from, to) - standing, 0.045, 0.065);
 
         Assert.Equal("SH2016", Assert.Single(Compile(Samples.Solo("    steps { shift.right:1/4 hop.up(30cm):1 }", "tempo 120\ntime 4/4\n")).Diagnostics).Code);
         Assert.Equal("SH1012", Assert.Single(Compile(Samples.Solo("    steps { jump.up }", "tempo 120\ntime 4/4\n")).Diagnostics).Code);
@@ -368,7 +371,10 @@ public class MotionTests
         Assert.Empty(plie.Diagnostics);
         double straight = Pelvis(plie, 0);
         Assert.InRange(straight - Lowest(plie, 1, 3), 0.075, 0.095);         // one bend: the plié, and 1 cm more for 10 cm
-        Assert.InRange(Highest(plie, 1, 3) - straight, 0.09, 0.11);          // in the air from straight legs
+        // In the air from straight legs: the toes 10 cm off the floor, the hips higher by the pointed foot (DESIGN.md 90.5).
+        double Toe(double beat) => plie.Clip.Figures[0].Joint(plie.Clip.FrameAt(beat), Rig.LToe).Y;
+        Assert.InRange(Enumerable.Range(0, 81).Max(i => Toe(1 + 2.0 * i / 80)) - Toe(0), 0.09, 0.115);
+        Assert.InRange(Highest(plie, 1, 3) - straight, 0.15, 0.2);
         Assert.Equal(straight - 0.08, Pelvis(plie, 4), 2);                   // and down into the plié again
 
         var rope = Compile(Samples.Solo("    steps { together:2 { jump.up(4cm):1/2 } q q q then:1 }", "tempo 120\ntime 4/4\n"));
@@ -1524,7 +1530,10 @@ public class MotionTests
 
         Assert.True(Foot(1, Rig.LAnkle).X > 0.1 && Foot(1, Rig.RAnkle).X < -0.1, "apart as the jump comes down");
         Assert.True(Foot(2, Rig.LAnkle).X > 0.1 && Foot(2, Rig.RAnkle).X < -0.1, "and until the close sets out");
-        Assert.True(At(clip, 2.6, Rig.Pelvis).X < At(clip, 1, Rig.RAnkle).X + 0.08, "the weight over the right foot first");
+        // As far as a shift goes, no deeper than 3 cm (trial 28: a 15 cm lunge out of second), and then the left foot slides in.
+        Assert.True(At(clip, 2.6, Rig.Pelvis).X < At(clip, 1, Rig.Pelvis).X - 0.03, "the weight toward the right foot first");
+        Assert.True(At(clip, 1.5, Rig.Pelvis).Y - At(clip, 2.6, Rig.Pelvis).Y < 0.035, "sinking no more than 3 cm");
+        Assert.True(Enumerable.Range(0, 11).All(i => At(clip, 2.5 + i / 20.0, Rig.LAnkle).Y < Rig.AnkleHeight + 0.005), "the left foot slides along the floor");
         Assert.True((At(clip, 3, Rig.RAnkle) - At(clip, 1, Rig.RAnkle)).Length < 0.01, "which stays");
         Assert.True(Math.Abs((At(clip, 3, Rig.LAnkle) - At(clip, 3, Rig.RAnkle)).X - (At(clip, 0, Rig.LAnkle) - At(clip, 0, Rig.RAnkle)).X) < 0.01,
             "and the left closes to it, as near as they stood");

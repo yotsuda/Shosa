@@ -1,0 +1,199 @@
+=== 1. patrol.shosa — BEFORE ===
+Words: steps row in a group { leftFoot.fwd rightFoot.fwd leftFoot.fwd rightFoot.fwd together:2 turn.right(180):1 } q
+  (7 beats per half, 14 per loop; time 7/4 so bar lines check the count). Score: loop inPlace.
+  - L@0 R@1 L@2 R@3 walk; together@4 closes the left foot (walks in, "a step after a step");
+    turn.right(180) written at 6, turning through all of together:2 = beats 4-6; the next L at 7 sets out
+    in the second half of the turn word (after "anything else"). Same for the second half (turn 11-13).
+  - Loop: the first step L@0 is "already made"; at the end the feet stand together (not "so"), so the
+    step is taken at the end, in the last word (turn:1, beats 13-14).
+  - together rather than stand because "A turn pivots on ... (on both, if the feet are together)".
+Unclear:
+  - Does "standing on both feet, turn round" need together or does stand also pivot on both?
+  - inPlace: "the even travel over the floor is taken out". The patrol goes out and comes back, so the
+    net travel per loop is 0: is anything taken out? Is the out-and-back left in the root motion?
+  - Is a turn written after `together` a "step after a step"? The table lists turn separately (all of word before).
+  - Does the step after a turn walk or set out from standing? ("After anything else" — turn not named.)
+Expected diagnostics: none; check notes the first step already made; maybe SH2005 if the loop end differs.
+Predictions:
+  (a) Average forward speed 0.5 m / 0.545 s = ~0.92 m/s. Between beats 1 and 3 the pelvis never stops;
+      slowest ~0.6 m/s (65% of average). Around beat 0 (first step out of the turn, from standing) it
+      starts from ~0.
+  (b) Foot leaves soon after the other lands and swings 80% of the beat: double support ~20% of a beat
+      = ~0.11 s per step.
+  (c) Turn 1: beat 4 -> 6. Turn 2: beat 11 -> 13.
+  (d) No diagnostic (only the "already made" note).
+
+--- patrol: from the contact sheet alone ---
+  (a) Poses 0-3 are all mid-stride, nothing looks stopped; can't read speed. Guess: never stops.
+  (b) Can't see; per-beat poses only.
+  (c) Pose 5 is side-on (half round), pose 6 faces back: turn 1 is 4 -> 6; pose 12 side-on, 13 front: 11 -> 13.
+      Pose 7 (and 0) already shows the next step under way.
+  (d) none.
+--- patrol: measured with clip (out\patrol.json, 30 fps) ---
+  (a) Pelvis forward speed: beats 0-2.7 between 0.88 and 1.06 m/s (average over beats 0-3: 1.50 m / 1.64 s
+      = 0.92 m/s). Never stops in the walk. It slows from beat 2.7 to 0.47 m/s at beat 3 and to 0 at 4
+      (the close). The step out of the turn (lands at 0 / 7) sets out at 13.5 / 6.5 and is a burst:
+      pelvis 0 -> 1.59 m/s in half a beat. At the loop seam: frame 228->229 1.23 m/s, 229->230 0.10 m/s,
+      then frame 0->1 1.02 m/s: a one-frame hitch at the join (at beat 7, the same step, no hitch: 1.09, 1.01).
+      Prediction "never stops, slowest ~0.6 between 1 and 3": never-stops HIT; slowest in the walk is
+      0.88 (96% of mean), 0.47 only at the close; and I predicted beat 0 starting from ~0 but it is at
+      1.0 m/s there (the start-from-standing happens in beat 13.5-14 instead). Numbers MISS.
+  (b) Double support 0.09-0.13 s (right lands b1.03, left lifts b1.20; left lands b2.02, right lifts b2.24).
+      Prediction 0.11 s: HIT.
+  (c) Turn 1: feet -0.1 deg at b4.03, -180 at b6.05. Turn 2 ends b13.0 (starts ~11). HIT.
+  (d) No diagnostic. HIT. (check printed no "already made" line for the loop.)
+
+=== 1. patrol — AFTER ===
+Check runs: 1. No diagnostics.
+Unwanted: the first step after each turn sets out from standing in the second half of the turn word
+  (0.27 s for a 0.5 m step): the pelvis lurches to 1.6 m/s. A real guard would take a smaller first step
+  or set out more slowly. One-frame velocity hitch at the loop seam.
+Surprises: inPlace gives velocity [0,0] and the clip keeps all the out-and-back travel (pelvis z from
+  -0.33 to 1.68 m). "loops on the spot" — right, since it comes back, but the game then has to move the
+  character with... nothing; the travel is still in the root/pelvis. The grammar's "even travel" wording
+  hinted at it, but a patrol that goes out and back can't be expressed as "the game moves it".
+Could not express: telling the game the per-segment velocity (forward, then back) for a back-and-forth patrol.
+
+
+=== 2. door.shosa — BEFORE ===
+Words: steps { then:1 leftFoot.fwd rightFoot.fwd leftFoot.fwd stand:5 }   (lead-in so the first step is
+  seen; L lands 1, R 2, L 3, stand at 4 closes the right foot to standing width beside the left).
+  rightArm { down:5 then:1 fwd.down(50):1 fwd.down(65).bent:1 down:1 }
+  - down held 0-5; then:1 = the way to the reach: hand forward at beat 6 (moving 5-6) = "wait one beat" 4-5.
+  - pull: fwd.down(65).bent at 7 (moving 6-7): bent brings the hand closer along a steeper line,
+    i.e. back toward the body and still about at hip height. down at 8 (7-8), held to 9.
+  - Handle at hip height: shoulder at 1.45 m, arm ~0.6 m; down 50 deg -> hand ~0.46 m lower = ~0.99 m,
+    0.39 m in front of the shoulder.
+Unclear: whether `stand` after a step is a "real stop" (the table says a stand after a step WALKS and
+  "the body goes on over the feet without stopping at each landing") — does the body overshoot or settle?
+  Whether a hand reaching "to a handle" could use a place word; no object word exists, so a direction.
+Expected diagnostics: none.
+Predictions:
+  (a) First step from standing (sets out at ~0.5); steps 2 and 3 at walking pace (0.5 m / 0.667 s = 0.75 m/s);
+      the close (3->4) is walked in, the body slows only in the last beat and is at rest at 4.
+      Pelvis forward speed at the landings: b1 ~0.6, b2 ~0.75, b3 ~0.6, b4 0.
+  (b) The right foot moves (the free one, behind), from ~b3.2 to b4.0.
+  (c) Right hand at the reach (b6): ~39 cm in front of the pelvis, ~99 cm above the floor.
+  (d) None.
+
+
+--- door: from the contact sheet alone ---
+  (a) Poses 1-3 mid-stride, 4 standing with feet together: looks like it walks to the end and stops at 4.
+  (b) Pose 3 has the right leg swinging (red behind/through), 4 side by side: the right foot, between 3 and 4.
+  (c) Pose 6: the right arm forward and down, hand somewhere around hip height, maybe 30-40 cm out.
+  (d) none.
+--- door: measured (out\door.json) ---
+  (a) Pelvis forward speed: b0.5 sets out; peak 1.30 m/s at b0.8 (first step from standing, a burst);
+      at b1 0.84, b1.5-2 0.72-0.77, b2.3 0.87, then it slows from b2.5: 0.39 at b3 (the third landing),
+      0.24 at b3.6, 0 at b4.0, no overshoot, still to the end. So it slows already during the third step
+      (2.5-3), and the close is walked at under 0.4 m/s. Prediction b1 0.6 / b2 0.75 / b3 0.6 / b4 0:
+      b2 and b4 HIT, b1 and b3 MISS; "slows only in the last beat" MISS (it slows over the last 1.5 beats).
+  (b) Right foot lifts b3.25, lands beside the left at b4.0 (0.5 m forward). HIT.
+  (c) Hand at b6: 38.5 cm in front of the pelvis, 98.6 cm above the floor (pelvis/hip at 97.5 cm). HIT.
+      The pull ends at 17.9 cm in front, 106 cm up: the hand rises 7 cm while it pulls back.
+  (d) none. HIT.
+
+=== 2. door — AFTER ===
+Check runs: 1. No diagnostics.
+Unwanted: the pull rises 7 cm (bent along a steeper line still lifts the hand: the bent arm's hand is
+  nearer the shoulder, so higher). A straight-back pull would need me to work out direction+bent by hand.
+  The first step from standing is a quick burst (1.3 m/s peak in a 0.5-beat set-out).
+Surprises: the stop is clean (no overshoot) — good. The slow-down starts half a beat before the third
+  landing, earlier than "the body goes on over the feet" made me expect for a close.
+Could not express: the hand holding / pulling the handle as an object; a pull "straight back at the same
+  height" (no way to say a hand position in the room except `stay`, which only holds a place).
+
+
+=== 3. rope.shosa — BEFORE ===
+Words: steps { together:1 { jump.up(5cm) } q q q q q q q }  — feet together from the start (first word already
+  made), 8 jumps landing on beats 1..8; the last jump word (1 beat) is the "stand still for one beat". 9 beats.
+  Plain `jump` lands with the feet as they stood (together), so no `.together` needed; `.up(5cm)` for the height.
+  arms { { side.down(55):1/4@through side.fwd(25).down(62):1/4@through side.down(70):1/4@through
+           side.back(25).down(62):1/4@through } q q q q q q q side.down(55):1 }
+  - a small circle of the hands beside the hips: top, front, bottom, back, one per beat, @through so it
+    does not stop at each point; ends back at the top at beat 8 and holds.
+Unclear: whether `@through` on every point makes a circle or a jerky square; whether the four
+  quarter-beat points are too fast (SH2003 no: tiny distances). What the hands do relative to the jumps
+  (the rope should pass under the feet when they are in the air) — I did not try to phase it.
+  Whether a jump's knee "give after" landing and the bend before take-off are one dip or two.
+Expected diagnostics: none (5 cm needs ~0.28 s, a beat is 0.5 s; no SH2016).
+Predictions:
+  (a) Twice: the grammar says the knees "give a little after" the landing, and a written height "waits on
+      the floor through the rest of the word before" then the jump "bends its own knees before it takes off".
+      0.5 s - 0.28 s = 0.22 s standing in between, so land-give-rise, stand, bend-fly: down twice.
+  (b) "5 cm below for a jump of 3 cm, 7 cm for 6 cm of air" -> about 6.5 cm below standing straight for 5 cm.
+  (c) Level: the grammar says a foot points only with its toe on the other leg or on the floor
+      ("A foot that points or flexes when you choose" is listed as not expressible). Toe-ankle drop = same
+      as standing (0 cm difference).
+  (d) None.
+
+
+--- rope: from the contact sheet alone (out\rope-all-Rope.png, and --step 0.25 --from 2 --to 4 out\rope-Rope.png) ---
+  (a) 2 straight (landing), 2.25 and 2.5 knees bent, 2.75 up, 3 straight: ONE dip per beat, not two.
+  (b) Can't read cm; small bend.
+  (c) At 2.75 the feet look pointed down, maybe still touching.
+  (d) none.
+--- rope: measured (out\rope.json) ---
+  (a) Pelvis: lands at b2.0 (0.979 = standing +0.5 cm), down to 0.914 at b2.27-2.33, up through 0.98 at b2.6
+      to 1.030 at b2.8, lands b3.0. ONE dip between landings. Prediction "twice": MISS.
+  (b) Lowest 0.914 m = 6.0 cm below standing at mid (0.974), ~6.5 cm below straight. Prediction 6.5: HIT.
+  (c) At the top (b2.8) the ankle is 13.1 cm up and the toe at 2.0 cm = ON THE FLOOR: toe 11.1 cm below
+      the ankle vs 6.0 standing -> the foot points 5.1 cm more. check --at 2.7/2.8/2.9: "left on its toes,
+      right on its toes". The feet never leave the floor: the body rises 5.6 cm by pointing the feet.
+      Prediction "level": MISS (pointed), and the jump is not a jump.
+  (d) none. HIT.
+  Experiments (scratch copies, not the answer): jump.up(10cm): pelvis +10.5 cm, toe still 2.0 cm (on its toes).
+      jump.up(20cm): SH2016 x8 "it rises 12.2 cm"; toe at most 2.5 cm (0.5 cm off the floor) for one frame.
+      So at 120 with a landing every beat the feet cannot be seen 5 cm off the floor at all.
+  Hands: a circle per beat, top (b2.0: x .48 y .96 z 0) -> front-low (b2.27 z +.11 y .85) -> bottom (b2.5 y .84)
+      -> back-high (b2.73 z -.11 y .96): forward rope turning, about 21 cm front-back by 14 cm high, at hip
+      height (pelvis .97). Smooth, no visible stops. Not phased to the jumps (hands at the bottom at b2.5,
+      while the feet are on the floor; the rope would hit the feet).
+
+=== 3. rope — AFTER ===
+Check runs: 1. No diagnostics. (Plus 2 runs on scratch copies to try higher jumps.)
+Unwanted: the feet do not leave the floor; the "jump" is a rise onto the toes. The file keeps up(5cm)
+  (body rises 5.6 cm) because no height gives 5 cm of foot clearance at this tempo (max rise 12.2 cm,
+  toe clearance ~0.5 cm).
+Surprises: written height is the pelvis rise, and the foot points to keep the toe down until the rise
+  exceeds the foot's length. One knee bend per beat (the landing give merges into the next take-off).
+Could not express: "feet 5 cm off the floor" (foot clearance) as a target; phasing the rope (hands) to
+  the flight needed me to work out the jump timing myself.
+
+
+=== 4. patrol-edit.shosa — BEFORE ===
+Words: each of the four steps in the group becomes `STEP:1/2 then:1/2` (still one step per beat, the bar
+  still 7 beats). Grammar: after a `then` a step "sets out in the second half of the word before ... from
+  standing still", and "For a step ... a then only waits". So each foot lands on its beat, the body stands
+  through the step's half beat and the first half of the then, and the next step goes in the last quarter beat.
+Tokens: 4 lengths added (`:1/2`) + 4 `then:1/2` added = 8 tokens changed/added. Turns untouched.
+Unclear: whether the body really stops (pelvis speed 0) or only the feet; a step in 1/4 beat (0.136 s, 0.5 m)
+  may be too fast (SH2003?) and look like a lurch, not a march. Whether `together` after a `then` still
+  closes on beat 4 the same way.
+Expected diagnostics: none, maybe SH2003 (foot mean ~3.7 m/s, peak ~5.5 < 12, so probably none).
+Prediction: the pelvis stops at each step for about half a beat (from ~b0.25 to ~b0.75 after each landing).
+
+
+--- patrol-edit: run 1 (STEP:1/2 then:1/2) measured ---
+  Pelvis z exactly still from each landing to b0.72 (0.72 beat = 0.39 s), then the whole 0.5 m in the last
+  0.27 beat (0.15 s): pelvis peak 5.35 m/s. No diagnostic (no speed check on the pelvis). Stop too long, step a lurch.
+  The arithmetic: stop = Lstep + Lthen/2, swing = Lthen/2, Lstep + Lthen = 1 beat -> a stop of half a beat
+  would need Lstep = 0: "half a beat still, half a beat stepping" cannot be written this way.
+--- patrol-edit: run 2 (STEP:1/4 then:3/4) — kept ---
+  Pelvis z still from each landing to b0.60 (0.33 s, ~0.6 beat), then 0.5 m in 0.4 beat (0.22 s), peak 3.6 m/s.
+  Sheet (--step 0.25, out\patrol-edit-Patrol.png): poses 0/0.25/0.5 identical, 0.75 the foot in the air; the
+  floor path same as before. Turns unchanged (same words).
+  Measure: does the pelvis stop at each step? YES, speed 0.00 for ~0.6 beat after every landing.
+  Prediction "stops ~half a beat, from b0.25 to b0.75": HIT that it stops; it stops from the landing itself
+  (b0.0) to b0.6 — no settling glide after the landing (MISS on the start time).
+
+=== 4. patrol-edit — AFTER ===
+Check runs: 2 (both no diagnostics; the second changed the numbers to shorten the stop).
+Tokens: 8 added (4 x `:1/4` on the steps, 4 x `then:3/4`). Values of 4 tokens changed between run 1 and 2.
+Unwanted: the step after the stop is a dash (pelvis 3.6 m/s; 5.35 m/s with 1/2+1/2) — a marcher moves the
+  body over the foot at walking speed, not at a sprint. The body stops dead on the landing (no deceleration).
+Surprises: no warning for a pelvis at 5 m/s. The stop and the swing are coupled through the `then` length,
+  so "a stop of half a beat with a step of half a beat" is out of reach.
+Could not express: a stop of a given length per step independently of the swing time (e.g. "@stop", or a
+  step that sets out over all of the then).
+

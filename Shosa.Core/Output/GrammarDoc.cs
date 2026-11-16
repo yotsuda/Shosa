@@ -188,7 +188,9 @@ public static class GrammarDoc
               8 beats, like the guard beside it: with bar lines, `{ low(8cm) low } q | % |`.)
             - `inPlace` in a score — the sections are written the same (`leftFoot.fwd` still steps), but
               the even travel over the floor is taken out of the output and reported as a velocity,
-              for an engine that moves the character itself. Usually with `loop`.
+              for an engine that moves the character itself. Usually with `loop`. Only the travel from
+              start to end is taken out: a patrol that goes out and comes back ends where it began, its
+              velocity is 0, and the walk out and back stays in the movement (write each way as a score of its own to hand both to the engine).
             - A section lasts as long as its longest track. A part no track writes stays as it is.
 
             ## Tracks: one row per part of the body
@@ -255,7 +257,7 @@ public static class GrammarDoc
 
             | Part | When it sets out |
             |---|---|
-            | The feet — in `steps`: a step, `stand` | A step straight after a step (or a `stand`, a `together`) WALKS: its foot leaves the floor soon after the other lands and swings through 80% of the word before, no more than 0.6 s, and the body goes on over the feet without stopping at each landing. In `leftFoot.fwd rightFoot.fwd leftFoot.fwd` at 120 the right foot is off the floor from beat 0.2 to beat 1. After anything else (a `then`, a shift, a jump, the start) a step sets out in the second half of the word before, no more than 0.5 s before its beat, from standing still: `leftFoot.side then stand` closes between beat 1.5 and beat 2. A foot always STANDS on its beat. |
+            | The feet — in `steps`: a step, `stand` | A step straight after a step (or a `stand`, a `together`) WALKS: its foot leaves the floor soon after the other lands and swings through 80% of the word before, no more than 0.6 s, and the body goes on over the feet without stopping at each landing. In `leftFoot.fwd rightFoot.fwd leftFoot.fwd` at 120 the right foot is off the floor from beat 0.2 to beat 1. After anything else (a `then`, a shift, a turn, a jump, the start) a step's FOOT sets out in the second half of the word before, no more than 0.5 s before its beat: `leftFoot.side then stand` closes between beat 1.5 and beat 2; the body sets off as long again before the foot, so a walk starts without a jerk. A walk that ends (a `stand`, a `then`, the last step) slows over its last step and is at rest on the last beat. A step with `@sharp` waits, body and all, and goes in its last 0.15 s: the stamp of a hit. A foot always STANDS on its beat. |
             | A turn in `steps` (`turn.right(90)`, …) | Through ALL of the word before, as a gesture: it is the body that turns over the foot. `together:2 turn.right(90):2` turns from beat 0 to beat 2. A quick pivot is a short word: `together:3/2 turn.right(90):1/2` turns in the half beat before beat 2. |
             | A shift in `steps` (`shift.right`, …) | Through ALL of the word before, as a gesture: the weight is the body's, not a foot's. `leftFoot.side(0.5m):2 shift.right:2` stands wide on beat 0 and moves the weight over from beat 0 to beat 2. To move it later, stand first: `leftFoot.side(0.5m):1 then:1 shift.right:2` (`then`, below) moves it from beat 1 to beat 2. Unlike a gesture it does not slow at a word on its way: `shift.right:2 shift.center:2 shift.left:2` goes on through the middle at one speed, and slows only where it turns back (so `@through` is not needed on a shift, and is not taken). |
             | A jump, a hop, a leap | It LANDS on its beat. The bend and the flight are in the word before it (in up to a second of it). |
@@ -1019,7 +1021,9 @@ public static class GrammarDoc
               position turned out (the front heel at the back toes), `back(0.07m).across` crosses 0.07 m behind,
               `fwd(0.5m).across` is a stride that crosses (`fwd.across` too). A cross is not a
               stride. Since the next step is placed from the crossed foot, a line of
-              side / cross / side drifts by that 0.12 m; alternate front and behind to cancel it.
+              side / cross / side drifts by that 0.12 m; alternate front and behind to cancel it. A grapevine
+              crosses behind both ways and so drifts back 0.24 m over two; to keep it level, give the next
+              side step the way back: `rightFoot.side.fwd(0.12m)`… or cross just behind, `back(0.03m).across`.
             - A step that turns (`leftFoot.place@turn(left(45))`) swivels on the standing foot, not
               on the middle of the body, so turning on the spot wanders a little and comes back:
               a whole turn ends where it began, a part of one does not. A quarter turn in two
@@ -1044,10 +1048,13 @@ public static class GrammarDoc
               a `shift.left`: `together` closes it touching (turned out, heel to heel), `stand` to
               standing width. Where the weight is on both feet (after `jump.apart`, after
               `shift.center`, after a first step already made) neither is the free one: the weight goes
-              over the foot it is nearer first (the RIGHT foot when it is between them), from a little
-              before the word sets out, and the other foot closes to it alone (two feet do not slide in
-              at once): `jump.apart:1 then:1 stand:2` ends with the feet together where the right foot
-              stood. To close onto the left foot, shift to it first: `jump.apart:1 shift.left:1 stand:2`.
+              toward the foot it is nearer first (the RIGHT foot when it is between them), from a little
+              before the word sets out and as far as a `shift` goes (no more than 3 cm lower), and the other
+              foot closes to it alone (two feet do not slide in at once): `jump.apart:1 then:1 stand:2` ends
+              with the feet together where the right foot stood. To close onto the left foot, shift to it
+              first: `jump.apart:1 shift.left:1 stand:2`. The closing foot is lifted when the weight got
+              over the other foot (a stance up to about 0.3 m), and SLIDES in along the floor when it could
+              not (a wide second: the weight comes over as the foot slides in).
               To come in to the middle, jump them in: `jump.stand`. To STAND with the feet apart from the start, the first
               word of `steps` is `leftFoot.side` (or `jump.apart`): a first word is already made, and
               stands on both feet.
@@ -1106,8 +1113,12 @@ public static class GrammarDoc
               To stand still 2 beats and then jump, give the jump only its own time: `together:2 then:1 jump`
               (bends after beat 2, off the floor near 2.5), or write its height (`together:3 jump.up(10cm)`
               stands until about beat 2.2). To see when the feet leave the floor, `shosa check --at 2,2.25,2.5` (it says each foot `on the floor` or `N cm up`), or `shosa sheet --step 0.25`.
-              A quarter of a second gives 3 cm of air — the sheet shows bent knees and no flight — and
-              half a second 10 cm (how far the body rises; a foot swinging through clears the floor by more): a leap that is to be SEEN in the air needs half a second or more before it.
+              A quarter of a second gives 3 cm of air and half a second 10 cm: a leap that is to be SEEN in the air needs half a second or more before it.
+              **The height of a jump is how far the toes clear the floor.** In the air the feet point (soon after
+              the take-off, and back under the legs to land, toes first), and the body has risen onto its toes
+              to leave the floor, so the hips go higher than that by what the pointed foot reaches down: about
+              4 cm more for a little jump, up to 9 cm for 12 cm and more (`jump.up(5cm)` lifts the hips about 9 cm,
+              the toes 5 cm). A foot swinging through in a leap or a run clears the floor by more.
               **To make jumps alike whatever comes before them, write the height**: `hop.up(5cm)`,
               `jump.fwd(0.3m).up(20cm)`. A written height takes the time it needs (5 cm about 0.28 s, 10 cm
               0.44 s, 20 cm 0.69 s, bend and air) and the body stands through the rest of the word before:
@@ -1133,6 +1144,9 @@ public static class GrammarDoc
               `height { straight:1 low(8cm):1 }` with `steps { together:2 jump.up(10cm):1 }` goes down into
               the plié through beat 1, stays, sinks 1 cm more, jumps 10 cm, lands at beat 2 and gives back into the plié.
               `jump@turn(right(180))` turns in the air. Jumps in a row, each on its beat: `jump jump jump`.
+              Between two jumps close together (no more than 0.15 s standing between the give of one and the
+              bend of the next: jumping jacks, a skipped rope) the knees go down and up ONCE: the give of the
+              landing is the bend of the next take-off.
               `left` / `right` go to the dancer's own left and right (a sidestep or a
               dodge: `jump.right(0.25m)`; a dancer `facing stageLeft` has upstage on its left, so two who
               face each other and both write `jump.left` go to opposite walls); with `fwd` or `back` they go
@@ -1333,7 +1347,7 @@ public static class GrammarDoc
             - Arm swing while walking is not added for you: unwritten arms hang still.
             - A change of tempo or of time in the middle of a section (a section says them where it begins; a dance to a song follows its song).
             - A toe at any place on the other leg but its knee and its ankle; a hand on a leg (the thigh, the knee).
-            - A foot that points or flexes when you choose (it points only with its toe on the other leg or on the floor, `side.floor`); standing on pointe; one foot on its toes (demi-pointe) while the other is flat — `height { high }` puts both up.
+            - A foot that points or flexes when you choose (it points by itself in the air of a jump, and with its toe on the other leg or on the floor, `side.floor`; a leg lifted while standing keeps its foot square); standing on pointe; one foot on its toes (demi-pointe) while the other is flat — `height { high }` puts both up.
             - Beating the legs in the air (an entrechat; a changement is `jump.change`).
 
             ## Checking your work

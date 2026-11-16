@@ -1,0 +1,17 @@
+title "Turns"
+tempo 80
+time 4/4
+
+role solo
+dancer solo humanoid on solo
+
+section Turns {
+  solo {
+    // a slow quarter turn over beats 0-2; stand 2-4; weight to the left 4-5; a quick whole turn 5.5-6; close
+    steps    { together:2 turn.right(90):2 | then:1 shift.left:1/2 then:1/2 turn.right(360):1 shift.center:1 | }
+    rightLeg { skip:4 | then:1 otherKnee:1 then:1 down:1 | }    // up to the left knee in 4-5, held, down in 6-7
+  }
+}
+
+form { Turns }
+score { dancer solo }

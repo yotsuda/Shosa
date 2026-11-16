@@ -1,0 +1,15 @@
+title "Door"
+tempo 90
+
+role npc
+dancer npc humanoid on npc
+
+section Door {
+  npc {
+    steps    { then:1 leftFoot.fwd rightFoot.fwd leftFoot.fwd stand:5 }
+    rightArm { down:5 then:1 fwd.down(50):1 fwd.down(65).bent:1 down:1 }
+  }
+}
+
+form Door { Door }
+score Door { dancer npc  form Door }

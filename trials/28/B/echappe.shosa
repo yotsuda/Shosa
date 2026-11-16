@@ -1,0 +1,24 @@
+title "Echappe"
+tempo 96
+time 2/4
+
+role solo
+dancer solo humanoid on solo
+
+// Bar 1 is a lead-in standing in first position, so that the first échappé is seen.
+section Echappe {
+  solo {
+    turnout { out(80) }
+    height  { straight }
+    arms    { fwd.across(30).down(70).bent(40).elbow(side) }
+    steps {
+      together:2 |
+      jump.apart(0.7m).up(12cm):1 then:1 |  then:1 together:1 |                     // out; close onto the right foot without jumping
+      jump.apart(0.7m).up(12cm):1 then:1 |  then:1/2 shift.left:1/2 together:1 |    // out; the weight to the left, the right foot closes
+      jump.apart(0.7m).up(12cm):1 then:1 |  jump.together.up(12cm):2 |              // out; jump back in
+    }
+  }
+}
+
+form { Echappe }
+score { dancer solo }

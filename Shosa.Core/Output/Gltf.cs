@@ -172,7 +172,10 @@ public static class Gltf
             int frames = cast[c].Count == 0 ? 0 : cast[c].Max(f => f.Rotations.Count);
             if (frames == 0)
                 continue;
-            int time = Accessor([.. Enumerable.Range(0, frames).Select(f => (float)((double)f / clip.Fps))], "SCALAR", 1, bounds: true);
+            // The last frame is the pose at the very end (Rig.BeatOfFrame), seldom a whole frame after the one before:
+            // keyed at its own time, a loop is as long as the score and does not stand still at the join (trial 28).
+            double end = clip.SecondsAt(clip.TotalBeats);
+            int time = Accessor([.. Enumerable.Range(0, frames).Select(f => (float)Math.Min((double)f / clip.Fps, end))], "SCALAR", 1, bounds: true);
             samplers = [];
             channels = [];
             foreach (var figure in cast[c])

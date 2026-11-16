@@ -1,0 +1,15 @@
+title "Rope"
+tempo 120
+
+role kid
+dancer kid humanoid on kid
+
+section Rope {
+  kid {
+    steps { together:1 { jump.up(5cm) } q q q q q q q }
+    arms  { { side.down(55):1/4@through side.fwd(25).down(62):1/4@through side.down(70):1/4@through side.back(25).down(62):1/4@through } q q q q q q q side.down(55):1 }
+  }
+}
+
+form Rope { Rope }
+score Rope { dancer kid  form Rope }

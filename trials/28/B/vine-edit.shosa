@@ -1,0 +1,17 @@
+title "Grapevine"
+tempo 120
+time 4/4
+
+role solo
+dancer solo humanoid on solo
+
+// A lead-in bar so that the first step is seen; the vine is bars 2 and 3 (beats 4-12).
+section Vine {
+  solo {
+    steps { then:4 | { rightFoot.side@sharp leftFoot.back.across@sharp rightFoot.side@sharp together@sharp } | q@mirror | }
+    arms  { down:3 then:1 | side:4 | then:4 | }
+  }
+}
+
+form { Vine }
+score { dancer solo }

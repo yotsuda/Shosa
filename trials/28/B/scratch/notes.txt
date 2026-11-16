@@ -1,0 +1,248 @@
+Trial 28, subject B — notes
+
+==================================================================
+FILE 1: vine.shosa — BEFORE
+==================================================================
+Words chosen:
+  steps { then:4 | { rightFoot.side leftFoot.back.across rightFoot.side together } | q@mirror | }
+    - a lead-in bar of `then:4` so that the first step (count 1) is SEEN: the grammar says a step
+      written on beat 0 is "a foot already there" and to "give the score a lead-in". So the dance's
+      bar 1 is beats 4-8 and bar 2 beats 8-12; the section is 3 bars (12 beats) not 2.
+    - `leftFoot.back.across` = "the cross-behind of a grapevine" (grammar line about across).
+    - `together` for "closes beside the right" (touching). `stand` would be 0.2 m apart.
+    - bar 2 = the group again with q@mirror (left side, right foot crosses behind, together).
+  arms { down:3 then:1 | side:4 | then:4 | }  — down through the lead-in, rise in the last beat of
+    it, at the side on count 1 (beat 4), kept.
+Unclear in the grammar:
+  - Is a `together` straight after a step also "walking" (setting out at 80% of the word before)?
+    The table says "A step straight after a step (or a stand, a together) WALKS", which reads as
+    "a step after a together walks", not that the together itself walks.
+  - Can a bar line stand right after a `{ … }` group, and can `q@mirror` alone fill a bar?
+  - The side/cross/side line "drifts by that 0.12 m; alternate front and behind to cancel it" — so
+    a pure behind-vine drifts back 0.12 m per cross? Mirrored in bar 2, both crosses are behind,
+    so I expect it NOT to cancel (two crosses behind = 0.24 m back?).
+  - Whether the pelvis really keeps moving through a `together` (the close) into the next step.
+Expected diagnostics: none (maybe a warning that the arms move... no). Possibly none.
+Predictions:
+  (a) Over bar 1 (beats 4-8) the pelvis does not stop moving to the right while walking (grammar:
+      "the body goes on over the feet without stopping at each landing"); the slowest sideways speed
+      maybe ~30-50% of the average, not zero. EXCEPT at the very end (the together at beat 7, and
+      bar 2 reverses), where it must stop and turn back. Also at the start of bar 1 it starts from
+      standing. So: no stop inside beats 4.5-7; slowest inside that window ~ 0.4 x average.
+  (b) Travel in bar 1: side 0.55 m (+0.35 body), cross behind (-ish: the left foot goes 0.08 m past
+      the right), side 0.55 from the crossed foot, together. Each `side` carries the body 0.35 m:
+      I estimate ~0.35 + ~0.3 (cross) ... rough: pelvis ends ~0.9-1.0 m to the right after bar 1.
+      Maybe 0.95 m. After both bars: back near the start, ~0.0 m sideways, perhaps 0.2 m back
+      (two crosses behind drift).
+  (c) No diagnostic.
+
+--- vine.shosa — from the contact sheet alone ---
+  (a) Per-beat and half-beat sheets: the feet swing on every half beat, no pose looks like a
+      standing stop until beat 11 (the end). The pelvis cannot be judged from the poses (travel is
+      only on the floor plan). Sheet answer: it does not stop in bar 1 until the together.
+  (b) Floor plan: grid lines ~140 px apart (I assume 1 m); the path goes from the ring to ~143 px to
+      the sheet's left (= dancer's right) — about 1 m, and comes back to the ring's x, one row up
+      (back). check: "ends 0.24 m back and 0.05 m to its left". Sheet answer: ~1 m; ends ~0.24 m back.
+  (c) none.
+--- vine.shosa — measured (clip, pelvis x; dancer's right = -x) ---
+  (a) Bar 1 (beats 4-8): the pelvis moves right continuously from beat 3.0 (it sets out in the
+      lead-in bar's last beat) to beat 7.0; the slowest sideways speed between beats 4 and 6.5 is
+      0.45 m/s at beat 4.4 against a mean of 0.51 m/s (beats 4-7) — ~88% of the mean, never stops.
+      It decelerates to 0 only at beat 7 (the together) and goes straight back left in 7-8 (bar 2's
+      first step sets out). => HIT (does not stop); my "slowest ~0.4 x average" was too low.
+  (b) Pelvis x: 0 at start, -0.258 at beat 4 (count 1 lands), -1.030 at beat 7 (furthest right,
+      the together), -0.723 at beat 8 (already on the way back). Travel to the right in bar 1:
+      1.03 m. After both bars: x = +0.05 (5 cm to its left), z = -0.24 (24 cm back). => HIT
+      (predicted ~0.95 m; ~0 sideways, ~0.2 m back).
+  (c) no diagnostic. => HIT
+
+AFTER (vine):
+  check runs: 1 (no diagnostics).
+  Unwanted: (1) the drift back: 0.12 m per cross-behind, 0.24 m after the two bars. The grammar
+    says alternate front and behind to cancel it, but the task asks for cross-behind in both bars.
+    Could fix by writing `leftFoot.back.across` with a `fwd` part? No: "how far in front is said
+    by fwd / back" — `back(0.0m).across` might put it level; I did not try (task says cross behind).
+  (2) The task asked for two bars; I needed a third (lead-in) bar to see the first step. Without
+    it the first `rightFoot.side` at beat 0 is "already made" and not seen.
+  Surprises: the pelvis already moves right during beat 3-4 (the lead-in), with the first step from
+    standing; and in bar 1 the pelvis reverses at beat 7 without any stop, while in bar 2 it
+    stands still from beat 11 to 12 (the last word).
+  Could not express: nothing else.
+
+==================================================================
+FILE 2: echappe.shosa — BEFORE
+==================================================================
+Words chosen (tempo 96, time 2/4; counts 1-4 = two bars):
+  turnout { out(80) }, height { straight }, arms { fwd.across(30).down(70).bent(40).elbow(side) }
+  (bras bas, the grammar's own example), steps:
+    together:2 |                                     lead-in bar: first position (heels together)
+    jump.apart(0.7m).up(12cm):1 then:1 |            count 1 land in a wide second, count 2 stay
+    then:1 together:1 |                              close (no jump) over count 3, closed on count 4
+    jump.apart(0.7m).up(12cm):1 then:1 |
+    then:1/2 shift.left:1/2 together:1 |             weight to the LEFT in the first half of count 3,
+                                                     the right foot closes in the second half
+    jump.apart(0.7m).up(12cm):1 then:1 |
+    jump.together.up(12cm):2 |                       jump back in, landing on count 3, held count 4
+  Again a lead-in bar so the first échappé is seen (a jump on beat 0 would be "already made").
+  Heights written (12 cm) so the jumps are alike although the words before them differ (2 beats,
+  1 beat, 1 beat, 2 beats).
+Unclear:
+  - "bring the feet back together over count 3": a step after `then` sets out only in the second
+    half of the `then`, so the close takes half of count 3, not all of it. There seems to be no way
+    to make a close (a step) last a whole beat (a step is not a gesture; @linear? not said).
+  - "the weight goes over the foot it is nearer first (the RIGHT foot when it is between them)" —
+    how far over the right foot, in a 0.7 m stance? The shift paragraph says a 0.7 m stance goes
+    only a quarter of the way, but to free a foot it must go all the way? Not said.
+  - Order `jump.apart(0.7m).up(12cm)` vs `jump.up(12cm).apart(0.7m)`: examples only show
+    `jump.fwd(0.3m).up(20cm)`, so `up` last.
+  - `jump.together` after `jump.apart`: lands where? Centred, I assume (it is a jump from both feet).
+Expected diagnostics: none (maybe SH2016 if 12 cm does not fit in one beat at 96 = 0.625 s; the
+  grammar says 12 cm needs ~0.5 s, so it should fit).
+Predictions:
+  (a) First close without a jump: the LEFT foot moves (the weight goes over the right foot first,
+      since the feet are apart and it is "between them"). The pelvis goes first to the dancer's
+      right, by ~0.3 m (over the right foot, 0.35 m from the middle), and the left foot closes to it;
+      the dancer ends ~0.35 m to its right of the start.
+  (b) Second close (onto the left): starting from x=-0.35, the jump apart puts the left foot at 0 and
+      the right at -0.7; the right closes to the left: ends at x≈0, i.e. ~0.35 m to the LEFT of where
+      the first close ended (back where it began).
+  (c) Between the landing in second and the landing closed: 2 dips (the knees give after landing,
+      the body stands — a written height "stands through the rest of the word before" — and bends
+      again before the take-off).
+  (d) Not pointed: the grammar says a foot points only on the floor/on the other leg. Toe-below-
+      ankle in the air ≈ the same as standing (difference < 1 cm).
+  (e) none.
+
+--- echappe.shosa — from the contact sheet alone (per beat, and --step 0.25 from 2 to 14) ---
+  (Beats: lead-in 0-2; échappé 1 lands at 2, close lands at 5; échappé 2 lands at 6, shift 8-8.5,
+   close lands at 9; échappé 3 lands at 10, jump in lands at 12.)
+  (a) At 4.5 the body is far over to the dancer's right (sheet's left) with bent knees, at 4.75 the
+      LEFT (blue) foot is in the air coming in, closed at 5. Pelvis goes right first; I read ~0.3 m.
+  (b) Poses are drawn each in its own place, so not readable; check says "ends where it began";
+      by my plan the second close ends ~0.35 m left of the first.
+  (c) Between 10 and 12 I see one dip at 11.25 (bent knees before the take-off); no landing give
+      visible at 10.25. Sheet answer: 1.
+  (d) At 5.75 / 9.75 / 11.75 (in the air) the feet look as if they hang down; cannot judge pointing.
+  (e) none.
+--- echappe.shosa — measured (clip) ---
+  (a) First close (then:1 together:1, beats 4-5): the LEFT foot moves (left ankle lifts at 4.63,
+      up to 0.197 m — 12 cm off the floor, it does not slide — and lands at x=-0.27 at beat 5).
+      Before that the pelvis goes to the dancer's right from beat 4.25 to 4.63, by 0.30 m
+      (x 0 -> -0.30), AND DOWN by 15 cm (y 0.944 -> 0.796): a lunge over the right foot although the
+      height row says `straight`. Then the close; ends at x=-0.31. => HIT (left foot, ~0.3 m right).
+  (b) Second close: the shift.left (8.0-8.5) moves the pelvis only 0.087 m toward the left foot
+      (x -0.31 -> -0.223, a quarter of the way, as the shift rule says for 0.7 m). The right foot then
+      lifts and flies in 8.75-9.0 while the pelvis moves the remaining 0.22 m in 0.16 s. Feet end at
+      x=+0.04 / -0.04 (centre 0): 0.31 m to the LEFT of where the first close ended, back at the start
+      ("ends where it began"). => HIT (predicted 0.35; it is 0.31 because heels touch).
+  (c) Landing in second at 10: pelvis dips to 0.891 at 10.06 (5 cm give), back up to 0.944 by 10.25,
+      stands still 10.25-11.2, dips to 0.844 at 11.38 (take-off bend), in the air 11.5-11.94, lands at
+      12 and gives to 0.919. Two dips. => HIT (sheet said 1: the landing give is between 1/4-beat poses).
+  (d) Top of the jump (beat 9.75): ankle y 0.205, toe y 0.027 -> toe 17.8 cm below the ankle;
+      standing: ankle 0.080, toe 0.020 -> 6.0 cm. So the feet ARE pointed in the air (+11.8 cm).
+      => MISS (I predicted not pointed, from "What the language cannot say": "A foot that points or
+      flexes when you choose (it points only with its toe on the other leg or on the floor)").
+  (e) no diagnostic. => HIT
+
+AFTER (echappe):
+  check runs: 1 (no diagnostics).
+  Unwanted: (1) the close without a jump (onto the right) is a 15 cm lunge: the pelvis drops from
+    0.944 to 0.796 while it goes over the right foot, in a ballet stance written `straight`.
+    (2) In the second close the weight is only a quarter of the way to the left foot (the shift rule)
+    when the right foot lifts; the rest of the weight transfer (0.22 m) happens in 0.16 s while the
+    foot is in the air. The close onto the right foot (implicit) went fully over the foot; the close
+    onto the left (explicit shift, as the grammar told me to write) does not. Inconsistent.
+    (3) Both closes LIFT the foot 12 cm and carry it through the air; a ballet close from second
+    slides along the floor. No word for a foot that slides in (a leg row `side.floor` then skip?).
+    (4) The close takes only half of count 3 (it sets out in the second half of the `then`).
+  Surprises: the feet point in the air although the grammar's list says a foot points only on the
+    floor or on the other leg.
+  Could not express: a close that takes the whole of count 3 (slow drawing-in of the foot);
+    sliding the foot in along the floor.
+
+==================================================================
+FILE 3: turns.shosa — BEFORE
+==================================================================
+Words chosen (tempo 80, 4/4, 2 bars):
+  steps    { together:2 turn.right(90):2 | then:1 shift.left:1/2 then:1/2 turn.right(360):1 shift.center:1 | }
+  rightLeg { skip:4 | then:1 otherKnee:1 then:1 down:1 | }
+  - `together:2 turn.right(90):2`: the grammar's own slow quarter turn, turning through all of the
+    word before = beats 0-2 (starts at once on beat 0, the first word being where the body is).
+  - stand beats 2-4 (the turn's own length 2).
+  - beat 4-5: the weight goes to the left (shift.left written at 5 goes through the `then:1` 4-5) while
+    the right leg rises to the left knee (`then:1 otherKnee` after the skip: lifts in 4-5 only).
+  - `then:1/2 turn.right(360)` : the full turn goes through the half-beat `then` = 5.5-6, on the left
+    foot (the foot a shift went to), landing (= finished) on beat 6.
+  - leg `then:1 down:1`: held through the turn, comes down 6-7; `shift.center` at 7 puts the weight
+    between the feet over 6-7. Standing 7-8.
+Unclear:
+  - Does the turn pivot on the left foot because of the shift (the grammar says "the one ... that a
+    shift went to"), and does the shift go all the way over the left foot with feet together?
+  - Do I need the shift at all? "From standing on both feet nothing else is needed: the weight goes
+    over the other foot by itself as the leg lifts" — but then does a turn know its foot?
+  - "landing on the next beat": I read it as the turn being finished on beat 6.
+  - otherKnee with no turnout: the knee points forward (parallel).
+Expected diagnostics: none.
+Predictions:
+  (a) At beat 1 the slow quarter turn is about half way: ~45° (eased in and out symmetrically).
+  (b) The full turn starts at beat 5.5 and ends at beat 6.0.
+  (c) none.
+
+--- turns.shosa — from the contact sheet alone (per half beat; --step 0.125 from 4.5 to 7) ---
+  (a) The figure from above at beat 1 is diagonal: ~45°.
+  (b) 5.5 still facing as before; 5.625 turned about 120-180; 5.75 back-facing...; 5.875 diagonal;
+      6 facing as before again. Start 5.5, end 6.0.
+  (c) none.
+--- turns.shosa — measured (clip angles `feet`) ---
+  (a) beat 1: -43.5° (43.5° to the right). => HIT (45 predicted).
+      (0.25: 4.4°, 0.5: 13.5°, 1.5: 76.5°, 2: 90°; eased in and out.)
+  (b) feet angle -90.0 at 5.459, -90.5 at 5.500, -102 at 5.542 … -82 at 5.959, -90.0 at 6.001.
+      Starts 5.5, ends 6.0. => HIT.
+  (c) no diagnostic. => HIT
+  Also: the weight goes over the left foot during 4-5 (pelvis 5 cm to the left ankle), the right
+  ankle is up at 0.65 m (knee bent 129°) from 5 to 6, comes down 6-7.
+
+AFTER (turns):
+  check runs: 1 (no diagnostics).
+  Unwanted: nothing big. The quarter turn on two feet together pivoted on the RIGHT foot (both feet
+    end at the old right foot's x; the middle of the feet moved 5 cm), though the grammar says "on
+    both, if the feet are together"; check still says "ends where it began".
+  Surprises: none; everything landed where predicted. I could not tell whether the explicit
+    shift.left was needed (I wrote it to be safe).
+  Could not express: arms for the pirouette were not asked; fine.
+
+==================================================================
+FILE 4: vine-edit.shosa — BEFORE
+==================================================================
+Words chosen: copy of vine.shosa; add `@sharp` to the four steps inside the group
+  `{ rightFoot.side@sharp leftFoot.back.across@sharp rightFoot.side@sharp together@sharp }`;
+  the `q@mirror` repeats them for bar 2. 4 tokens added, none changed (plus the title, a comment).
+  "Any word with @sharp: at the last moment: it waits, then goes in no more than 0.15 s before its
+  beat" — at 120 a count is 0.5 s, so ~0.35 s still (0.7 count) and 0.15 s moving. That is a bit
+  more than "about half a count" but the nearest a single word gives.
+  Alternative considered: `rightFoot.side:1/2 then:1/2 …` (a step after a `then` sets out in the
+  second half of the then: freeze 0.75 count) — more tokens (8 lengths changed + 8 thens).
+Unclear: does @sharp on a step make the BODY (pelvis) wait too, or only the foot? The "walk" rule
+  says the body goes on over the feet without stopping; does @sharp override it?
+  Does `q@mirror` carry the @sharp along? (It should: it repeats the group.)
+Expected diagnostics: none (maybe SH2003 if the foot is too fast: 0.55 m in 0.15 s ≈ 3.7 m/s mean,
+  5.5 peak < 12 m/s).
+Prediction: the pelvis stops (speed ~0) on each count for ~0.3 s, then moves 0.35 m in ~0.15 s.
+
+--- vine-edit — from the contact sheet alone (--step 0.25, 4-12) ---
+  On each count the pose at N, N.25 and N.5 is the same (feet apart or crossed, unchanged); the
+  move happens between N.5 and N+1 (only N.75 shows a foot in the air). So it stops on each count.
+--- vine-edit — measured (pelvis x speed per frame) ---
+  On every count the pelvis is still (0.000 m/s) for 10 frames = 0.33 s = 0.67 count (e.g. f60-69,
+  beats 4.0-4.67), then moves in 5 frames (0.167 s), peaking at 2.4-3.7 m/s sideways. The same in
+  bar 2 (q@mirror carried the @sharp). The end place is unchanged (0.24 m back, 0.05 m left).
+  => HIT: it now stops on each count. Freeze 0.67 count (asked: about 0.5).
+AFTER (vine-edit):
+  check runs: 1 (no diagnostics).
+  Tokens: 4 added (`@sharp` on each of the 4 steps in the group), 0 changed. The group + q@mirror in
+    the original made this cheap; written out bar by bar it would have been 8.
+  Unwanted: the freeze is 0.67 count rather than ~0.5; and the travel between is a 0.17 s dash
+    with the pelvis at up to 3.7 m/s sideways — no warning (SH2003 looks at hands and feet only).
+    There is no word for "go in half a count" on a step; a step's `@sharp` is fixed at 0.15 s
+    (at any tempo), and `then` only offers "the second half".
+  Surprises: the body (not only the foot) waits; the @sharp overrides the walking rule completely.

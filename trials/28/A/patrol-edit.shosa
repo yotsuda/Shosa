@@ -1,0 +1,15 @@
+title "Patrol"
+tempo 110
+time 7/4
+
+role guard
+dancer guard humanoid on guard
+
+section Patrol {
+  guard {
+    steps { { leftFoot.fwd:1/4 then:3/4 rightFoot.fwd:1/4 then:3/4 leftFoot.fwd:1/4 then:3/4 rightFoot.fwd:1/4 then:3/4 together:2 turn.right(180):1 } | q | }
+  }
+}
+
+form Patrol { Patrol }
+score Patrol { dancer guard  form Patrol  loop  inPlace }
