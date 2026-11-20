@@ -386,7 +386,7 @@ function previewHtml(webview: vscode.Webview, script: vscode.Uri): string {
   // Beyond the page's own script: the synthesiser's worklet is loaded from the extension (or
   // from a blob of it), its decoder of compressed fonts is WebAssembly, and the sound font is fetched.
   const csp = `default-src 'none'; script-src 'nonce-${nonce}' ${webview.cspSource} 'wasm-unsafe-eval' blob:; style-src 'unsafe-inline'; `
-    + `img-src ${webview.cspSource} data: blob:; connect-src ${webview.cspSource};`;
+    + `img-src ${webview.cspSource} data: blob:; connect-src ${webview.cspSource} blob:;`;   // a character's textures: blob URLs, fetched (characters.js)
   return `<!doctype html>
 <html lang="en">
 <head>

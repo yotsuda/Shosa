@@ -5883,3 +5883,10 @@ dancer alice humanoid "girl.vrm" on lead at 0 1
 - 試験 340 件、落ちるのは前からの 1 件。`npm test` も通る。拡張を入れ直した (`tools\deploy-extension.ps1`)。**実際の VS Code で見るのはユーザーがこれから。**
 - 残り: ファイルが無いときの診断 (言語サーバーはファイルの場所を知っているので出せる)、`dancer` の行で `.vrm` のファイル名を補完、縦長の MP4。
 
+### 96.4 VS Code では真っ白だった (2026-11-20。ユーザー: 「この女の子たちは真っ白だ。色はつかないの?」)
+
+ユーザーが VS Code で見た: 踊るが、キャラクターが真っ白。原因はプレビューの CSP。three.js の GLTFLoader は glb の中の画像を blob の URL にし、Chrome 系では `ImageBitmapLoader` が `fetch` で読む。`connect-src` に `blob:` がなく、テクスチャだけが黙って読めず、白い材質で描かれた。96.3 の試験用のページには CSP がなかったので色が付いて見えていた。
+
+- `connect-src` に `blob:` を足した (`extension.ts` の `previewHtml`)。`img-src` の `blob:` だけでは足りない。
+- 試験用のページ (`out\pv\harness.html`) にプレビューと同じ CSP を入れて、`blob:` がないと白く、あると色が付くことを確かめた。**試験用のページは本物の CSP を写しておく** (ずれると、VS Code でだけ起きることを見落とす)。
+
