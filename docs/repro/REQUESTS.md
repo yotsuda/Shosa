@@ -16,4 +16,4 @@
 
 | # | 日付 | 状態 | 依頼 | 詳細 |
 |---|---|---|---|---|
-| 1 | 2026-11-20 | open | **曲を読むところ（`shosa-music`）を `lysc` に移したい**（オーナー決定）。`lysc timeline`・`lysc notes`（今の `shosa-music` と同じ JSON）、`--order`・`--tempo`、`--version --json` の protocol、拡張の `activate()` が `lysc` の場所を返すこと、形を見張る試験。今のコード（`Shosa.Music`、GPL、作者はオーナー）はそのまま持っていってよい。Shosa は Lily# をゆるい依存にする（曲に合わせる機能だけが要る） | [依頼](lilysharp-requests-2026-11-20-song-reading.md) |
+| 1 | 2026-11-20 | fixed `aa6602d4d`（Lily# 第1338。`lysc timeline`／`notes`、4 つに `--order`・`--tempo`、`lysc --version --json` は `{version, protocol: 1}`、拡張の exports に `lyscPath`。35 曲で shosa-music と同じバイト。違いは 1 つだけで、`timeline --tempo` が変えた後のテンポを返す。形の網は Lily# の `CliSongReadingTests`。拡張の server の lysc は入れ直すまで古い） | **曲を読むところ（`shosa-music`）を `lysc` に移したい**（オーナー決定）。`lysc timeline`・`lysc notes`（今の `shosa-music` と同じ JSON）、`--order`・`--tempo`、`--version --json` の protocol、拡張の `activate()` が `lysc` の場所を返すこと、形を見張る試験。今のコード（`Shosa.Music`、GPL、作者はオーナー）はそのまま持っていってよい。Shosa は Lily# をゆるい依存にする（曲に合わせる機能だけが要る） | [依頼](lilysharp-requests-2026-11-20-song-reading.md) |
