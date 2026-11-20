@@ -5759,3 +5759,17 @@ B: (1) 広い足の `low(N)` は広い立ち方から測る (立った高さか�
 - **ゆるい依存:** `extensionDependencies` にはしない。Lily# がなければ曲に合わせる機能だけが使えず、そこで「Lily# を入れてください」と知らせる。動きだけを書くのに Lily# は要らない。
 - **依頼:** `docs/repro/REQUESTS.md` の 1 (`lilysharp-requests-2026-11-20-song-reading.md`)。`lysc timeline`・`lysc notes` (今の `shosa-music` と同じ JSON)、`--order`・`--tempo`、`lysc --version --json` の protocol、Lily# の拡張の `activate()` が `lysc` の場所を返すこと。
 - **Lily# が入れた後 (Shosa 側):** `SongReader.cs` が `lysc` を呼ぶ。VS Code のターミナルでは Shosa の拡張が Lily# の `server` を PATH に足し、外では環境変数で `lysc` を指す。`Shosa.Music`、その LICENSE、パッケージへの同梱 (`pack-extension.ps1`・`third-party-notices.ps1`)、ImageSharp の細工、`Shosa.slnx` の参照をやめる。19.1 と 43.2 はそこで改める。
+
+## 93. VRM の女の子で踊りの動画を作った (試し、2026-11-20。ユーザー: YouTube に踊りの動画を出したい。ROADMAP 2 節)
+
+`samples\dance.shosa` (3 人、17.78 秒、`song.lys`) を、VRoid のキャラクター (`out\vrm\sample.vrm` = pixiv の `VRM1_Constraint_Twist_Sample`。商用可、クレジット不要) 3 人に踊らせて MP4 にした: `out\video\dance_trio.mp4` (1920×1080、30 fps、H.264＋AAC、19.8 秒)。
+
+- **手順** (`tools\godot_video.gd`):
+  1. 1 人ずつのファイルにする: `score` を `score { dancer alice }` にした写しを 3 つ作り、`shosa gltf` で `dance_alice.glb` などを書く。1 つの glb に 3 人だと、骨の対応 (`shosa_bonemap.tres`) を付けた途端に 3 人のトラックが同じ `%GeneralSkeleton` を指し、誰の動きか分からなくなる。
+  2. Godot のプロジェクト (`out\godot\proj`) に置き、`.glb.import` の `_subresources` で各骨に `shosa_bonemap.tres` を付けて `--import`。
+  3. `godot --path out\godot\proj -s C:\MyProj\Shosa\tools\godot_video.gd -- character.glb <出力フォルダ> dance_alice.glb dance_bob.glb dance_carol.glb --fps 30 --size 1920x1080`。描くので `--headless` は使えない (窓が開く)。533 コマで 24 秒 (RTX 5070 Ti)。
+  4. 音: `shosa wav samples\dance.shosa --soundfont <.sf2>`。`.sf3` は Lily# の WAV の書き出しが読めない。`C:\MyProj\Orecchiante\soundfonts\MuseScore_General.sf2` を使った。
+  5. `ffmpeg -framerate 30 -i frames\%05d.png -i dance.wav -vf tpad=stop_mode=clone:stop_duration=2.1 -c:v libx264 -crf 18 -pix_fmt yuv420p -c:a aac -shortest out.mp4`。余韻の 2 秒は最後のコマを止める。
+- **見たもの (コマ)**: 立ち位置どおりに並び、`!clap` の 8.889 秒に bob と carol が胸の前で手を合わせる。alice の横向きの踏み出しも振付どおり。
+- **気になったもの**: 踏み出しで短パンのメッシュが脚に食い込んで裂けて見える (スキンの重み、モデル側)。髪と袖が揺れない (`character.glb` は VRM を glb として読んだもので、VRM の揺れもの (spring bone) が動いていない)。表情とまばたきもない。照明は仮。
+- **ユーザーが動画を見て、動きの質を判断するのはこれから。** 足りなければ第 3 段階 (要所を Shosa が決め、間を生成モデルに埋めさせる) の前倒しを考える。プレビューに VRM を読み込んで MP4 にする機能 (ROADMAP 2 節) は、その判断の後。
