@@ -636,6 +636,11 @@ one, the shape it arrives in (see "Shapes" below).
   shoulders or the hips (see `shoulders` below).
   **What nobody writes is not measured**: unwritten arms hang (in a bow, in front of the
   thighs), and an unwritten head looks along the chest, so it bows with a bow.
+  **A body is never quite still**: in the rows a dancer writes nothing in (`torso`, `head`,
+  `hips`, and `steps` while both feet stand), it breathes, its weight drifts a few centimetres
+  from foot to foot, and the chest and the head go a little with the arms (back and up as they
+  rise). Always the same for the same text, and a loop still joins. A row you write is exactly
+  as written: to keep the torso straight up, write `torso { up }`.
 - **An arm at `down` hangs as an arm nobody wrote does**: the elbow a little bent, the
   hand by the thigh and a little forward — not a straight line under the shoulder
   joint, which on a character is inside the hip. So `down` is how an arm is put back,

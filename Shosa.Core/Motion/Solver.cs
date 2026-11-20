@@ -18,6 +18,28 @@ public static class Solver
 {
     private const double MaxHandSpeed = 10;   // m/s; a fast punch
     private const double MaxFootSpeed = 12;   // m/s; a snap kick
+
+    /// <summary>
+    /// Whether unwritten rows are given the small movements of a living body (DESIGN.md 94). On for every
+    /// use; the tests of the other rules turn it off for the process, to measure poses exactly, and the tests
+    /// of this one turn it back on for themselves with <see cref="Life(bool)"/>.
+    /// </summary>
+    public static bool LifeByDefault { get; set; } = true;
+    private static readonly AsyncLocal<bool?> LifeHere = new();
+    internal static bool LifeOn => LifeHere.Value ?? LifeByDefault;
+
+    /// <summary>Life on or off for what this flow of execution solves, until the result is disposed.</summary>
+    public static IDisposable Life(bool on)
+    {
+        var before = LifeHere.Value;
+        LifeHere.Value = on;
+        return new Restore(() => LifeHere.Value = before);
+    }
+
+    private sealed class Restore(Action undo) : IDisposable
+    {
+        public void Dispose() => undo();
+    }
     public static MotionClip Solve(MotionIr ir, List<Diagnostic> diagnostics)
     {
         int fps = ir.Fps;
@@ -506,6 +528,72 @@ internal sealed class FigureSolver
     private bool _built;
     private int _posing;
 
+    // A body nobody tells to move is not still (DESIGN.md 94): it breathes, its weight drifts from foot to
+    // foot, the chest and the head go a little with the arms. Only rows the dancer has no words in, and
+    // only as much as the feet stand still. No chance in it: the same text moves the same way, and a loop
+    // joins (the periods divide it). Each dancer has its own phase, so a line does not breathe as one.
+    private const double BreathSeconds = 3.6, SwaySeconds = 7.2;
+    private double _breath, _sway, _wander, _phase, _lifeShare = 1;
+    private bool _alive;
+
+    private void SetUpLife()
+    {
+        _alive = Solver.LifeOn;
+        _lifeShare = _alive ? 1 : 0;
+        double perSecond = TempoMap.BpmAt(_tempos, 0) / 60;
+        double Period(double seconds)
+        {
+            double beats = seconds * perSecond;
+            if (!_loop)
+                return beats;
+            int times = (int)Math.Round(_length / beats);
+            if (times < 1)
+            {
+                // A loop shorter than half a breath: it would breathe at the loop's pace, so it does not sway at all.
+                if (_length < beats * 0.5)
+                    _lifeShare = 0;
+                times = 1;
+            }
+            return _length / times;
+        }
+        _breath = Period(BreathSeconds);
+        _sway = Period(SwaySeconds);
+        _wander = Period(SwaySeconds * 1.5);
+        uint hash = 2166136261;
+        foreach (char ch in _dancer.Id)
+            hash = (hash ^ ch) * 16777619;
+        _phase = hash % 1000 / 1000.0;
+    }
+
+    private double Wave(double t, double period, double shift = 0) =>
+        _lifeShare * Math.Sin(2 * Math.PI * (t / period + _phase + shift));
+
+    /// <summary>How still the feet are around t: 0 while a foot moves, 1 from 0.8 s away from any move of either foot.</summary>
+    private double FeetStill(double t)
+    {
+        double ramp = 0.8 * PerSecond(t), nearest = double.MaxValue;
+        foreach (var moves in new[] { _leftMoves, _rightMoves })
+        {
+            foreach (var move in moves)
+            {
+                double d = t < move.T0 ? move.T0 - t : t > move.T1 ? t - move.T1 : 0;
+                nearest = Math.Min(nearest, d);
+            }
+        }
+        return nearest >= ramp ? 1 : Smooth(nearest / ramp);
+    }
+
+    /// <summary>How far an arm is raised, 0 hanging to 1 overhead, and how far it is held forward (0..1), as its row carries it.</summary>
+    private static (double Up, double Fwd) ArmRaise(List<Seg> arm, double t) =>
+        Chain(arm, t, seg => seg switch
+        {
+            null => (0.0, 0.0),
+            { Dir: { } d } => ((d[1] + 1) / 2, Math.Max(0, d[2])),
+            { Kind: SegKinds.Anchor, Anchor: "head" or "forehead" } => (0.85, 0.3),
+            { Kind: SegKinds.Anchor } => (0.4, 0.5),
+            _ => (0.5, 0.5),
+        }, (a, b, e) => (a.Item1 + (b.Item1 - a.Item1) * e, a.Item2 + (b.Item2 - a.Item2) * e));
+
     public FigureSolver(DancerIr dancer, MotionIr ir, double beatsPerFrame, Func<string, FigureSolver?> others)
     {
         _dancer = dancer;
@@ -527,6 +615,7 @@ internal sealed class FigureSolver
         _shoulders = Row(Channels.Shoulders);
         _hips = Row(Channels.Hips);
         _head = Row(Channels.Head);
+        SetUpLife();
     }
 
     /// <summary>What has to hold for a loop and does not, in words for the author; null when it joins.</summary>
@@ -1580,6 +1669,17 @@ internal sealed class FigureSolver
         // The weight goes over the standing foot as far as the other leg is off the floor
         // (a body that hangs in the air has no weight to shift).
         var p = new Vec3(_weightX.Eval(t), 0, _weightZ.Eval(t));
+        // Standing still on both feet, the weight drifts from one to the other and back (DESIGN.md 94).
+        double still = _alive && c.Float < 0.01 && !c.LAir && !c.RAir ? FeetStill(t) * (1 - c.GwL) * (1 - c.GwR) : 0;
+        double drift = Wave(t, _sway) * still;
+        if (still > 0)
+        {
+            var across = c.LPos - c.RPos;
+            double apart = across.Length;
+            // As far as a quarter of the way to each foot, and no more than 3 cm.
+            if (apart > 1e-6)
+                p += across * (Math.Min(0.03, apart * 0.25) * drift / apart);
+        }
         if (c.Float < 0.01)
         {
             if (c.GwL > 0)
@@ -1589,11 +1689,24 @@ internal sealed class FigureSolver
         }
 
         var torso = Direction(_torso, t, Vec3.Up, new Vec3(0, 0, 1));
+        if (_alive && _torso.Count == 0)
+        {
+            // An unwritten torso breathes (about a degree), goes a little back and up as the arms rise or
+            // reach forward, leans away from the one arm raised, and over the foot the weight drifts to.
+            var (upL, fwdL) = ArmRaise(_leftArm, t);
+            var (upR, fwdR) = ArmRaise(_rightArm, t);
+            double back = 0.035 * (upL + upR) / 2 + 0.02 * (fwdL + fwdR) / 2;
+            double sideways = 0.035 * (upR - upL) + 0.012 * drift;
+            torso = new Vec3(sideways, 1, 0.012 * Wave(t, _breath) - back).Normalized();
+        }
         c.TorsoUp = (c.Left * torso.X + Vec3.Up * torso.Y + c.Fwd * torso.Z).Normalized();
         c.Round = Chain(_torso, t, seg => seg is { Round: true } ? 1.0 : 0.0, (a, b, e) => a + (b - a) * e, Dist);
         c.Shoulders = Chain(_shoulders, t, seg => (seg?.TurnDeg ?? 0) * Math.PI / 180, (a, b, e) => a + (b - a) * e, Dist);
         // The hips turn over the feet: the sockets go round the pelvis, the feet stay, and the knees follow.
         c.Hips = Chain(_hips, t, seg => (seg?.TurnDeg ?? 0) * Math.PI / 180, (a, b, e) => a + (b - a) * e, Dist);
+        // Unwritten hips turn a little with the drift of the weight, toward the leg that takes it (2°).
+        if (_alive && _hips.Count == 0)
+            c.Hips -= 0.035 * drift;
         c.HipLeft = c.Left * Math.Cos(c.Hips) - c.Fwd * Math.Sin(c.Hips);
         c.HipFwd = c.Fwd * Math.Cos(c.Hips) + c.Left * Math.Sin(c.Hips);
         // A leaning torso is balanced by the hips going the other way. Sideways only as far as it costs the
@@ -1891,6 +2004,14 @@ internal sealed class FigureSolver
         }
 
         var gaze = Chain(_head, t, Gaze, (a, b, e) => Blend(a, b, e, faceFwd), Dist).Normalized();
+        if (_alive && _head.Count == 0)
+        {
+            // An unwritten head is not fixed on the chest either (DESIGN.md 94): it wanders a few degrees
+            // side to side, slower than the weight, nods with the breath, and looks up a little with raised arms.
+            double up = (ArmRaise(_leftArm, t).Up + ArmRaise(_rightArm, t).Up) / 2;
+            double yaw = 0.05 * Wave(t, _wander, 0.3), pitch = 0.015 * Wave(t, _breath, 0.25) + 0.06 * up;
+            gaze = (gaze + faceLeft * yaw + Vec3.Up * pitch).Normalized();
+        }
 
         // A tilt (`tilt(left(15))`) is the line of the eyes from level, in the room: the neck bends
         // sideways about the gaze until the ears' line is that far from level. Unwritten, the head sits

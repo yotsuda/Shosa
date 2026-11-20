@@ -9,8 +9,9 @@
     chrome --headless=new --window-size=1920,1080 "http://127.0.0.1:8378/tools/vrm_video.html?vrm=/out/vrm/sample.vrm&vrma=/out/video/dance.alice.vrma,/out/video/dance.bob.vrma&fps=30"
 
   Parameters: vrm (one model for every dancer, or a comma list, one each), vrma (comma list), fps (30),
-  w and h (the frame, 1920 and 1080), seconds (all of it when not given), cam (x,y,z of the camera,
-  0,1.15,6.2) and at (where it looks, 0,0.85,0). Each dancer's place on the floor is in its own .vrma.
+  w and h (the frame, 1920 and 1080), start (the time of the first frame, 0), seconds (all of it from
+  start when not given), cam (x,y,z of the camera, 2.7,2.5,5.3: in front, to the right and above) and
+  at (where it looks, 0,0.8,0.3). Each dancer's place on the floor is in its own .vrma.
   The libraries come from a CDN, so this needs the network.
 -->
 <meta charset="utf-8">
@@ -60,6 +61,7 @@ try {
   document.body.appendChild(renderer.domElement);
 
   const scene = new THREE.Scene();
+  scene.fog = new THREE.Fog(0xeef0f6, 10, 30);   // the floor fades into the background before its edge
   scene.add(new THREE.HemisphereLight(0xffffff, 0x9aa0b0, 1.6));
   const sun = new THREE.DirectionalLight(0xffffff, 1.6);
   sun.position.set(2, 5, 4);
@@ -91,11 +93,12 @@ try {
     dancers.push({ vrm, mixer, clip });
   }
   const length = Math.max(...dancers.map(d => d.clip.duration));
-  const seconds = Math.min(length, Number(params.get('seconds') ?? length));
+  const start = Number(params.get('start') ?? 0);
+  const seconds = Math.min(length - start, Number(params.get('seconds') ?? length));
 
   const camera = new THREE.PerspectiveCamera(30, width / height, 0.1, 100);
-  camera.position.set(...numbers(params.get('cam'), '0,1.15,6.2'));
-  camera.lookAt(new THREE.Vector3(...numbers(params.get('at'), '0,0.85,0')));
+  camera.position.set(...numbers(params.get('cam'), '2.7,2.5,5.3'));
+  camera.lookAt(new THREE.Vector3(...numbers(params.get('at'), '0,0.8,0.3')));
 
   // The springs settle on the first pose before the first frame, so the hair does not fall into place on screen.
   const pose = (time, dt) => {
@@ -104,12 +107,12 @@ try {
       d.vrm.update(dt);
     }
   };
-  for (let i = 0; i < 60; i++) pose(0, 1 / fps);
+  for (let i = 0; i < 60; i++) pose(start, 1 / fps);
 
   const frames = Math.round(seconds * fps);
   await say('/log', `${animations.length} dancers, ${length.toFixed(3)} s, ${frames} frames of ${width}x${height}`);
   for (let f = 0; f < frames; f++) {
-    pose(f / fps, 1 / fps);
+    pose(start + f / fps, 1 / fps);
     renderer.render(scene, camera);
     const png = await new Promise(resolve => renderer.domElement.toBlob(resolve, 'image/png'));
     await say(`/frame/${f}`, png);
