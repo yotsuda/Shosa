@@ -21,7 +21,7 @@
 
 - **曲を読むのは Lily# の `lysc`** (92.1): `Shosa.Music` (`shosa-music`、GPL) をやめた。Shosa は全部 MIT、リポジトリだけでビルドできる。`lysc` は `SHOSA_LYSC` → PATH → VS Code の Lily# 拡張の順に探す。拡張は Lily# の exports の `lyscPath` を `SHOSA_LYSC` で渡す。前から落ちていた試験 1 件は見本 `turning.lys` が古い規則 (セクションでテンポが戻る) に頼っていたため。343 件全部通る。
 
-**次の一手**: (1) ミキサーは本物の Lily# で動いた (オーナー、依頼 4 は done)。録音の行の並びは直した (98.4)。楽譜の行の並びは Lily# の依頼 5 で直り done (オーナーが確かめた)。次はリリースへ (ROADMAP 第 4 段階。README に VRM を足すかはユーザーの返事待ち)。(2) 依頼 3 はユーザーが Lily# で書き出し直したら Shosa 側で測って done に。(3) 歌詞に合わせた口の動き (VRM の あ・い・う・え・お)。(4) 歩きの足 (93.1)。詳しくは ROADMAP 2 節の「次の一手」。
+**次の一手**: (1) ミキサーは本物の Lily# で動いた (オーナー、依頼 4 は done)。録音の行の並びは直した (98.4)。楽譜の行の並びは Lily# の依頼 5 で直り done (オーナーが確かめた)。次はリリースへ (ROADMAP 第 4 段階。README に「Preview features」の節を足した: VRM・録音・Mixer・Audio。残るのは Lily# の新しい版を Marketplace に先に出すことと、README に書く Lily# の版の番号)。(2) 依頼 3 はユーザーが Lily# で書き出し直したら Shosa 側で測って done に。(3) 歌詞に合わせた口の動き (VRM の あ・い・う・え・お)。(4) 歩きの足 (93.1)。詳しくは ROADMAP 2 節の「次の一手」。
 
 試し方のメモ: VRM の見え方は `out\pv\harness.html` (プレビューのページに言語サーバーの clip を流す。CSP は本物を写す) を窓なしの Chrome で。録音の再生と MP4 は `out\pv\harness-rec.html` (`tools\frame_server.py` は要求を記録しないので、Chrome を `--enable-logging=stderr` で起こしてページの誤りを見る。97.5)。音の時刻は ffmpeg と Orecchiante の `.venv` の numpy で (DESIGN.md 97.4)。ミキサーと混ぜた音は `out\pv\harness-stems.html` と `tools\measure_stems.py` (98.3)。
 
