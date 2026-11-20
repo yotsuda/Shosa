@@ -41,8 +41,32 @@ public sealed class SongInfo
     public SongRecording? Recording { get; set; }
     /// <summary>Why the recording beside the song is not followed, in words for the author of the dance; null when it is, or there is none.</summary>
     public string? RecordingError { get; set; }
+    /// <summary>
+    /// What the song's `singer` lines sing, in the beats of <see cref="Plays"/>: for each, the part and its
+    /// syllables (DESIGN.md 99). Null when the Lily# that read the song does not say (older than request 6);
+    /// empty when nothing is sung.
+    /// </summary>
+    public List<SongSung>? Sung { get; set; }
 
     public SongInfo Copy() => (SongInfo)MemberwiseClone();
+}
+
+/// <summary>One `singer` line of a song: the part it sings and the syllables sung, in order.</summary>
+/// <param name="Part">The Lily# part named after `on`.</param>
+/// <param name="Singer">The singer's name; null when the line gives none.</param>
+/// <param name="Syllables">Each [beat it starts at, beats the voice sounds, "text"], as lysc prints them.</param>
+public sealed record SongSung(string Part, string? Singer, List<System.Text.Json.JsonElement[]> Syllables)
+{
+    /// <summary>The syllables as (beat, beats, text); a malformed one is left out.</summary>
+    public IEnumerable<(double Beat, double Beats, string Text)> Read()
+    {
+        foreach (var s in Syllables ?? [])
+        {
+            if (s is [{ ValueKind: System.Text.Json.JsonValueKind.Number } beat, { ValueKind: System.Text.Json.JsonValueKind.Number } beats, { ValueKind: System.Text.Json.JsonValueKind.String } text, ..]
+                && beats.GetDouble() > 0)
+                yield return (beat.GetDouble(), beats.GetDouble(), text.GetString()!);
+        }
+    }
 }
 
 /// <summary>A recording a song keeps time with: the sound file, and the second of it at which beat 0 of the song falls.</summary>

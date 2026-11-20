@@ -5999,3 +5999,37 @@ Lily# (`fbf205e01`) が拡張の exports に `stemsVersion: 1`、`renderStems(ly
 - **録音の行はいつも vocal guitar piano other bass drums の順** (オーナー決定)。複数形の s はあってもなくても同じ (Orecchiante の名前は `vocals`)。知らない名前はその後に、来た順で。Shosa の `stemRows` が並べる (`RecordingOrder`)。試験 1 件。
 - **楽譜の行は .lys に出てくる順** (オーナー決定。糸では prog が先、bass が後)。いまは Lily# が返す順 (宣言の順: `part bass` だけが宣言されていて先に来る) のまま。Shosa が `.lys` を読んで並べ替えるのは 92 節の方針 (形式の知識は Lily# に) に反するので、**Lily# への依頼 5** (`docs/repro/lilysharp-requests-2026-11-20-stems-order.md`): `part` と `voice` を楽譜に並ぶ順 (`score { }` の中の書いた順) で、歌声は歌うパートの位置に。→ Lily# が入れた (`cad184c3b`)。オーナーが入れ直して糸で見た (2026-11-20): 「正しい順で表示されている」。依頼 5 は done。
 
+
+
+## 99. 歌いながら口を動かす (リップシンク) (2026-11-21。ユーザー決定: どの踊り手が歌うかは `.shosa` の `dancer` の行にパート名、口の時刻は lysc から)
+
+YouTube に出す動画 (ROADMAP 2 節) の「歌いながら踊る」の口。VRM の表情 `aa` `ih` `ou` `ee` `oh` を、曲の歌詞の音節と拍から動かす。
+
+### 99.1 書き方と決定
+
+```
+music "song.lys"
+dancer alice humanoid "girl.vrm" sings melody on solo
+```
+
+- **`sings PART`** (オーナー決定、2026-11-21): PART は Lily# の**パートの名前** (`singer … on melody` の `PART`)。歌い手の名前は Lily# では省略できるので使わない。名前の一致で自動に歌わせる案 (`.lys` の `singer alice` と `dancer alice`) は、暗黙の決まりが 1 つ増え、名前のない singer で使えないので取らなかった。書かなければ口は動かない。
+- **口の時刻は `lysc timeline` から** (オーナー決定): 歌われる音節を `[拍, 長さ, 文字]` で受け取り、Shosa が仮名を母音に、拍を秒にする。録音に付いていく曲では、今の仕組み (97 節) で拍が録音の秒になる。Cantoria／NEUTRINO が実際に歌った音素の秒を受け取る案は、子音の先取りまで合うが、歌声を作ったプレビューでしか使えず、Cantoria の「Lily# はラベルを見ない」境界を越えるので取らなかった。
+- **Lily# への依頼 6** (`docs/repro/lilysharp-requests-2026-11-21-sung-syllables.md`): `timeline` に `sung: [{part, singer, syllables: [[beat, beats, text]]}]`。protocol は 1 のまま (新しい欄)。
+
+### 99.2 仕組み
+
+- `SongInfo.Sung` (無ければ null = その Lily# は言わない、空 = 誰も歌わない)。`SongReader` は形を知らずに JSON のまま受ける。
+- バインダー (`Binder.Sung`): `sings` のパートの音節を `DancerIr.Sings` (`SyllableIr(Beat, Beats, Text, Vowel)`) に。曲の拍 = clip の拍 (`delay` や `in` に関わらず、口は曲と一緒に歌う)。同じパートを 2 人が歌えば最初の行。
+  - 診断: `sings` に名前が 1 つでない → `SH1006`。score に曲がない → `SH1908` (誤り)。曲に歌うパートがない → `SH1908` (警告、歌われるパートを並べ、近い名前を勧める)。Lily# が `sung` を返さない → `SH1909` (情報、Lily# を新しく)。
+- **母音** (`Motion\Mouth.Vowel`): 仮名は最後の仮名の母音 (`きゃ` は a、`ふぁ` は a)。カタカナはひらがなに。`ん` `っ` は閉じる (`nn`)。`ー` は前の音節の形のまま。仮名でない字は最初の母音字 (`love` は oh)、母音字がなければ閉じる。
+- **口の開き** (`Mouth.Frames`): コマごとに 5 つの重み。音節の拍の 0.05 秒前から開き始め 0.03 秒後に開ききる (子音の分)、声が止まる 0.06 秒前から閉じ始め 0.03 秒後に閉じる。続く音節は重なる時間に形から形へ移る (形ごとの最大)。開ききりは VRM の 1 の手前 (aa 0.85、ih 0.6、ou 0.7、ee 0.65、oh 0.75: 1 は歌うには開きすぎ)。0.18 秒より短い音節は開ききらない。
+- `ClipFigure.Mouth` (JSON の `mouth`、歌う踊り手だけ)。プレビュー (`characters.js`) は 2 コマの間を混ぜて `expressionManager.setValue`。MP4 は同じ場面を撮るので口も入る。
+- **`.vrma`**: `VRMC_vrm_animation.expressions.preset` に 5 つ。表情ごとに人型の外の節 (`Expression_aa` …) を 1 つ置き、translation の x を重みとしてキーにする (VRM Animation の決まり)。プレーンな glTF には入れない。
+
+### 99.3 確かめたこと
+
+- 試験 `SingingTests` 15 件 (母音、コマごとの開き、JSON、`.vrma` の表情、診断)。全体で 358 件すべて通る (前から落ちていた 1 件も通るようになっていた)。
+- 本物の Lily# はまだ `sung` を返さないので、`out\sing\fake_lysc.py` (本物の lysc に頼み、`timeline` に `notes` と与えた歌詞から `sung` を足す) を `SHOSA_LYSC` にして、ふるさとの出だし (Lily# の walkthrough の写し `out\sing\furusato.lys`、10 音節) で `out\sing\sing.shosa` を通した。IR の母音は う ou、さ aa、ぎ ih、お oh、い ih、し ih、か aa、の oh、や aa、ま aa。
+- プレビュー (`out\pv\harness-sing.html`。`shosa clip` の clip と VRM を流し、拍ごとにコマを撮る。いまのプレビューは `getState` を使うので、試験用のページにも要る) を窓なしの Chrome で撮り、顔を切り出して並べた (`out\pv\sing-run\faces.png`): う は小さく丸く、ぎ は横に薄く、お は丸く開き、か・ま は大きく開き、歌い終わりは閉じる。
+- **まだ**: 本物の Lily# での通し (依頼 6 待ち)、`.vrma` を three-vrm で載せて口が動くか、ユーザーの目。音節の頭の子音で唇を閉じる (ま行・ば行・ぱ行) のは入れていない (同じ母音が続くと口が開いたまま)。
+

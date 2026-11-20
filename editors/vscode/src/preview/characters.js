@@ -9,6 +9,9 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
 
+// VRM's mouth expressions, in the order the server sends their weights (`mouth`, Mouth.Shapes).
+const MOUTH = ['aa', 'ih', 'ou', 'ee', 'oh'];
+
 export function createCharacters(scene, changed) {
   const loader = new GLTFLoader();
   loader.register(parser => new VRMLoaderPlugin(parser));
@@ -151,6 +154,17 @@ export function createCharacters(scene, changed) {
           const scale = entry.restHips / (clip.hipsHeight || 1);
           const at = j => (p[pelvis * 3 + j] + (q[pelvis * 3 + j] - p[pelvis * 3 + j]) * k) * scale;
           hips.position.set(s * at(0), at(1), s * at(2));
+        }
+        // A figure that sings (`sings melody`): the weights of the five mouth expressions, between two frames
+        // blended (DESIGN.md 99). vrm.update below applies them.
+        const mouth = data.mouth;
+        if (mouth && mouth.length && vrm.expressionManager) {
+          const m0 = mouth[Math.min(mouth.length - 1, f0)], m1 = mouth[Math.min(mouth.length - 1, f0 + 1)];
+          MOUTH.forEach((name, j) => vrm.expressionManager.setValue(name, m0[j] + (m1[j] - m0[j]) * k));
+          entry.sang = true;
+        } else if (entry.sang && vrm.expressionManager) {
+          MOUTH.forEach(name => vrm.expressionManager.setValue(name, 0));
+          entry.sang = false;
         }
         if (jumped && vrm.springBoneManager) {
           vrm.update(0);

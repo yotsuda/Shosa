@@ -79,9 +79,19 @@ public sealed class DancerIr
     public double FacingDeg { get; set; }
     /// <summary>The rules of weight and gravity never apply to this body.</summary>
     public bool Free { get; set; }
+    /// <summary>
+    /// What this body sings (`dancer alice … sings melody`): the syllables of that part of the song, in the
+    /// clip's beats, each with the shape of the mouth it opens to (DESIGN.md 99). Null when it sings nothing.
+    /// </summary>
+    public List<SyllableIr>? Sings { get; set; }
     /// <summary>Channel name (see <see cref="Channels"/>) to its segments, in time order.</summary>
     public Dictionary<string, List<Seg>> Tracks { get; } = [];
 }
+
+/// <summary>A syllable sung from <paramref name="Beat"/> for <paramref name="Beats"/> beats.</summary>
+/// <param name="Text">As the song has it (そ, ら, ー, ん, la).</param>
+/// <param name="Vowel">The mouth: aa, ih, ou, ee, oh (VRM's expressions), or nn for closed (ん, っ).</param>
+public sealed record SyllableIr(double Beat, double Beats, string Text, string Vowel);
 
 /// <summary>One play of a section in the clip.</summary>
 /// <param name="Pickup">Beats of it before its first bar line (a song's upbeat): its bars, and the dance of it, begin at T0 + Pickup.</param>

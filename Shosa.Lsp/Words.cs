@@ -34,6 +34,7 @@ internal static class Words
         new("delay", "delay N — starts N beats late (a canon)."),
         new("free", "The rules of weight and gravity never apply to this body: it can hang in the air (lift)."),
         new("in", "in SECTION … — dances only in these sections."),
+        new("sings", "sings PART — the mouth sings the words of this part of the song (its singer line): sings melody."),
     ];
 
     private static readonly Vocabulary.Word[] Facings =
@@ -411,7 +412,7 @@ internal static class Words
                 ["dancer", _] => ([new Vocabulary.Word("humanoid", "A human figure, 1.7 m tall.")], "value"),
                 [.., "on"] => (figures, "figure"),
                 [.., "facing"] => (Facings, "value"),
-                [.., "at"] or [.., "at", _] or [.., "delay"] => ([], "none"),
+                [.., "at"] or [.., "at", _] or [.., "delay"] or [.., "sings"] => ([], "none"),
                 _ when line.Contains("in") && !DancerClauses.Any(c => c.Name == line[^1] && c.Name != "in") => ([.. sections, .. DancerClauses], "section"),
                 _ => (DancerClauses, "property"),
             };

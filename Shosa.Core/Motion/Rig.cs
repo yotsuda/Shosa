@@ -219,6 +219,13 @@ public sealed class ClipFigure
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public List<float[]>? Turns => Model is null ? null : Rotations;
 
+    /// <summary>
+    /// For a figure that sings (`sings melody`): one array per frame, the weights of VRM's mouth expressions
+    /// in <see cref="Motion.Mouth.Shapes"/> order (aa, ih, ou, ee, oh). Null when it sings nothing (DESIGN.md 99).
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public List<float[]>? Mouth { get; set; }
+
     public Quat Rotation(int frame, int bone)
     {
         var f = Rotations[Math.Clamp(frame, 0, Rotations.Count - 1)];

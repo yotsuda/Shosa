@@ -114,6 +114,7 @@ public static class Gltf
 
         var bones = Skeleton.Bones;
         var humanBones = new JsonObject();
+        var expressions = new JsonObject();
 
         var figureRoots = new List<int>();
 
@@ -179,7 +180,11 @@ public static class Gltf
             samplers = [];
             channels = [];
             foreach (var figure in cast[c])
+            {
                 Animate(figure, firstNode[figure.Id], frames, time);
+                if (vrma && figure.Mouth is { } mouth)
+                    Sing(mouth, frames, time);
+            }
 
             var extras = Extras(clip, cast[c]);
             string name = clip.Name.Length > 0 ? clip.Name : clip.Title.Length > 0 ? clip.Title : "shosa";
@@ -212,6 +217,23 @@ public static class Gltf
                         ((float)(q.X / length), (float)(q.Y / length), (float)(q.Z / length), (float)(q.W / length));
                 }
                 Channel(time, Accessor(turns, "VEC4", 4), first + b, "rotation");
+            }
+        }
+
+        // The mouth of a figure that sings (DESIGN.md 99): VRM Animation keys an expression as the x of a node's
+        // translation, one node for each of the five mouth expressions, outside the humanoid.
+        void Sing(List<float[]> mouth, int frames, int time)
+        {
+            for (int shape = 0; shape < Mouth.Shapes.Length; shape++)
+            {
+                int node = nodes.Count;
+                nodes.Add(new JsonObject { ["name"] = "Expression_" + Mouth.Shapes[shape] });
+                roots.Add(node);
+                expressions[Mouth.Shapes[shape]] = new JsonObject { ["node"] = node };
+                var weights = new float[frames * 3];
+                for (int f = 0; f < frames; f++)
+                    weights[f * 3] = mouth[Math.Min(f, mouth.Count - 1)][shape];
+                Channel(time, Accessor(weights, "VEC3", 3), node, "translation");
             }
         }
 
@@ -250,14 +272,14 @@ public static class Gltf
         if (vrma)
         {
             json["extensionsUsed"] = new JsonArray { "VRMC_vrm_animation" };
-            json["extensions"] = new JsonObject
+            var animation = new JsonObject
             {
-                ["VRMC_vrm_animation"] = new JsonObject
-                {
-                    ["specVersion"] = "1.0",
-                    ["humanoid"] = new JsonObject { ["humanBones"] = humanBones },
-                },
+                ["specVersion"] = "1.0",
+                ["humanoid"] = new JsonObject { ["humanBones"] = humanBones },
             };
+            if (expressions.Count > 0)
+                animation["expressions"] = new JsonObject { ["preset"] = expressions };
+            json["extensions"] = new JsonObject { ["VRMC_vrm_animation"] = animation };
         }
 
         if (!binary)

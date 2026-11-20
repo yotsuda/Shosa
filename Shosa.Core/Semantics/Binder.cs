@@ -49,6 +49,9 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
     {
         public string Id = "", Name = "", Figure = "";
         public string? Model;
+        /// <summary>The part of the song it sings (`sings melody`), and where that is written.</summary>
+        public string? Sings;
+        public TextSpan SingsSpan;
         public double X, Z, FacingDeg, Delay;
         public bool Mirror, Free;
         public HashSet<string>? In;
@@ -604,6 +607,47 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         return (result, _diagnostics);
     }
 
+    /// <summary>
+    /// The syllables a dancer sings (`sings melody`), from what the song says its singers sing, each with
+    /// the shape of the mouth: in the song's beats, which are the clip's (DESIGN.md 99). Null for none.
+    /// </summary>
+    private List<SyllableIr>? Sung(DancerSpec dancer)
+    {
+        if (dancer.Sings is not { } part)
+            return null;
+        var span = dancer.SingsSpan;
+        if (_music is null)
+        {
+            Error("SH1908", span, "sings names a part of the song the dance is danced to, and this score is danced to none: music \"song.lys\"");
+            return null;
+        }
+        if (_song is null)
+            return null;   // the song could not be read: the music line says why
+        if (_song.Sung is not { } sung)
+        {
+            Report("SH1909", DiagnosticSeverity.Info, span, "The Lily# that read the song does not say what is sung, so the mouth stays shut. Update the Lily# extension.");
+            return null;
+        }
+        // Two singers on one part sing the same notes: the first one is followed.
+        var line = sung.FirstOrDefault(s => s.Part == part);
+        if (line is null)
+        {
+            var parts = sung.Select(s => s.Part).Distinct().ToList();
+            Report("SH1908", DiagnosticSeverity.Warning, span, parts.Count == 0
+                ? $"Nobody sings in '{_music}', so the mouth stays shut. A singer line in the song gives a part words to sing: singer on melody"
+                : $"No singer of '{_music}' sings a part named '{part}', so the mouth stays shut. Sung: {string.Join(", ", parts)}.{Hint(part, parts)}");
+            return null;
+        }
+        var syllables = new List<SyllableIr>();
+        string previous = "nn";
+        foreach (var (beat, beats, text) in line.Read().OrderBy(s => s.Beat))
+        {
+            previous = Shosa.Core.Motion.Mouth.Vowel(text) ?? previous;   // ー holds the shape before it
+            syllables.Add(new SyllableIr(beat, beats, text, previous));
+        }
+        return syllables;
+    }
+
     private MotionIr NewClip(string name) => new()
     {
         Name = name,
@@ -1055,9 +1099,17 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                         }
                         break;
 
+                    case "sings":
+                        // The part of the song whose words this body's mouth sings (DESIGN.md 99): Lily#'s name for it.
+                        if (values is [{ Kind: SyntaxKind.Identifier } part])
+                            (dancer.Sings, dancer.SingsSpan) = (part.Text, clause.Span);
+                        else
+                            Error("SH1006", clause.Span, "sings names the part of the song this dancer sings, as the song names it: sings melody");
+                        break;
+
                     default:
                         Error("SH1006", tokens[0].Span,
-                            $"A dancer line has no '{tokens[0].Text}'.{Hint(tokens[0].Text, ["on", "at", "facing", "mirror", "delay", "free", "in"])}");
+                            $"A dancer line has no '{tokens[0].Text}'.{Hint(tokens[0].Text, ["on", "at", "facing", "mirror", "delay", "free", "in", "sings"])}");
                         break;
                 }
             }
@@ -1264,6 +1316,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
             {
                 Id = dancer.Id, Name = dancer.Name == "" ? dancer.Id : dancer.Name, Figure = dancer.Figure,
                 X = dancer.X, Z = dancer.Z, FacingDeg = dancer.FacingDeg, Free = dancer.Free, Model = dancer.Model,
+                Sings = Sung(dancer),
             };
             var sink = new Dictionary<string, List<Raw>>();
             int trackIndex = 0;

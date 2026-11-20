@@ -1289,6 +1289,12 @@ score { dancer alice  dancer bob  dancer carol }
   `dancer alice humanoid "girl.vrm" on lead` (from the folder of the .shosa file). The preview
   shows the dancer as that character instead of sticks; it changes nothing of the movement or
   of what is exported. Without it, the dancer is drawn as sticks.
+- `sings PART`: the dancer's mouth sings the words of that part of the song (`music`), as the
+  song's `singer … on PART` line sings them: `dancer alice humanoid "girl.vrm" sings melody on lead`.
+  PART is the song's name for the part. Each syllable opens the mouth to its vowel (あ い う え お;
+  ん and っ close it) on the beat it is sung, for as long as it is sung. The preview's character
+  and the `.vrma` export move their mouth expressions; the movement is the same. A part nobody
+  sings in the song is SH1908; without `sings`, the mouth stays shut.
 - `at` is where the feet stand TOGETHER before anything is written, and a first step
   already made moves one foot off it: `rightFoot.fwd(0.3m)` from `at 0 0` stands with the
   middle of the feet at 0.15 m forward, `leftFoot.side(0.6m)` with it 0.3 m to the left. To

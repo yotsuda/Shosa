@@ -84,6 +84,9 @@ public static class Solver
         {
             var solver = solvers[dancer.Id];
             var clipFigure = new ClipFigure { Id = dancer.Id, Name = dancer.Name, Model = dancer.Model };
+            // The mouth sings with the song, on its clock: frames are even in seconds.
+            if (dancer.Sings is { } sung)
+                clipFigure.Mouth = Mouth.Frames(sung, Enumerable.Range(0, frames).Select(f => (double)f / fps).ToList(), clip.SecondsAt);
             var flagged = new HashSet<(Seg, string)>();
             Vec3[]? previous = null;
             double previousFacing = 0;
