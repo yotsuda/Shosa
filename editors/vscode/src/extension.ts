@@ -113,11 +113,16 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     // The characters the dancers are dressed in (`dancer alice humanoid "girl.vrm"`), from the file's own folder.
     const folder = path.dirname(vscode.Uri.parse(message.uri).fsPath);
     const models: Record<string, string> = {};
-    for (const clip of shown as { figures?: { model?: string }[] }[]) {
+    // The recordings the songs keep time with (`X.orecchiante.json` beside `X.lys`: the server gives the full path).
+    const recordings = new Set<string>();
+    for (const clip of shown as { figures?: { model?: string }[]; music?: { recording?: { audio?: string } } }[]) {
       for (const figure of clip.figures ?? []) {
         if (figure.model && !(figure.model in models)) {
           models[figure.model] = path.resolve(folder, figure.model);
         }
+      }
+      if (clip.music?.recording?.audio) {
+        recordings.add(clip.music.recording.audio);
       }
     }
     void panel?.webview.postMessage({
@@ -128,14 +133,17 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       reset,
     });
     for (const file of new Set(Object.values(models))) {
-      void sendModel(file);
+      void sendFile('model', file);
+    }
+    for (const file of recordings) {
+      void sendFile('recording', file);
     }
   };
 
-  // A character file is read here and its bytes handed to the page, which parses it: the page need not be
-  // let read the folder it is in. Sent again when the file changes (it is checked at every edit of the dance).
+  // A character file or a recording is read here and its bytes handed to the page, which parses it: the page
+  // need not be let read the folder it is in. Sent again when the file changes (it is checked at every edit of the dance).
   const sentModels = new Map<string, number>();   // file -> the time it was last written, as sent
-  const sendModel = async (file: string) => {
+  const sendFile = async (type: 'model' | 'recording', file: string) => {
     let written = -1;
     try {
       written = (await fs.promises.stat(file)).mtimeMs;
@@ -147,14 +155,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }
     sentModels.set(file, written);
     if (written < 0) {
-      void panel?.webview.postMessage({ type: 'model', file, error: `${file} was not found.` });
+      void panel?.webview.postMessage({ type, file, error: `${file} was not found.` });
       return;
     }
     try {
       const data = await fs.promises.readFile(file);
-      void panel?.webview.postMessage({ type: 'model', file, data: new Uint8Array(data.buffer, data.byteOffset, data.byteLength) });
+      void panel?.webview.postMessage({ type, file, data: new Uint8Array(data.buffer, data.byteOffset, data.byteLength) });
     } catch (error) {
-      void panel?.webview.postMessage({ type: 'model', file, error: `${file} could not be read: ${String(error)}` });
+      void panel?.webview.postMessage({ type, file, error: `${file} could not be read: ${String(error)}` });
     }
   };
 

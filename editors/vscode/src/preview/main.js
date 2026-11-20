@@ -7,6 +7,8 @@
 //                                                  is the cursor, -1 if unknown; models: each character
 //                                                  file a dancer names, as written -> the file
 //   in   { type: 'model', file, data?, error? }   the bytes of a character file (VRM), or why not
+//   in   { type: 'recording', file, data?, error? }   the bytes of the recording a clip keeps time with
+//                                                  (clip.music.recording.audio), or why not
 //   in   { type: 'cursor', offset }       the editor's cursor moved
 //   in   { type: 'song', key, song }      the notes asked for: { error, notes }
 //   in   { type: 'synth', processor, soundFont, name }   where the synthesiser and the sound font are
@@ -24,6 +26,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { createCharacters } from './characters.js';
 import { createFontSound } from './fontsound.js';
+import { createRecording, cutRecording } from './recording.js';
 import { createSound } from './sound.js';
 import { createSynthPort } from './synth.js';
 import { barAt, beatAt, clicksOf, markText, marksAt, secondsAt, tempoAt } from './time.js';
@@ -279,15 +282,28 @@ function seekTo(value) {
 
 // ---- Sound: the song the clip is danced to (`music "song.lys"`). Played through the sound
 // font Lily# plays with (synth.js) when there is one; else, and until it is read, by the
-// oscillators of sound.js.
+// oscillators of sound.js. A song with a recording beside it (clip.music.recording) sounds the
+// recording instead (recording.js), once it is decoded; the notes until then.
 const songs = new Map();   // key (file, score, order) -> notes
 let songKey = null;        // the key of the shown clip's song; null without one
 let songError = '', fontStatus = { state: 'none' };
+const recorder = createRecording();
+const recordingOf = c => (c && c.music && c.music.recording) || null;
+let shownRecording = null; // the recording file of the shown clip; null without one
+let fromRecording = false; // what sounded last: the recording (true) or the notes
 
 // The Sound box says on hover what is wrong with the song, or else what it is played with.
 function soundTitle() {
   if (!songKey) {
     soundLabel.title = 'No song: a click on every beat (louder on the first of a bar) and a clap at every mark.';
+    return;
+  }
+  const recording = recordingOf(clip);
+  if (recording) {
+    const name = recording.audio.split(/[\\/]/).pop(), state = recorder.state(recording.audio);
+    soundLabel.title = state === 'ready' ? 'Played from the recording ' + name + ': beat 0 is at ' + recording.offset.toFixed(2) + ' s of it.'
+      : state === 'loading' ? 'Reading the recording ' + name + '; the song\'s notes until then.'
+      : state + ' The song\'s notes instead.';
     return;
   }
   soundLabel.title = songError || (
@@ -311,11 +327,22 @@ function askSong() {
   if (songKey) vscode.postMessage({ type: 'song', key: songKey, music: clip.music });
 }
 
-// What sounds stops, and the notes go on from the beat shown.
-const cue = () => player.cue(beat);
+// What sounds stops, and the notes (or the recording) go on from the beat shown.
+const cue = () => {
+  player.cue(beat);
+  recorder.cue();
+  fromRecording = false;
+};
 
 function sound() {
-  if (soundBox.checked) player.play(beat, 60 / (tempoAt(clip, beat) * Number(speed.value)));
+  if (!soundBox.checked) return;
+  const recording = recordingOf(clip);
+  if (recording && recorder.play(recording.audio, recording.offset, secondsAt(clip, beat), Number(speed.value))) {
+    if (!fromRecording) player.cue(beat);   // decoded while the notes were sounding: they stop
+    fromRecording = true;
+    return;
+  }
+  player.play(beat, 60 / (tempoAt(clip, beat) * Number(speed.value)));
 }
 
 soundBox.addEventListener('change', cue);
@@ -389,6 +416,12 @@ function setClip(next, keepBeat) {
   // or another moment, starts it again.
   const key = keyOf(clip);
   soundLabel.hidden = !clip;
+  const recording = recordingOf(clip)?.audio ?? null;
+  if (recording !== shownRecording) {
+    shownRecording = recording;
+    recorder.cue();
+    fromRecording = false;
+  }
   if (!key) {
     // The clicks are the clip's own: an edit moves its marks and its bars.
     songKey = null;
@@ -426,6 +459,7 @@ playButton.addEventListener('click', () => {
   if (!playing) {
     // A browser lets sound start only from a click or a key: this is the one.
     player.start();
+    recorder.start();
     askSong();
   }
   setPlaying(!playing);
@@ -462,6 +496,16 @@ videoButton.addEventListener('click', () => {
 // score without one), the same sound font. { sound } or { silent: why the video has none }.
 async function songSound(filmed, seconds) {
   if (!soundBox.checked) return { silent: 'the Sound box is off' };
+  // The recording the dance keeps time with, as recorded; the notes only when it cannot be read.
+  const recording = recordingOf(filmed);
+  if (recording) {
+    try {
+      const buffer = await recorder.buffer(recording.audio);
+      if (buffer) return { sound: cutRecording(buffer, recording.offset, seconds) };
+    } catch {
+      // the Sound box says why; the notes below
+    }
+  }
   const key = keyOf(filmed);
   for (let i = 0; key && i < 30 && !songs.has(key); i++) await new Promise(resolve => setTimeout(resolve, 100));   // asked for when the clip was shown
   // Without a song the video has what the preview plays: the clicks and the claps.
@@ -581,6 +625,10 @@ window.addEventListener('message', event => {
     setClip(same ?? under ?? clips[0] ?? null, !message.reset && (same !== null || under !== null));
   } else if (message.type === 'model') {
     characters.setFile(message.file, message.data, message.error);
+  } else if (message.type === 'recording') {
+    recorder.setFile(message.file, message.data, message.error);
+    soundTitle();
+    recorder.buffer(message.file).then(soundTitle, soundTitle);
   } else if (message.type === 'song') {
     const notes = message.song && !message.song.error ? message.song.notes ?? [] : [];
     // The same notes again (the answer to every Play) change nothing that is sounding.
@@ -638,16 +686,23 @@ function tick(now) {
     return;
   }
   if (playing && clip) {
-    beat = beatAt(clip, secondsAt(clip, beat) + (now - last) / 1000 * Number(speed.value));
+    // While a recording sounds it is the clock: the dance is where the recording is heard.
+    const recording = recordingOf(clip);
+    const heard = recording && fromRecording ? recorder.position(recording.offset) : null;
+    beat = beatAt(clip, heard ?? secondsAt(clip, beat) + (now - last) / 1000 * Number(speed.value));
     if (beat >= clip.totalBeats) {
       if (clip.loop && clip.totalBeats > 0) {
         // The last frame of a loop IS its first: carry on from there with no stop, keeping
         // the time left over. A loop that travels starts again from frame 0.
         beat %= clip.totalBeats;
         player.rewind();   // the last notes ring on into the first
+        recorder.cue();    // a recording starts again from there (the next sound())
+        fromRecording = false;
       } else if (wantLoop && clip.totalBeats > 0) {
         beat = 0;
         player.rewind();
+        recorder.cue();
+        fromRecording = false;
       } else {
         beat = clip.totalBeats;
         setPlaying(false);

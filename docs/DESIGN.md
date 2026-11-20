@@ -5938,3 +5938,12 @@ dancer alice humanoid "girl.vrm" on lead at 0 1
 - このまま Shosa で鳴らすと、曲の終わりで音が踊りより約 0.2 秒遅れる。Lily# の書き出しは `recordingPlan(sound, practice.speed × warpFit).rate` を速さにする (7 節) ので、速さ 1.0 でも `warpFit` の分だけ伸びているのかもしれない。Lily# 側で確かめてもらう。
 - 測った道具: `ffmpeg` で 8 kHz モノラルにし、Orecchiante の `.venv` の numpy で 5 ms ごとの包絡の立ち上がりを相互相関 (±0.3 秒)。
 
+### 97.5 プレビューと MP4 で録音を鳴らす (2026-11-20)
+
+- **拡張** (`extension.ts`): clip の `music.recording.audio` (言語サーバーが渡す絶対パス) を、キャラクターのファイルと同じ道で読み、バイト列を webview へ送る (`{ type: 'recording', file, data }`)。書いた時刻で覚え、変わったら送り直す。
+- **プレビュー** (`preview/recording.js`): バイト列を `decodeAudioData` で復号し、再生では `offset + 踊りの秒` から 1 本の `AudioBufferSourceNode` で鳴らす。速さ 0.25 / 0.5 は `playbackRate` (音の高さも下がる)。シーク、Sound の箱、別の曲の clip で止め、次の Play で踊りのいる所から鳴らし直す。踊りを直しても (同じ録音なら) 止めない。
+- **鳴っている間は録音が時計**: 合成の音 (sound.js) は毎コマ踊りの時計に合わせて音符を渡すが、録音は 1 本の音なので合わせ直せない。そこで逆に、踊りを録音が聞こえている所へ置く (`getOutputTimestamp` で出力の遅れを引いた時刻)。長く流してもずれが溜まらない。復号が終わるまでは前と同じく楽譜の音符を合成で鳴らす。Sound の箱のホバーが「Played from the recording …: beat 0 is at 1.82 s of it.」、読み中、読めなかった理由を言う。
+- **MP4**: 録音を `offset` から動画の長さだけ切り出して音にする (`cutRecording`。音量はそのまま、録音の前と後は無音)。録音が読めないときは前と同じく音符を音色で。
+- **確かめたこと**: `out\pv\harness-rec.html` (`shosa clip out\ito\ito.shosa` の clip と録音を流す。CSP は本物の写し) を窓なしの Chrome (`--autoplay-policy=no-user-gesture-required`) で。60 拍目から再生して 8 秒、踊りは 1 秒に約 1 拍進んだ (曲は約 61)。MP4 (271 秒、1920×766) の音を元の録音の 1.82 秒からと比べると、5〜265 秒のどこでもずれ 0 ms、相関 1.000 (`ffmpeg` と Orecchiante の `.venv` の numpy)。**耳で聞くのはユーザーがこれから。**
+- 残り: Lily# で混ぜた音 (歌声入り) を見つける道 (依頼 4 の相談の返事待ち。97.3)、Lily# の書き出しが伸びる件 (依頼 3)。
+
