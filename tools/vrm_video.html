@@ -1,0 +1,121 @@
+<!doctype html>
+<!--
+  Renders .vrma files written by `shosa vrma` on VRM models with three-vrm, frame by frame, for a video.
+  three-vrm runs what a plain glTF reader leaves out: the node constraints (sleeves, shoulders and twist
+  bones that follow the arms), the spring bones (hair, cloth) and MToon. The frames go to
+  tools/frame_server.py, which saves them; ffmpeg makes the video (DESIGN.md 93).
+
+    py tools/frame_server.py out/video/frames3
+    chrome --headless=new --window-size=1920,1080 "http://127.0.0.1:8378/tools/vrm_video.html?vrm=/out/vrm/sample.vrm&vrma=/out/video/dance.alice.vrma,/out/video/dance.bob.vrma&fps=30"
+
+  Parameters: vrm (one model for every dancer, or a comma list, one each), vrma (comma list), fps (30),
+  w and h (the frame, 1920 and 1080), seconds (all of it when not given), cam (x,y,z of the camera,
+  0,1.15,6.2) and at (where it looks, 0,0.85,0). Each dancer's place on the floor is in its own .vrma.
+  The libraries come from a CDN, so this needs the network.
+-->
+<meta charset="utf-8">
+<title>Shosa: a dance on VRM models, as frames</title>
+<style>body { margin: 0; background: #000; overflow: hidden; }</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
+    "@pixiv/three-vrm": "https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@3/lib/three-vrm.module.min.js",
+    "@pixiv/three-vrm-animation": "https://cdn.jsdelivr.net/npm/@pixiv/three-vrm-animation@3/lib/three-vrm-animation.module.min.js"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
+import { VRMAnimationLoaderPlugin, createVRMAnimationClip } from '@pixiv/three-vrm-animation';
+
+const params = new URLSearchParams(location.search);
+// A frame now and then is refused (the connection reset under hundreds of posts): it is sent again.
+const say = async (path, body) => {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      const response = await fetch(path, { method: 'POST', body });
+      if (response.ok) return;
+      throw new Error(`${path}: ${response.status}`);
+    } catch (error) {
+      if (attempt >= 5) throw error;
+      await new Promise(resolve => setTimeout(resolve, 200 * attempt));
+    }
+  }
+};
+const numbers = (text, fallback) => (text ?? fallback).split(',').map(Number);
+
+try {
+  const width = Number(params.get('w') ?? 1920), height = Number(params.get('h') ?? 1080);
+  const fps = Number(params.get('fps') ?? 30);
+  const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+  renderer.setPixelRatio(1);
+  renderer.setSize(width, height);
+  renderer.setClearColor(0xeef0f6);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  document.body.appendChild(renderer.domElement);
+
+  const scene = new THREE.Scene();
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x9aa0b0, 1.6));
+  const sun = new THREE.DirectionalLight(0xffffff, 1.6);
+  sun.position.set(2, 5, 4);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  Object.assign(sun.shadow.camera, { left: -5, right: 5, top: 5, bottom: -5, near: 0.5, far: 20 });
+  scene.add(sun);
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.MeshStandardMaterial({ color: 0xb4b8c4, roughness: 1 }));
+  floor.rotation.x = -Math.PI / 2;
+  floor.receiveShadow = true;
+  scene.add(floor);
+
+  const loader = new GLTFLoader();
+  loader.register(parser => new VRMLoaderPlugin(parser));
+  loader.register(parser => new VRMAnimationLoaderPlugin(parser));
+
+  const animations = params.get('vrma').split(',');
+  const models = params.get('vrm').split(',');
+  const dancers = [];
+  for (let i = 0; i < animations.length; i++) {
+    const vrm = (await loader.loadAsync(models[Math.min(i, models.length - 1)])).userData.vrm;
+    VRMUtils.rotateVRM0(vrm);
+    vrm.scene.traverse(o => { if (o.isMesh) { o.frustumCulled = false; o.castShadow = true; } });
+    scene.add(vrm.scene);
+    const animation = (await loader.loadAsync(animations[i])).userData.vrmAnimations[0];
+    const clip = createVRMAnimationClip(animation, vrm);
+    const mixer = new THREE.AnimationMixer(vrm.scene);
+    mixer.clipAction(clip).play();
+    dancers.push({ vrm, mixer, clip });
+  }
+  const length = Math.max(...dancers.map(d => d.clip.duration));
+  const seconds = Math.min(length, Number(params.get('seconds') ?? length));
+
+  const camera = new THREE.PerspectiveCamera(30, width / height, 0.1, 100);
+  camera.position.set(...numbers(params.get('cam'), '0,1.15,6.2'));
+  camera.lookAt(new THREE.Vector3(...numbers(params.get('at'), '0,0.85,0')));
+
+  // The springs settle on the first pose before the first frame, so the hair does not fall into place on screen.
+  const pose = (time, dt) => {
+    for (const d of dancers) {
+      d.mixer.setTime(Math.min(time, d.clip.duration - 1e-4));
+      d.vrm.update(dt);
+    }
+  };
+  for (let i = 0; i < 60; i++) pose(0, 1 / fps);
+
+  const frames = Math.round(seconds * fps);
+  await say('/log', `${animations.length} dancers, ${length.toFixed(3)} s, ${frames} frames of ${width}x${height}`);
+  for (let f = 0; f < frames; f++) {
+    pose(f / fps, 1 / fps);
+    renderer.render(scene, camera);
+    const png = await new Promise(resolve => renderer.domElement.toBlob(resolve, 'image/png'));
+    await say(`/frame/${f}`, png);
+  }
+  await say('/done', `${frames} frames at ${fps} fps, ${seconds.toFixed(3)} s`);
+} catch (error) {
+  await say('/done', 'failed: ' + (error.stack ?? error));
+}
+</script>

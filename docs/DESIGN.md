@@ -5773,3 +5773,12 @@ B: (1) 広い足の `low(N)` は広い立ち方から測る (立った高さか�
 - **見たもの (コマ)**: 立ち位置どおりに並び、`!clap` の 8.889 秒に bob と carol が胸の前で手を合わせる。alice の横向きの踏み出しも振付どおり。
 - **気になったもの**: 踏み出しで短パンのメッシュが脚に食い込んで裂けて見える (スキンの重み、モデル側)。髪と袖が揺れない (`character.glb` は VRM を glb として読んだもので、VRM の揺れもの (spring bone) が動いていない)。表情とまばたきもない。照明は仮。
 - **ユーザーが動画を見て、動きの質を判断するのはこれから。** 足りなければ第 3 段階 (要所を Shosa が決め、間を生成モデルに埋めさせる) の前倒しを考える。プレビューに VRM を読み込んで MP4 にする機能 (ROADMAP 2 節) は、その判断の後。
+
+### 93.1 ユーザーが見た: 硬い。3 点 (2026-11-20)
+
+ユーザー: 「動きが硬い。動いていない所で肩の服がアメフト選手のようにいかつい。腕を上げたとき腕が不自然な方向に曲がる。歩くときの足の動きが不自然」。
+
+- **肩と腕の 2 点は、描き方の誤りだった。** `sample.vrm` は VRM のコンストレイント (`VRMC_node_constraint`) を 14 個持つ: 袖 (`J_Aim_*_TopsUpperArm`) と肩 (`J_Aim_*_Shoulder`) が腕を向く、腕と手のねじれを分ける骨 (`J_Roll_*`)、太もも (`J_Aim_*_UpperLeg`)。Godot は glb として読むとこれを動かさないので、腕を下ろしても袖と肩が T ポーズに残り、腕を上げるとねじれの骨が付いてこず、踏み出すと短パンが裂けた。揺れもの (spring bone 22) も止まっていた。
+- **three-vrm で描き直した** (`tools\vrm_video.html` が `.vrma` を three-vrm で毎コマ描き、`tools\frame_server.py` が PNG に保存。窓なしの Chrome で開く。533 コマで 12 秒): 腕を下ろした袖は垂れ、腕を上げても自然、短パンは裂けず、髪が揺れる。`out\video\dance_trio_vrm.mp4`。**VRM の動画はこちらで作る** (Godot の `tools\godot_video.gd` は、コンストレイントのないモデルか Godot のゲームの見た目を確かめるときだけ)。
+  - 手順: `shosa vrma samples\dance.shosa -o out\video\dance.vrma` (1 人 1 ファイル) → `py tools\frame_server.py out\video\frames3` → `chrome --headless=new --user-data-dir=<捨てる場所> --window-size=1920,1080 "http://127.0.0.1:8378/tools/vrm_video.html?vrm=/out/vrm/sample.vrm&vrma=/out/video/dance.alice.vrma,/out/video/dance.bob.vrma,/out/video/dance.carol.vrma&fps=30"` → `done.txt` ができたら ffmpeg (93 節の 5)。何百枚も送ると時々接続が切れるので、ページは 5 回まで送り直す。
+- **歩きの 1 点は Shosa の動きそのもの。** 横歩き (grapevine) のコマを並べると、膝がほとんど曲がらず脚がまっすぐのまま、足は床をすべるように低く運ばれ、かかとが上がらない (つま先で蹴らない)。腰の上下と左右の体重移動も小さい。棒の連続写真では見えにくかったが、メッシュでは目立つ。次の手はここ (歩の作り方: 膝の曲げ、足の持ち上げの弧、かかととつま先、腰の上下と体重の移り。または第 3 段階の前倒し)。
