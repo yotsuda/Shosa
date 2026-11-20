@@ -10,7 +10,7 @@ dancer solo humanoid on solo
 
 section Wave {
   solo {
-    steps    { left.side together right.side together }
+    steps    { leftFoot.side together rightFoot.side together }
     rightArm { side up side down }
   }
 }
