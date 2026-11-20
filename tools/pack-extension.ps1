@@ -46,7 +46,7 @@ foreach ($rid in $Targets) {
     # Everything of the stage but the programs is made anew each time.
     if (Test-Path $stage) { Get-ChildItem $stage -Force | Where-Object { $SkipPublish -eq $false -or $_.Name -ne 'server' } | Remove-Item -Recurse -Force }
     New-Item -ItemType Directory -Force $stage | Out-Null
-    foreach ($item in 'package.json', 'README.md', 'icon.png', 'language-configuration.json', 'syntaxes') { Copy-Item "$ext\$item" $stage -Recurse }
+    foreach ($item in 'package.json', 'README.md', 'CHANGELOG.md', 'icon.png', 'language-configuration.json', 'syntaxes') { Copy-Item "$ext\$item" $stage -Recurse }
     Copy-Item "$root\LICENSE" $stage   # MIT
     New-Item -ItemType Directory -Force "$stage\dist" | Out-Null
     Copy-Item "$ext\dist\*" "$stage\dist" -Exclude *.map, *.packages.json

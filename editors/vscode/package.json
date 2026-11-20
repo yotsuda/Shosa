@@ -2,7 +2,7 @@
   "name": "shosa",
   "displayName": "Shosa",
   "description": "Write human movement as text and watch it performed beside the source.",
-  "version": "0.0.1",
+  "version": "0.3.0",
   "publisher": "yotsuda",
   "author": "Yoshifumi Tsuda",
   "license": "MIT",
@@ -77,6 +77,11 @@
         "command": "shosa.exportVideo",
         "category": "Shosa",
         "title": "Export MP4 Video…"
+      },
+      {
+        "command": "shosa.exportAudio",
+        "category": "Shosa",
+        "title": "Export Audio (MP3, WAV)…"
       }
     ],
     "menus": {
@@ -104,6 +109,10 @@
         },
         {
           "command": "shosa.exportVideo",
+          "when": "editorLangId == shosa"
+        },
+        {
+          "command": "shosa.exportAudio",
           "when": "editorLangId == shosa"
         }
       ]

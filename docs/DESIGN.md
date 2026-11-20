@@ -5962,3 +5962,34 @@ dancer alice humanoid "girl.vrm" on lead at 0 1
 - 依頼 3 (`695fe386a`): 伸びの原因は 3 つ。録音に掛かっていた `warpFit` (オーナー決定「録音は伸ばさない」で外した)、Lily# の MP3 に LAME タグが無く復号が 25.1 ms 遅れた、リミッターの先読み 6 ms。速さ 100%・Count-in なしの書き出しは元の録音と 0 標本差 (Lily# の Lab)。**Shosa 側の確認は、ユーザーが Lily# で書き出し直してから** (今ある `糸 (Bank Band)_ボーカル抜き.mp3` は直す前のもの)。
 - 依頼 4 (`695fe386a`): 歌声の音節を楽譜の音と同じ `timeWarp` で録音の秒へ。**相談の `mix` は取り下げ、97.3 の決定が変わった**: オーナー決定 (2026-11-20) で、Shosa は `.lys` を参照したまま、Lily# の拡張が exports に出す API から楽譜のパート・歌声・録音 (とそのパート) を 1 本ずつ受け取り、**Shosa のプレビューのミキサーで混ぜる**。API の案は Lily# から次の便で届く。97.5 の録音の道 (拡張がバイト列を渡す、鳴っている間は録音が時計) は、そのミキサーの 1 本になる。
 
+
+
+## 98. Lily# の音を 1 本ずつ受け取り、プレビューのミキサーで混ぜる (2026-11-20。Lily# の返事 `docs/repro/lilysharp-reply-2026-11-20-stems-api.md`)
+
+Lily# (`fbf205e01`) が拡張の exports に `stemsVersion: 1`、`renderStems(lys, { score, withoutRecording, signal, onProgress })`、`onDidChangeStems`、`writeAudio(mix, { format, path })` を出した。返ってくるのは `{ timeline: 'recording' | 'score', stems: [{ kind: 'part' | 'voice' | 'recording' | 'recordingPart', name, file, at }], notes }`。設計の全文は Lily# の `docs/stems-api-design.md`。
+
+### 98.1 使う場面と時間の軸
+
+- **使うのは、踊りが曲を曲のとおりに鳴らすときだけ**: `music` があり、踊りが自分の `form` (`order`) も `tempo` も書いていない。それ以外は前のまま (楽譜の音符を合成で)。
+- 踊りが録音に付いていく (`music.recording` がある) ときは録音つきで、無いときは `withoutRecording: true` で頼む。返ってきた `timeline` が踊りと違う (録音に付いていくのに `'score'`、またはその逆) ときは使わず、Mixer の下に理由を出す。
+- 時間の軸: `'recording'` なら timeline の秒 = `recording.offset` + 踊りの秒 (Shosa の `offset` は隣のファイルの `bars[0].start`、Lily# の 0 は録音の 0 で同じ軸)。`'score'` なら timeline の秒 = 踊りの秒 (踊りの拍 0 は曲の頭。弱起も含む: `SectionIr.T0` は弱起の前)。
+- 優先の順: stems が読めていればそれ、次に録音だけ (97.5)、次に楽譜の音符。古い Lily# (API なし) ではこれまでどおり動く。
+
+### 98.2 仕組み
+
+- **拡張** (`src/stems.ts`): clip を送るたびに、曲 (`music.file` を `.shosa` のフォルダーから解決、`score`、録音に付いていくか) ごとに 1 回 `renderStems` を呼び、`{ type: 'stems', key, state, timeline, stems, notes }` をページへ。作っている間は `state: 'loading'` と進み具合 (`onProgress`)。ファイルの中身はキャラクターや録音と同じく拡張が読んでバイト列で渡す (`{ type: 'stem', file, data }`)。歌声の WAV は Cantoria の置き場所にあり、`localResourceRoots` を後から広げるとページが読み直されるので、URL では渡さない。`onDidChangeStems` が来たら作り直し、出来るまでは前の stems のまま鳴らす。Lily# が無い・古いときは `state: 'none'` と理由。
+- **ページ** (`preview/stems.js`): 
+  - Mixer の行は part・voice・録音のパート (`recordingPart`) ごとに 1 行。録音にパートが無いときだけ録音そのものが 1 行。行の名前は種類つき (`part:melody` と `voice:melody` は別)。チェックでオン・オフ、0〜200% のスライダー (ダブルクリックで 100%)。値は曲 (ファイルと score) ごとに `vscode.setState` に残る。
+  - **録音の規則は Lily# と同じ** (`soundingStems`): 録音のパートが全部オンで 100% なら元の録音、1 本でも違えばオンのパートの和。録音のパートは要るときに初めて復号する (5 分の曲の 4 パートで約 200 MB。Lily# の recordingPlayer と同じ)。
+  - master は Lily# のプレビューと同じ 0.9 → リミッター (-1 dB、ratio 20、attack 2 ms、release 100 ms)。**元の録音だけが 100% で鳴るときはリミッターを通さない** (`untouched`)。
+  - **リミッターの先読み 6 ms** (Lily# の実測で 44.1 kHz の 264 標本): 鳴らすときは聞こえている位置から 6 ms 引き、書き出しは全部を 6 ms 早く置く。これで MP4 と音のファイルでも 0 標本。
+  - 鳴っている間は stems が時計 (97.5 の録音と同じ): 全部を同じ時刻に 1 回ずつ始め、踊りを聞こえている所へ置く。ミキサーを動かすと、鳴らすファイルが同じなら音量だけ変え、変わる (元の録音 ↔ パート) なら止めて次のコマで今の位置から鳴らし直す。
+  - **MP4** はこのミキサーの値で `OfflineAudioContext` に描いた音 (踊りの長さ)。
+- **音の書き出し** (ヘッダーの **Audio** ボタン、`Shosa: Export Audio (MP3, WAV)…`): stems が使える score だけ。ページが同じ道で描いた 2 チャンネル (MP4 と同じ範囲: 踊りの拍 0 から終わりまで、標本の速さはページのもの = 32/44.1/48 kHz のどれかでなければ 48 kHz) を拡張へ渡し、Lily# の `writeAudio` が MP3 (LAME タグつき) か WAV (16 bit) で書く。保存の窓の型で決める。
+- 試験 (`test/stems.test.mjs` 7 件): 行の作り方、録音の規則、0〜200% の範囲、リミッターを外す条件。
+
+### 98.3 確かめたこと
+
+- `out\pv\harness-stems.html`: ito の clip に、stems として録音 (`ito.mp3`) と、timeline の 10.0 秒と 20.0 秒に 1 ms のクリックがある part (`out\pv\clicks.wav`、`at: 5`) を渡し、窓なしの Chrome で。60 拍目から 6 秒再生して 1 秒に約 1 拍。Mixer は「ito.mp3 recording 100% / clicks 100% / a note from Lily#」。**混ぜた音 (48 kHz、270.98 秒) と MP4 の音で、クリックは 2 つとも期待した標本ちょうど (0.00 ms)、録音は 40・150・260 秒でずれ 0 ms、相関 1.000** (リミッターを通っている: 先読みの差し引きが合っている)。クリックの WAV は `tools\clicks_wav.py`、測るのは `tools\measure_stems.py` (ffmpeg と Orecchiante の `.venv` の numpy)。サーバーは `py tools\frame_server.py out\pv\stems-run --port 8379`、Chrome は `--headless=new --autoplay-policy=no-user-gesture-required` で `http://127.0.0.1:8379/out/pv/harness-stems.html?clip=/out/pv/ito.clip.json&audio=/out/pv/ito.mp3&clicks=/out/pv/clicks.wav&beat=60`。
+- **まだ: 本物の Lily# との通し** (インストールされている Lily# は 0.16.0 で API が無い。Lily# の VSIX の入れ直しはオーナー)。入れたら `out\ito\ito.shosa` と、録音の無い曲 (`samples\dance.shosa`) で、Mixer の行、歌声、`onDidChangeStems`、Audio の MP3 を見る。
+

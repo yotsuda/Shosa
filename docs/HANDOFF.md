@@ -16,11 +16,14 @@
 
 - **プレビューと MP4 で録音を鳴らす** (97.5): 拡張が録音を読んで webview へ、`preview/recording.js` が `offset` から鳴らし、鳴っている間は録音が踊りの時計。MP4 の音は録音とサンプル単位で一致。ユーザーが `out\ito\ito.shosa` を VS Code で聞くのはこれから。
 
+- **リリースの準備** (ROADMAP 第 4 段階): 最初の版は 0.3.0、win32-x64 だけ (ユーザー決定)。`editors\vscode\CHANGELOG.md` を書いた。出すのは本物の Lily# でミキサーを確かめてから。
+- **Lily# の音を 1 本ずつ受け取り、プレビューのミキサーで混ぜる** (98 節): `src/stems.ts` (Lily# の exports の `renderStems`)、`preview/stems.js` (鳴らす・混ぜる・`OfflineAudioContext` で描く)、フッターの **Mixer**、ヘッダーの **Audio** (MP3／WAV を Lily# の `writeAudio` で)。録音とクリックの見立てで、MP4 と混ぜた音が 0 標本。
+
 - **曲を読むのは Lily# の `lysc`** (92.1): `Shosa.Music` (`shosa-music`、GPL) をやめた。Shosa は全部 MIT、リポジトリだけでビルドできる。`lysc` は `SHOSA_LYSC` → PATH → VS Code の Lily# 拡張の順に探す。拡張は Lily# の exports の `lyscPath` を `SHOSA_LYSC` で渡す。前から落ちていた試験 1 件は見本 `turning.lys` が古い規則 (セクションでテンポが戻る) に頼っていたため。343 件全部通る。
 
-**次の一手**: (1) Lily# の返事を `docs/repro/REQUESTS.md` で見る (依頼 1 は done)。(2) Lily# の依頼 3・4 は fixed (`695fe386a`。DESIGN.md 97.6)。3 はユーザーが Lily# で書き出し直したら Shosa 側で測って done に。4 で方針が変わった: Lily# の拡張の API から楽譜のパート・歌声・録音を 1 本ずつ受け取り、**Shosa のプレビューのミキサーで混ぜる** (API の案は Lily# から次の便。来たら `docs/repro/REQUESTS.md` に)。(3) 歌詞に合わせた口の動き (VRM の あ・い・う・え・お)。(4) 歩きの足 (93.1)。詳しくは ROADMAP 2 節の「次の一手」。
+**次の一手**: (1) **ユーザーが Lily# の拡張を入れ直したら** (`fbf205e01` 以降。いま入っているのは 0.16.0 で API なし)、`out\ito\ito.shosa` と `samples\dance.shosa` で本物の通し (98.3 の「まだ」)。済めば依頼 4 を done に、リリースへ (ROADMAP 第 4 段階)。(2) 依頼 3 はユーザーが Lily# で書き出し直したら Shosa 側で測って done に。(3) 歌詞に合わせた口の動き (VRM の あ・い・う・え・お)。(4) 歩きの足 (93.1)。詳しくは ROADMAP 2 節の「次の一手」。
 
-試し方のメモ: VRM の見え方は `out\pv\harness.html` (プレビューのページに言語サーバーの clip を流す。CSP は本物を写す) を窓なしの Chrome で。録音の再生と MP4 は `out\pv\harness-rec.html` (`tools\frame_server.py` は要求を記録しないので、Chrome を `--enable-logging=stderr` で起こしてページの誤りを見る。97.5)。音の時刻は ffmpeg と Orecchiante の `.venv` の numpy で (DESIGN.md 97.4)。
+試し方のメモ: VRM の見え方は `out\pv\harness.html` (プレビューのページに言語サーバーの clip を流す。CSP は本物を写す) を窓なしの Chrome で。録音の再生と MP4 は `out\pv\harness-rec.html` (`tools\frame_server.py` は要求を記録しないので、Chrome を `--enable-logging=stderr` で起こしてページの誤りを見る。97.5)。音の時刻は ffmpeg と Orecchiante の `.venv` の numpy で (DESIGN.md 97.4)。ミキサーと混ぜた音は `out\pv\harness-stems.html` と `tools\measure_stems.py` (98.3)。
 
 ## 最初に読むもの
 

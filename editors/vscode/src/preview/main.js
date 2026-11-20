@@ -9,6 +9,10 @@
 //   in   { type: 'model', file, data?, error? }   the bytes of a character file (VRM), or why not
 //   in   { type: 'recording', file, data?, error? }   the bytes of the recording a clip keeps time with
 //                                                  (clip.music.recording.audio), or why not
+//   in   { type: 'stems', key, state, timeline?, stems?, notes?, progress?, error? }   the song of the clips
+//                                                  one stem at a time, from Lily# (stems.js; key: the song as
+//                                                  written, its score, whether the recording is followed)
+//   in   { type: 'stem', file, data?, error? }   the bytes of a stem's file, or why not
 //   in   { type: 'cursor', offset }       the editor's cursor moved
 //   in   { type: 'song', key, song }      the notes asked for: { error, notes }
 //   in   { type: 'synth', processor, soundFont, name }   where the synthesiser and the sound font are
@@ -22,12 +26,15 @@
 //   in   { type: 'export', what, id }     the same click, made by a command (id comes back in the out)
 //   in   { type: 'record', id }           film the score shown, with its song as the preview plays it
 //   out  { type: 'recorded', id, data?, silent?, error?, stopped? }   the MP4's bytes, or why not
+//   in   { type: 'mix', id }              mix the song of the score shown as the mixer has it
+//   out  { type: 'mixed', id, left?, right?, sampleRate?, error? }   its samples (ArrayBuffers of floats), or why not
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { createCharacters } from './characters.js';
 import { createFontSound } from './fontsound.js';
 import { createRecording, cutRecording } from './recording.js';
 import { createSound } from './sound.js';
+import { MaxLevel, createStemPlayer, stemRows } from './stems.js';
 import { createSynthPort } from './synth.js';
 import { barAt, beatAt, clicksOf, markText, marksAt, secondsAt, tempoAt } from './time.js';
 import { renderSong } from './songaudio.js';
@@ -72,6 +79,18 @@ style.textContent = `
   label { display: flex; gap: 4px; align-items: center; white-space: nowrap; }
   select { font: inherit; color: var(--vscode-dropdown-foreground, inherit); background: var(--vscode-dropdown-background, transparent);
            border: 1px solid var(--vscode-dropdown-border, #999); border-radius: 3px; }
+  footer #mixerButton { min-width: 0; padding: 1px 10px; color: var(--vscode-button-secondaryForeground, #fff);
+                        background: var(--vscode-button-secondaryBackground, #5f6a79); }
+  footer #mixerButton[aria-pressed=true] { background: var(--vscode-button-secondaryHoverBackground, #4c5561); }
+  #mixer { position: absolute; right: 8px; bottom: 8px; max-height: calc(100% - 16px); overflow-y: auto; min-width: 260px; max-width: calc(100% - 16px);
+           padding: 8px 10px; border-radius: 4px; border: 1px solid var(--vscode-panel-border, #ccc);
+           background: var(--vscode-editorWidget-background, #f3f3f3); color: var(--vscode-editorWidget-foreground, inherit); }
+  #mixer[hidden] { display: none; }
+  #mixerRows { display: grid; grid-template-columns: auto 1fr 4ch; gap: 4px 8px; align-items: center; }
+  #mixerRows small { color: var(--vscode-descriptionForeground, #777); }
+  #mixerRows output { text-align: right; font-variant-numeric: tabular-nums; }
+  #mixerNotes { font-size: 12px; color: var(--vscode-descriptionForeground, #777); white-space: pre-wrap; }
+  #mixerNotes:not(:empty) { margin-top: 6px; }
 `;
 document.head.append(style);
 document.body.innerHTML = `
@@ -83,15 +102,18 @@ document.body.innerHTML = `
     <span id="modelProblem" hidden></span>
     <label id="modelLabel" hidden title="Show the dancers as the characters their dancer lines name (dancer alice humanoid &quot;girl.vrm&quot;), or as sticks."><input id="modelBox" type="checkbox" checked> Character</label>
     <button id="exportVideo" title="Write the score shown as an MP4 video: this view, with its song.">MP4</button>
+    <button id="exportAudio" hidden title="Write the song of the score shown as an MP3 or a WAV, mixed as the Mixer has it, for as long as the dance (the sound of its MP4).">Audio</button>
     <button id="exportModel" title="Write the score shown as a model file for an engine: glTF (.glb), VRM Animation (.vrma) or BVH (.bvh).">Model</button>
   </header>
-  <div id="stage"><div id="empty">Nothing to perform yet: the file needs a section.</div><div id="marks"></div></div>
+  <div id="stage"><div id="empty">Nothing to perform yet: the file needs a section.</div><div id="marks"></div>
+    <div id="mixer" hidden><div id="mixerRows"></div><div id="mixerNotes"></div></div></div>
   <footer>
     <button id="play">Play</button>
     <div id="track"><input id="seek" type="range" min="0" max="1000" value="0" aria-label="Position"><div id="ticks"></div></div>
     <span id="beat"></span>
     <label><input id="loop" type="checkbox" checked> Loop</label>
     <label id="soundLabel" hidden><input id="sound" type="checkbox" checked> Sound</label>
+    <button id="mixerButton" hidden aria-pressed="false" title="The level of each part of the song, as Lily# made them.">Mixer</button>
     <label>Speed <select id="speed"><option>0.25</option><option>0.5</option><option selected>1</option></select></label>
   </footer>`;
 
@@ -104,6 +126,8 @@ const soundLabel = document.getElementById('soundLabel'), soundBox = document.ge
 const ticks = document.getElementById('ticks'), marksLabel = document.getElementById('marks');
 const videoButton = document.getElementById('exportVideo'), modelButton = document.getElementById('exportModel');
 const modelLabel = document.getElementById('modelLabel'), modelBox = document.getElementById('modelBox'), modelProblem = document.getElementById('modelProblem');
+const audioButton = document.getElementById('exportAudio'), mixerButton = document.getElementById('mixerButton');
+const mixerPanel = document.getElementById('mixer'), mixerRows = document.getElementById('mixerRows'), mixerNotes = document.getElementById('mixerNotes');
 
 // ---- Scene.
 const dark = document.body.classList.contains('vscode-dark') || document.body.classList.contains('vscode-high-contrast');
@@ -292,8 +316,119 @@ const recordingOf = c => (c && c.music && c.music.recording) || null;
 let shownRecording = null; // the recording file of the shown clip; null without one
 let fromRecording = false; // what sounded last: the recording (true) or the notes
 
+// The song one stem at a time, from Lily# (stems.js; DESIGN.md 98): mixed by the Mixer, and the
+// first choice whenever a clip's are there — before the recording alone, and before the notes.
+const stemSongs = new Map(); // key -> the last { type: 'stems' } about it
+const stemPlayer = createStemPlayer();
+let fromStems = false;       // what sounded last was the stems
+// A clip danced to its song as the song is played (no order or tempo of its own) can have them.
+const stemsKeyOf = c => c && c.music && !(c.music.order && c.music.order.length) && c.music.tempo == null
+  ? JSON.stringify([c.music.file, c.music.score ?? null, !!c.music.recording]) : null;
+// Where the dance's 0 is on the stems' timeline, and whether they are on the dance's clock.
+function stemsOf(c) {
+  const key = stemsKeyOf(c), message = key ? stemSongs.get(key) : null;
+  if (!message || message.state !== 'ready' || !message.stems || !message.stems.length) return null;
+  if (message.timeline !== (c.music.recording ? 'recording' : 'score')) return null;
+  return { message, offset: c.music.recording ? c.music.recording.offset : 0 };
+}
+
+// The Mixer's levels, kept for each song (its file and score) while the editor keeps the page's state.
+const saved = vscode.getState() || {};
+const mixes = saved.mixes || {};   // song -> rowId -> { on, level }
+const mixKeyOf = c => c && c.music ? JSON.stringify([c.music.file, c.music.score ?? null]) : '';
+const levelsOf = c => mixes[mixKeyOf(c)] || {};
+function setLevel(id, change) {
+  const key = mixKeyOf(clip);
+  const levels = mixes[key] = { ...(mixes[key] || {}) };
+  levels[id] = { ...(levels[id] || { on: true, level: 1 }), ...change };
+  vscode.setState({ ...(vscode.getState() || {}), mixes });
+  stemPlayer.setLevels(levels);
+  soundTitle();
+}
+
+let mixerShown = '';   // what the rows were made for: they are made again only when it changes
+function mixer() {
+  const key = stemsKeyOf(clip), message = key ? stemSongs.get(key) : null;
+  mixerButton.hidden = !message || message.state === 'none' && !message.error;
+  const usable = stemsOf(clip);
+  audioButton.hidden = !usable || videoButton.hidden;
+  if (mixerPanel.hidden) return;
+  const stems = usable ? usable.message.stems : [];
+  const shown = JSON.stringify([mixKeyOf(clip), stems.map(s => [s.kind, s.name])]);
+  if (shown !== mixerShown) {
+    mixerShown = shown;
+    const levels = levelsOf(clip);
+    mixerRows.replaceChildren(...stemRows(stems).flatMap(row => {
+      const level = levels[row.id] ?? { on: true, level: 1 };
+      const name = document.createElement('label');
+      const box = Object.assign(document.createElement('input'), { type: 'checkbox', checked: level.on });
+      const kind = Object.assign(document.createElement('small'), {
+        textContent: row.kind === 'voice' ? 'voice' : row.kind === 'part' ? '' : 'recording' });
+      name.append(box, ' ' + row.name + ' ', kind);
+      const slider = Object.assign(document.createElement('input'), {
+        type: 'range', min: '0', max: String(MaxLevel * 100), step: '5', value: String(Math.round(level.level * 100)) });
+      slider.setAttribute('aria-label', row.name + ' level');
+      const value = Object.assign(document.createElement('output'), { textContent: Math.round(level.level * 100) + '%' });
+      box.addEventListener('change', () => setLevel(row.id, { on: box.checked }));
+      slider.addEventListener('input', () => {
+        value.textContent = slider.value + '%';
+        setLevel(row.id, { level: Number(slider.value) / 100 });
+      });
+      slider.addEventListener('dblclick', () => {   // back to as made
+        slider.value = '100';
+        value.textContent = '100%';
+        setLevel(row.id, { level: 1 });
+      });
+      return [name, slider, value];
+    }));
+  }
+  // Why some of it is missing, or how far Lily# is.
+  const lines = [];
+  if (message && message.state === 'loading') lines.push('Lily# is making the song\'s parts' + (message.progress ? ': ' + message.progress : '') + '…');
+  if (message && message.state === 'none' && message.error) lines.push(message.error);
+  if (message && message.state === 'ready' && !usable && message.stems && message.stems.length) {
+    lines.push(clip.music.recording
+      ? 'Lily# could not put the parts on the recording\'s beats, which this dance keeps time with: the recording alone plays.'
+      : 'Lily# put the parts on the recording\'s beats, which this dance does not keep time with: the song\'s notes play.');
+  }
+  if (usable) {
+    const state = stemPlayer.state();
+    if (state === 'loading') lines.push('Reading the parts…');
+    else if (state !== 'ready') lines.push(state);
+  }
+  for (const note of (message && message.notes) || []) lines.push(note);
+  mixerNotes.textContent = lines.join('\n');
+}
+mixerButton.addEventListener('click', () => {
+  mixerPanel.hidden = !mixerPanel.hidden;
+  mixerButton.setAttribute('aria-pressed', String(!mixerPanel.hidden));
+  mixerShown = '';
+  mixer();
+});
+
+// The stems of the clip shown, to the player; the files no song uses any more are let go.
+function applyStems() {
+  const usable = stemsOf(clip);
+  stemPlayer.setStems(usable ? usable.message.stems : []);
+  stemPlayer.setLevels(levelsOf(clip));
+  if (!usable && fromStems) cue();
+  const used = new Set();
+  for (const message of stemSongs.values()) for (const s of message.stems || []) used.add(s.file);
+  stemPlayer.prune(used);
+  mixer();
+}
+
 // The Sound box says on hover what is wrong with the song, or else what it is played with.
 function soundTitle() {
+  mixer();
+  const usable = stemsOf(clip);
+  if (usable) {
+    const state = stemPlayer.state();
+    soundLabel.title = state === 'ready' ? 'Played from the parts Lily# made of the song, at the levels the Mixer gives them.'
+      : state === 'loading' ? 'Reading the parts Lily# made of the song; until then, as before.'
+      : state;
+    return;
+  }
   if (!songKey) {
     soundLabel.title = 'No song: a click on every beat (louder on the first of a bar) and a clap at every mark.';
     return;
@@ -332,10 +467,26 @@ const cue = () => {
   player.cue(beat);
   recorder.cue();
   fromRecording = false;
+  stemPlayer.cue();
+  fromStems = false;
 };
 
 function sound() {
   if (!soundBox.checked) return;
+  const stems = stemsOf(clip), rate = Number(speed.value);
+  if (stems && stemPlayer.play(stems.offset + secondsAt(clip, beat), rate)) {
+    if (!fromStems) {   // read while the notes or the recording were sounding: they stop
+      player.cue(beat);
+      recorder.cue();
+      fromRecording = false;
+    }
+    fromStems = true;
+    return;
+  }
+  if (fromStems) {      // the Mixer asked for files still being read: as before until then
+    stemPlayer.cue();
+    fromStems = false;
+  }
   const recording = recordingOf(clip);
   if (recording && recorder.play(recording.audio, recording.offset, secondsAt(clip, beat), Number(speed.value))) {
     if (!fromRecording) player.cue(beat);   // decoded while the notes were sounding: they stop
@@ -437,6 +588,7 @@ function setClip(next, keepBeat) {
   } else if (!keepBeat) {
     cue();
   }
+  applyStems();
 }
 
 clipSelect.addEventListener('change', () => {
@@ -460,6 +612,7 @@ playButton.addEventListener('click', () => {
     // A browser lets sound start only from a click or a key: this is the one.
     player.start();
     recorder.start();
+    stemPlayer.start();
     askSong();
   }
   setPlaying(!playing);
@@ -496,6 +649,15 @@ videoButton.addEventListener('click', () => {
 // score without one), the same sound font. { sound } or { silent: why the video has none }.
 async function songSound(filmed, seconds) {
   if (!soundBox.checked) return { silent: 'the Sound box is off' };
+  // The song as the Mixer mixes it, when Lily# handed it out one stem at a time.
+  const stems = stemsOf(filmed);
+  if (stems) {
+    try {
+      return { sound: await stemPlayer.render(stems.offset, seconds) };
+    } catch {
+      // the Mixer says why; the recording or the notes below
+    }
+  }
   // The recording the dance keeps time with, as recorded; the notes only when it cannot be read.
   const recording = recordingOf(filmed);
   if (recording) {
@@ -585,6 +747,28 @@ async function record(id) {
   vscode.postMessage(answer);
 }
 
+// The song of the score shown, mixed as the Mixer has it, for as long as the dance (the sound its MP4 has):
+// the samples go to the extension, and Lily# writes them as an MP3 or a WAV.
+async function mixSong(id) {
+  const stems = stemsOf(clip);
+  const answer = { type: 'mixed', id };
+  if (!stems) {
+    answer.error = 'the song of this score was not handed out by Lily# one part at a time.';
+  } else {
+    // An MP3 is 32, 44.1 or 48 kHz: the page's own rate when it is one of them, so nothing is resampled.
+    const native = stemPlayer.sampleRate();
+    try {
+      const mix = await stemPlayer.render(stems.offset, secondsAt(clip, clip.totalBeats), [32000, 44100, 48000].includes(native) ? native : 48000);
+      answer.left = mix.left.buffer;
+      answer.right = mix.right.buffer;
+      answer.sampleRate = mix.sampleRate;
+    } catch (error) {
+      answer.error = String(error && error.message || error);
+    }
+  }
+  vscode.postMessage(answer);
+}
+
 // ---- Click a limb: go to the word that put it where it is.
 const raycaster = new THREE.Raycaster(), pointer = new THREE.Vector2();
 let downAt = null;
@@ -625,6 +809,16 @@ window.addEventListener('message', event => {
     setClip(same ?? under ?? clips[0] ?? null, !message.reset && (same !== null || under !== null));
   } else if (message.type === 'model') {
     characters.setFile(message.file, message.data, message.error);
+  } else if (message.type === 'stems') {
+    stemSongs.set(message.key, message);
+    applyStems();
+    soundTitle();
+  } else if (message.type === 'stem') {
+    stemPlayer.setFile(message.file, message.data, message.error);
+    soundTitle();
+    stemPlayer.buffers().then(soundTitle, soundTitle);
+  } else if (message.type === 'mix') {
+    void mixSong(message.id);
   } else if (message.type === 'recording') {
     recorder.setFile(message.file, message.data, message.error);
     soundTitle();
@@ -686,9 +880,11 @@ function tick(now) {
     return;
   }
   if (playing && clip) {
-    // While a recording sounds it is the clock: the dance is where the recording is heard.
-    const recording = recordingOf(clip);
-    const heard = recording && fromRecording ? recorder.position(recording.offset) : null;
+    // While the stems or a recording sound they are the clock: the dance is where they are heard.
+    const recording = recordingOf(clip), stems = fromStems ? stemsOf(clip) : null;
+    const timeline = stems ? stemPlayer.position() : null;
+    const heard = timeline !== null ? timeline - stems.offset
+      : recording && fromRecording ? recorder.position(recording.offset) : null;
     beat = beatAt(clip, heard ?? secondsAt(clip, beat) + (now - last) / 1000 * Number(speed.value));
     if (beat >= clip.totalBeats) {
       if (clip.loop && clip.totalBeats > 0) {
@@ -696,13 +892,17 @@ function tick(now) {
         // the time left over. A loop that travels starts again from frame 0.
         beat %= clip.totalBeats;
         player.rewind();   // the last notes ring on into the first
-        recorder.cue();    // a recording starts again from there (the next sound())
+        recorder.cue();    // a recording, and the stems, start again from there (the next sound())
         fromRecording = false;
+        stemPlayer.cue();
+        fromStems = false;
       } else if (wantLoop && clip.totalBeats > 0) {
         beat = 0;
         player.rewind();
         recorder.cue();
         fromRecording = false;
+        stemPlayer.cue();
+        fromStems = false;
       } else {
         beat = clip.totalBeats;
         setPlaying(false);

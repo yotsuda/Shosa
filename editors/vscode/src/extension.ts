@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { LanguageClient, ServerOptions, TransportKind } from 'vscode-languageclient/node';
 import { registerExport } from './export';
+import { ClipMusic, createStems } from './stems';
 import { registerTools } from './tools';
 
 // The extension is thin on purpose. The language server knows the language; the preview
@@ -128,7 +129,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     const models: Record<string, string> = {};
     // The recordings the songs keep time with (`X.orecchiante.json` beside `X.lys`: the server gives the full path).
     const recordings = new Set<string>();
-    for (const clip of shown as { figures?: { model?: string }[]; music?: { recording?: { audio?: string } } }[]) {
+    // The songs, to be had from Lily# one stem at a time for the preview's mixer (stems.ts).
+    const musics: ClipMusic[] = [];
+    for (const clip of shown as { figures?: { model?: string }[]; music?: ClipMusic }[]) {
+      if (clip.music?.file) {
+        musics.push(clip.music);
+      }
       for (const figure of clip.figures ?? []) {
         if (figure.model && !(figure.model in models)) {
           models[figure.model] = path.resolve(folder, figure.model);
@@ -151,22 +157,23 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     for (const file of recordings) {
       void sendFile('recording', file);
     }
+    stems.want(vscode.Uri.parse(message.uri), musics);
   };
 
   // A character file or a recording is read here and its bytes handed to the page, which parses it: the page
   // need not be let read the folder it is in. Sent again when the file changes (it is checked at every edit of the dance).
-  const sentModels = new Map<string, number>();   // file -> the time it was last written, as sent
-  const sendFile = async (type: 'model' | 'recording', file: string) => {
+  const sentModels = new Map<string, number>();   // type and file -> the time it was last written, as sent
+  const sendFile = async (type: 'model' | 'recording' | 'stem', file: string) => {
     let written = -1;
     try {
       written = (await fs.promises.stat(file)).mtimeMs;
     } catch {
       // not there: the page says so
     }
-    if (sentModels.get(file) === written) {
+    if (sentModels.get(type + '|' + file) === written) {
       return;
     }
-    sentModels.set(file, written);
+    sentModels.set(type + '|' + file, written);
     if (written < 0) {
       void panel?.webview.postMessage({ type, file, error: `${file} was not found.` });
       return;
@@ -178,6 +185,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       void panel?.webview.postMessage({ type, file, error: `${file} could not be read: ${String(error)}` });
     }
   };
+
+  const stems = createStems(context, {
+    post: message => void panel?.webview.postMessage(message),
+    sendFile: file => void sendFile('stem', file),
+  });
 
   // A dance follows its song, and the files of parts it brings in with `using`: when a .lys or
   // a .shosa is saved, the server compiles the dances again.
@@ -241,6 +253,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   let pageReady = false;
   const exported = registerExport(context, {
     client,
+    writeAudio: (mix, options) => stems.writeAudio(mix, options),
     panel: () => panel,
     uri: () => panelUri,
     ready: async () => {
@@ -277,6 +290,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       panelUri = undefined;
       pageReady = false;
       sentModels.clear();
+      stems.forget();
     });
 
     panel.webview.onDidReceiveMessage((message: { type: string; spans?: [number, number][]; start?: number; length?: number; key?: string; music?: object }) => {

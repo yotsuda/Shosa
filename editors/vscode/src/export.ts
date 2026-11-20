@@ -13,12 +13,18 @@ import type { LanguageClient } from 'vscode-languageclient/node';
 //   MP4     the score shown as a video: the preview films its own view and encodes it in the
 //           page (preview/video.js: H.264 and AAC by the editor's own encoders, so nothing has
 //           to be installed), with the song as the preview plays it (preview/songaudio.js).
+//   Audio   the song of the score shown as an MP3 or a WAV, as the preview's mixer has it, for as long
+//           as the dance (the sound of its MP4). The page mixes the stems Lily# made (preview/stems.js),
+//           the Lily# extension writes the file (its exports' writeAudio). Only for a song Lily# handed out.
 //
 // The preview says which score it shows ({ type: 'export' }); this file asks where to write,
-// and for a video answers { type: 'record' } and waits for { type: 'recorded' }.
+// and for a video answers { type: 'record' } and waits for { type: 'recorded' }; for a song's
+// sound, { type: 'mix' } and { type: 'mixed' }.
 
 export interface ExportHost {
   client: LanguageClient;
+  /** Lily#'s writer of MP3 and WAV (stems.ts). */
+  writeAudio(mix: { left: Float32Array; right: Float32Array; sampleRate: number }, options: { format: 'mp3' | 'wav'; path: string }): Promise<void>;
   panel(): vscode.WebviewPanel | undefined;
   /** The document the preview shows. */
   uri(): string | undefined;
@@ -28,10 +34,13 @@ export interface ExportHost {
 
 interface PreviewMessage {
   type: string;
-  what?: 'model' | 'video';
+  what?: 'model' | 'video' | 'audio';
   id?: string;
   score?: string;
   data?: ArrayBuffer | Uint8Array;
+  left?: ArrayBuffer | Float32Array;
+  right?: ArrayBuffer | Float32Array;
+  sampleRate?: number;
   silent?: string;
   error?: string;
   stopped?: boolean;
@@ -48,7 +57,7 @@ export function registerExport(context: vscode.ExtensionContext, host: ExportHos
   let next = 1;
   /** A click made by a command: where to write (no dialog then), and who waits for the files. */
   const asked = new Map<string, { path?: string; done: (files: string[]) => void }>();
-  /** Videos being filmed: where each goes. */
+  /** Videos being filmed, and songs being mixed: where each goes. */
   const filming = new Map<string, { target: vscode.Uri; done: (files: string[]) => void }>();
 
   const document = () => vscode.workspace.textDocuments.find(d => d.uri.toString() === host.uri());
@@ -115,8 +124,27 @@ export function registerExport(context: vscode.ExtensionContext, host: ExportHos
     void panel.webview.postMessage({ type: 'record', id });
   };
 
+  const audio = async (score: string, given: string | undefined, done: (files: string[]) => void): Promise<void> => {
+    const target = given ? vscode.Uri.file(given)
+      : await vscode.window.showSaveDialog({ title: 'Export Audio', defaultUri: suggested(score, '.mp3'),
+        filters: { 'MP3 (*.mp3)': ['mp3'], 'WAV, 16 bit (*.wav)': ['wav'] } });
+    const panel = host.panel();
+    if (!target || !panel) {
+      done([]);
+      return;
+    }
+    if (!['.mp3', '.wav'].includes(path.extname(target.fsPath).toLowerCase())) {
+      void vscode.window.showErrorMessage(`Shosa: '${path.basename(target.fsPath)}' is neither .mp3 nor .wav: the name says which file to write.`);
+      done([]);
+      return;
+    }
+    const id = 'mix' + next++;
+    filming.set(id, { target, done });
+    void panel.webview.postMessage({ type: 'mix', id });
+  };
+
   // The buttons, pressed from the command palette (or a test: `path` then, and no dialog).
-  const press = async (what: 'model' | 'video', given?: string): Promise<string[]> => {
+  const press = async (what: 'model' | 'video' | 'audio', given?: string): Promise<string[]> => {
     if (!(await host.ready())) {
       void vscode.window.showErrorMessage('Shosa: open a .shosa file to export its movement.');
       return [];
@@ -129,7 +157,8 @@ export function registerExport(context: vscode.ExtensionContext, host: ExportHos
   };
   context.subscriptions.push(
     vscode.commands.registerCommand('shosa.exportModel', (given?: string) => press('model', given)),
-    vscode.commands.registerCommand('shosa.exportVideo', (given?: string) => press('video', given)));
+    vscode.commands.registerCommand('shosa.exportVideo', (given?: string) => press('video', given)),
+    vscode.commands.registerCommand('shosa.exportAudio', (given?: string) => press('audio', given)));
 
   return (message: PreviewMessage): boolean => {
     if (message.type === 'export') {
@@ -144,9 +173,42 @@ export function registerExport(context: vscode.ExtensionContext, host: ExportHos
       };
       if (message.what === 'video') {
         video(message.score ?? '', from?.path, done).catch(failed);
+      } else if (message.what === 'audio') {
+        audio(message.score ?? '', from?.path, done).catch(failed);
       } else {
         model(message.score ?? '', from?.path).then(done, failed);
       }
+      return true;
+    }
+
+    if (message.type === 'mixed') {
+      // The song mixed by the page, as the mixer has it: Lily# writes it.
+      const mix = message.id ? filming.get(message.id) : undefined;
+      const from = message.id ? asked.get(message.id) : undefined;
+      if (message.id) {
+        filming.delete(message.id);
+        asked.delete(message.id);
+      }
+      const done = mix?.done ?? from?.done ?? (() => undefined);
+      if (message.error || !mix || !message.left || !message.right || !message.sampleRate) {
+        if (message.error) {
+          void vscode.window.showErrorMessage(`Shosa: no audio was written: ${message.error}`);
+        }
+        done([]);
+        return true;
+      }
+      const file = mix.target.fsPath;
+      const format = path.extname(file).toLowerCase() === '.wav' ? 'wav' : 'mp3';
+      const samples = (data: ArrayBuffer | Float32Array) => data instanceof Float32Array ? data : new Float32Array(data);
+      host.writeAudio({ left: samples(message.left), right: samples(message.right), sampleRate: message.sampleRate }, { format, path: file }).then(
+        () => {
+          wrote([file]);
+          done([file]);
+        },
+        error => {
+          void vscode.window.showErrorMessage(`Shosa: ${path.basename(file)} could not be written. ${error instanceof Error ? error.message : String(error)}`);
+          done([]);
+        });
       return true;
     }
 

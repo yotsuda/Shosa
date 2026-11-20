@@ -170,7 +170,11 @@ Kimodo を動かした記事を読んだ (2026-11-14。ユーザーが見つけ�
 - VS Code 拡張を Marketplace に出す (サーバー同梱、各プラットフォーム)。
   パッケージは作れるようになった (2026-11-14。`tools\pack-extension.ps1` と `tools\deploy-extension.ps1`、win32-x64 だけ確認。DESIGN.md 24 節)。
   linux-x64 と osx-arm64 も作れるが、動かしたことはない (2026-11-15。DESIGN.md 45.2)。入れた拡張の試験は `tools\test-extension-host.ps1` (45.1)。
-  公開の前に決めること: ~~ライセンス~~ (MIT。2026-11-20 に `shosa-music` (GPL) をやめ、全部 MIT。DESIGN.md 92.1)、リポジトリの URL、版の番号。
+  公開の前に決めること: ~~ライセンス~~ (MIT。2026-11-20 に `shosa-music` (GPL) をやめ、全部 MIT。DESIGN.md 92.1)、~~リポジトリの URL~~、~~版の番号~~。
+  **決まった (2026-11-20、ユーザー)**: 最初の版は **0.3.0**、**win32-x64 だけ** (linux と mac は CI で作って試せるようになってから)。
+  **出すのは Lily# の実装 (楽譜のパート・歌声・録音を API で渡す、97.6) を待ち、プレビューのミキサーで録音を鳴らして確かめてから**。
+  `editors\vscode\CHANGELOG.md` を書いた (パッケージに入る)。VRM のキャラクターと録音で踊るのは *Preview* と書いた。
+  Lily# の API で音を 1 本ずつ受け取るミキサーと MP3／WAV の書き出しを入れた (2026-11-20、DESIGN.md 98)。**残りは本物の Lily# との通し** (Lily# の拡張の入れ直しはオーナー)。それが済めばリリースの条件がそろう。README に VRM の 1 項目を *Preview* で足すかはユーザーの返事待ち。
   **曲を読むところを Lily# の `lysc` に移す** (2026-11-20、ユーザー決定。DESIGN.md 92 節): 済み (2026-11-20、DESIGN.md 92.1): Shosa は `shosa-music` をやめ、全部 MIT になった。Lily# はゆるい依存 (曲に合わせる機能だけが要る)。リポジトリは `https://github.com/yotsuda/Shosa` (public、2026-11-20)。
   CLI (`shosa`) も拡張に入れ、VS Code のターミナルの PATH に足す (2026-11-15。DESIGN.md 43.4。拡張だけで配る弱みもそこに)。
 - Blender と Godot 向けに、`.shosa` を保存すると動きが更新される読み込み機能。
