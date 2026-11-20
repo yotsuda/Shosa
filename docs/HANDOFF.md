@@ -1,6 +1,22 @@
-# Shosa
+# Shosa 引き継ぎ (HANDOFF)
 
 動きをテキストで書き、コンパイルして人形の動きにする言語。Lily# の動き版。
+リポジトリは `C:\MyProj\Shosa`。このファイルは 2026-11-20 まで根の `CLAUDE.md` だった (ユーザー: ほかのプロジェクトと同じく `docs/HANDOFF.md` に)。
+下のパスはリポジトリの根から。
+
+## 現在地 (2026-11-20 の終わり)
+
+方向は「YouTuber に見せる」(ROADMAP 2 節): AI が作った曲や録音に合わせて VRM の女の子が歌いながら踊る動画。この日にしたこと (DESIGN.md 94〜97 節):
+
+- **書いていない段は凍らない** (94 節): 息、体重の左右の寄り、腕に付いていく胴と頭。既定で入る。ユーザーが見て「だいぶ自然」、揺れを 1.6 倍に。試験のプロセスでは切る (`Solver.LifeByDefault`)。
+- **手を合わせても貫通しない** (95 節): 書き出しの手の骨を、両手が近いと平行に。`clap` の手首を 5 cm。頭上から下ろすときの肘の裏返りを直した。
+- **プレビューに VRM のキャラクター** (96 節): `dancer alice humanoid "girl.vrm" on lead` (ユーザーの案で `.shosa` に書く)。three-vrm 3.5.5。CSP に `blob:` (色が付かなかった)。ユーザーが VS Code で見た: 「すごい、とても面白い」。見本は `out\vrm\dance.shosa`。
+- **録音から作った曲で踊る** (97 節): 曲の隣の `NAME.orecchiante.json` を Shosa が直接読み (ユーザー決定)、拍ごとのテンポで録音に合わせる (`Shosa.Core\Music\RecordingSidecar.cs`)。見本は `out\ito\ito.shosa` (糸 (Bank Band)、曲は OneDrive の絶対パス)。
+- **音は Lily# で混ぜ、Shosa はそれを鳴らす** (97.3、ユーザー決定)。Lily# への依頼 3・4 を出した (`docs/repro/REQUESTS.md`): 書き出しが約 0.07% 伸びる件、歌声が録音の揺れに付いていかない件、相談として混ぜた音のファイル名を隣のファイルに。
+
+**次の一手**: (1) Lily# の返事を `docs/repro/REQUESTS.md` で見る (依頼 1 は fixed のまま、Shosa 側の `lysc` への切り替えも残っている。DESIGN.md 92 節)。(2) プレビューと MP4 で録音 (または Lily# の書き出し) を `offset` から鳴らす (拡張が音源を読んで webview へ、モデルと同じ道。`characters.js` の横に)。(3) 歌詞に合わせた口の動き (VRM の あ・い・う・え・お)。(4) 歩きの足 (93.1)。詳しくは ROADMAP 2 節の「次の一手」。
+
+試し方のメモ: VRM の見え方は `out\pv\harness.html` (プレビューのページに言語サーバーの clip を流す。CSP は本物を写す) を窓なしの Chrome で。音の時刻は ffmpeg と Orecchiante の `.venv` の numpy で (DESIGN.md 97.4)。
 
 ## 最初に読むもの
 
