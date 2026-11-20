@@ -205,6 +205,10 @@ public static class CheckReport
             string Seconds(double from, double to) => (clip.SecondsAt(to) - clip.SecondsAt(from)).ToString("0.##", CultureInfo.InvariantCulture) + " s";
             string head = clip.Music is { } song ? Label(clip.Name) + " to " + song.File : Label(clip.Name);
             yield return $"  {head}: {N(clip.TotalBeats)} beats, {Seconds(0, clip.TotalBeats)}, {clip.Figures.Count} dancer{(clip.Figures.Count == 1 ? "" : "s")}";
+            // Danced to the recording the song was made from: a tempo for every beat, so the sections say their range instead (DESIGN.md 97).
+            var recording = clip.Music?.Recording;
+            if (recording is not null)
+                yield return $"  keeping time with the recording {Path.GetFileName(recording.Audio)}: beat 0 at {N(recording.Offset)} s of it, a tempo for every beat";
 
             var tempos = TempoMap.Of(clip.Tempos, clip.Tempo);
             var meters = Bars.Of(clip.Meters, clip.BeatsPerBar);
@@ -218,15 +222,20 @@ public static class CheckReport
                     count = $"upbeat of {N(s.Pickup)}, then {count} from beat {N(s.T0 + s.Pickup)}";
                 // A song may change tempo or time inside a section: each change with its beat, since the bars are counted by them.
                 bool Inside(double beat) => beat > s.T0 + 1e-9 && beat < s.T1 - 1e-9;
-                string tempo = string.Concat(tempos.Where(t => Inside(t.Beat)).Select(t => $", {N(t.Bpm)} from beat {N(t.Beat)}"));
+                string tempo = recording is not null ? "" : string.Concat(tempos.Where(t => Inside(t.Beat)).Select(t => $", {N(t.Bpm)} from beat {N(t.Beat)}"));
                 var first = Bars.MeterAt(meters, s.T0);
                 string time = string.Concat(meters.Where(m => Inside(m.Beat)).Select(m => $", {m.BeatsPerBar}/{m.BeatUnit} from beat {N(m.Beat)}"));
                 // In a compound time (6/8, 9/8, 12/8) the beat is the quaver and the pulse a dancer
                 // feels is the dotted crotchet: the tempo is said by both, "at 288 (4. = 96)".
                 double bpm = TempoMap.BpmAt(tempos, s.T0);
                 string felt = first is { BeatUnit: 8, BeatsPerBar: 6 or 9 or 12 } ? $" (4. = {N(bpm / 3)})" : "";
-                rows.Add([s.Name, $"{N(s.T0)}-{N(s.T1)}", count, Seconds(s.T0, s.T1),
-                    $"at {N(bpm)}{felt}{tempo}", $"{first.BeatsPerBar}/{first.BeatUnit}{time}"]);
+                string pace = $"at {N(bpm)}{felt}{tempo}";
+                if (recording is not null)
+                {
+                    var inside = tempos.Where(t => t.Beat >= s.T0 - 1e-9 && t.Beat < s.T1 - 1e-9).Select(t => t.Bpm).DefaultIfEmpty(bpm).ToList();
+                    pace = inside.Min() == inside.Max() ? $"at {N(bpm)}" : $"at {Math.Round(inside.Min(), 1).ToString(CultureInfo.InvariantCulture)}-{Math.Round(inside.Max(), 1).ToString(CultureInfo.InvariantCulture)}";
+                }
+                rows.Add([s.Name, $"{N(s.T0)}-{N(s.T1)}", count, Seconds(s.T0, s.T1), pace, $"{first.BeatsPerBar}/{first.BeatUnit}{time}"]);
             }
             foreach (var row in rows)
                 yield return ("    " + string.Join("   ", row.Select((cell, i) => cell.PadRight(rows.Max(r => r[i].Length))))).TrimEnd();

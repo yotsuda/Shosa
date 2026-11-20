@@ -80,9 +80,11 @@ public static class RecordingSidecar
             bars.Add((beat, length));
             beat += length;
         }
-        if (bars.Count != read.Bars.Count)
+        // The n-th bar timed is the n-th bar the song plays (as Lily# counts them). Bars timed past the song's end
+        // (bar lines the chart no longer has at its end) are not danced; too few cannot be.
+        if (read.Bars.Count < bars.Count)
         {
-            result.RecordingError = $"The song plays {bars.Count} bars and {name} times {read.Bars.Count}: the dance keeps the song's own tempo.";
+            result.RecordingError = $"The song plays {bars.Count} bars and {name} times only {read.Bars.Count}: the dance keeps the song's own tempo.";
             return result;
         }
 
@@ -122,7 +124,9 @@ public static class RecordingSidecar
 
     private static (Sidecar? Read, string? Error) Read(string file)
     {
-        long written = File.GetLastWriteTimeUtc(file).Ticks;
+        // The time it was written and its length: a file written twice within one tick of the clock is still read again.
+        var info = new FileInfo(file);
+        long written = info.LastWriteTimeUtc.Ticks ^ (info.Length << 40);
         if (Cache.TryGetValue(file, out var kept) && kept.Written == written)
             return (kept.Read, kept.Error);
         Sidecar? read = null;
