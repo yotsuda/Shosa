@@ -79,7 +79,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   // Linux and macOS the programs would be there and not start. Set them; a failure (a read-only
   // install) is left to show itself when the server is started.
   if (process.platform !== 'win32') {
-    for (const program of ['Shosa.Lsp', 'shosa-music', 'shosa']) {
+    for (const program of ['Shosa.Lsp', 'shosa']) {
       try {
         fs.chmodSync(path.join(programs, program), 0o755);
       } catch {
@@ -101,7 +101,20 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     return;
   }
 
-  const serverOptions: ServerOptions = { ...server, transport: TransportKind.stdio };
+  // Songs are read by Lily#'s lysc (DESIGN.md 92): the one the Lily# extension names, handed to the server and
+  // to `shosa` in the terminals as SHOSA_LYSC. Lily# is a loose dependency: without it the server says, on a
+  // `music` line, that it is needed; everything else works.
+  const lysc = await lyscOfLilySharp();
+  if (lysc) {
+    context.environmentVariableCollection.replace('SHOSA_LYSC', lysc);
+  } else {
+    context.environmentVariableCollection.delete('SHOSA_LYSC');
+  }
+  const serverOptions: ServerOptions = {
+    ...server,
+    transport: TransportKind.stdio,
+    options: lysc ? { env: { ...process.env, SHOSA_LYSC: lysc } } : undefined,
+  };
   const editorFor = (uri: string | undefined) =>
     vscode.window.visibleTextEditors.find(e => e.document.uri.toString() === uri);
 
@@ -273,7 +286,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       }
       switch (message.type) {
         case 'song':
-          // The notes of the song the clip is danced to: the server has shosa-music read them.
+          // The notes of the song the clip is danced to: the server has Lily#'s lysc read them.
           if (panelUri && client) {
             const key = message.key;
             client.sendRequest('shosa/song', { ...message.music, uri: panelUri }).then(
@@ -340,8 +353,7 @@ export async function deactivate(): Promise<void> {
 /**
  * How to start the language server. The setting first; then the one the package carries — a
  * program with its own .NET runtime, so nothing but VS Code is needed (tools\pack-extension.ps1 puts it in
- * `server`, with shosa-music beside it); then, running from the repository, the one
- * `dotnet build` leaves. A .dll is run with `dotnet`.
+ * `server`); then, running from the repository, the one `dotnet build` leaves. A .dll is run with `dotnet`.
  */
 function findServer(context: vscode.ExtensionContext): { command: string; args: string[] } | undefined {
   const configured = vscode.workspace.getConfiguration('shosa').get<string>('server.path') ?? '';
@@ -356,6 +368,30 @@ function findServer(context: vscode.ExtensionContext): { command: string; args: 
     return undefined;
   }
   return found.toLowerCase().endsWith('.dll') ? { command: 'dotnet', args: [found] } : { command: found, args: [] };
+}
+
+/**
+ * The lysc of the installed Lily# extension: what its exports name (`lyscPath`), else the one in its
+ * `server` folder; undefined without Lily#. Lily# is woken for its exports, but not waited on for
+ * long: past a few seconds its folder is used.
+ */
+async function lyscOfLilySharp(): Promise<string | undefined> {
+  const lily = vscode.extensions.getExtension<{ lyscPath?: string }>('yotsuda.lilysharp');
+  if (!lily) {
+    return undefined;
+  }
+  let named: string | undefined;
+  try {
+    const exports = await Promise.race([
+      lily.isActive ? Promise.resolve(lily.exports) : lily.activate(),
+      new Promise<undefined>(resolve => setTimeout(() => resolve(undefined), 5000)),
+    ]);
+    named = exports?.lyscPath;
+  } catch {
+    // Lily# failed to start: its folder below
+  }
+  const bundled = path.join(lily.extensionPath, 'server', process.platform === 'win32' ? 'lysc.exe' : 'lysc');
+  return [named, bundled].find(candidate => !!candidate && fs.existsSync(candidate));
 }
 
 /**

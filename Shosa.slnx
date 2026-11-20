@@ -2,6 +2,5 @@
   <Project Path="Shosa.Core/Shosa.Core.csproj" />
   <Project Path="Shosa.Cli/Shosa.Cli.csproj" />
   <Project Path="Shosa.Lsp/Shosa.Lsp.csproj" />
-  <Project Path="Shosa.Music/Shosa.Music.csproj" />
   <Project Path="Shosa.Tests/Shosa.Tests.csproj" />
 </Solution>

@@ -91,8 +91,8 @@ function Add-Entry([string]$title, [string]$license, [string]$url, [object[]]$fi
 Add 'THIRD-PARTY NOTICES'
 Add
 Add 'The Shosa extension carries the third-party software below, each under its own licence.'
-Add 'Shosa itself is under the MIT license (LICENSE). shosa-music, in server, is under the GNU'
-Add 'General Public License version 3 or later (server/LICENSE-shosa-music.txt).'
+Add 'Shosa itself is under the MIT license (LICENSE). Songs are read by the Lily# extension''s lysc'
+Add 'when it is installed; nothing of Lily# is in this package.'
 Add
 
 # --- The extension's code (dist): the npm packages esbuild bundled. ---
@@ -110,7 +110,7 @@ foreach ($dir in $packages) {
 }
 
 # --- The programs in server: the .NET runtime and the NuGet packages. ---
-Add 'PART 2. In server (the language server, the compiler and shosa-music), from .NET and NuGet'
+Add 'PART 2. In server (the language server and the compiler), from .NET and NuGet'
 Add
 $libraries = [ordered]@{}
 foreach ($deps in Get-ChildItem $Server -Filter *.deps.json) {
@@ -130,15 +130,6 @@ foreach ($name in $libraries.Keys) {
     Add-Entry $title $license $url @(License-Files $dir) $meta.copyright
 }
 
-Add $rule
-Add 'LilySharp.Core (Lily#), linked into shosa-music'
-Add 'License: GPL-3.0-or-later, as shosa-music (server/LICENSE-shosa-music.txt)'
-Add 'Source: https://github.com/yotsuda/LilySharp'
-Add $rule
-Add
-Add 'The fonts Lily# engraves with are in server/Fonts, each with its licence beside it:'
-foreach ($f in Get-ChildItem "$Server\Fonts" -Filter '*LICENSE*' | Sort-Object Name) { Add "  server/Fonts/$($f.Name)" }
-Add
 
 [IO.File]::WriteAllText($Out, (($text -join "`n") + "`n"), [Text.UTF8Encoding]::new($false))
 '{0}: {1} npm packages, {2} from .NET and NuGet' -f (Split-Path $Out -Leaf), $packages.Count, $libraries.Count

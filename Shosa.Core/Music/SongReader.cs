@@ -8,25 +8,32 @@ using Shosa.Core.Semantics;
 namespace Shosa.Core.Music;
 
 /// <summary>
-/// Reads Lily# songs for the files of one folder, by asking `shosa-music`: a program of its
-/// own (Shosa.Music), because Lily# is under the GPL and brings an engraver along. Nothing of
-/// Lily# is linked here; what crosses is a command line and JSON.
+/// Reads Lily# songs for the files of one folder, by asking Lily#'s own compiler, `lysc`
+/// (`timeline`, `notes`, `midi`, `wav`: DESIGN.md 92). Nothing of Lily# is linked here, and
+/// Lily# is a loose dependency: without it only dancing to a song is out of reach. What crosses
+/// is a command line and JSON, whose shape `lysc --version --json` numbers (`protocol`).
 ///
 /// An answer is kept for as long as the song's file is unchanged, so an editor that compiles
 /// on every keystroke starts the program once per song, not once per key.
 /// </summary>
 public sealed class SongReader(string folder)
 {
+    /// <summary>The oldest shape of `lysc timeline` and `lysc notes` this reads.</summary>
+    public const int Protocol = 1;
+
     private static readonly ConcurrentDictionary<string, SongInfo> Cache = new();
     private static readonly JsonSerializerOptions Json = new() { PropertyNameCaseInsensitive = true };
-    private static readonly Lazy<string?> Found = new(Find);
+    private static readonly Lazy<(string? Program, string? Problem)> Found = new(Find);
 
     /// <summary>The reader for the songs a file names: they are looked for beside it.</summary>
     public static SongSource For(string shosaFile) =>
         new SongReader(Path.GetDirectoryName(Path.GetFullPath(shosaFile)) ?? ".").Read;
 
-    /// <summary>Where `shosa-music` is, or null when it is not installed.</summary>
-    public static string? Program => Found.Value;
+    /// <summary>Where `lysc` is, or null when no Lily# that can be used is installed (<see cref="Missing"/> says why).</summary>
+    public static string? Program => Found.Value.Program;
+
+    /// <summary>Why songs cannot be read, for the user; null when they can.</summary>
+    public static string? Missing => Found.Value.Problem;
 
     public string PathOf(string file) => Path.GetFullPath(Path.Combine(folder, file));
 
@@ -36,7 +43,7 @@ public sealed class SongReader(string folder)
         if (!File.Exists(path))
             return new SongInfo { Error = $"There is no file '{file}' beside this one." };
         if (Program is not { } program)
-            return new SongInfo { Error = "The song cannot be read: shosa-music, the program that reads Lily# files, is not installed beside shosa (or named by SHOSA_MUSIC)." };
+            return new SongInfo { Error = "The song cannot be read: " + Missing };
 
         string key = string.Join('\n', path, File.GetLastWriteTimeUtc(path).Ticks.ToString(CultureInfo.InvariantCulture), score, order is null ? "" : "order " + string.Join(' ', order));
         var song = Cache.GetOrAdd(key, _ =>
@@ -55,7 +62,7 @@ public sealed class SongReader(string folder)
             catch (JsonException)
             {
             }
-            return new SongInfo { Error = $"'{file}' could not be read: {(error.Trim() is { Length: > 0 } said ? said : "shosa-music gave no answer")}" };
+            return new SongInfo { Error = $"'{file}' could not be read: {(error.Trim() is { Length: > 0 } said ? said : "lysc gave no answer")}" };
         });
         // Played in its own order, a song made from a recording keeps the recording's time (DESIGN.md 97).
         return order is null ? RecordingSidecar.Apply(song, path) : song;
@@ -71,7 +78,7 @@ public sealed class SongReader(string folder)
         if (!File.Exists(path))
             return new SongNotes { Error = $"There is no file '{music.File}' beside this one." };
         if (Program is not { } program)
-            return new SongNotes { Error = "shosa-music, the program that reads Lily# files, is not installed." };
+            return new SongNotes { Error = Missing };
 
         long written = File.GetLastWriteTimeUtc(path).Ticks;
         string key = string.Join('\n', path, music.Score, music.Order is null ? "" : "order " + string.Join(' ', music.Order));
@@ -93,7 +100,7 @@ public sealed class SongReader(string folder)
         catch (JsonException)
         {
         }
-        notes ??= new SongNotes { Error = $"'{music.File}' could not be read: {(error.Trim() is { Length: > 0 } said ? said : "shosa-music gave no answer")}" };
+        notes ??= new SongNotes { Error = $"'{music.File}' could not be read: {(error.Trim() is { Length: > 0 } said ? said : "lysc gave no answer")}" };
         NotesCache[key] = (written, notes);
         return notes;
     }
@@ -107,18 +114,40 @@ public sealed class SongReader(string folder)
     public string? Write(MusicIr music, string output, string? soundFont = null)
     {
         if (Program is not { } program)
-            return "shosa-music, the program that reads Lily# files, is not installed.";
-        var arguments = new List<string> { soundFont is null ? "midi" : "wav", PathOf(music.File), "-o", output };
-        if (soundFont is not null)
-            arguments.AddRange(["--soundfont", soundFont]);
-        if (!string.IsNullOrEmpty(music.Score))
-            arguments.AddRange(["--score", music.Score]);
-        if (music.Order is not null)
-            arguments.AddRange(["--order", string.Join(' ', music.Order)]);
-        if (music.Tempo is { } tempo)
-            arguments.AddRange(["--tempo", tempo.ToString(CultureInfo.InvariantCulture)]);
-        var (exit, _, error) = Run(program, arguments);
-        return exit == 0 ? null : error.Trim() is { Length: > 0 } said ? said : "shosa-music failed.";
+            return Missing;
+        // lysc names what it writes after the song (SONG.mid, SONG-NAME.mid for a named score) in
+        // a folder: it writes into a folder of its own here, and the one file is moved where asked.
+        string scratch = Path.Combine(Path.GetTempPath(), "shosa-song-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(scratch);
+        try
+        {
+            string extension = soundFont is null ? ".mid" : ".wav";
+            var arguments = new List<string> { soundFont is null ? "midi" : "wav", PathOf(music.File), "-d", scratch };
+            if (soundFont is not null)
+                arguments.AddRange(["--soundfont", soundFont]);
+            if (!string.IsNullOrEmpty(music.Score))
+                arguments.AddRange(["--score", music.Score]);
+            if (music.Order is not null)
+                arguments.AddRange(["--order", string.Join(' ', music.Order)]);
+            if (music.Tempo is { } tempo)
+                arguments.AddRange(["--tempo", tempo.ToString(CultureInfo.InvariantCulture)]);
+            var (exit, _, error) = Run(program, arguments);
+            if (exit != 0)
+                return error.Trim() is { Length: > 0 } said ? said : "lysc failed.";
+            // Without --score, lysc writes every score; the song's default is the one without a name.
+            string stem = Path.GetFileNameWithoutExtension(music.File);
+            string expected = Path.Combine(scratch, stem + (string.IsNullOrEmpty(music.Score) ? "" : "-" + music.Score) + extension);
+            string[] written = Directory.GetFiles(scratch, "*" + extension);
+            string? made = File.Exists(expected) ? expected : written.Length == 1 ? written[0] : null;
+            if (made is null)
+                return $"lysc wrote no {extension} for {(string.IsNullOrEmpty(music.Score) ? "the song" : "the score " + music.Score)}.";
+            File.Move(made, output, overwrite: true);
+            return null;
+        }
+        finally
+        {
+            try { Directory.Delete(scratch, recursive: true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+        }
     }
 
     private static (int Exit, string Output, string Error) Run(string program, List<string> arguments)
@@ -144,7 +173,7 @@ public sealed class SongReader(string folder)
             if (!process.WaitForExit(60_000))
             {
                 process.Kill(entireProcessTree: true);
-                return (-1, "", "shosa-music did not answer within a minute.");
+                return (-1, "", "lysc did not answer within a minute.");
             }
             return (process.ExitCode, output.Result, error.Result);
         }
@@ -155,35 +184,66 @@ public sealed class SongReader(string folder)
     }
 
     /// <summary>
-    /// SHOSA_MUSIC, then beside the running program (or in its `music` folder), then — in a
-    /// checkout — the build of Shosa.Music, the same configuration as this one first.
+    /// `lysc`: SHOSA_LYSC (the VS Code extension sets it to the one the Lily# extension names), then
+    /// the PATH, then the newest Lily# extension installed in VS Code (`server/lysc`) — so `shosa` on
+    /// a command line finds it too. The one found must say a <see cref="Protocol"/> this reads.
     /// </summary>
-    private static string? Find()
+    private static (string? Program, string? Problem) Find()
     {
-        string name = OperatingSystem.IsWindows() ? "shosa-music.exe" : "shosa-music";
-        if (Environment.GetEnvironmentVariable("SHOSA_MUSIC") is { Length: > 0 } named)
-            return File.Exists(named) ? named : null;
-
-        string home = AppContext.BaseDirectory;
-        foreach (string candidate in new[] { Path.Combine(home, name), Path.Combine(home, "music", name) })
+        const string Install = "Lily#, which reads songs, is needed to dance to one: install the Lily# extension for VS Code, or name its lysc in SHOSA_LYSC.";
+        string name = OperatingSystem.IsWindows() ? "lysc.exe" : "lysc";
+        string? found = null;
+        if (Environment.GetEnvironmentVariable("SHOSA_LYSC") is { Length: > 0 } named)
         {
-            if (File.Exists(candidate))
-                return candidate;
+            if (!File.Exists(named))
+                return (null, $"SHOSA_LYSC names {named}, which is not there. " + Install);
+            found = named;
         }
+        found ??= (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
+            .Select(folder => { try { return Path.Combine(folder.Trim('"'), name); } catch (ArgumentException) { return ""; } })
+            .FirstOrDefault(File.Exists);
+        found ??= Installed(name);
+        if (found is null)
+            return (null, Install);
 
-        string[] configurations = home.Contains($"{Path.DirectorySeparatorChar}Release{Path.DirectorySeparatorChar}") ? ["Release", "Debug"] : ["Debug", "Release"];
-        for (var up = new DirectoryInfo(home); up is not null; up = up.Parent)
+        // The shape of what it prints: `lysc --version --json` is {version, protocol}.
+        var (exit, output, _) = Run(found, ["--version", "--json"]);
+        int protocol = 0;
+        string version = "?";
+        try
         {
-            string project = Path.Combine(up.FullName, "Shosa.Music", "bin");
-            if (!Directory.Exists(project))
-                continue;
-            foreach (string configuration in configurations)
+            if (exit == 0 && JsonDocument.Parse(output).RootElement is { ValueKind: JsonValueKind.Object } said)
             {
-                string candidate = Path.Combine(project, configuration, "net10.0", name);
-                if (File.Exists(candidate))
-                    return candidate;
+                if (said.TryGetProperty("protocol", out var p) && p.TryGetInt32(out int number))
+                    protocol = number;
+                if (said.TryGetProperty("version", out var v) && v.ValueKind == JsonValueKind.String)
+                    version = v.GetString()!;
             }
-            return null;
+        }
+        catch (JsonException)
+        {
+        }
+        return protocol >= Protocol
+            ? (found, null)
+            : (null, $"The Lily# found ({found}, version {version}) is too old to read songs for Shosa: update the Lily# extension.");
+    }
+
+    /// <summary>The lysc of the newest Lily# extension in VS Code's extensions folder, or null.</summary>
+    private static string? Installed(string name)
+    {
+        string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        foreach (string editor in new[] { ".vscode", ".vscode-insiders" })
+        {
+            string extensions = Path.Combine(home, editor, "extensions");
+            if (!Directory.Exists(extensions))
+                continue;
+            var newest = Directory.GetDirectories(extensions, "yotsuda.lilysharp-*")
+                .Select(dir => (Dir: dir, Version: Version.TryParse(Path.GetFileName(dir)["yotsuda.lilysharp-".Length..].Split('-')[0], out var v) ? v : null))
+                .Where(x => x.Version is not null && File.Exists(Path.Combine(x.Dir, "server", name)))
+                .OrderByDescending(x => x.Version)
+                .FirstOrDefault();
+            if (newest.Dir is not null)
+                return Path.Combine(newest.Dir, "server", name);
         }
         return null;
     }

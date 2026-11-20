@@ -27,9 +27,9 @@ shosa grammar -o SHOSA_GRAMMAR.md # the language, as this build of the compiler 
 
 Take the grammar from `shosa grammar` rather than from a copy: it is generated from the
 table the compiler checks against, so the two cannot disagree. Dancing to a Lily# song
-(`music "song.lys"`) also needs `shosa-music` beside `shosa`: the extension carries it;
-from the repository it is built by `dotnet build Shosa.slnx` with a checkout of LilySharp
-beside the repository.
+(`music "song.lys"`) also needs Lily#: `shosa` asks Lily#'s compiler, `lysc`, found in
+`SHOSA_LYSC`, on the PATH, or in the Lily# extension installed in VS Code. Without it,
+everything but dancing to a song works, and a `music` line says Lily# is needed.
 
 **In VS Code, an assistant that uses the editor's tools (Copilot Chat in agent mode) needs
 none of this file's setup**: the extension gives it three tools — `shosa_grammar` (the

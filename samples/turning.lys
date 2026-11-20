@@ -1,7 +1,7 @@
 // Turning — a song that changes on the way, for samples/turning.shosa.
 // Written in Lily# (https://github.com/yotsuda/LilySharp).
 // The March is four bars of 4/4 at 120 and slows to 90 in its last bar; the Waltz is four bars
-// of 3/4, at 120 again (a new section starts from the tempo at the top of the file).
+// of 3/4, at 120 again (written: Lily# keeps a tempo past the end of its section).
 title "Turning"
 tempo 120
 time 4/4
@@ -17,7 +17,7 @@ section March {
 
 section Waltz {
   melody {
-    time 3/4 b'4 d d | c4 e e | d4 b g | a2. |
+    tempo 120 time 3/4 b'4 d d | c4 e e | d4 b g | a2. |
   }
 }
 

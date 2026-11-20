@@ -5,7 +5,7 @@ param(
     [string]$Out = "$PSScriptRoot\..\artifacts\extension"
 )
 # Deploys Shosa to THIS PC's VS Code, Windows x64, without closing VS Code: packs the win-x64
-# target (pack-extension.ps1: the language server and shosa-music published with their .NET
+# target (pack-extension.ps1: the language server and the compiler published with their .NET
 # runtime, the extension built, `vsce package --target win32-x64`) and installs the .vsix over
 # the earlier one. Then one "Developer: Reload Window" in each window loads the new extension.
 # Never publishes.
@@ -15,7 +15,7 @@ param(
 #
 # A VS Code that has a .shosa file open runs the language server from the installed extension,
 # and Windows will not replace a program that runs. So when the install is refused, the server
-# (and a shosa-music it started) is stopped and the install tried again. The window it belonged
+# is stopped and the install tried again. The window it belonged
 # to then says the server stopped; Reload Window starts the new one.
 $ErrorActionPreference = 'Stop'
 $root = Resolve-Path "$PSScriptRoot\.."
@@ -42,7 +42,7 @@ function Stop-InstalledServer {
     $stopped = @()
     $quiet = 0
     for ($try = 0; $try -lt 40 -and $quiet -lt 4; $try++) {
-        $running = @(Get-Process Shosa.Lsp, shosa-music -ErrorAction SilentlyContinue |
+        $running = @(Get-Process Shosa.Lsp -ErrorAction SilentlyContinue |
             Where-Object { $_.Path -and $_.Path.StartsWith("$extensions\yotsuda.shosa", [StringComparison]::OrdinalIgnoreCase) })
         foreach ($process in $running) { Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue }
         $stopped += $running | ForEach-Object { "$($_.ProcessName)($($_.Id))" }
@@ -78,8 +78,7 @@ if (-not $dir) { throw "no yotsuda.shosa-$version folder under $extensions after
 $manifest = Get-Content (Join-Path $dir.FullName '.vsixmanifest') -Raw
 $platform = if ($manifest -match 'TargetPlatform="([^"]+)"') { $Matches[1] } else { '(none)' }
 $server = Join-Path $dir.FullName 'server\Shosa.Lsp.exe'
-$music = Join-Path $dir.FullName 'server\shosa-music.exe'
-if ($platform -ne 'win32-x64' -or -not (Test-Path $server) -or -not (Test-Path $music)) { throw "the installed extension is $($dir.Name) for ${platform}: not the Windows package, or without its server" }
+if ($platform -ne 'win32-x64' -or -not (Test-Path $server)) { throw "the installed extension is $($dir.Name) for ${platform}: not the Windows package, or without its server" }
 # The installed files are the packed ones: the same program, byte for byte.
 $packed = "$Out\stage\server\Shosa.Lsp.exe"
 if ((Test-Path $packed) -and (Get-FileHash $packed).Hash -ne (Get-FileHash $server).Hash) { throw "$server is not the server that was just packed: the install did not replace it" }

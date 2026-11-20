@@ -230,7 +230,7 @@ switch (command)
 
     case "midi" or "wav":
     {
-        // The song, as each score of the dance plays it: Lily# makes the notes, through shosa-music.
+        // The song, as each score of the dance plays it: Lily# makes the notes, through its lysc.
         var danced = compilation.Score.Clips.Where(c => c.Music is not null).ToList();
         if (danced.Count == 0)
         {

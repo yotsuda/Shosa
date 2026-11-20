@@ -279,7 +279,7 @@ public class MusicTests
     [Fact]
     public void The_sample_is_danced_to_its_Lily_song()
     {
-        // The real thing: shosa-music reads samples/song.lys with Lily#.
+        // The real thing: Lily#'s lysc reads samples/song.lys (DESIGN.md 92).
         Assert.NotNull(SongReader.Program);
         var compilation = ShosaCompilation.Compile(File.ReadAllText(SamplePath()), null, SongReader.For(SamplePath()));
 

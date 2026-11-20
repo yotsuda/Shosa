@@ -71,10 +71,10 @@ Shosa.Cli\bin\Debug\net10.0\shosa.exe gltf samples\walk.shosa -o out\walk.glb
 cd editors\vscode; npm run build; npm test
 ```
 
-Songs are read by `Shosa.Music`, which needs a checkout of
-[Lily#](https://github.com/yotsuda/LilySharp) beside this repository (`..\LilySharp`). That is to change:
-the reading is moving into Lily#'s own compiler, after which Shosa builds alone and needs Lily# installed only
-to dance to a song ([docs/DESIGN.md](docs/DESIGN.md), section 92).
+Songs are read by the compiler of [Lily#](https://github.com/yotsuda/LilySharp), `lysc` (`lysc timeline`,
+`notes`, `midi`, `wav`): Shosa builds alone, and needs Lily# installed only to dance to a song. `shosa` looks
+for `lysc` in `SHOSA_LYSC`, then on the PATH, then in the Lily# extension installed in VS Code
+([docs/DESIGN.md](docs/DESIGN.md), section 92).
 
 ## The repository
 
@@ -83,7 +83,6 @@ to dance to a song ([docs/DESIGN.md](docs/DESIGN.md), section 92).
 | `Shosa.Core` | The language: syntax tree, binder, the movement it compiles to, the writers of BVH, glTF and VRM Animation |
 | `Shosa.Cli` | `shosa`, the compiler: `check`, `sheet`, `preview`, `bvh`, `gltf`, `vrma`, `midi`, `wav`, `grammar` |
 | `Shosa.Lsp` | The language server the extension runs |
-| `Shosa.Music` | `shosa-music`, which reads Lily# songs (GPL, see below) |
 | `Shosa.Tests` | The tests |
 | `editors/vscode` | The VS Code extension |
 | `samples` | Example files, among them dances to two Lily# songs |
@@ -93,8 +92,7 @@ to dance to a song ([docs/DESIGN.md](docs/DESIGN.md), section 92).
 
 ## License
 
-MIT (`LICENSE`). One program is not: `Shosa.Music` (`shosa-music`) links Lily# and is under the GPL,
-version 3 or later (`Shosa.Music/LICENSE`).
+MIT (`LICENSE`).
 
 What you write in Shosa, and the animations, videos and images made from it, are yours, with no licence of
 Shosa's on them.

@@ -1366,7 +1366,7 @@ arms  { skip:16 | skip:3 hold:1 | }               // その手拍子をしない
 | 定義 (`move`) の中の `%` は最初の拍子の小節 | 定義は場所を持たない |
 | 警告 `SH1904` と `SongInfo.Notes` はなくした | 言うことがなくなった |
 
-Lily# の側の規則で、知っておくこと: **セクションが変わるとテンポと拍子はファイルの頭のものに戻る** (`turning.lys` の Waltz は 120 に戻り、`time 3/4` はセクションの中に書く)。
+Lily# の側の規則で、知っておくこと: **セクションが変わるとテンポと拍子はファイルの頭のものに戻る** (`turning.lys` の Waltz は 120 に戻り、`time 3/4` はセクションの中に書く)。**→ 2026-11-20 訂正 (92.1): テンポは戻らない** (Lily# のオーナー決定「テンポはリセットしない」。拍子と調は戻る)。戻すには戻るセクションに `tempo` を書く。`turning.lys` の Waltz に `tempo 120` を書いた。
 Shosa は MIDI に出たとおりに受け取るだけ。リタルダンドのような連続した変化は、Lily# が段にして出したぶんだけ段になる (試していない)。
 
 ### 21.2 受け渡し
@@ -5759,6 +5759,15 @@ B: (1) 広い足の `low(N)` は広い立ち方から測る (立った高さか�
 - **ゆるい依存:** `extensionDependencies` にはしない。Lily# がなければ曲に合わせる機能だけが使えず、そこで「Lily# を入れてください」と知らせる。動きだけを書くのに Lily# は要らない。
 - **依頼:** `docs/repro/REQUESTS.md` の 1 (`lilysharp-requests-2026-11-20-song-reading.md`)。`lysc timeline`・`lysc notes` (今の `shosa-music` と同じ JSON)、`--order`・`--tempo`、`lysc --version --json` の protocol、Lily# の拡張の `activate()` が `lysc` の場所を返すこと。
 - **Lily# が入れた後 (Shosa 側):** `SongReader.cs` が `lysc` を呼ぶ。VS Code のターミナルでは Shosa の拡張が Lily# の `server` を PATH に足し、外では環境変数で `lysc` を指す。`Shosa.Music`、その LICENSE、パッケージへの同梱 (`pack-extension.ps1`・`third-party-notices.ps1`)、ImageSharp の細工、`Shosa.slnx` の参照をやめる。19.1 と 43.2 はそこで改める。
+
+### 92.1 切り替えた (2026-11-20。Lily# の依頼 1 が fixed `aa6602d4d`)
+
+- **`SongReader.cs`** が `lysc timeline` / `notes` / `midi` / `wav` を呼ぶ。`lysc` を探す順: 環境変数 `SHOSA_LYSC` → PATH → VS Code (と Insiders) に入っている一番新しい Lily# 拡張の `server\lysc.exe`。最後のおかげで、ターミナルの外の `shosa` も何も設定せずに曲を読める。見つけたら `lysc --version --json` の `protocol` が `SongReader.Protocol` (1) 以上かを確かめる。見つからない・古いときは `music` の行に `SH1901` で「Lily# を入れてください (または `SHOSA_LYSC`)」。
+- `lysc midi` / `wav` は `-o` を取らず `-d フォルダー` に `曲.mid` (`曲-名前.mid`) を書くので、一時フォルダーに書かせて 1 つを移す。
+- **拡張** (`extension.ts`): Lily# の拡張 (`yotsuda.lilysharp`) の exports の `lyscPath` (起こして 5 秒まで待つ。だめなら拡張のフォルダーの `server\lysc.exe`) を、言語サーバーの環境とターミナル (`environmentVariableCollection`) に `SHOSA_LYSC` で渡す。PATH には足さない (Lily# の他のプログラムまで並ぶため)。`extensionDependencies` にはしない (ゆるい依存)。Lily# を後から入れたときは Reload Window で拾う。
+- **やめたもの**: `Shosa.Music` (プロジェクト、LICENSE、ImageSharp 2.1.11 の細工)、`Shosa.slnx` と試験の参照、パッケージへの同梱 (`pack-extension.ps1`) と `LICENSE-shosa-music.txt`、`third-party-notices.ps1` の LilySharp.Core と Lily# のフォントの項、`deploy-extension.ps1` の `shosa-music` の扱い。**Shosa は全部 MIT になり、リポジトリだけでビルドできる** (19.1 と 43.2 の決定はここで終わり)。
+- **確かめたこと**: 曲を使う 3 本 (`samples\dance.shosa`、`samples\turning.shosa`、`out\ito\ito.shosa`) の `check` は切り替えの前とバイトまで同じ。`midi` は出来事を並べて比べ、音符・テンポ・拍子は全部同じで、`lysc` が頭に調号 (`FF 59`) を 1 つ足すだけ。試験 343 件が全部通る。入れた拡張を実際の VS Code で試す `tools\test-extension-host.ps1` も全部通る (曲つきの MP4 を含む)。
+- **前からの 1 件 (78.5) の正体**: `MusicTests.The_changes_of_a_Lily_song_reach_the_clip` は、Lily# が「セクションの境でテンポを戻さない」に戻した (Lily# のオーナー決定、第1274) ため、`turning.lys` の Waltz が 90 のままになっていた。Shosa の見本が古い規則に頼っていたので、Waltz に `tempo 120` を書いた (「Lily# の側の規則で、知っておくこと」の行にも訂正を添えた)。
 
 ## 93. VRM の女の子で踊りの動画を作った (試し、2026-11-20。ユーザー: YouTube に踊りの動画を出したい。ROADMAP 2 節)
 

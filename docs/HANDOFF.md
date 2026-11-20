@@ -16,7 +16,9 @@
 
 - **プレビューと MP4 で録音を鳴らす** (97.5): 拡張が録音を読んで webview へ、`preview/recording.js` が `offset` から鳴らし、鳴っている間は録音が踊りの時計。MP4 の音は録音とサンプル単位で一致。ユーザーが `out\ito\ito.shosa` を VS Code で聞くのはこれから。
 
-**次の一手**: (1) Lily# の返事を `docs/repro/REQUESTS.md` で見る (依頼 1 は fixed のまま、Shosa 側の `lysc` への切り替えも残っている。DESIGN.md 92 節)。(2) Lily# の依頼 3・4 は fixed (`695fe386a`。DESIGN.md 97.6)。3 はユーザーが Lily# で書き出し直したら Shosa 側で測って done に。4 で方針が変わった: Lily# の拡張の API から楽譜のパート・歌声・録音を 1 本ずつ受け取り、**Shosa のプレビューのミキサーで混ぜる** (API の案は Lily# から次の便。来たら `docs/repro/REQUESTS.md` に)。(3) 歌詞に合わせた口の動き (VRM の あ・い・う・え・お)。(4) 歩きの足 (93.1)。詳しくは ROADMAP 2 節の「次の一手」。
+- **曲を読むのは Lily# の `lysc`** (92.1): `Shosa.Music` (`shosa-music`、GPL) をやめた。Shosa は全部 MIT、リポジトリだけでビルドできる。`lysc` は `SHOSA_LYSC` → PATH → VS Code の Lily# 拡張の順に探す。拡張は Lily# の exports の `lyscPath` を `SHOSA_LYSC` で渡す。前から落ちていた試験 1 件は見本 `turning.lys` が古い規則 (セクションでテンポが戻る) に頼っていたため。343 件全部通る。
+
+**次の一手**: (1) Lily# の返事を `docs/repro/REQUESTS.md` で見る (依頼 1 は done)。(2) Lily# の依頼 3・4 は fixed (`695fe386a`。DESIGN.md 97.6)。3 はユーザーが Lily# で書き出し直したら Shosa 側で測って done に。4 で方針が変わった: Lily# の拡張の API から楽譜のパート・歌声・録音を 1 本ずつ受け取り、**Shosa のプレビューのミキサーで混ぜる** (API の案は Lily# から次の便。来たら `docs/repro/REQUESTS.md` に)。(3) 歌詞に合わせた口の動き (VRM の あ・い・う・え・お)。(4) 歩きの足 (93.1)。詳しくは ROADMAP 2 節の「次の一手」。
 
 試し方のメモ: VRM の見え方は `out\pv\harness.html` (プレビューのページに言語サーバーの clip を流す。CSP は本物を写す) を窓なしの Chrome で。録音の再生と MP4 は `out\pv\harness-rec.html` (`tools\frame_server.py` は要求を記録しないので、Chrome を `--enable-logging=stderr` で起こしてページの誤りを見る。97.5)。音の時刻は ffmpeg と Orecchiante の `.venv` の numpy で (DESIGN.md 97.4)。
 
@@ -63,7 +65,7 @@ dotnet test Shosa.slnx          # VS Code が Shosa.Lsp\bin\Debug を掴んで�
 Shosa.Cli\bin\Debug\net10.0\shosa.exe check samples\fighter.shosa                    # score の一覧と長さ
 Shosa.Cli\bin\Debug\net10.0\shosa.exe sheet samples\fighter.shosa -o out\fighter.png # score ごとに out\fighter-Idle.png … (名前のない score は out\fighter.png)。--score 名前 で 1 つ
 Shosa.Cli\bin\Debug\net10.0\shosa.exe sheet samples\walk.shosa -o out\walk.png
-Shosa.Cli\bin\Debug\net10.0\shosa.exe check samples\dance.shosa                   # 曲 (samples\song.lys) に合わせる。Lily# は Shosa.Music (shosa-music.exe) が読む。..\LilySharp の checkout が要る (DESIGN.md 19 節)
+Shosa.Cli\bin\Debug\net10.0\shosa.exe check samples\dance.shosa                   # 曲 (samples\song.lys) に合わせる。Lily# の lysc が読む (SHOSA_LYSC、PATH、VS Code の Lily# 拡張の順に探す。DESIGN.md 92 節)
 Shosa.Cli\bin\Debug\net10.0\shosa.exe midi samples\dance.shosa -o out\dance.mid   # 曲を踊りの順とテンポで。wav は --soundfont FONT.sf2
 Shosa.Cli\bin\Debug\net10.0\shosa.exe check samples\turning.shosa                 # 途中でテンポと拍子が変わる曲 (samples\turning.lys)。DESIGN.md 21 節
 Shosa.Cli\bin\Debug\net10.0\shosa.exe bvh samples\walk.shosa -o out\walk.bvh
@@ -77,5 +79,5 @@ cd editors\vscode; npm run build; npm run check; npm test   # npm test はプレ
 code --extensionDevelopmentPath=C:\MyProj\Shosa\editors\vscode C:\MyProj\Shosa\samples   # 拡張を読み込んだ VS Code
 tools\deploy-extension.ps1   # 拡張をパッケージにして、この PC の VS Code に入れる (-SkipPublish: サーバーは前回のまま。C# を変えたコミットの後には使わない: 古いサーバーが入る。DESIGN.md 97.5。-NoPack: 入れるだけ)。あとは各ウィンドウで Reload Window
 tools\test-extension-host.ps1   # 入れた拡張を実際の VS Code (空のプロファイル、窓が数秒開く) で試す: Copilot 向けの道具 3 つ、保存前の編集、ターミナルの shosa。-Repository で editors\vscode の拡張。DESIGN.md 45 節
-tools\pack-extension.ps1     # パッケージだけ: artifacts\extension\shosa-win32-x64-<版>.vsix (サーバーと shosa-music を .NET ごと同梱。DESIGN.md 24 節。THIRD-PARTY-NOTICES.txt は tools\third-party-notices.ps1 が毎回作る。87.7)
+tools\pack-extension.ps1     # パッケージだけ: artifacts\extension\shosa-win32-x64-<版>.vsix (サーバーと shosa を .NET ごと同梱。Lily# は入れない。DESIGN.md 24 節。THIRD-PARTY-NOTICES.txt は tools\third-party-notices.ps1 が毎回作る。87.7)
 ```

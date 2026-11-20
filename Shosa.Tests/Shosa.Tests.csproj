@@ -17,8 +17,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Shosa.Core\Shosa.Core.csproj" />
     <ProjectReference Include="..\Shosa.Lsp\Shosa.Lsp.csproj" />
-    <!-- Built first, never linked: MusicTests runs it as the program it is. -->
-    <ProjectReference Include="..\Shosa.Music\Shosa.Music.csproj" ReferenceOutputAssembly="false" Private="false" />
   </ItemGroup>
 
   <ItemGroup>

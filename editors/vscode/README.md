@@ -26,6 +26,7 @@ score { dancer solo  loop }
 - **Diagnostics, completion and hover** for every word of the language, from the same table the compiler checks against.
 - **Dancing to a song**: `music "song.lys"` takes tempo, time and the order of the sections from a [Lily#](https://yotsuda.github.io/LilySharp/) song,
   and the preview plays the song with the dance — through the sound font Lily# plays with, when one is installed.
+  The song is read by the Lily# extension, which is needed only for this: without it, everything else works.
 - Marks for a game engine (`!hit`) are shown as they arrive. A score without a song is heard too: a click on every beat and a clap at every mark, so its timing can be judged.
 - **Export** from the preview (the two buttons at its top right, or *Shosa: Export…* in the command palette), the score shown:
   **Model** writes it for an engine — glTF (`.glb`), VRM Animation (`.vrma`) or BVH (`.bvh`), by the type picked in the save dialog;
@@ -45,8 +46,7 @@ PATH of VS Code's terminals: `shosa check FILE`, `shosa sheet FILE -o X.png`, `s
 
 ## License
 
-MIT. One program in the package is not: `shosa-music`, which reads Lily# songs and links Lily#, is under the
-GPL (version 3 or later; `server/LICENSE-shosa-music.txt`). Its source is `Shosa.Music` in Shosa's repository.
+MIT.
 The third-party software the package carries (three.js, the synthesiser, the .NET runtime and others) is listed,
 each with its licence, in `THIRD-PARTY-NOTICES.txt`.
 
