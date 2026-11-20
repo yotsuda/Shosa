@@ -84,5 +84,21 @@ if ($platform -ne 'win32-x64' -or -not (Test-Path $server) -or -not (Test-Path $
 $packed = "$Out\stage\server\Shosa.Lsp.exe"
 if ((Test-Path $packed) -and (Get-FileHash $packed).Hash -ne (Get-FileHash $server).Hash) { throw "$server is not the server that was just packed: the install did not replace it" }
 "installed {0} ({1}), server {2:yyyy-MM-dd HH:mm}" -f $dir.Name, $platform, (Get-Item (Join-Path $dir.FullName 'server\Shosa.Lsp.dll')).LastWriteTime
+
+# The name under the extension's title: VS Code shows the publisher's display name from the Marketplace, and an
+# extension not published there gets only "yotsuda". The display name is written into the record of what is
+# installed (extensions.json, the entry's metadata), which VS Code shows when the Marketplace has nothing
+# (the owner, 2026-11-20: "Yoshifumi Tsuda", as the extensions published are shown). Each install writes the entry
+# anew, so this runs after each.
+$record = Join-Path $extensions 'extensions.json'
+if (Test-Path $record) {
+    $entries = Get-Content $record -Raw | ConvertFrom-Json
+    $entry = $entries | Where-Object { $_.identifier.id -eq 'yotsuda.shosa' } | Select-Object -Last 1
+    if ($entry -and $entry.metadata) {
+        $entry.metadata | Add-Member -NotePropertyName publisherDisplayName -NotePropertyValue 'Yoshifumi Tsuda' -Force
+        [IO.File]::WriteAllText($record, (ConvertTo-Json -InputObject @($entries) -Depth 20 -Compress), [Text.UTF8Encoding]::new($false))
+        '  yotsuda.shosa shown as by Yoshifumi Tsuda'
+    } else { "  (no entry for yotsuda.shosa in ${record}: its publisher is shown as yotsuda)" }
+}
 cmd /d /s /c "`"$Code`" --list-extensions --show-versions < NUL 2>&1" | Select-String '^yotsuda\.shosa' | ForEach-Object { "  $_" }
 'done: in each VS Code window, Developer: Reload Window loads the new extension (VS Code itself need not be closed)'
