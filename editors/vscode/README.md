@@ -28,7 +28,7 @@ score { dancer solo  loop }
   and the preview plays the song with the dance — through the sound font Lily# plays with, when one is installed.
   The song is read by the Lily# extension, which is needed only for this: without it, everything else works.
 - Marks for a game engine (`!hit`) are shown as they arrive. A score without a song is heard too: a click on every beat and a clap at every mark, so its timing can be judged.
-- **Export** from the preview (the two buttons at its top right, or *Shosa: Export…* in the command palette), the score shown:
+- **Export** from the preview (the buttons at its top right, or *Shosa: Export…* in the command palette), the score shown:
   **Model** writes it for an engine — glTF (`.glb`), VRM Animation (`.vrma`) or BVH (`.bvh`), by the type picked in the save dialog;
   **MP4** writes a video of the preview as you have turned it, with the song (or the clicks and claps of a score without one). Nothing else has to be installed (no ffmpeg):
   the video is encoded by the editor itself.
@@ -38,6 +38,21 @@ score { dancer solo  loop }
 The compiler (`shosa`) writes the movement as BVH, glTF and VRM Animation. It comes with the extension and is on the
 PATH of VS Code's terminals: `shosa check FILE`, `shosa sheet FILE -o X.png`, `shosa gltf FILE --combined -o X.glb`
 (`shosa --help` for the rest; `shosa grammar` prints the whole language for an AI agent that will write it).
+
+## Preview features
+
+These work, but are new and may still change.
+
+- **A VRM character for a dancer**: `dancer alice humanoid "girl.vrm" on lead` dresses the dancer in a VRM model,
+  in the preview and in its MP4. What **Model** exports does not change: the movement, for any character.
+- **Dancing to a recording**: when a song made from a recording has its `NAME.orecchiante.json` beside it,
+  the dance keeps the recording's beat, and the preview and the MP4 play the recording.
+- **Mixer** (the button at the bottom of the preview): each part of the score, each singing voice and the recording
+  (or its separated parts) with a level of its own, 0 to 200 %. The preview and the MP4 play that mix.
+  It needs a Lily# extension that hands out a song one part at a time; with an older one, the Mixer says so
+  and the song plays as before.
+- **Audio** (the button beside **MP4**, there with the Mixer): the song as the Mixer has it, for as long as the dance, as an MP3 or a WAV
+  (written by the Lily# extension).
 
 ## Settings
 
@@ -51,6 +66,6 @@ The third-party software the package carries (three.js, the synthesiser, the .NE
 each with its licence, in `THIRD-PARTY-NOTICES.txt`.
 
 **What you write and export is yours.** The `.shosa` files you write, and the animations, videos and images
-Shosa makes from them (glTF, VRM Animation, BVH, MP4, PNG), are your work: no licence of Shosa's applies to
+Shosa makes from them (glTF, VRM Animation, BVH, MP4, MP3, WAV, PNG), are your work: no licence of Shosa's applies to
 them, and you may use them in a game or anything else, sold or not, without credit. (A song you dance to, and
-heard in an MP4, keeps its own rights, as does a sound font it is played through.)
+heard in an MP4 or an MP3, keeps its own rights, as does a sound font it is played through.)
