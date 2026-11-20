@@ -16,7 +16,7 @@
 
 - **プレビューと MP4 で録音を鳴らす** (97.5): 拡張が録音を読んで webview へ、`preview/recording.js` が `offset` から鳴らし、鳴っている間は録音が踊りの時計。MP4 の音は録音とサンプル単位で一致。ユーザーが `out\ito\ito.shosa` を VS Code で聞くのはこれから。
 
-**次の一手**: (1) Lily# の返事を `docs/repro/REQUESTS.md` で見る (依頼 1 は fixed のまま、Shosa 側の `lysc` への切り替えも残っている。DESIGN.md 92 節)。(2) Lily# で混ぜた音 (歌声入り) を Shosa が見つけて鳴らす道 (依頼 4 の相談の返事しだい)。(3) 歌詞に合わせた口の動き (VRM の あ・い・う・え・お)。(4) 歩きの足 (93.1)。詳しくは ROADMAP 2 節の「次の一手」。
+**次の一手**: (1) Lily# の返事を `docs/repro/REQUESTS.md` で見る (依頼 1 は fixed のまま、Shosa 側の `lysc` への切り替えも残っている。DESIGN.md 92 節)。(2) Lily# の依頼 3・4 は fixed (`695fe386a`。DESIGN.md 97.6)。3 はユーザーが Lily# で書き出し直したら Shosa 側で測って done に。4 で方針が変わった: Lily# の拡張の API から楽譜のパート・歌声・録音を 1 本ずつ受け取り、**Shosa のプレビューのミキサーで混ぜる** (API の案は Lily# から次の便。来たら `docs/repro/REQUESTS.md` に)。(3) 歌詞に合わせた口の動き (VRM の あ・い・う・え・お)。(4) 歩きの足 (93.1)。詳しくは ROADMAP 2 節の「次の一手」。
 
 試し方のメモ: VRM の見え方は `out\pv\harness.html` (プレビューのページに言語サーバーの clip を流す。CSP は本物を写す) を窓なしの Chrome で。録音の再生と MP4 は `out\pv\harness-rec.html` (`tools\frame_server.py` は要求を記録しないので、Chrome を `--enable-logging=stderr` で起こしてページの誤りを見る。97.5)。音の時刻は ffmpeg と Orecchiante の `.venv` の numpy で (DESIGN.md 97.4)。
 
@@ -75,7 +75,7 @@ Shosa.Cli\bin\Debug\net10.0\shosa.exe vrma samples\walk.shosa -o out\walk.vrma  
 tools\godot_editor_probe.gd   # Godot のエディターの画面 (取り込みの画面、骨の対応) を開いて撮る。エディターのプラグインとして置く。使い方は頭のコメント。DESIGN.md 53.2
 cd editors\vscode; npm run build; npm run check; npm test   # npm test はプレビューのシンセ (sound.js) の試験
 code --extensionDevelopmentPath=C:\MyProj\Shosa\editors\vscode C:\MyProj\Shosa\samples   # 拡張を読み込んだ VS Code
-tools\deploy-extension.ps1   # 拡張をパッケージにして、この PC の VS Code に入れる (-SkipPublish: サーバーは前回のまま。-NoPack: 入れるだけ)。あとは各ウィンドウで Reload Window
+tools\deploy-extension.ps1   # 拡張をパッケージにして、この PC の VS Code に入れる (-SkipPublish: サーバーは前回のまま。C# を変えたコミットの後には使わない: 古いサーバーが入る。DESIGN.md 97.5。-NoPack: 入れるだけ)。あとは各ウィンドウで Reload Window
 tools\test-extension-host.ps1   # 入れた拡張を実際の VS Code (空のプロファイル、窓が数秒開く) で試す: Copilot 向けの道具 3 つ、保存前の編集、ターミナルの shosa。-Repository で editors\vscode の拡張。DESIGN.md 45 節
 tools\pack-extension.ps1     # パッケージだけ: artifacts\extension\shosa-win32-x64-<版>.vsix (サーバーと shosa-music を .NET ごと同梱。DESIGN.md 24 節。THIRD-PARTY-NOTICES.txt は tools\third-party-notices.ps1 が毎回作る。87.7)
 ```

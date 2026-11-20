@@ -5946,4 +5946,10 @@ dancer alice humanoid "girl.vrm" on lead at 0 1
 - **MP4**: 録音を `offset` から動画の長さだけ切り出して音にする (`cutRecording`。音量はそのまま、録音の前と後は無音)。録音が読めないときは前と同じく音符を音色で。
 - **確かめたこと**: `out\pv\harness-rec.html` (`shosa clip out\ito\ito.shosa` の clip と録音を流す。CSP は本物の写し) を窓なしの Chrome (`--autoplay-policy=no-user-gesture-required`) で。60 拍目から再生して 8 秒、踊りは 1 秒に約 1 拍進んだ (曲は約 61)。MP4 (271 秒、1920×766) の音を元の録音の 1.82 秒からと比べると、5〜265 秒のどこでもずれ 0 ms、相関 1.000 (`ffmpeg` と Orecchiante の `.venv` の numpy)。**耳で聞くのはユーザーがこれから。**
 - 残り: Lily# で混ぜた音 (歌声入り) を見つける道 (依頼 4 の相談の返事待ち。97.3)、Lily# の書き出しが伸びる件 (依頼 3)。
+- **VS Code で最初は楽譜の音だけが鳴った** (ユーザー、2026-11-20): `tools\deploy-extension.ps1 -SkipPublish` で入れ直したため、言語サーバーが `RecordingSidecar` より前の版のままで、clip に `recording` が無かった。言語サーバーを作り直して入れ直した。**C# を変えたコミットの後に `-SkipPublish` を使わない** (入れた `server\Shosa.Core.dll` に型の名前があるかで確かめられる)。
+
+### 97.6 Lily# の返事: 依頼 3・4 が fixed、混ぜるのは Shosa のプレビュー (2026-11-20)
+
+- 依頼 3 (`695fe386a`): 伸びの原因は 3 つ。録音に掛かっていた `warpFit` (オーナー決定「録音は伸ばさない」で外した)、Lily# の MP3 に LAME タグが無く復号が 25.1 ms 遅れた、リミッターの先読み 6 ms。速さ 100%・Count-in なしの書き出しは元の録音と 0 標本差 (Lily# の Lab)。**Shosa 側の確認は、ユーザーが Lily# で書き出し直してから** (今ある `糸 (Bank Band)_ボーカル抜き.mp3` は直す前のもの)。
+- 依頼 4 (`695fe386a`): 歌声の音節を楽譜の音と同じ `timeWarp` で録音の秒へ。**相談の `mix` は取り下げ、97.3 の決定が変わった**: オーナー決定 (2026-11-20) で、Shosa は `.lys` を参照したまま、Lily# の拡張が exports に出す API から楽譜のパート・歌声・録音 (とそのパート) を 1 本ずつ受け取り、**Shosa のプレビューのミキサーで混ぜる**。API の案は Lily# から次の便で届く。97.5 の録音の道 (拡張がバイト列を渡す、鳴っている間は録音が時計) は、そのミキサーの 1 本になる。
 
