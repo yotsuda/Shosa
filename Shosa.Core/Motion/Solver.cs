@@ -1676,9 +1676,9 @@ internal sealed class FigureSolver
         {
             var across = c.LPos - c.RPos;
             double apart = across.Length;
-            // As far as a quarter of the way to each foot, and no more than 3 cm.
+            // As far as a third of the way to each foot, and no more than 5 cm.
             if (apart > 1e-6)
-                p += across * (Math.Min(0.03, apart * 0.25) * drift / apart);
+                p += across * (Math.Min(0.05, apart / 3) * drift / apart);
         }
         if (c.Float < 0.01)
         {
@@ -1691,22 +1691,22 @@ internal sealed class FigureSolver
         var torso = Direction(_torso, t, Vec3.Up, new Vec3(0, 0, 1));
         if (_alive && _torso.Count == 0)
         {
-            // An unwritten torso breathes (about a degree), goes a little back and up as the arms rise or
+            // An unwritten torso breathes (a degree each way), goes a little back and up as the arms rise or
             // reach forward, leans away from the one arm raised, and over the foot the weight drifts to.
             var (upL, fwdL) = ArmRaise(_leftArm, t);
             var (upR, fwdR) = ArmRaise(_rightArm, t);
-            double back = 0.035 * (upL + upR) / 2 + 0.02 * (fwdL + fwdR) / 2;
-            double sideways = 0.035 * (upR - upL) + 0.012 * drift;
-            torso = new Vec3(sideways, 1, 0.012 * Wave(t, _breath) - back).Normalized();
+            double back = 0.05 * (upL + upR) / 2 + 0.03 * (fwdL + fwdR) / 2;
+            double sideways = 0.05 * (upR - upL) + 0.02 * drift;
+            torso = new Vec3(sideways, 1, 0.02 * Wave(t, _breath) - back).Normalized();
         }
         c.TorsoUp = (c.Left * torso.X + Vec3.Up * torso.Y + c.Fwd * torso.Z).Normalized();
         c.Round = Chain(_torso, t, seg => seg is { Round: true } ? 1.0 : 0.0, (a, b, e) => a + (b - a) * e, Dist);
         c.Shoulders = Chain(_shoulders, t, seg => (seg?.TurnDeg ?? 0) * Math.PI / 180, (a, b, e) => a + (b - a) * e, Dist);
         // The hips turn over the feet: the sockets go round the pelvis, the feet stay, and the knees follow.
         c.Hips = Chain(_hips, t, seg => (seg?.TurnDeg ?? 0) * Math.PI / 180, (a, b, e) => a + (b - a) * e, Dist);
-        // Unwritten hips turn a little with the drift of the weight, toward the leg that takes it (2°).
+        // Unwritten hips turn a little with the drift of the weight, toward the leg that takes it (3.4°).
         if (_alive && _hips.Count == 0)
-            c.Hips -= 0.035 * drift;
+            c.Hips -= 0.06 * drift;
         c.HipLeft = c.Left * Math.Cos(c.Hips) - c.Fwd * Math.Sin(c.Hips);
         c.HipFwd = c.Fwd * Math.Cos(c.Hips) + c.Left * Math.Sin(c.Hips);
         // A leaning torso is balanced by the hips going the other way. Sideways only as far as it costs the
@@ -2009,7 +2009,7 @@ internal sealed class FigureSolver
             // An unwritten head is not fixed on the chest either (DESIGN.md 94): it wanders a few degrees
             // side to side, slower than the weight, nods with the breath, and looks up a little with raised arms.
             double up = (ArmRaise(_leftArm, t).Up + ArmRaise(_rightArm, t).Up) / 2;
-            double yaw = 0.05 * Wave(t, _wander, 0.3), pitch = 0.015 * Wave(t, _breath, 0.25) + 0.06 * up;
+            double yaw = 0.08 * Wave(t, _wander, 0.3), pitch = 0.025 * Wave(t, _breath, 0.25) + 0.07 * up;
             gaze = (gaze + faceLeft * yaw + Vec3.Up * pitch).Normalized();
         }
 

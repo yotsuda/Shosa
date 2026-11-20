@@ -46,8 +46,8 @@ public class LifeTests
             footMoved = Math.Max(footMoved, (At(clip, f, Rig.LAnkle) - foot).Length);
         }
         // The weight drifts a few centimetres from foot to foot, the head wanders a few degrees.
-        Assert.InRange(pelvisTo - pelvisFrom, 0.015, 0.07);
-        Assert.InRange((headTo - headFrom) * 180 / Math.PI, 1.5, 10);
+        Assert.InRange(pelvisTo - pelvisFrom, 0.03, 0.11);
+        Assert.InRange((headTo - headFrom) * 180 / Math.PI, 3, 16);
         // The feet stay where they stand.
         Assert.True(footMoved < 1e-6, $"the left ankle moved {footMoved:0.0000} m");
     }
