@@ -5997,5 +5997,5 @@ Lily# (`fbf205e01`) が拡張の exports に `stemsVersion: 1`、`renderStems(ly
 ### 98.4 行の並び (オーナー、2026-11-20)
 
 - **録音の行はいつも vocal guitar piano other bass drums の順** (オーナー決定)。複数形の s はあってもなくても同じ (Orecchiante の名前は `vocals`)。知らない名前はその後に、来た順で。Shosa の `stemRows` が並べる (`RecordingOrder`)。試験 1 件。
-- **楽譜の行は .lys に出てくる順** (オーナー決定。糸では prog が先、bass が後)。いまは Lily# が返す順 (宣言の順: `part bass` だけが宣言されていて先に来る) のまま。Shosa が `.lys` を読んで並べ替えるのは 92 節の方針 (形式の知識は Lily# に) に反するので、**Lily# への依頼 5** (`docs/repro/lilysharp-requests-2026-11-20-stems-order.md`): `part` と `voice` を楽譜に並ぶ順 (`score { }` の中の書いた順) で、歌声は歌うパートの位置に。
+- **楽譜の行は .lys に出てくる順** (オーナー決定。糸では prog が先、bass が後)。いまは Lily# が返す順 (宣言の順: `part bass` だけが宣言されていて先に来る) のまま。Shosa が `.lys` を読んで並べ替えるのは 92 節の方針 (形式の知識は Lily# に) に反するので、**Lily# への依頼 5** (`docs/repro/lilysharp-requests-2026-11-20-stems-order.md`): `part` と `voice` を楽譜に並ぶ順 (`score { }` の中の書いた順) で、歌声は歌うパートの位置に。→ Lily# が入れた (`cad184c3b`)。オーナーが入れ直して糸で見た (2026-11-20): 「正しい順で表示されている」。依頼 5 は done。
 
