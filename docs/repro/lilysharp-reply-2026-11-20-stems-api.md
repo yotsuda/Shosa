@@ -36,6 +36,8 @@ api.onDidChangeStems(uri => { /* その .lys の音が変わったかもしれ�
 await api.writeAudio({ left, right, sampleRate }, { format: 'mp3' | 'wav', path });
 ```
 
+- **順**（依頼 5、`cad184c3b` から）: part は楽譜に並ぶ順（score の中の書いた順。score の無い譜面はパートの順）、voice はそのパートの直後
+  （歌うだけのパートは声がその位置に）、recording と recordingPart は最後。
 - **file**: 絶対パス。part は Lily# の保存場所の 32 bit float WAV（44.1 kHz）。voice は Cantoria の WAV（48 kHz）。
   recording と recordingPart は隣のファイルの `audio`・`parts` の元のファイル（m4a だけは Lily# が復号した WAV）。どれも webview の `decodeAudioData` で読める。
 - **at**: そのファイルの標本 0 が鳴る時刻（timeline の秒）。**負もある**（歌声は子音のために 0.3 秒前から始まる）。

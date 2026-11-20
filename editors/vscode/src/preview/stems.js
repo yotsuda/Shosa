@@ -15,7 +15,8 @@ export const MaxLevel = 2;
 
 /**
  * A row of the mixer: one per part, voice and separated part of the recording; the recording itself only
- * when it has no parts. The score's rows first, as Lily# hands them out; then the recording's, always in
+ * when it has no parts. The score's rows first, as Lily# hands them out (since its cad184c3b, Shosa's request 5: the order
+ * the score is written in, a voice after its part); then the recording's, always in
  * the order of RecordingOrder (the owner's, 2026-11-20), the names it does not know after them as they came.
  */
 export function stemRows(stems) {
