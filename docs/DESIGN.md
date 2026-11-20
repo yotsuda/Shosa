@@ -5992,4 +5992,10 @@ Lily# (`fbf205e01`) が拡張の exports に `stemsVersion: 1`、`renderStems(ly
 
 - `out\pv\harness-stems.html`: ito の clip に、stems として録音 (`ito.mp3`) と、timeline の 10.0 秒と 20.0 秒に 1 ms のクリックがある part (`out\pv\clicks.wav`、`at: 5`) を渡し、窓なしの Chrome で。60 拍目から 6 秒再生して 1 秒に約 1 拍。Mixer は「ito.mp3 recording 100% / clicks 100% / a note from Lily#」。**混ぜた音 (48 kHz、270.98 秒) と MP4 の音で、クリックは 2 つとも期待した標本ちょうど (0.00 ms)、録音は 40・150・260 秒でずれ 0 ms、相関 1.000** (リミッターを通っている: 先読みの差し引きが合っている)。クリックの WAV は `tools\clicks_wav.py`、測るのは `tools\measure_stems.py` (ffmpeg と Orecchiante の `.venv` の numpy)。サーバーは `py tools\frame_server.py out\pv\stems-run --port 8379`、Chrome は `--headless=new --autoplay-policy=no-user-gesture-required` で `http://127.0.0.1:8379/out/pv/harness-stems.html?clip=/out/pv/ito.clip.json&audio=/out/pv/ito.mp3&clicks=/out/pv/clicks.wav&beat=60`。
 - **まだ: 本物の Lily# との通し** (インストールされている Lily# は 0.16.0 で API が無い。Lily# の VSIX の入れ直しはオーナー)。入れたら `out\ito\ito.shosa` と、録音の無い曲 (`samples\dance.shosa`) で、Mixer の行、歌声、`onDidChangeStems`、Audio の MP3 を見る。
+  → オーナーが Lily# を入れ直して糸で鳴らした (2026-11-20): 「ミキサーはちゃんと機能している」。依頼 4 は done。
+
+### 98.4 行の並び (オーナー、2026-11-20)
+
+- **録音の行はいつも vocal guitar piano other bass drums の順** (オーナー決定)。複数形の s はあってもなくても同じ (Orecchiante の名前は `vocals`)。知らない名前はその後に、来た順で。Shosa の `stemRows` が並べる (`RecordingOrder`)。試験 1 件。
+- **楽譜の行は .lys に出てくる順** (オーナー決定。糸では prog が先、bass が後)。いまは Lily# が返す順 (宣言の順: `part bass` だけが宣言されていて先に来る) のまま。Shosa が `.lys` を読んで並べ替えるのは 92 節の方針 (形式の知識は Lily# に) に反するので、**Lily# への依頼 5** (`docs/repro/lilysharp-requests-2026-11-20-stems-order.md`): `part` と `voice` を楽譜に並ぶ順 (`score { }` の中の書いた順) で、歌声は歌うパートの位置に。
 

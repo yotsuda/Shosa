@@ -13,11 +13,26 @@
 /** A mixer row's level: 0 off … 1 as made … 2 (200 %). */
 export const MaxLevel = 2;
 
-/** A row of the mixer: one per part, voice and separated part of the recording; the recording itself only when it has no parts. */
+/**
+ * A row of the mixer: one per part, voice and separated part of the recording; the recording itself only
+ * when it has no parts. The score's rows first, as Lily# hands them out; then the recording's, always in
+ * the order of RecordingOrder (the owner's, 2026-11-20), the names it does not know after them as they came.
+ */
 export function stemRows(stems) {
   const parted = stems.some(s => s.kind === 'recordingPart');
-  return stems.filter(s => s.kind !== 'recording' || !parted).map(s => ({ id: rowId(s), kind: s.kind, name: s.name }));
+  const rows = stems.filter(s => s.kind !== 'recording' || !parted).map(s => ({ id: rowId(s), kind: s.kind, name: s.name }));
+  const recorded = r => r.kind === 'recording' || r.kind === 'recordingPart';
+  const rank = r => {
+    const name = r.name.toLowerCase();
+    const at = RecordingOrder.findIndex(o => name === o || name === o + 's' || name + 's' === o);
+    return at < 0 ? RecordingOrder.length : at;
+  };
+  const ranked = rows.filter(recorded).map((r, i) => ({ r, i })).sort((a, b) => rank(a.r) - rank(b.r) || a.i - b.i).map(x => x.r);
+  return [...rows.filter(r => !recorded(r)), ...ranked];
 }
+
+/** The separated parts of a recording, top to bottom (with or without a plural s: vocals is vocal, drum is drums). */
+export const RecordingOrder = ['vocal', 'guitar', 'piano', 'other', 'bass', 'drums'];
 
 export const rowId = s => (s.kind === 'recording' || s.kind === 'recordingPart' ? 'recording:' : s.kind + ':') + s.name;
 

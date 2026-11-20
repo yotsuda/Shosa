@@ -50,3 +50,11 @@ test('only the recording as recorded leaves the limiter out', () => {
   assert.equal(untouched(soundingStems([recording], { 'recording:ito.mp3': { on: true, level: 0.8 } })), false);
   assert.equal(untouched(soundingStems([piano, recording], {})), false);
 });
+
+test('the recording\'s parts in the owner\'s order: vocal guitar piano other bass drums, the unknown after', () => {
+  const part = name => ({ kind: 'recordingPart', name, file: name + '.flac', at: 0 });
+  // As Orecchiante's file lists them for 糸 (Bank Band), and one it does not know.
+  const stems = [piano, ...['drums', 'bass', 'other', 'strings', 'vocals', 'guitar', 'piano'].map(part), recording];
+  assert.deepEqual(stemRows(stems).map(r => r.name), ['piano', 'vocals', 'guitar', 'piano', 'other', 'bass', 'drums', 'strings']);
+});
+
