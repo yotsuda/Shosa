@@ -5751,3 +5751,11 @@ B: (1) 広い足の `low(N)` は広い立ち方から測る (立った高さか�
 5. **曲の 1 拍目から始まる 2 小節を、前置きなしで見せられない** (B の 1)。拍 0 の歩は「もうできている」。83.3 の 5 (`at` と最初の一歩) と同じ根。
 6. 83.3 の 5〜7 (`at` を立ち方の真ん中にするか、前からの絵で交差が見えない、`dancer` を名前に使えない) は残ったまま。
 
+## 92. 曲を読むところを Lily# の lysc に移す (2026-11-20。ユーザー決定: 「移す」「ゆるい形にする」)
+
+19.1 で曲は別の実行ファイル `shosa-music` (Shosa.Music、LilySharp.Core をリンクするので GPL) から読むことにし、43.2 でそれだけを GPL として拡張に同梱した。これをやめ、同じ働きを Lily# の `lysc` に置いてもらう。
+
+- **理由:** Shosa の拡張が GPL のプログラムを抱えなくなる (ソースを示す義務と ImageSharp 2.1.11 の細工が Shosa から消える)。Shosa のリポジトリだけでビルドできる (隣の `..\LilySharp` が要らない)。Lily# の文法の変更が Shosa を作り直さずに届く。拡張どうしが ID で互いを探して相手のプログラムを呼ぶ形は、Lily# と Orecchiante・Calamo の間と同じ。
+- **ゆるい依存:** `extensionDependencies` にはしない。Lily# がなければ曲に合わせる機能だけが使えず、そこで「Lily# を入れてください」と知らせる。動きだけを書くのに Lily# は要らない。
+- **依頼:** `docs/repro/REQUESTS.md` の 1 (`lilysharp-requests-2026-11-20-song-reading.md`)。`lysc timeline`・`lysc notes` (今の `shosa-music` と同じ JSON)、`--order`・`--tempo`、`lysc --version --json` の protocol、Lily# の拡張の `activate()` が `lysc` の場所を返すこと。
+- **Lily# が入れた後 (Shosa 側):** `SongReader.cs` が `lysc` を呼ぶ。VS Code のターミナルでは Shosa の拡張が Lily# の `server` を PATH に足し、外では環境変数で `lysc` を指す。`Shosa.Music`、その LICENSE、パッケージへの同梱 (`pack-extension.ps1`・`third-party-notices.ps1`)、ImageSharp の細工、`Shosa.slnx` の参照をやめる。19.1 と 43.2 はそこで改める。

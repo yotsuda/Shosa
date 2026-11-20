@@ -167,6 +167,7 @@ Kimodo を動かした記事を読んだ (2026-11-14。ユーザーが見つけ�
   パッケージは作れるようになった (2026-11-14。`tools\pack-extension.ps1` と `tools\deploy-extension.ps1`、win32-x64 だけ確認。DESIGN.md 24 節)。
   linux-x64 と osx-arm64 も作れるが、動かしたことはない (2026-11-15。DESIGN.md 45.2)。入れた拡張の試験は `tools\test-extension-host.ps1` (45.1)。
   公開の前に決めること: ~~ライセンス~~ (MIT。`shosa-music` だけ GPL。2026-11-15、DESIGN.md 43.2)、リポジトリの URL、版の番号。
+  **曲を読むところを Lily# の `lysc` に移す** (2026-11-20、ユーザー決定。DESIGN.md 92 節): Lily# への依頼 1 (`docs/repro/REQUESTS.md`) の返事待ち。入ったら Shosa は `shosa-music` をやめ、全部 MIT になる。Lily# はゆるい依存 (曲に合わせる機能だけが要る)。リポジトリは `https://github.com/yotsuda/Shosa` (public、2026-11-20)。
   CLI (`shosa`) も拡張に入れ、VS Code のターミナルの PATH に足す (2026-11-15。DESIGN.md 43.4。拡張だけで配る弱みもそこに)。
 - Blender と Godot 向けに、`.shosa` を保存すると動きが更新される読み込み機能。
   Godot は読み込みスクリプトが印をシグナルにするところまで (`ShosaMarks.mark_reached`。2026-11-15、DESIGN.md 43.3)。`.shosa` を直接読むのはまだ。
