@@ -239,7 +239,8 @@ public class DefinitionTests
 
         Assert.Equal(2, Track(compilation, Channels.Support).Count);
         Assert.True(At(compilation.Clip, 1, Rig.Pelvis).Y < At(plain.Clip, 1, Rig.Pelvis).Y - 0.09, "the same walk, low (16 cm under standing; mid-stride a plain walk is lower too)");
-        Assert.Equal(At(plain.Clip, 1, Rig.LAnkle).Z, At(compilation.Clip, 1, Rig.LAnkle).Z, 3);
+        // The feet are where the steps put them: the toes (a straight leg behind lifts its heel to reach, a low one need not: DESIGN.md 100).
+        Assert.Equal(At(plain.Clip, 1, Rig.LToe).Z, At(compilation.Clip, 1, Rig.LToe).Z, 3);
     }
 
     [Fact]
@@ -282,11 +283,13 @@ public class DefinitionTests
         Vec3 Arm(double beat) => (At(clip, beat, Rig.LHand) - At(clip, beat, Rig.LShoulder)).Normalized();
         Assert.True(Arm(0).X > 0.99 && Arm(1).Z > 0.99 && Arm(5).Y > 0.99, "each where its word says, on its beat");
         Assert.True(Arm(3).Z > 0.2 && Arm(3).Y > 0.2, "and on the way up through the four beats of the word before");
-        // The right foot stands for the first fifth of the beat and is a stride ahead on the next one.
-        Assert.Equal(At(clip, 0, Rig.RAnkle), At(clip, 0.15, Rig.RAnkle));
+        // The right foot stands for the first fifth of the beat and is a stride ahead on the next one (its toes
+        // stay where they are; the heel may come up before it goes, the body going on over the left foot: DESIGN.md 100).
+        Assert.Equal(At(clip, 0, Rig.RToe), At(clip, 0.15, Rig.RToe));
         Assert.Equal(Rig.Stride, At(clip, 1, Rig.RAnkle).Z - At(clip, 1, Rig.LAnkle).Z, 2);
         // The left foot stands through most of the four beats it has to wait, not two.
-        Assert.Equal(At(clip, 2, Rig.LAnkle), At(clip, 3.75, Rig.LAnkle));
+        Assert.Equal(At(clip, 2, Rig.LToe), At(clip, 3.75, Rig.LToe));
+        Assert.Equal(At(clip, 2, Rig.LAnkle), At(clip, 3.1, Rig.LAnkle));   // the heel down until 0.3 s before it goes
         Assert.True((At(clip, 4.5, Rig.LAnkle) - At(clip, 4, Rig.LAnkle)).Length > 0.1, "on its way in the last beat");
         Assert.Equal(Rig.Stride, At(clip, 5, Rig.LAnkle).Z - At(clip, 5, Rig.RAnkle).Z, 2);
     }
@@ -304,7 +307,7 @@ public class DefinitionTests
         Vec3 Arm(double beat) => (At(clip, beat, Rig.LHand) - At(clip, beat, Rig.LShoulder)).Normalized();
         Assert.True(Arm(1.6).X > 0.999, "it has not moved until then");
         Assert.True(Arm(2).Z > 0.999, "and is there on its beat");
-        Assert.Equal(At(clip, 0, Rig.RAnkle), At(clip, 1.6, Rig.RAnkle));
+        Assert.Equal(At(clip, 0, Rig.RToe), At(clip, 1.6, Rig.RToe));   // the toes; the heel may come up before the step (DESIGN.md 100)
         Assert.Equal(Rig.Stride, At(clip, 2, Rig.RAnkle).Z - At(clip, 2, Rig.LAnkle).Z, 2);
 
         // The same strike at half the tempo takes the same seconds: fewer beats.

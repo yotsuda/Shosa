@@ -471,6 +471,8 @@ internal sealed class FigureSolver
         public Vec3 LPos, RPos;
         public double LYaw, RYaw, LLift, RLift;
         public double LPitch, RPitch;   // the foot about its ankle, radians; positive lifts the toes
+        /// <summary>How far each foot may rise onto its toes for its leg to reach, 0..1 of <see cref="RollMost"/>: a foot about to step, and on its way up.</summary>
+        public double LRoll, RRoll;
         public bool LAir, RAir;
         public double GwL, GwR;     // how far each leg is into a gesture, 0..1
         public Vec3 TorsoUp;
@@ -1494,6 +1496,57 @@ internal sealed class FigureSolver
         }
     }
 
+    /// <summary>How far a foot about to step may rise onto its toes for its leg to reach, radians (the heel 11 cm up).</summary>
+    private const double RollMost = 0.75;
+    /// <summary>How long before a step its foot may begin to rise onto its toes, seconds.</summary>
+    private const double RollAhead = 0.3;
+
+    /// <summary>
+    /// How far a foot may rise onto its toes at <paramref name="t"/>, 0..1: as the body goes on over the
+    /// other foot, the leg behind stays long by lifting its heel instead of pulling the hips down (DESIGN.md 100).
+    /// From a little before a step on the floor until it is half-way; not a slide, not a foot in the air or turning.
+    /// </summary>
+    private static double RollShare(List<FootMove> moves, double t)
+    {
+        foreach (var move in moves)
+        {
+            if (t >= move.T1)
+                continue;
+            if (move.Orbit || move.Air || move.Lift <= 0 || move.LiftFrom > 0)
+                return 0;
+            if (t <= move.T0)
+                return Smooth(Math.Clamp(1 - (move.T0 - t) / RollAhead, 0, 1));
+            double u = (t - move.T0) / (move.T1 - move.T0);
+            return 1 - Smooth(Math.Clamp((u - 0.4) / 0.2, 0, 1));
+        }
+        return 0;
+    }
+
+    /// <summary>Whether the hip has gone on past a foot the way it points (a foot behind rises onto its toes; one ahead or aside does not).</summary>
+    private static bool Behind(Vec3 hip, Vec3 foot, Vec3 fwd) => (hip.X - foot.X) * fwd.X + (hip.Z - foot.Z) * fwd.Z > 0.05;
+
+    /// <summary>Where a foot's toes are with its ankle over <paramref name="floor"/>, <paramref name="lift"/> up and pitched by <paramref name="pitch"/> (a step's roll), as the leg draws it.</summary>
+    private static Vec3 ToeOf(Vec3 floor, Vec3 fwd, double lift, double pitch)
+    {
+        double ankle = Rig.AnkleHeight + lift;
+        var toe = new Vec3(floor.X, 0, floor.Z) + fwd * (Rig.FootLength * Math.Cos(pitch));
+        return new Vec3(toe.X, lift > 0.005 ? Math.Max(FloorToe, ankle - 0.05 + Rig.FootLength * Math.Sin(pitch)) : FloorToe, toe.Z);
+    }
+
+    /// <summary>
+    /// The ankle of a foot (its ankle over <paramref name="floor"/>, <paramref name="lift"/> up, pitched by <paramref name="pitch"/>)
+    /// turned on by <paramref name="angle"/> about its toes, the heel going up. At 0 it is where the step has it.
+    /// </summary>
+    private static Vec3 RolledAnkle(Vec3 floor, Vec3 fwd, double angle, double lift = 0, double pitch = 0)
+    {
+        var toe = ToeOf(floor, fwd, lift, pitch);
+        var v = new Vec3(floor.X, Rig.AnkleHeight + lift, floor.Z) - toe;
+        double along = v.X * fwd.X + v.Z * fwd.Z;
+        var aside = new Vec3(v.X - fwd.X * along, 0, v.Z - fwd.Z * along);
+        double cos = Math.Cos(angle), sin = Math.Sin(angle);
+        return toe + aside + fwd * (along * cos + v.Y * sin) + Vec3.Up * (-along * sin + v.Y * cos);
+    }
+
     /// <summary>How far a foot in the air points, radians (about 35°: the toe 9 cm further below the ankle than standing).</summary>
     private const double AirPoint = 0.6;
 
@@ -1667,6 +1720,8 @@ internal sealed class FigureSolver
         c.RYaw -= turnout;
         c.GwL = LegShape(_leftLeg, t, c.Left, c.Fwd, SomewhereBelow, Vec3.Up).Weight;
         c.GwR = LegShape(_rightLeg, t, c.Left, c.Fwd, SomewhereBelow, Vec3.Up).Weight;
+        c.LRoll = RollShare(_leftMoves, t) * (1 - c.GwL);
+        c.RRoll = RollShare(_rightMoves, t) * (1 - c.GwR);
         c.Float = _float.Eval(t);
 
         // The weight goes over the standing foot as far as the other leg is off the floor
@@ -1757,16 +1812,22 @@ internal sealed class FigureSolver
         double softDrop = soft * Rig.Leg * (Rig.StraightLeg - Rig.BentShare(Rig.Thigh, Rig.Shin, Rig.SoftKnee));
 
         // The pelvis is as high as it can be with both planted feet still in reach.
-        double Cap(Vec3 hip, Vec3 foot, bool free, double raise, double reach)
+        double Cap(Vec3 hip, Vec3 foot, bool free, double raise, double reach, double yaw = 0, double roll = 0, double lift = 0, double pitch = 0)
         {
             if (free)
                 return double.MaxValue;
             double distance = (new Vec3(hip.X, 0, hip.Z) - new Vec3(foot.X, 0, foot.Z)).Length;
-            return Rig.AnkleHeight + raise + Math.Sqrt(Math.Max(0.04, reach * reach - distance * distance));
+            double flat = Rig.AnkleHeight + raise + Math.Sqrt(Math.Max(0.04, reach * reach - distance * distance));
+            if (roll <= 0 || raise > 1e-6 || !Behind(hip, foot, Vec3.Forward(yaw)))
+                return flat;
+            // A foot about to step may rise onto its toes: the hips can be as high as the leg reaches to its ankle then.
+            var rolled = RolledAnkle(foot, Vec3.Forward(yaw), RollMost * roll, lift, pitch);
+            double far = (new Vec3(hip.X, 0, hip.Z) - new Vec3(rolled.X, 0, rolled.Z)).Length;
+            return Math.Max(flat, rolled.Y + raise + Math.Sqrt(Math.Max(0.04, reach * reach - far * far)));
         }
 
-        double stand = Math.Min(top, Math.Min(Cap(p + c.HipLeft * Rig.HipHalf, c.LPos, freeL, c.Raise, reach),
-                                              Cap(p - c.HipLeft * Rig.HipHalf, c.RPos, freeR, c.Raise, reach)));
+        double stand = Math.Min(top, Math.Min(Cap(p + c.HipLeft * Rig.HipHalf, c.LPos, freeL, c.Raise, reach, c.LYaw, c.LRoll, c.LLift, c.LPitch),
+                                              Cap(p - c.HipLeft * Rig.HipHalf, c.RPos, freeR, c.Raise, reach, c.RYaw, c.RRoll, c.RLift, c.RPitch)));
         // How far the feet hold the hips under the top (a stance, a stride): this has corners where a
         // foot lands, and only this is smoothed (TrunkAt). The height row is smooth already, and is
         // measured down from where the dancer stands: `low` is bent knees, not a squat, the hips
@@ -1786,8 +1847,8 @@ internal sealed class FigureSolver
         }
         c.WantY = top - c.Drop;
         // The most the legs reach at all: the smoothed height may not go over it, or a planted foot would come up.
-        c.CeilingY = Math.Min(Cap(p + c.HipLeft * Rig.HipHalf, c.LPos, freeL, c.Raise, (Rig.Leg - 2e-4)),
-                              Cap(p - c.HipLeft * Rig.HipHalf, c.RPos, freeR, c.Raise, (Rig.Leg - 2e-4)));
+        c.CeilingY = Math.Min(Cap(p + c.HipLeft * Rig.HipHalf, c.LPos, freeL, c.Raise, (Rig.Leg - 2e-4), c.LYaw, c.LRoll, c.LLift, c.LPitch),
+                              Cap(p - c.HipLeft * Rig.HipHalf, c.RPos, freeR, c.Raise, (Rig.Leg - 2e-4), c.RYaw, c.RRoll, c.RLift, c.RPitch));
         return c;
     }
 
@@ -2120,6 +2181,7 @@ internal sealed class FigureSolver
             var (gesture, offset, bend, point) = LegShape(isLeft ? _leftLeg : _rightLeg, t, c.Left, c.Fwd, place, kneePole, (torsoLeft, torsoUp, torsoFwd));
 
             var ankle = new Vec3(floor.X, Rig.AnkleHeight + lift + (air ? 0 : c.Raise), floor.Z);
+            Vec3? onToes = null;   // where the toes stay while the heel comes up (a foot about to step)
             if (gesture > 0)
             {
                 // The leg swings about the hip from the floor to its shape (and back): a straight leg
@@ -2151,9 +2213,33 @@ internal sealed class FigureSolver
                 if (!flight && gesture > 0.5 && (otherLift > 0.01 || otherGesture > 0.5))
                     problems.BothFeetOff = isLeft ? Channels.LeftLeg : Channels.RightLeg;
             }
-            else if (!air && (ankle - hip).Length > Rig.Leg + 0.02)
+            else if (!air)
             {
-                problems.Overreach = true;
+                // A foot about to step, the body gone on past it: the heel comes up, the toes stay, and the
+                // leg reaches its ankle there instead of bending (DESIGN.md 100). No higher than it must.
+                double roll = isLeft ? c.LRoll : c.RRoll;
+                double straight = Rig.Leg * Rig.StraightLeg;
+                if (roll > 0 && c.Raise < 1e-6 && Behind(hip, floor, footFwd) && (ankle - hip).Length > straight)
+                {
+                    // From where the step has the foot (lifted, rolling through it): on about the toes.
+                    double stepPitch = isLeft ? c.LPitch : c.RPitch;
+                    double lo = 0, hi = RollMost * roll;
+                    if ((RolledAnkle(floor, footFwd, hi, lift, stepPitch) - hip).Length <= straight)
+                    {
+                        for (int i = 0; i < 20; i++)
+                        {
+                            double mid = (lo + hi) / 2;
+                            if ((RolledAnkle(floor, footFwd, mid, lift, stepPitch) - hip).Length > straight)
+                                lo = mid;
+                            else
+                                hi = mid;
+                        }
+                    }
+                    ankle = RolledAnkle(floor, footFwd, hi, lift, stepPitch);
+                    onToes = ToeOf(floor, footFwd, lift, stepPitch);
+                }
+                if ((ankle - hip).Length > Rig.Leg + 0.02)
+                    problems.Overreach = true;
             }
 
             var (knee, reached) = TwoBone(hip, ankle, Rig.Thigh, Rig.Shin, bend is { } sent && sent.Length > 1e-6 ? sent : kneePole);
@@ -2162,6 +2248,8 @@ internal sealed class FigureSolver
             double pitch = (isLeft ? c.LPitch : c.RPitch) * (1 - gesture);
             var toe = reached + footFwd * (Rig.FootLength * Math.Cos(pitch));
             toe = new Vec3(toe.X, offFloor ? Math.Max(0.02, reached.Y - 0.05 + Rig.FootLength * Math.Sin(pitch)) : 0.02, toe.Z);
+            if (onToes is { } ball)
+                toe = ball;
             // In the air of a jump a leg in a shape points its foot too, as the one the steps carry does (DESIGN.md 90).
             if (gesture > 0 && c.LAir && c.RAir)
                 point = Math.Max(point, Math.Clamp(-(isLeft ? c.LPitch : c.RPitch) / AirPoint, 0, 1));
