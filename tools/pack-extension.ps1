@@ -68,12 +68,12 @@ foreach ($rid in $Targets) {
     foreach ($program in "Shosa.Lsp$suffix", "shosa-music$suffix", "shosa$suffix") { if (-not (Test-Path "$server\$program")) { throw "$server\$program is missing$(if ($SkipPublish) { ': run without -SkipPublish' })" } }
     '{0}: server {1:F1} MB' -f $rid, ((Get-ChildItem $server -Recurse -File | Measure-Object Length -Sum).Sum / 1MB)
 
-    # --no-dependencies: what the extension runs is already bundled into dist. The repository is
-    # not public yet (ROADMAP.md, stage 4), so package.json names none.
+    # --no-dependencies: what the extension runs is already bundled into dist. package.json names the
+    # repository (public since 2026-11-20), so vsce links to it and resolves the README's links against it.
     $vsix = "$Out\shosa-$($vsceTarget[$rid])-$version.vsix"
     Push-Location $stage
     try {
-        cmd /d /s /c "npx --yes @vscode/vsce package --target $($vsceTarget[$rid]) --no-dependencies --allow-missing-repository --out `"$vsix`" < NUL"
+        cmd /d /s /c "npx --yes @vscode/vsce package --target $($vsceTarget[$rid]) --no-dependencies --out `"$vsix`" < NUL"
         if ($LASTEXITCODE -ne 0) { throw "vsce package $rid failed" }
     } finally { Pop-Location }
 }

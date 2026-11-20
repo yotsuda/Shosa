@@ -6,6 +6,14 @@
   "publisher": "yotsuda",
   "author": "Yoshifumi Tsuda",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yotsuda/Shosa.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yotsuda/Shosa/issues"
+  },
+  "homepage": "https://github.com/yotsuda/Shosa",
   "icon": "icon.png",
   "keywords": [
     "motion",
