@@ -5,7 +5,7 @@ Write human movement as text and watch it performed beside the source.
 ```
 tempo 120
 
-figure solo
+role solo
 dancer solo humanoid on solo
 
 section Wave {
