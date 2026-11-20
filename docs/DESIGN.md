@@ -5890,3 +5890,15 @@ dancer alice humanoid "girl.vrm" on lead at 0 1
 - `connect-src` に `blob:` を足した (`extension.ts` の `previewHtml`)。`img-src` の `blob:` だけでは足りない。
 - 試験用のページ (`out\pv\harness.html`) にプレビューと同じ CSP を入れて、`blob:` がないと白く、あると色が付くことを確かめた。**試験用のページは本物の CSP を写しておく** (ずれると、VS Code でだけ起きることを見落とす)。
 
+
+## 97. 録音から作った曲で踊る (2026-11-20。ユーザー: 「実際に流通しているアーティストの楽曲のタイミングに合わせてモデルを踊らせることもできる」)
+
+ユーザーは Orecchiante で `.mp3` から `.lys` (コード譜) を作っている。例: `%USERPROFILE%\OneDrive\Documents\Transcribe!\source\糸 (Bank Band).lys`。隣に `糸 (Bank Band).orecchiante.json` (Orecchiante の SIDECAR.md 形式 1)、`.mp3`、パートごとの `.flac`。
+
+- `.lys` のテンポは `tempo 4 = 61.5` の 1 つ。録音の小節ごとのテンポは 51.9〜67 (前奏は揺れ、平均 61.37)。61.5 のまま踊らせると小節線が最大 1.49 秒 (39 小節目、1.5 拍) ずれる。正しい時刻は隣のファイルの `bars[]` (72 小節、各拍の秒 `beats`、最初の小節は録音の 1.82 秒から) にある。G のセクションに 2/4 の小節が 1 つ。
+- Lily# は「録音と `.lys` の紐づけは隣のファイルだけに置き、`.lys` には何も書かない。`bars[]` の n 番目が `form` を通して鳴らす n 番目の小節」と決めている (Lily# の `docs/recording-design.md` 1 節)。
+- **ユーザーが決めた (2026-11-20)**: 拍の時刻は **Lily# の `lysc` から受け取る** (形式の知識を Lily# に置いたまま。92 節の方針)。**自動**: 隣のファイルがある `.lys` で踊るときは、いつも録音の拍に合わせ、録音を鳴らす。`.shosa` には何も書かない。
+- 依頼 2 (`docs/repro/lilysharp-requests-2026-11-20-recording-timeline.md`): `lysc timeline` が、隣のファイルがあれば `tempos` を録音の拍ごとに作り (Shosa は今のテンポの仕組みのまま受け取れる)、`recording { audio, offset }` を足す。使えないときは理由の文。踊りが自分の `form` やテンポで曲を鳴らすとき (`--order` `--tempo`) は録音を使わない。
+- Shosa 側 (入ったら): 依頼 1 と合わせて `SongReader` を `lysc` に切り替え、`recording` を clip に通し、プレビューと MP4 は合成の音の代わりに録音を `offset` から鳴らす。`check` は録音に合わせたことと、使えなかった理由を言う。
+- 市販の音源を使った動画は、YouTube の Content ID で収益が権利者に回ったりブロックされたりすることがある (ユーザーに伝えた)。
+
