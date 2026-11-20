@@ -39,7 +39,7 @@ public sealed class SongReader(string folder)
             return new SongInfo { Error = "The song cannot be read: shosa-music, the program that reads Lily# files, is not installed beside shosa (or named by SHOSA_MUSIC)." };
 
         string key = string.Join('\n', path, File.GetLastWriteTimeUtc(path).Ticks.ToString(CultureInfo.InvariantCulture), score, order is null ? "" : "order " + string.Join(' ', order));
-        return Cache.GetOrAdd(key, _ =>
+        var song = Cache.GetOrAdd(key, _ =>
         {
             var arguments = new List<string> { "timeline", path };
             if (!string.IsNullOrEmpty(score))
@@ -57,6 +57,8 @@ public sealed class SongReader(string folder)
             }
             return new SongInfo { Error = $"'{file}' could not be read: {(error.Trim() is { Length: > 0 } said ? said : "shosa-music gave no answer")}" };
         });
+        // Played in its own order, a song made from a recording keeps the recording's time (DESIGN.md 97).
+        return order is null ? RecordingSidecar.Apply(song, path) : song;
     }
 
     /// <summary>

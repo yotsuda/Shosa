@@ -614,7 +614,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         Tempos = [.. _tempos],
         Meters = [.. _meters],
         Fps = _fps,
-        Music = _music is null || _song is null ? null : new MusicIr(_music, _musicScore, _songOrder, _tempoWritten ? _tempo : null),
+        Music = _music is null || _song is null ? null : new MusicIr(_music, _musicScore, _songOrder, _tempoWritten ? _tempo : null, _tempoWritten ? null : _song.Recording),
     };
 
     private void Collect()
@@ -881,6 +881,11 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         }
 
         _song = song;
+        // A song made from a recording (the file beside it, DESIGN.md 97): the dance keeps the recording's time, or says why not.
+        if (song.RecordingError is { } why)
+            Report("SH1906", DiagnosticSeverity.Warning, span, $"{why} The dance keeps the song's written tempo, and the preview plays its notes.");
+        else if (song.Recording is { } recording && _tempoWritten)
+            Report("SH1907", DiagnosticSeverity.Info, span, $"The song keeps time with its recording ({Path.GetFileName(recording.Audio)}), but this dance sets a tempo of its own: it keeps that, and the preview plays the song's notes instead of the recording.");
         if (_timeNode is not null)
             Error("SH1902", _timeNode.Span, $"The time is the song's ({song.BeatsPerBar}/{song.BeatUnit}): its bars are where they are. Take this line out.");
         (_beatsPerBar, _beatUnit) = (song.BeatsPerBar, song.BeatUnit);

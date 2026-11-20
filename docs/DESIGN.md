@@ -5902,3 +5902,13 @@ dancer alice humanoid "girl.vrm" on lead at 0 1
 - Shosa 側 (入ったら): 依頼 1 と合わせて `SongReader` を `lysc` に切り替え、`recording` を clip に通し、プレビューと MP4 は合成の音の代わりに録音を `offset` から鳴らす。`check` は録音に合わせたことと、使えなかった理由を言う。
 - 市販の音源を使った動画は、YouTube の Content ID で収益が権利者に回ったりブロックされたりすることがある (ユーザーに伝えた)。
 
+
+### 97.1 決定を変えた: Shosa が `.orecchiante.json` を直接読む (2026-11-20、同じ日)
+
+ユーザー: 「.orecchiante.json を、Shosa が直接見ても良いように思える。今後、大きな修正が入るとも思えないし、入っても開発者はどちらも私なのだから、あまり困らない」。依頼 2 は取り下げた (`withdrawn`)。
+
+- `Shosa.Core\Music\RecordingSidecar.cs`: 曲 (`X.lys`) の隣の `X.orecchiante.json` を読み、曲が自分の順で鳴るとき (`order` なし) は、`tempos` を録音の拍ごとに作り (拍から次の拍までの秒。小節の拍が与えられていないか数が合わなければ、小節を等分)、`SongInfo.Recording` (音源の絶対パス、拍 0 が録音の何秒か = `bars[0].start`、長さ) を付ける。`SongReader.Read` が `shosa-music` の答えに重ねる (答えはキャッシュしたまま、写しに)。隣のファイルは書いた時刻で覚える。
+- 合わないとき (小節の数が違う、音源がない、弱起、長さのない拍) は `RecordingError`。バインダーが `SH1906` (警告) で言い、踊りは楽譜のテンポのまま。踊りが自分の `tempo` を書いたときは録音を使わず `SH1907` (情報)。`MusicIr.Recording` で clip に通る。
+- **糸 (Bank Band) では合わなかった**: `.lys` の `form` は 70 小節、隣のファイルは 72 小節。隣のファイルは 11/19 の Orecchiante の読み取りのままで (`form` の最後は H)、`.lys` は 11/20 に直されている (H → Outro、G が 10 小節 → 8 小節。2/4 の小節の後が 4 小節 → 2 小節)。どちらに合わせるかはユーザーが決める。
+- 残り: プレビューと MP4 で録音を鳴らす (拡張が音源を読んで webview へ、webview が復号して `offset` から鳴らす)、`check` の行に録音を出す、試験。
+

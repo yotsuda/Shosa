@@ -34,7 +34,22 @@ public sealed class SongInfo
     public List<TempoIr> Tempos { get; set; } = [];
     /// <summary>Every time of the song as it is played, the first at beat 0. Empty means the one above throughout.</summary>
     public List<MeterIr> Meters { get; set; } = [];
+    /// <summary>
+    /// The recording the song was made from, when it has one beside it (`NAME.orecchiante.json`) and it is
+    /// played in its own order: <see cref="Tempos"/> are then the recording's, a tempo for every beat (DESIGN.md 97).
+    /// </summary>
+    public SongRecording? Recording { get; set; }
+    /// <summary>Why the recording beside the song is not followed, in words for the author of the dance; null when it is, or there is none.</summary>
+    public string? RecordingError { get; set; }
+
+    public SongInfo Copy() => (SongInfo)MemberwiseClone();
 }
+
+/// <summary>A recording a song keeps time with: the sound file, and the second of it at which beat 0 of the song falls.</summary>
+/// <param name="Audio">The sound file, a full path.</param>
+/// <param name="Offset">Seconds into the recording of the song's first bar line.</param>
+/// <param name="Duration">How long the recording is, seconds (0 if not known).</param>
+public sealed record SongRecording(string Audio, double Offset, double Duration);
 
 /// <summary>
 /// The notes of a song as a clip plays it, for a preview that sounds them on the dance's clock.
@@ -65,4 +80,5 @@ public delegate SongInfo? SongSource(string file, string? score, IReadOnlyList<s
 /// <param name="Score">The song's score; null for its default.</param>
 /// <param name="Order">The sections to play when the dance has a `form` of its own; null for the song's order.</param>
 /// <param name="Tempo">Beats per minute when the dance sets its own `tempo`; null for the song's.</param>
-public sealed record MusicIr(string File, string? Score, IReadOnlyList<string>? Order, double? Tempo);
+/// <param name="Recording">The recording the dance keeps time with, played instead of the song's notes; null for none.</param>
+public sealed record MusicIr(string File, string? Score, IReadOnlyList<string>? Order, double? Tempo, SongRecording? Recording = null);
