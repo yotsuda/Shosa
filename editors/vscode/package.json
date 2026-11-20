@@ -250,6 +250,7 @@
     "test": "node --test"
   },
   "dependencies": {
+    "@pixiv/three-vrm": "3.5.5",
     "mp4-muxer": "5.2.2",
     "spessasynth_core": "4.3.22",
     "spessasynth_lib": "4.3.14",

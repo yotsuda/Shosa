@@ -5855,3 +5855,31 @@ B: (1) 広い足の `low(N)` は広い立ち方から測る (立った高さか�
 
 ユーザー: 「動画は mp4 を作るより、.shosa ファイルを私に共有して。VS Code の中で見たい」。直したら拡張を入れ直し (`tools\deploy-extension.ps1`)、ファイルのパスを伝える。プレビューはいまは棒人形なので、モデル (VRM) をプレビューに出すのが次の候補 (ROADMAP 2 節)。
 
+
+## 96. プレビューに VRM のキャラクターを出す (2026-11-20。ユーザー: 「プレビューに女の子を出して」「設定ではなく、.shosa ファイルで指定した方が良くないかな?」)
+
+### 96.1 書き方: `dancer` の行に引用符でファイル
+
+```
+dancer alice humanoid "girl.vrm" on lead at 0 1
+```
+
+- 最初は VS Code の設定 (`shosa.preview.model`) を考えたが、ユーザーの案で `.shosa` に書く。踊り手ごとに違うキャラクターを着せられ、ファイルと一緒に共有できる。
+- 置き場所は Lily# の `singer alice female … "声" on PART` の声と同じ (体の種類の後、`on` の前)。省略できる (書かなければ棒人形)。パスは `music "song.lys"` と同じく `.shosa` のフォルダーから。
+- `.vrm` でない文字列と空の文字列は `SH1006`。ファイルがあるかはバインダーでは見ない (ファイルを読まない)。無いとプレビューの上の欄に赤字で言う。
+- 動きと書き出し (`.glb` `.vrma` `.bvh`) は何も変わらない。キャラクターはプレビュー (とその MP4) のためだけ。
+- 文法書の `dancer` の行の項に 1 段落。試験 `CharacterTests` 3 件。
+
+### 96.2 仕組み
+
+- **言語サーバー**: `ClipFigure.Model` (書かれたまま) と、キャラクターを着た踊り手にだけ `turns` (`Skeleton.Bones` の順の親に対する四元数、毎コマ。`.vrma` と同じもの) を clip の JSON に入れる。clip には骨の名前 (`skeletonBones`、VRM の humanoid の名前) と休みの姿の腰の高さ (`hipsHeight`) も。棒人形の踊り手の送る量は前と同じ。
+- **拡張** (`extension.ts`): 踊り手の `model` を `.shosa` のフォルダーから解決し、ファイルを読んで中身を webview へ送る (`{ type: 'model', file, data }`)。webview に読めるフォルダーを広げなくて済む。送ったファイルは書いた時刻で覚え、変わったら (踊りを直したときに見て) 送り直す。CSP の `img-src` に `blob:` を足した (glb の中の画像を three.js が blob の URL で読む)。
+- **プレビュー** (`preview/characters.js`): three-vrm 3.5.5 (`@pixiv/three-vrm`、MIT。three.js 0.160 のまま) で読み、毎コマ normalized の骨に `turns` を (2 コマの間は slerp で) 当て、腰を骨盤の位置に、キャラクターの脚の長さに合わせた倍率で置く。VRM 0.x は x と z を反転 (three-vrm-animation と同じ)。揺れもの (spring bone) とコンストレイントは `vrm.update` で動く。シークのような飛びでは揺れものを置き直す。1 人ずつ同じバイト列から読む (VRM は複製できない)。
+- 着た踊り手の棒は見えなくするが場面に残す: キャラクターをクリックすると中の棒に当たり、その語へ飛ぶ機能がそのまま使える。上の欄の「Character」のチェックで棒人形に戻せる。プレビューの MP4 はキャラクターごと撮れる (同じ場面を描くので)。
+
+### 96.3 確かめたこと
+
+- `out\vrm\dance.shosa` (`samples\dance.shosa` の写しで、3 人に `out\vrm\sample.vrm` を着せた) を言語サーバーに開かせ、届いた `shosa/clip` をそのまま、`acquireVsCodeApi` を差し替えたページ (`out\pv\harness.html`) に流して、窓なしの Chrome で撮った。3 人がキャラクターで立ち、棒は見えず、足は床にある。17 拍目の腕 (alice は `up`、bob と carol は `side.up`) が振付どおり。
+- 試験 340 件、落ちるのは前からの 1 件。`npm test` も通る。拡張を入れ直した (`tools\deploy-extension.ps1`)。**実際の VS Code で見るのはユーザーがこれから。**
+- 残り: ファイルが無いときの診断 (言語サーバーはファイルの場所を知っているので出せる)、`dancer` の行で `.vrm` のファイル名を補完、縦長の MP4。
+

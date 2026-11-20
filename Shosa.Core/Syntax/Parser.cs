@@ -134,11 +134,14 @@ internal sealed class Parser
         return new GreenInner(SyntaxKind.FigureDecl, children);
     }
 
-    /// <summary>dancer NAME RIG clause*, all on one line.</summary>
+    /// <summary>dancer NAME RIG "MODEL"? clause*, all on one line.</summary>
     private GreenNode ParseDancer()
     {
         var children = new List<GreenNode> { Next(), ExpectOnLine(SyntaxKind.Identifier, "A dancer name") };
         if (SameLine && AtName && !ClauseKeywords.Contains(Current.Text))
+            children.Add(Next());
+        // The character the preview puts on the body, as Lily#'s singer names its voice: a file in quotes.
+        if (SameLine && Kind == SyntaxKind.String)
             children.Add(Next());
         while (SameLine && Kind != SyntaxKind.CloseBrace)
         {

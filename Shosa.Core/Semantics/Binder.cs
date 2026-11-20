@@ -48,6 +48,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
     private sealed class DancerSpec
     {
         public string Id = "", Name = "", Figure = "";
+        public string? Model;
         public double X, Z, FacingDeg, Delay;
         public bool Mirror, Free;
         public HashSet<string>? In;
@@ -958,6 +959,17 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
             }
             if (words.Count < 3 || words[2].Text != "humanoid")
                 Error("SH1006", words.Count < 3 ? words[1].Span : words[2].Span, "A dancer names its body after its own name. The only body so far is humanoid: dancer alice humanoid");
+            // The character the preview dresses the body in: dancer alice humanoid "girl.vrm".
+            if (node.ChildTokens().FirstOrDefault(t => t.Kind == SyntaxKind.String && !t.IsMissing) is { } model)
+            {
+                string file = model.Text.Trim('"');
+                if (file.Length == 0)
+                    Error("SH1006", model.Span, "A character is a file in quotes: dancer alice humanoid \"girl.vrm\".");
+                else if (!file.EndsWith(".vrm", StringComparison.OrdinalIgnoreCase))
+                    Error("SH1006", model.Span, $"A character is a VRM file (.vrm), not '{file}': dancer alice humanoid \"girl.vrm\".");
+                else
+                    dancer.Model = file;
+            }
 
             bool on = false;
             foreach (var clause in node.ChildNodes(SyntaxKind.Clause))
@@ -1246,7 +1258,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
             var ir = new DancerIr
             {
                 Id = dancer.Id, Name = dancer.Name == "" ? dancer.Id : dancer.Name, Figure = dancer.Figure,
-                X = dancer.X, Z = dancer.Z, FacingDeg = dancer.FacingDeg, Free = dancer.Free,
+                X = dancer.X, Z = dancer.Z, FacingDeg = dancer.FacingDeg, Free = dancer.Free, Model = dancer.Model,
             };
             var sink = new Dictionary<string, List<Raw>>();
             int trackIndex = 0;

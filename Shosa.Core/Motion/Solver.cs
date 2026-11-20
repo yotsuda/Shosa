@@ -83,7 +83,7 @@ public static class Solver
         foreach (var dancer in ir.Dancers)
         {
             var solver = solvers[dancer.Id];
-            var clipFigure = new ClipFigure { Id = dancer.Id, Name = dancer.Name };
+            var clipFigure = new ClipFigure { Id = dancer.Id, Name = dancer.Name, Model = dancer.Model };
             var flagged = new HashSet<(Seg, string)>();
             Vec3[]? previous = null;
             double previousFacing = 0;

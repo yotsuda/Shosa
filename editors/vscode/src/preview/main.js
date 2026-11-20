@@ -3,8 +3,10 @@
 // It is given the solved movement (the file's "clips", one per `score`: every joint at every frame, plus
 // which source span is performed when) and draws ONE clip at a time: the one whose section
 // the cursor is in, or the one picked in the selector. It never parses anything. Messages:
-//   in   { type: 'clip', clips, offset, reset? }   the movement (after every edit); offset
-//                                                  is the cursor, -1 if unknown
+//   in   { type: 'clip', clips, models, offset, reset? }   the movement (after every edit); offset
+//                                                  is the cursor, -1 if unknown; models: each character
+//                                                  file a dancer names, as written -> the file
+//   in   { type: 'model', file, data?, error? }   the bytes of a character file (VRM), or why not
 //   in   { type: 'cursor', offset }       the editor's cursor moved
 //   in   { type: 'song', key, song }      the notes asked for: { error, notes }
 //   in   { type: 'synth', processor, soundFont, name }   where the synthesiser and the sound font are
@@ -20,6 +22,7 @@
 //   out  { type: 'recorded', id, data?, silent?, error?, stopped? }   the MP4's bytes, or why not
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { createCharacters } from './characters.js';
 import { createFontSound } from './fontsound.js';
 import { createSound } from './sound.js';
 import { createSynthPort } from './synth.js';
@@ -45,6 +48,7 @@ style.textContent = `
            border-bottom: 1px solid var(--vscode-panel-border, #ccc); }
   header[hidden], header [hidden], footer [hidden] { display: none; }
   #name { font-weight: 600; }
+  #modelProblem { color: var(--vscode-errorForeground, #c33); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 40ch; }
   #kind { font-size: 11px; padding: 0 6px; border-radius: 8px;
           color: var(--vscode-badge-foreground, #fff); background: var(--vscode-badge-background, #616161); }
   button { font: inherit; padding: 3px 12px; border: 0; border-radius: 3px; cursor: pointer; min-width: 5em;
@@ -73,6 +77,8 @@ document.body.innerHTML = `
     <span id="name" hidden></span>
     <span id="kind" hidden></span>
     <span id="space"></span>
+    <span id="modelProblem" hidden></span>
+    <label id="modelLabel" hidden title="Show the dancers as the characters their dancer lines name (dancer alice humanoid &quot;girl.vrm&quot;), or as sticks."><input id="modelBox" type="checkbox" checked> Character</label>
     <button id="exportVideo" title="Write the score shown as an MP4 video: this view, with its song.">MP4</button>
     <button id="exportModel" title="Write the score shown as a model file for an engine: glTF (.glb), VRM Animation (.vrma) or BVH (.bvh).">Model</button>
   </header>
@@ -94,6 +100,7 @@ const nameLabel = document.getElementById('name'), kindLabel = document.getEleme
 const soundLabel = document.getElementById('soundLabel'), soundBox = document.getElementById('sound');
 const ticks = document.getElementById('ticks'), marksLabel = document.getElementById('marks');
 const videoButton = document.getElementById('exportVideo'), modelButton = document.getElementById('exportModel');
+const modelLabel = document.getElementById('modelLabel'), modelBox = document.getElementById('modelBox'), modelProblem = document.getElementById('modelProblem');
 
 // ---- Scene.
 const dark = document.body.classList.contains('vscode-dark') || document.body.classList.contains('vscode-high-contrast');
@@ -117,6 +124,33 @@ scene.add(new THREE.GridHelper(12, 12, dark ? 0x5a616c : 0xb9c0ca, dark ? 0x353a
 const front = new THREE.Mesh(new THREE.BoxGeometry(12, 0.01, 0.04), new THREE.MeshBasicMaterial({ color: 0x2f6fdf }));
 front.position.set(0, 0, 6);
 scene.add(front);
+
+// The characters the dancer lines name (characters.js). A dressed figure's sticks are hidden but stay
+// in the scene: a click on the character still finds the limb inside it, and its word.
+let models = {};   // the character files of the clips: as written -> the file
+const characters = createCharacters(scene, () => {
+  look();
+  show();
+});
+
+function look() {
+  const wanted = characters.any();
+  modelLabel.hidden = !wanted;
+  if (wanted) bar.hidden = false;
+  const problems = characters.problems();
+  modelProblem.hidden = !problems;
+  modelProblem.textContent = problems.split('\n')[0];
+  modelProblem.title = problems;
+  characters.setVisible(modelBox.checked);
+  figures.forEach((figure, i) => {
+    const stick = !(modelBox.checked && characters.isDressed(i));
+    for (const mesh of [...figure.bones, ...figure.joints]) mesh.visible = stick;
+  });
+}
+modelBox.addEventListener('change', () => {
+  look();
+  modelBox.blur();
+});
 
 // Left limbs blue, right limbs red — the same as the contact sheet.
 const colors = { c: dark ? 0xd5d9df : 0x3a4048, l: 0x2f6fdf, r: 0xd9482b };
@@ -196,6 +230,7 @@ function pose(frame) {
       mesh.scale.set(1, length, 1);
     });
   }
+  if (clip) characters.pose(clip, clip.figures, frame);
 }
 
 // An event is "being performed" from just after it starts until it ends: at its last
@@ -340,6 +375,8 @@ function setClip(next, keepBeat) {
   const rebuild = !next || !clip || figures.length !== next.figures.length;
   clip = next;
   if (rebuild) build(); else figures.forEach((figure, i) => { figure.data = clip.figures[i]; });
+  if (clip) characters.dress(clip.figures, models); else characters.clear();
+  look();
   empty.style.display = clip && clip.figures.length && clip.totalBeats > 0 ? 'none' : 'flex';
   if (!keepBeat) beat = 0;
   if (!clip) setPlaying(false);
@@ -534,6 +571,7 @@ window.addEventListener('message', event => {
   if (message.type === 'clip') {
     const shown = clip && !message.reset ? clip.name : null;
     clips = message.clips ?? [];
+    models = message.models ?? {};
     // An edit keeps the clip being looked at (by name: the objects are all new), and the
     // moment: change a word and see that pose change. If the name is gone (it is being
     // renamed, or the file is another one), the clip the cursor is in, else the first.
@@ -541,6 +579,8 @@ window.addEventListener('message', event => {
     const under = same ? null : clips.find(c => holds(c, typeof message.offset === 'number' ? message.offset : -1)) ?? null;
     if (message.reset) setPlaying(false);
     setClip(same ?? under ?? clips[0] ?? null, !message.reset && (same !== null || under !== null));
+  } else if (message.type === 'model') {
+    characters.setFile(message.file, message.data, message.error);
   } else if (message.type === 'song') {
     const notes = message.song && !message.song.error ? message.song.notes ?? [] : [];
     // The same notes again (the answer to every Play) change nothing that is sounding.

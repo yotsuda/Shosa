@@ -70,6 +70,8 @@ public sealed class DancerIr
     /// <summary>The figure whose choreography it dances.</summary>
     public string Figure { get; set; } = "";
     public string Rig { get; set; } = "humanoid";
+    /// <summary>The character file (VRM) the preview puts on this body, as written (from the .shosa file's folder); null for none.</summary>
+    public string? Model { get; set; }
     /// <summary>Start position on the floor: x to stage left, z toward the audience.</summary>
     public double X { get; set; }
     public double Z { get; set; }

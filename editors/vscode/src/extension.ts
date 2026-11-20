@@ -12,6 +12,7 @@ import { registerTools } from './tools';
 //   preview -> server  : the notes of the song a clip is danced to, when the preview asks (shosa/song)
 //   editor  -> preview : where the cursor is, so the preview shows the clip of that section
 //                        and that word's pose
+//   editor -> preview  : the bytes of the character files the dancers are dressed in (VRM)
 //   preview -> editor  : which words are being performed (to light them up), and which
 //                        word to go to when a limb is clicked
 // Every position is an offset into the document in UTF-16 code units: what VS Code's
@@ -22,7 +23,7 @@ interface ClipMessage {
   version: number;
   /** The first clip (an empty one when the file has none). */
   clip: unknown;
-  /** Every clip of the file: without a `form`, one per section. */
+  /** Every clip of the file: without a `form`, one per section. A figure may name a character file (`model`). */
   clips?: unknown[];
 }
 
@@ -108,12 +109,53 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   // the cursor to choose it when it has no clip of its own to stay on.
   const post = (message: ClipMessage, reset: boolean) => {
     const editor = editorFor(message.uri);
+    const shown = message.clips ?? (message.clip ? [message.clip] : []);
+    // The characters the dancers are dressed in (`dancer alice humanoid "girl.vrm"`), from the file's own folder.
+    const folder = path.dirname(vscode.Uri.parse(message.uri).fsPath);
+    const models: Record<string, string> = {};
+    for (const clip of shown as { figures?: { model?: string }[] }[]) {
+      for (const figure of clip.figures ?? []) {
+        if (figure.model && !(figure.model in models)) {
+          models[figure.model] = path.resolve(folder, figure.model);
+        }
+      }
+    }
     void panel?.webview.postMessage({
       type: 'clip',
-      clips: message.clips ?? (message.clip ? [message.clip] : []),
+      clips: shown,
+      models,
       offset: editor ? editor.document.offsetAt(editor.selection.active) : -1,
       reset,
     });
+    for (const file of new Set(Object.values(models))) {
+      void sendModel(file);
+    }
+  };
+
+  // A character file is read here and its bytes handed to the page, which parses it: the page need not be
+  // let read the folder it is in. Sent again when the file changes (it is checked at every edit of the dance).
+  const sentModels = new Map<string, number>();   // file -> the time it was last written, as sent
+  const sendModel = async (file: string) => {
+    let written = -1;
+    try {
+      written = (await fs.promises.stat(file)).mtimeMs;
+    } catch {
+      // not there: the page says so
+    }
+    if (sentModels.get(file) === written) {
+      return;
+    }
+    sentModels.set(file, written);
+    if (written < 0) {
+      void panel?.webview.postMessage({ type: 'model', file, error: `${file} was not found.` });
+      return;
+    }
+    try {
+      const data = await fs.promises.readFile(file);
+      void panel?.webview.postMessage({ type: 'model', file, data: new Uint8Array(data.buffer, data.byteOffset, data.byteLength) });
+    } catch (error) {
+      void panel?.webview.postMessage({ type: 'model', file, error: `${file} could not be read: ${String(error)}` });
+    }
   };
 
   // A dance follows its song, and the files of parts it brings in with `using`: when a .lys or
@@ -213,6 +255,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       panel = undefined;
       panelUri = undefined;
       pageReady = false;
+      sentModels.clear();
     });
 
     panel.webview.onDidReceiveMessage((message: { type: string; spans?: [number, number][]; start?: number; length?: number; key?: string; music?: object }) => {
@@ -232,6 +275,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           break;
 
         case 'ready':
+          sentModels.clear();   // a new page knows no character yet
           tellSynth();
           if (panelUri) {
             show(panelUri);
@@ -342,7 +386,7 @@ function previewHtml(webview: vscode.Webview, script: vscode.Uri): string {
   // Beyond the page's own script: the synthesiser's worklet is loaded from the extension (or
   // from a blob of it), its decoder of compressed fonts is WebAssembly, and the sound font is fetched.
   const csp = `default-src 'none'; script-src 'nonce-${nonce}' ${webview.cspSource} 'wasm-unsafe-eval' blob:; style-src 'unsafe-inline'; `
-    + `img-src ${webview.cspSource} data:; connect-src ${webview.cspSource};`;
+    + `img-src ${webview.cspSource} data: blob:; connect-src ${webview.cspSource};`;
   return `<!doctype html>
 <html lang="en">
 <head>

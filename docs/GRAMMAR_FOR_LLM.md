@@ -1285,6 +1285,10 @@ score { dancer alice  dancer bob  dancer carol }
   `free` (weight, gravity and speed limits never apply), `in SECTION …` (dances only there;
   in the other sections the dancer is still on the floor, standing as they were left).
 - Not written, a dancer stands at the origin (`at 0 0`) and faces the audience (`facing front`).
+- A character for the preview: a VRM file in quotes right after `humanoid`,
+  `dancer alice humanoid "girl.vrm" on lead` (from the folder of the .shosa file). The preview
+  shows the dancer as that character instead of sticks; it changes nothing of the movement or
+  of what is exported. Without it, the dancer is drawn as sticks.
 - `at` is where the feet stand TOGETHER before anything is written, and a first step
   already made moves one foot off it: `rightFoot.fwd(0.3m)` from `at 0 0` stands with the
   middle of the feet at 0.15 m forward, `leftFoot.side(0.6m)` with it 0.3 m to the left. To

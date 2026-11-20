@@ -119,6 +119,9 @@ public sealed class MotionClip
     public int[][] Bones { get; set; } = Rig.Bones.Select(b => new[] { b.A, b.B }).ToArray();
     public string BoneSides { get; set; } = new(Rig.Bones.Select(b => b.Side).ToArray());
     public List<ClipFigure> Figures { get; } = [];
+    /// <summary>The bones of a figure's rotations (<see cref="ClipFigure.Turns"/>), by their VRM humanoid names, and how high the hips stand in their rest pose.</summary>
+    public string[] SkeletonBones { get; set; } = Skeleton.Bones.Select(b => b.Name).ToArray();
+    public double HipsHeight { get; set; } = Skeleton.Bones[Skeleton.Hips].Offset.Y;
     /// <summary>Which source span is being performed when: the link between text and movement.</summary>
     public List<ClipSpan> Spans { get; } = [];
     public List<SectionIr> Sections { get; set; } = [];
@@ -203,6 +206,18 @@ public sealed class ClipFigure
     /// </summary>
     [System.Text.Json.Serialization.JsonIgnore]
     public List<float[]> Rotations { get; } = [];
+
+    /// <summary>The character file the preview dresses this figure in (`dancer alice humanoid "girl.vrm"`), as written; null for none.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public string? Model { get; set; }
+
+    /// <summary>
+    /// <see cref="Rotations"/> in the JSON, for a figure with a <see cref="Model"/> only: the preview poses the
+    /// character's bones with them. A figure drawn as sticks is sent its positions alone.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonPropertyName("turns")]
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public List<float[]>? Turns => Model is null ? null : Rotations;
 
     public Quat Rotation(int frame, int bone)
     {
