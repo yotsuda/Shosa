@@ -122,6 +122,55 @@ public class LifeTests
         Assert.True(Math.Abs(end.LeftHand - end.RightHand) < 0.02, $"at the end the hands are {end.LeftHand - end.RightHand:0.00} m apart");
     }
 
+    /// <summary>Degrees a line from the right joint to the left one is turned to the left, seen from above, from square to the way the walk goes.</summary>
+    private static double Turned(MotionClip clip, int f, int left, int right)
+    {
+        int last = clip.Figures[0].Frames.Count - 1;
+        var way = At(clip, last, Rig.Pelvis) - At(clip, 0, Rig.Pelvis);
+        way = new Vec3(way.X, 0, way.Z).Normalized();
+        var leftOfWay = Vec3.Up.Cross(way);
+        var line = At(clip, f, left) - At(clip, f, right);
+        return Math.Atan2(-line.Dot(way), line.Dot(leftOfWay)) * 180 / Math.PI;
+    }
+
+    [Fact]
+    public void Walking_the_hips_go_round_with_the_leg_in_front_and_the_shoulders_the_other_way()
+    {
+        // DESIGN.md 102.
+        var clip = Solve(Samples.Solo(Walk, "tempo 100\ntime 4/4\n"));
+        int seen = 0;
+        for (int f = 0; f < clip.Figures[0].Frames.Count; f++)
+        {
+            var (_, _, leftAnkle, rightAnkle) = Ahead(clip, f);
+            double front = leftAnkle - rightAnkle;
+            if (Math.Abs(front) < 0.4)
+                continue;
+            // The left foot in front: the left hip forward (the hips turned right) and the right shoulder forward.
+            double hips = Turned(clip, f, Rig.LHip, Rig.RHip), shoulders = Turned(clip, f, Rig.LShoulder, Rig.RShoulder);
+            Assert.True(hips * Math.Sign(front) < -1.5, $"frame {f}: the hips are turned {hips:0.0}°");
+            Assert.True(shoulders - hips is var between && between * Math.Sign(front) > 3, $"frame {f}: the shoulders are {shoulders - hips:0.0}° from the hips");
+            Assert.InRange(Math.Abs(hips), 0, 8);
+            seen++;
+        }
+        Assert.True(seen > 5);
+    }
+
+    [Fact]
+    public void Written_hips_and_shoulders_do_not_turn_with_the_walk()
+    {
+        var clip = Solve(Samples.Solo(Walk + "\n    hips { center }\n    shoulders { center }", "tempo 100\ntime 4/4\n"));
+        // (The breathing torso leans a little and shows on the shoulder line from above: measure how far each line goes round, not where it is.)
+        double hipsFrom = double.MaxValue, hipsTo = double.MinValue, shouldersFrom = double.MaxValue, shouldersTo = double.MinValue;
+        for (int f = 0; f < clip.Figures[0].Frames.Count; f++)
+        {
+            double hips = Turned(clip, f, Rig.LHip, Rig.RHip), shoulders = Turned(clip, f, Rig.LShoulder, Rig.RShoulder);
+            (hipsFrom, hipsTo) = (Math.Min(hipsFrom, hips), Math.Max(hipsTo, hips));
+            (shouldersFrom, shouldersTo) = (Math.Min(shouldersFrom, shoulders), Math.Max(shouldersTo, shoulders));
+        }
+        Assert.True(hipsTo - hipsFrom < 0.5, $"the hips go round {hipsTo - hipsFrom:0.0}°");
+        Assert.True(shouldersTo - shouldersFrom < 1, $"the shoulders go round {shouldersTo - shouldersFrom:0.0}°");
+    }
+
     [Fact]
     public void A_written_arm_does_not_swing()
     {

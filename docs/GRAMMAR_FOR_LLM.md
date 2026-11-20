@@ -640,7 +640,8 @@ one, the shape it arrives in (see "Shapes" below).
   `hips`, and `steps` while both feet stand), it breathes, its weight drifts a few centimetres
   from foot to foot, and the chest and the head go a little with the arms (back and up as they
   rise). Unwritten arms swing while the feet walk, each against the other foot (forward as
-  it is ahead), and hang again when the feet stand; do not write the swing of a plain walk.
+  it is ahead), and hang again when the feet stand; unwritten hips go a few degrees round
+  with the leg in front and unwritten shoulders the other way. Do not write the swing of a plain walk.
   Always the same for the same text, and a loop still joins. A row you write is exactly
   as written: to keep the torso straight up, write `torso { up }`; to walk with the arms
   still at the sides, write `arms { down }`.

@@ -1504,6 +1504,12 @@ internal sealed class FigureSolver
     /// pelvis, the most either way, and the degrees the elbow bends further at the front of the swing.
     /// </summary>
     private const double SwingPerMetre = 1.2, SwingMost = 0.4, SwingElbow = 20;
+
+    /// <summary>
+    /// Unwritten hips and shoulders turning while walking (DESIGN.md 102): radians per metre the left foot is
+    /// ahead of the right. A stride of 0.6 m turns the hips 4° with the leg in front and the shoulders 3° the other way.
+    /// </summary>
+    private const double HipsPerMetre = 0.12, ShouldersPerMetre = 0.09;
     /// <summary>How long before a step its foot may begin to rise onto its toes, seconds.</summary>
     private const double RollAhead = 0.3;
 
@@ -1768,9 +1774,16 @@ internal sealed class FigureSolver
         c.Shoulders = Chain(_shoulders, t, seg => (seg?.TurnDeg ?? 0) * Math.PI / 180, (a, b, e) => a + (b - a) * e, Dist);
         // The hips turn over the feet: the sockets go round the pelvis, the feet stay, and the knees follow.
         c.Hips = Chain(_hips, t, seg => (seg?.TurnDeg ?? 0) * Math.PI / 180, (a, b, e) => a + (b - a) * e, Dist);
+        // Walking, unwritten hips go round with the leg in front (its hip forward) and unwritten shoulders the
+        // other way, with the arms that swing against the legs (DESIGN.md 102). Only as much as the feet move.
+        double stride = 0;
+        if (_alive && (_hips.Count == 0 || _shoulders.Count == 0))
+            stride = Math.Clamp((c.LPos - c.RPos).Dot(c.Fwd), -0.8, 0.8) * (1 - FeetStill(t));
+        if (_shoulders.Count == 0)
+            c.Shoulders += ShouldersPerMetre * stride;
         // Unwritten hips turn a little with the drift of the weight, toward the leg that takes it (3.4°).
         if (_alive && _hips.Count == 0)
-            c.Hips -= 0.06 * drift;
+            c.Hips -= 0.06 * drift + HipsPerMetre * stride;
         c.HipLeft = c.Left * Math.Cos(c.Hips) - c.Fwd * Math.Sin(c.Hips);
         c.HipFwd = c.Fwd * Math.Cos(c.Hips) + c.Left * Math.Sin(c.Hips);
         // A leaning torso is balanced by the hips going the other way. Sideways only as far as it costs the
