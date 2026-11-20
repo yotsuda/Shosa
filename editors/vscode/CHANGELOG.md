@@ -17,7 +17,7 @@ The first release, for Windows (x64).
 - A score without a song is heard as a click on every beat and a clap at every mark (`!hit`).
 - *Preview:* **A VRM character for a dancer**: `dancer alice humanoid "girl.vrm" on lead` dresses the dancer in a VRM model in the preview and its MP4. The export of the movement does not change.
 - *Preview:* **Dancing to a recording**: when a song made from a recording has its `NAME.orecchiante.json` beside it, the dance keeps the recording's beat, and the preview and the MP4 play the recording.
-- *Preview:* **Mixer**: with a Lily# extension that hands out a song one part at a time, the preview plays each part of the score, each singing voice and the recording (or its separated parts) at the level you give it, and the MP4 has the same mix.
+- *Preview:* **Mixer**: with the Lily# extension 0.17.0 or later, which hands out a song one part at a time, the preview plays each part of the score, each singing voice and the recording (or its separated parts) at the level you give it, and the MP4 has the same mix.
 
 ### Export
 

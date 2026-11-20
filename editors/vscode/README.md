@@ -49,7 +49,7 @@ These work, but are new and may still change.
   the dance keeps the recording's beat, and the preview and the MP4 play the recording.
 - **Mixer** (the button at the bottom of the preview): each part of the score, each singing voice and the recording
   (or its separated parts) with a level of its own, 0 to 200 %. The preview and the MP4 play that mix.
-  It needs a Lily# extension that hands out a song one part at a time; with an older one, the Mixer says so
+  It needs the Lily# extension 0.17.0 or later, which hands out a song one part at a time; with an older one, the Mixer says so
   and the song plays as before.
 - **Audio** (the button beside **MP4**, there with the Mixer): the song as the Mixer has it, for as long as the dance, as an MP3 or a WAV
   (written by the Lily# extension).

@@ -94,7 +94,7 @@ export function createStems(context: vscode.ExtensionContext, host: StemsHost) {
     if (!lily) {
       const installed = vscode.extensions.getExtension('yotsuda.lilysharp');
       tell({ type: 'stems', key, state: 'none',
-        error: installed ? 'this version of the Lily# extension does not hand out the song\'s parts (update it to mix them)' : 'the Lily# extension is not installed' });
+        error: installed ? 'this version of the Lily# extension does not hand out the song\'s parts (Lily# 0.17.0 or later mixes them)' : 'the Lily# extension is not installed' });
       return;
     }
     song.abort?.abort();
@@ -150,7 +150,7 @@ export function createStems(context: vscode.ExtensionContext, host: StemsHost) {
     async writeAudio(mix: { left: Float32Array; right: Float32Array; sampleRate: number }, options: { format: 'mp3' | 'wav'; path: string }) {
       const lily = await apiOf();
       if (!lily) {
-        throw new Error('the Lily# extension that writes MP3 and WAV is not installed, or is too old');
+        throw new Error('the Lily# extension that writes MP3 and WAV is not installed, or is older than 0.17.0');
       }
       await lily.writeAudio(mix, options);
     },
