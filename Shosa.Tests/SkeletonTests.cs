@@ -87,6 +87,22 @@ public class SkeletonTests
     }
 
     [Fact]
+    public void Clapping_hands_lie_palm_to_palm_and_do_not_run_into_each_other()
+    {
+        // The forearms come in at a slant from the shoulders; hands carried on along them crossed each
+        // other's fingers on a character (DESIGN.md 95). Facing +z, the figure's left is +x.
+        var figure = ShosaCompilation.Compile(Samples.Solo("    arms { down:2 clap:2 then }", "tempo 60\ntime 4/4\n")).Clip.Figures[0];
+        int frame = 2 * 30;
+        var (heads, ends) = Skeleton.Positions(figure.Joint(frame, Rig.Pelvis), Enumerable.Range(0, Skeleton.Bones.Length).Select(b => figure.Rotation(frame, b)).ToList());
+        Vec3 leftWrist = heads[Skeleton.LHand], rightWrist = heads[Skeleton.RHand];
+        Vec3 leftTip = ends[Skeleton.LHand]!.Value, rightTip = ends[Skeleton.RHand]!.Value;
+        Assert.True(leftTip.X - rightTip.X > 0.03, $"the fingers cross: {leftTip.X - rightTip.X:0.000} m apart");
+        // Side by side: the tips as far apart as the wrists, and the hands pointing the same way.
+        Assert.InRange((leftTip - rightTip).Length - (leftWrist - rightWrist).Length, -0.01, 0.01);
+        Assert.True((leftTip - leftWrist).Normalized().Dot((rightTip - rightWrist).Normalized()) > 0.99);
+    }
+
+    [Fact]
     public void Scale_changes_lengths_and_leaves_angles_alone()
     {
         var clip = ShosaCompilation.Compile(Samples.Walk).Clip;

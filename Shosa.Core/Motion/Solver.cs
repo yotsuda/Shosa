@@ -2217,7 +2217,7 @@ internal sealed class FigureSolver
                             + (faceFwd * Math.Cos(c.Hips) + faceLeft * Math.Sin(c.Hips)) * 0.13
                             + (faceLeft * Math.Cos(c.Hips) - faceFwd * Math.Sin(c.Hips)) * (0.03 * side),
                         "across.shoulder" => chest - torsoLeft * (Rig.ShoulderHalf * 0.8 * side) - torsoUp * Rig.ShoulderDrop + torsoFwd * 0.09,
-                        "clap" => chest + torsoFwd * 0.28 - torsoUp * 0.12 + torsoLeft * (0.012 * side),
+                        "clap" => chest + torsoFwd * 0.28 - torsoUp * 0.12 + torsoLeft * (0.025 * side),   // the wrists 5 cm apart: a hand is that thick (DESIGN.md 95)
                         _ => shoulder + torsoUp * 0.06 + torsoFwd * 0.05,
                     };
                     return place - shoulder;
@@ -2280,8 +2280,27 @@ internal sealed class FigureSolver
                 var axis = offset.Normalized();
                 Vec3? from = Carry(a.Bend, a.Offset.Normalized(), axis), to = Carry(b.Bend, b.Offset.Normalized(), axis);
                 double eb = toBrow ? Math.Min(1, 3 * e) : fromBrow ? Math.Max(0, 3 * e - 2) : e;
-                var between = from is null || to is null ? from ?? to ?? pole : Vec3.Slerp(from.Value, to.Value, eb);
+                var between = from is null || to is null ? from ?? to ?? pole : AroundTheElbow(from.Value, to.Value, eb, axis);
                 return (offset, Across(between, axis));
+            }
+
+            // From where the elbow points at one word to where it points at the next, both carried to the arm as it
+            // is now (square to it). The shorter way round can lead the elbow through pointing up and in, the way an
+            // elbow does not go, and where the two are opposite it picked one side and then the other: down from
+            // overhead to a clap, the elbow went from above the shoulder to below it in a frame (DESIGN.md 95). The
+            // angles are measured from where an elbow points by itself (the pole, square to the arm), so the way
+            // goes round that side, and never through its opposite.
+            Vec3 AroundTheElbow(Vec3 a, Vec3 b, double e, Vec3 axis)
+            {
+                var natural = Across(pole, axis);
+                if (natural.Length < 1e-6 || a.Length < 1e-6 || b.Length < 1e-6)
+                    return Vec3.Slerp(a, b, e);
+                a = a.Normalized();
+                b = b.Normalized();
+                var turned = axis.Cross(natural);
+                double Angle(Vec3 v) => Math.Atan2(v.Dot(turned), v.Dot(natural));
+                double angle = Angle(a) + (Angle(b) - Angle(a)) * e;
+                return natural * Math.Cos(angle) + turned * Math.Sin(angle);
             }
 
             // Where a `stay` keeps the hand: where the arm had it as the word began, in the room.

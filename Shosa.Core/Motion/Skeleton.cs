@@ -116,6 +116,13 @@ public static class Skeleton
         headLeft = headLeft.Length < 1e-6 ? torsoLeft : headLeft.Normalized();
         world[Head] = Quat.FromBasis(headLeft, gaze.Cross(headLeft), gaze);
 
+        // Two hands near each other (a clap, palms together) do not go on along the forearms: the forearms
+        // come in from the shoulders at a slant, and the hands carried on would run into each other. From
+        // 25 cm apart to 10 cm the hands turn until they lie side by side, palm to palm (DESIGN.md 95).
+        var between = joints[Rig.RHand] - joints[Rig.LHand];
+        double apart = between.Length;
+        double near = apart >= 0.25 || apart < 1e-6 ? 0 : apart <= 0.10 ? 1 : Smooth((0.25 - apart) / 0.15);
+
         for (int side = 1; side >= -1; side -= 2)
         {
             int arm = side == 1 ? LUpperArm : RUpperArm, shoulder = side == 1 ? Rig.LShoulder : Rig.RShoulder;
@@ -124,6 +131,34 @@ public static class Skeleton
                 X * side, Vec3.Up * -side, Rig.ElbowPole(left, fwd, side));
             world[arm] = upper;
             world[arm + 1] = world[arm + 2] = lower;
+            if (near > 0)
+            {
+                // Toward the other hand; the hand's way is the forearm's with that taken out.
+                var toOther = between * (side / apart);
+                var forearm = (joints[shoulder + 2] - joints[shoulder + 1]).Normalized();
+                var level = forearm - toOther * forearm.Dot(toOther);
+                if (level.Length > 1e-6)
+                {
+                    var way = (forearm + (level.Normalized() - forearm) * near).Normalized();
+                    // The palm (down in the T-pose: along the elbow's hinge on the left, against it on the right)
+                    // turns about the hand's way from where the forearm has it to the other hand, as far as the
+                    // hands are near, and only as far as it already faces that way: from a palm square to the
+                    // other hand or turned away (arms coming down overhead) either way round is as good, and the
+                    // choice flipped the hand from one frame to the next.
+                    var hinge = lower.Rotate(Vec3.Up * -side);
+                    var from = hinge - way * hinge.Dot(way);
+                    var to = toOther * side - way * (toOther * side).Dot(way);
+                    if (from.Length > 1e-6 && to.Length > 1e-6)
+                    {
+                        from = from.Normalized();
+                        to = to.Normalized();
+                        double facing = Math.Max(0, from.Dot(to));
+                        double turn = Math.Atan2(way.Dot(from.Cross(to)), from.Dot(to)) * near * facing;
+                        var palm = from * Math.Cos(turn) + way.Cross(from) * Math.Sin(turn);
+                        world[arm + 2] = Quat.Between(X * side, Vec3.Up * -side, way, palm);
+                    }
+                }
+            }
 
             int leg = side == 1 ? LUpperLeg : RUpperLeg, hip = side == 1 ? Rig.LHip : Rig.RHip;
             // A knee folds the shin back: about +x on both sides. It bends the way its foot points
@@ -147,6 +182,8 @@ public static class Skeleton
             local[i] = Bones[i].Parent < 0 ? world[i] : world[Bones[i].Parent].Inverse * world[i];
         return local;
     }
+
+    private static double Smooth(double u) => u * u * (3 - 2 * u);
 
     /// <summary>The least rotation that takes one unit vector to another.</summary>
     private static Quat Arc(Vec3 from, Vec3 to)

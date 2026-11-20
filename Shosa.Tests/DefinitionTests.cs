@@ -359,7 +359,7 @@ public class DefinitionTests
         var clip = compilation.Clip;
 
         Assert.Equal(new[] { ("land", 1.0, 0.5), ("clap", 1.0, 0.5) }, clip.Marks.OrderByDescending(m => m.Name).Select(m => (m.Name, m.Beat, m.Seconds)).ToArray());
-        Assert.True((At(clip, 1, Rig.LHand) - At(clip, 1, Rig.RHand)).Length < 0.05, "the hands are together on the beat");
+        Assert.True((At(clip, 1, Rig.LHand) - At(clip, 1, Rig.RHand)).Length < 0.06, "the hands are together on the beat");   // the wrists 5 cm apart, palm to palm (DESIGN.md 95)
 
         // The jump has four fifths of the beat before to bend and fly in, and a fifth of its own to give in.
         var jump = Track(compilation, Channels.Support).Single(s => s.Kind == SegKinds.Jump);
@@ -436,7 +436,7 @@ public class DefinitionTests
 
         // Each on the beat it is written at: the fourth of the first bar, the fourth of the second.
         Assert.Equal(new[] { ("clap", 3.0), ("jump", 7.0) }, clip.Marks.Select(m => (m.Name, Math.Round(m.Beat, 6))).ToArray());
-        Assert.True((At(clip, 3, Rig.LHand) - At(clip, 3, Rig.RHand)).Length < 0.05, "the hands are together on the clap");
+        Assert.True((At(clip, 3, Rig.LHand) - At(clip, 3, Rig.RHand)).Length < 0.06, "the hands are together on the clap");
         Assert.True((At(clip, 7, Rig.LHand) - At(clip, 7, Rig.RHand)).Length > 0.2, "and apart where the second one would be");
         Assert.True((At(clip, 8, Rig.LHand) - At(clip, 8, Rig.RHand)).Length > 0.2, "the hands are apart");
     }
