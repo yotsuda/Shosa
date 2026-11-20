@@ -80,4 +80,56 @@ public class LifeTests
             Assert.True(a.Normalized().Cross(s.Normalized()).Length < 1e-3, $"frame {f}: the torso leans");
         }
     }
+
+    private const string Walk = "    steps { leftFoot.fwd rightFoot.fwd leftFoot.fwd rightFoot.fwd | leftFoot.fwd rightFoot.fwd leftFoot.fwd stand }";
+
+    /// <summary>How far each hand is ahead of its shoulder, and each ankle ahead of the pelvis, along the way the walk goes.</summary>
+    private static (double LeftHand, double RightHand, double LeftAnkle, double RightAnkle) Ahead(MotionClip clip, int f)
+    {
+        int last = clip.Figures[0].Frames.Count - 1;
+        var way = At(clip, last, Rig.Pelvis) - At(clip, 0, Rig.Pelvis);
+        way = new Vec3(way.X, 0, way.Z).Normalized();
+        double Along(int joint, int from) => (At(clip, f, joint) - At(clip, f, from)).Dot(way);
+        return (Along(Rig.LHand, Rig.LShoulder), Along(Rig.RHand, Rig.RShoulder), Along(Rig.LAnkle, Rig.Pelvis), Along(Rig.RAnkle, Rig.Pelvis));
+    }
+
+    [Fact]
+    public void An_unwritten_arm_swings_against_the_other_foot_while_walking()
+    {
+        // DESIGN.md 101.
+        var clip = Solve(Samples.Solo(Walk, "tempo 100\ntime 4/4\n"));
+        double most = double.MinValue, least = double.MaxValue;
+        int checkedFrames = 0;
+        for (int f = 0; f < clip.Figures[0].Frames.Count; f++)
+        {
+            var (leftHand, rightHand, leftAnkle, rightAnkle) = Ahead(clip, f);
+            most = Math.Max(most, rightHand);
+            least = Math.Min(least, rightHand);
+            // The left foot well in front: the right hand is in front of the left one, and the other way round.
+            if (leftAnkle - rightAnkle > 0.4)
+            {
+                Assert.True(rightHand - leftHand > 0.1, $"frame {f}: the right hand is {rightHand - leftHand:0.00} m ahead of the left");
+                checkedFrames++;
+            }
+            if (rightAnkle - leftAnkle > 0.4)
+                Assert.True(leftHand - rightHand > 0.1, $"frame {f}: the left hand is {leftHand - rightHand:0.00} m ahead of the right");
+        }
+        Assert.True(checkedFrames > 5);
+        // A swing a person walks with: the hand goes some 25 to 50 cm from back to front.
+        Assert.InRange(most - least, 0.25, 0.5);
+        // Standing at the end, the arms hang again.
+        var end = Ahead(clip, clip.Figures[0].Frames.Count - 1);
+        Assert.True(Math.Abs(end.LeftHand - end.RightHand) < 0.02, $"at the end the hands are {end.LeftHand - end.RightHand:0.00} m apart");
+    }
+
+    [Fact]
+    public void A_written_arm_does_not_swing()
+    {
+        var clip = Solve(Samples.Solo(Walk + "\n    arms { down }", "tempo 100\ntime 4/4\n"));
+        for (int f = 0; f < clip.Figures[0].Frames.Count; f++)
+        {
+            var (leftHand, rightHand, _, _) = Ahead(clip, f);
+            Assert.True(Math.Abs(leftHand - rightHand) < 0.03, $"frame {f}: the hands are {leftHand - rightHand:0.00} m apart");
+        }
+    }
 }

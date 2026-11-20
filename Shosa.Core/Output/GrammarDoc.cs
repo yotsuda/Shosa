@@ -648,8 +648,11 @@ public static class GrammarDoc
               **A body is never quite still**: in the rows a dancer writes nothing in (`torso`, `head`,
               `hips`, and `steps` while both feet stand), it breathes, its weight drifts a few centimetres
               from foot to foot, and the chest and the head go a little with the arms (back and up as they
-              rise). Always the same for the same text, and a loop still joins. A row you write is exactly
-              as written: to keep the torso straight up, write `torso { up }`.
+              rise). Unwritten arms swing while the feet walk, each against the other foot (forward as
+              it is ahead), and hang again when the feet stand; do not write the swing of a plain walk.
+              Always the same for the same text, and a loop still joins. A row you write is exactly
+              as written: to keep the torso straight up, write `torso { up }`; to walk with the arms
+              still at the sides, write `arms { down }`.
             - **An arm at `down` hangs as an arm nobody wrote does**: the elbow a little bent, the
               hand by the thigh and a little forward — not a straight line under the shoulder
               joint, which on a character is inside the hip. So `down` is how an arm is put back,
@@ -1359,7 +1362,6 @@ public static class GrammarDoc
             - Walking along a curve.
             - Sitting, kneeling, lying down, or anything else where a part other than the feet
               carries weight. Standing on one leg is possible (a leg gesture).
-            - Arm swing while walking is not added for you: unwritten arms hang still.
             - A change of tempo or of time in the middle of a section (a section says them where it begins; a dance to a song follows its song).
             - A toe at any place on the other leg but its knee and its ankle; a hand on a leg (the thigh, the knee).
             - A foot that points or flexes when you choose (it points by itself in the air of a jump, and with its toe on the other leg or on the floor, `side.floor`; a leg lifted while standing keeps its foot square); standing on pointe; one foot on its toes (demi-pointe) while the other is flat — `height { high }` puts both up.

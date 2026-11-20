@@ -1498,6 +1498,12 @@ internal sealed class FigureSolver
 
     /// <summary>How far a foot about to step may rise onto its toes for its leg to reach, radians (the heel 11 cm up).</summary>
     private const double RollMost = 0.75;
+
+    /// <summary>
+    /// An unwritten arm's swing while walking (DESIGN.md 101): radians per metre the other foot is ahead of the
+    /// pelvis, the most either way, and the degrees the elbow bends further at the front of the swing.
+    /// </summary>
+    private const double SwingPerMetre = 1.2, SwingMost = 0.4, SwingElbow = 20;
     /// <summary>How long before a step its foot may begin to rise onto its toes, seconds.</summary>
     private const double RollAhead = 0.3;
 
@@ -2279,17 +2285,32 @@ internal sealed class FigureSolver
             // is in front of the shoulder. The elbow bends back from the line to the hand; with
             // the hand under the shoulder it is the elbow that goes behind the body, and on a
             // character the whole arm reads as held back (and is hidden in the hip and the clothes).
-            Vec3 Hang(Vec3 left, Vec3 up, Vec3 fwd)
+            // Swung about the shoulder's left-right line by `swing` radians (forward is positive), the elbow
+            // bending a little more as the arm comes in front.
+            Vec3 Hang(Vec3 left, Vec3 up, Vec3 fwd, double swing = 0)
             {
-                double bent = Rig.RestElbow * Math.PI / 180;
-                return left * (0.06 * side) - up * (Rig.UpperArm + Rig.Forearm * Math.Cos(bent)) + fwd * (Rig.Forearm * Math.Sin(bent));
+                double bent = (Rig.RestElbow + SwingElbow * Math.Max(0, swing) / SwingMost) * Math.PI / 180;
+                double below = Rig.UpperArm + Rig.Forearm * Math.Cos(bent), front = Rig.Forearm * Math.Sin(bent);
+                double cos = Math.Cos(swing), sin = Math.Sin(swing);
+                return left * (0.06 * side) - up * (below * cos - front * sin) + fwd * (front * cos + below * sin);
+            }
+
+            // An arm nobody wrote swings against the legs while they walk (DESIGN.md 101): forward as the other
+            // foot is ahead of the pelvis, back as it is behind, and only as much as the feet are moving. It is a
+            // movement of a living body, so it goes with the rest of them (the tests of exact poses turn it off).
+            double swing = 0;
+            if (_alive)
+            {
+                var otherAnkle = joints[(isLeft ? Rig.RHip : Rig.LHip) + 2];
+                double ahead = (otherAnkle - pelvis).Dot(c.Fwd);
+                swing = Math.Clamp(ahead * SwingPerMetre, -SwingMost, SwingMost) * (1 - FeetStill(t));
             }
 
             Vec3 Offset(Seg? seg)
             {
-                // An arm nobody wrote hangs.
+                // An arm nobody wrote hangs, and swings while the feet walk.
                 if (seg is null)
-                    return Hang(c.Left, Vec3.Up, c.Fwd);
+                    return Hang(c.Left, Vec3.Up, c.Fwd, swing);
                 if (seg.Kind == SegKinds.Reach)
                     return _others(seg.Target!) is { } other ? other.PlaceAt(seg.Part!, side, t, this, seg.Level) - (shoulder + lifted) : Offset(null);
                 if (seg.Kind == SegKinds.Anchor)
