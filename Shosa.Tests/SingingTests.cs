@@ -109,6 +109,31 @@ public class SingingTests
         Assert.Equal("SH1006", Assert.Single(ShosaCompilation.Compile(Dance(" sings"), null, Song(Melody)).Diagnostics).Code);
     }
 
+    [Fact]
+    public void The_lips_meet_before_a_syllable_that_starts_with_them()
+    {
+        // や ま: the same a, but the m shuts the mouth in between.
+        var sung = new List<SongSung> { new("melody", null, Syllables((0, 1, "や"), (1, 1, "ま"), (2, 1, "あ"))) };
+        var compilation = ShosaCompilation.Compile(Dance(), null, Song(sung));
+        var mouth = compilation.Clip.Figures[0].Mouth!;
+        int At(double seconds) => (int)Math.Round(seconds * compilation.Clip.Fps);
+        int aa = Array.IndexOf(Mouth.Shapes, "aa");
+        Assert.True(mouth[At(0.25)][aa] > 0.5);       // や
+        Assert.True(mouth[At(0.47)].Max() < 0.01);    // the lips meet just before ま's beat
+        Assert.True(mouth[At(0.75)][aa] > 0.5);       // ま
+        Assert.True(mouth[At(1.0)][aa] > 0.3);        // ま あ: no lips between, it does not shut
+    }
+
+    [Theory]
+    [InlineData("ま", true)]
+    [InlineData("ビ", true)]
+    [InlineData("ぴゃ", true)]
+    [InlineData("な", false)]
+    [InlineData("ー", false)]
+    [InlineData("baby", true)]
+    [InlineData("love", false)]
+    public void Which_syllables_start_with_the_lips(string text, bool bilabial) => Assert.Equal(bilabial, Mouth.Bilabial(text));
+
     [Theory]
     [InlineData("か", "aa")]
     [InlineData("シ", "ih")]

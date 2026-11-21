@@ -60,10 +60,31 @@ public static class Mouth
         return "nn";
     }
 
+    /// <summary>Seconds the lips take to meet before a syllable that starts with them (ま, ば, ぱ), stay shut, and open from its beat.</summary>
+    private const double Shut = 0.04, Closed = 0.06, Part = 0.05;
+
+    /// <summary>
+    /// Whether a syllable starts with the lips meeting: ま, ば, ぱ and their rows in kana (katakana too);
+    /// other writing when its first letter is m, b or p.
+    /// </summary>
+    public static bool Bilabial(string text)
+    {
+        foreach (char raw in text)
+        {
+            char c = raw is >= 'ァ' and <= 'ヶ' ? (char)(raw - 0x60) : raw;
+            if (c is >= 'ぁ' and <= 'ゖ')
+                return "まみむめもばびぶべぼぱぴぷぺぽ".Contains(c);
+            if (char.IsLetter(c))
+                return char.ToLowerInvariant(c) is 'm' or 'b' or 'p';
+        }
+        return false;
+    }
+
     /// <summary>
     /// The weights of <see cref="Shapes"/> at every frame, five to a frame: each syllable opens its shape
     /// from a little before its beat, holds it while the voice sounds, and closes it as the voice stops,
-    /// so one syllable running into the next passes from shape to shape.
+    /// so one syllable running into the next passes from shape to shape. Before a syllable that starts with
+    /// the lips (<see cref="Bilabial"/>) every shape closes, so や ま does not stay open across the m.
     /// </summary>
     public static List<float[]> Frames(IReadOnlyList<SyllableIr> sung, IReadOnlyList<double> secondsOfFrame, Func<double, double> secondsAt)
     {
@@ -71,6 +92,11 @@ public static class Mouth
             .Select(s => (T0: secondsAt(s.Beat), T1: secondsAt(s.Beat + s.Beats), Shape: Array.IndexOf(Shapes, s.Vowel)))
             .Where(s => s.Shape >= 0 && s.T1 > s.T0)
             .OrderBy(s => s.T0)
+            .ToList();
+        var lips = sung
+            .Where(s => s.Beats > 0 && Bilabial(s.Text))
+            .Select(s => secondsAt(s.Beat))
+            .Order()
             .ToList();
         var frames = new List<float[]>(secondsOfFrame.Count);
         int first = 0;
@@ -88,6 +114,17 @@ public static class Mouth
                 float level = (float)(Math.Min(open, close) * Math.Min(1, 0.55 + (t1 - t0) * 2.5)) * Fullest[shape];
                 weights[shape] = Math.Max(weights[shape], level);
             }
+            // The lips meet before the beat of ま, ば, ぱ and part on it.
+            double apart = 1;
+            foreach (double t0 in lips)
+            {
+                if (t0 - Closed - Shut > t)
+                    break;
+                apart = Math.Min(apart, Math.Max(1 - Ramp(t, t0 - Closed - Shut, t0 - Closed), Ramp(t, t0, t0 + Part)));
+            }
+            if (apart < 1)
+                for (int k = 0; k < weights.Length; k++)
+                    weights[k] *= (float)apart;
             frames.Add(weights);
         }
         return frames;

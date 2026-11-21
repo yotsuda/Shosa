@@ -6031,7 +6031,14 @@ dancer alice humanoid "girl.vrm" sings melody on solo
 - 試験 `SingingTests` 15 件 (母音、コマごとの開き、JSON、`.vrma` の表情、診断)。全体で 358 件すべて通る (前から落ちていた 1 件も通るようになっていた)。
 - 本物の Lily# はまだ `sung` を返さないので、`out\sing\fake_lysc.py` (本物の lysc に頼み、`timeline` に `notes` と与えた歌詞から `sung` を足す) を `SHOSA_LYSC` にして、ふるさとの出だし (Lily# の walkthrough の写し `out\sing\furusato.lys`、10 音節) で `out\sing\sing.shosa` を通した。IR の母音は う ou、さ aa、ぎ ih、お oh、い ih、し ih、か aa、の oh、や aa、ま aa。
 - プレビュー (`out\pv\harness-sing.html`。`shosa clip` の clip と VRM を流し、拍ごとにコマを撮る。いまのプレビューは `getState` を使うので、試験用のページにも要る) を窓なしの Chrome で撮り、顔を切り出して並べた (`out\pv\sing-run\faces.png`): う は小さく丸く、ぎ は横に薄く、お は丸く開き、か・ま は大きく開き、歌い終わりは閉じる。
-- **まだ**: 本物の Lily# での通し (依頼 6 待ち)、`.vrma` を three-vrm で載せて口が動くか、ユーザーの目。音節の頭の子音で唇を閉じる (ま行・ば行・ぱ行) のは入れていない (同じ母音が続くと口が開いたまま)。
+- **まだ** (このときは): 本物の Lily# での通し (依頼 6 待ち)、`.vrma` を three-vrm で載せて口が動くか、ユーザーの目。音節の頭の子音で唇を閉じる (ま行・ば行・ぱ行) のは入れていない (同じ母音が続くと口が開いたまま)。→ どれも 99.4 で済み (ユーザーの目のほかは)。
+
+### 99.4 本物の Lily# で通した。ま・ば・ぱの前で唇が閉じる (2026-11-21)
+
+- **依頼 6 は Lily# が入れた** (`4af9ee58a`)。Lily# の開発版の lysc (`LilySharp.Cli\bin\Debug`) を `SHOSA_LYSC` にして、walkthrough の `first-song-ja-short.lys` の写し (`out\sing6\song.lys`、ふるさとの出だし 4 小節、`singer female on melody`) で `out\sing6\sing.shosa` を通した。`sung` は `[[0,1,"う"],[1,1,"さ"],…,[9,2,"ま"]]` で、偽物 (99.3) と同じ音節と拍。診断なし。入れてある VS Code の Lily# 拡張 (0.16.0) の lysc はまだ `sung` を返さない (拡張を入れ直すまで、プレビューでは `SH1909`)。
+- **`.vrma` を three-vrm で載せた** (`tools\vrm_video.html` を顔に寄せたカメラで、4 fps)。う は小さく丸く、さ は大きく、ぎ は横に薄く、歌い終わりで閉じる (`out\sing6\faces.png`)。表情のキーは three-vrm の `createVRMAnimationClip` がそのまま読む。
+- **ま行・ば行・ぱ行の前で唇を閉じる** (`Mouth.Bilabial`): 音節の頭が ま ば ぱ の行 (カタカナも、拗音も) か、仮名でなければ最初の字が m b p のとき、拍の 0.1 秒前から 0.04 秒で全部の形を閉じ、0.06 秒閉じたまま、拍から 0.05 秒で開く (5 つの重みに掛ける)。や ま のように同じ母音が続いても口が一度閉じる。30 fps で撮ると、ま の拍の前の 2 コマで唇が合う (`out\sing6\lips.png`)。試験 2 つ (や ま あ、どの音節か)。全体で 390 件通る。
+- まだ: ユーザーの目 (VS Code のプレビューで見るには、Lily# の拡張を `sung` のある版に入れ直す)。
 
 ## 100. 歩きの後ろ足がかかとを上げる (2026-11-21。93.1 の 3 つ目「歩くときの足の動きが不自然」)
 
