@@ -1599,6 +1599,27 @@ internal sealed class FigureSolver
         return 0;
     }
 
+    /// <summary>
+    /// How far the standing leg straightens out of soft knees at <paramref name="t"/>, 0..1 (DESIGN.md 107): the body
+    /// goes up over the standing foot as the other foot passes it, most half-way through a step on the floor.
+    /// </summary>
+    private double Vault(double t)
+    {
+        double most = 0;
+        foreach (var moves in new[] { _leftMoves, _rightMoves })
+            foreach (var move in moves)
+            {
+                if (t < move.T0 || t >= move.T1)
+                    continue;
+                if (move.Orbit || move.Air || move.Lift <= 0 || move.LiftFrom > 0)
+                    break;
+                double s = Math.Sin(Math.PI * (t - move.T0) / (move.T1 - move.T0));
+                most = Math.Max(most, s * s);
+                break;
+            }
+        return most;
+    }
+
     /// <summary>How far past the reach the heel goes up as a foot pushes off, radians, and from how long before its step (seconds).</summary>
     private const double PushMore = 0.4, PushAhead = 0.45;
 
@@ -1924,7 +1945,7 @@ internal sealed class FigureSolver
         double top = Rig.AnkleHeight + reach + c.Raise;
         // `mid` stands on soft knees, `straight` and `high` on straight legs; `low` is measured from straight.
         double soft = Chain(_height, t, seg => seg is { Straight: true } ? 0.0 : 1.0, (a, b, e) => a + (b - a) * e, Dist);
-        double softDrop = soft * Rig.Leg * (Rig.StraightLeg - Rig.BentShare(Rig.Thigh, Rig.Shin, Rig.SoftKnee));
+        double softDrop = soft * (1 - Vault(t)) * Rig.Leg * (Rig.StraightLeg - Rig.BentShare(Rig.Thigh, Rig.Shin, Rig.SoftKnee));
 
         // The pelvis is as high as it can be with both planted feet still in reach.
         double Cap(Vec3 hip, Vec3 foot, bool free, double raise, double reach, double yaw = 0, double roll = 0, double lift = 0, double pitch = 0)

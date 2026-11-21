@@ -186,6 +186,33 @@ public class LifeTests
         Assert.True(landings >= 3);
     }
 
+    [Fact]
+    public void Walking_the_standing_leg_straightens_as_the_other_foot_passes_and_the_hips_go_up_over_it()
+    {
+        // DESIGN.md 107: the standing knee stayed at the soft 13° the whole stance, and the hips were no higher
+        // over the standing foot than soft knees let them be.
+        var clip = Solve(Samples.Solo(Walk, "tempo 100\ntime 4/4\n"));
+        int from = (int)(1.2 * clip.Fps), to = (int)(3.6 * clip.Fps);
+        foreach (bool left in new[] { true, false })
+        {
+            // The other foot off the floor, toes and all (on its toes, pushing off, it is still standing).
+            int other = left ? Rig.RToe : Rig.LToe;
+            double least = double.MaxValue, lowHips = double.MaxValue, highHips = 0;
+            for (int f = from; f < to; f++)
+            {
+                double hips = At(clip, f, Rig.Pelvis).Y;
+                lowHips = Math.Min(lowHips, hips);
+                if (At(clip, f, other).Y > At(clip, 0, other).Y + 0.01)
+                {
+                    least = Math.Min(least, KneeBend(clip, f, left));
+                    highHips = Math.Max(highHips, hips);
+                }
+            }
+            Assert.True(least < 9, $"the {(left ? "left" : "right")} knee is bent at least {least:0.0}° while it stands alone");
+            Assert.True(highHips - lowHips > 0.016, $"the hips go up and down {(highHips - lowHips) * 100:0.00} cm");
+        }
+    }
+
     /// <summary>Degrees a line from the right joint to the left one is turned to the left, seen from above, from square to the way the walk goes.</summary>
     private static double Turned(MotionClip clip, int f, int left, int right)
     {
