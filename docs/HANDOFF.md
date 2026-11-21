@@ -16,14 +16,13 @@
 - **2 頭身でのずれ**: Shosa は標準の大人の骨格で解き、プレビューは角度だけを VRM に移すので、腕が体や顔にめり込む所がある。ユーザーの指摘「ですわで腕が不自然に曲がる」→ `chin.elbow(side)` にした (VRM ではまだ見ていない)。
 
 **次の一手 (ユーザーが EDGE を選んだ。ROADMAP 第 3 段階の「清書」)**: EDGE (github.com/Stanford-TML/EDGE、曲を入力に取るダンス生成。コードは MIT) を手元で動かす小さな実験。
-1. まずサビの 8 小節 (15 秒) を曲だけで生成 (固定なし) して、動きの質をユーザーに見せる。
+1. ~~まずサビの 8 小節 (15 秒) を曲だけで生成 (固定なし) して、動きの質をユーザーに見せる。~~ 作った (2026-11-22、DESIGN.md 110)。Windows のまま動く (WSL は要らなかった)。`out\edge\runs\chorus-compare.mp4` (左 Shosa、右 EDGE) を **ユーザーが見るのを待つ**。道具は `tools\edge\` (`gen.py` → `smpl2vrma.py` → `render.ps1`)、環境は `out\edge\` (作り直すときは 110.1)。
 2. 次に Shosa の要所 (手拍子、指差し、お辞儀の瞬間、手つなぎ) を固定して清書し、「振付どおりで、Shosa より生身らしいか」を見てもらう。
 
 調べてある障害:
-- EDGE は PyTorch 1.12 と CUDA 11.6 に固定。この PC は RTX 5070 Ti (16 GB、Blackwell) で新しい PyTorch (2.7 以降) が要る → 移植。pytorch3d は Windows で入れにくい → WSL2 (入っている)。メモリ 63 GB。
-- 曲の特徴は Jukebox (jukemirlib)。16 GB に収まるか未確認。README には学習データの前処理だけを指す `--extract-baseline` がある (推論で使えるかは `args.py` が未読)。
-- 一部を固定する生成は論文とデモページにはあるが、README の使い方には無い (`EDGE.py`、`args.py`、`demo.ipynb` は未読)。無ければ拡散の穴埋め (生成の各段で固定する関節を上書き) を自分で足す。
-- 入出力は SMPL。Shosa → SMPL と SMPL → VRM の変換を書く。1 人ずつしか作らないので、2 人の関係 (手つなぎ、指差し) は Shosa の値で固定し直す。
+- ~~PyTorch 1.12 固定、pytorch3d、Jukebox が 16 GB に収まるか~~ 解決 (PyTorch 2.11 + cu128 で動く、pytorch3d は transforms だけを取った、Jukebox は収まる。DESIGN.md 110.1)。
+- 一部を固定する生成は `model\diffusion.py` の `inpaint_loop` (生成の各段で `mask` の所を `value` で上書き。窓 1 つ = 5 秒 150 コマ)。長い曲をつなぐ `long_inpaint_loop` は固定を受けないので、15 秒を固定つきで作るには足す。
+- 入出力は SMPL。SMPL → VRM は書いた (`tools\edge\smpl2vrma.py`)。Shosa → SMPL はまだ (6 次の回転表現と EDGE の正規化 `Normalizer` に通す)。1 人ずつしか作らないので、2 人の関係 (手つなぎ、指差し) は Shosa の値で固定し直す。
 - 学習済みの重みと AIST++ の利用条件は未確認 (収益化する動画に使う前に確かめる)。
 - 前の Kimodo の実験 (DESIGN.md 25.7): 要所を間引くと振付を守らず、全部渡すと Shosa をなぞるだけ。`out\kimodo\combo\generated.bvh` はユーザーがまだ見ていない。
 

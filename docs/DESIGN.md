@@ -6248,3 +6248,33 @@ dancer alice humanoid "girl.vrm" sings melody on solo
 - `npm run build`・`check`・`test`、`tools\test-extension-host.ps1 -Repository` (実際の VS Code、MP4 の 3 件を含む) が通る。
 - まだ: ユーザーの目。
 
+
+## 110. EDGE で清書する実験 (1): 曲だけで生成 (2026-11-22。ROADMAP 第 3 段階、HANDOFF の「次の一手」の 1)
+
+ユーザーが AI だけで振り付けた 1 曲 (`scratch\Zunda-to-Metan-no-Jikoshokai.shosa`) を見て「生身の人間の動きには見えない」と言い、曲を入力に取る EDGE (Stanford、CVPR 2023、コードは MIT) で清書を試すと決めた。まず固定なしで、曲だけから生成した動きの質を見る。
+
+### 110.1 手元で動かす (Windows のまま。WSL は使わない)
+
+- WSL には distro が入っていなかった。EDGE の pytorch3d は回転の変換 (`pytorch3d.transforms`) だけで、純粋な Python なので、pytorch3d のリポジトリから `pytorch3d/transforms` と `pytorch3d/common` だけを取り (`out\edge\pytorch3d-src`)、`.pth` で venv に足した。ビルドは要らない。
+- venv は `out\edge\venv` (Python 3.12、**PyTorch 2.11 + cu128**、RTX 5070 Ti で動く)。EDGE のクローンは `out\edge\EDGE`、重みは `out\edge\EDGE\checkpoint.pt` (Google Drive、`gdown 1BAR712cVEqB8GR37fcEihRV_xOC-fZrZ`、1.2 GB)。
+- 直したところ (クローンの中。`out\` は git に入らないので、作り直すときはここを見る):
+  - `EDGE.py`: PyTorch 2.6 から `torch.load` が weights only。`weights_only=False` ではなく、`dataset.preprocess.Normalizer` と `dataset.scaler.MinMaxScaler` を `torch.serialization.add_safe_globals` に足した。
+  - jukebox (`out\edge\jukebox`、jukemirlib が引くフォーク): `setup.py` が `pkg_resources` を使うので `pip install --no-build-isolation --no-deps -e`。`utils\dist_adapter.py` の `is_available()` を `dist.is_available() and dist.is_initialized()` に (分散を初期化しないと `get_rank` が落ちる)。jukemirlib も `-e` で、足りない `unidecode` `fire` `wget` は手で入れた。
+- Jukebox の重み `prior_level_2.pth.tar` (10.3 GB) は jukemirlib の既定の `openaipublic.azureedge.net` から落ちず、`openaipublic.blob.core.windows.net/jukebox/models/5b/` から。1 本の接続では約 4 MB/s なので、curl の `-r` で 8 つに分けて並べて落とし (約 5 分)、つないだ。置き場所は `~\.cache\jukemirlib\`。
+- **16 GB に収まる**: Jukebox の特徴は 5 秒の窓 5 つで約 1 分 (重みの読み込みを含む)。EDGE の生成は 15 秒ぶんで数秒。
+- 走らせるときの注意: `python -I` で (作業フォルダーの `jukemirlib\` クローンが名前空間パッケージとして先に読まれる)、`TORCHINDUCTOR_CACHE_DIR` と `USERNAME` を先に決める (pwsh MCP のコンソールに USERNAME が無く、torch が getpass で落ちる)。
+
+### 110.2 道具 (`tools\edge\`)
+
+- `gen.py`: 曲の [start, start+seconds] を切り、5 秒の窓を 2.5 秒おきに (EDGE の long の形)、Jukebox の特徴 (層 66、30 fps、`OUT\feats.npy` に残す)、EDGE で生成してつなぐ。`OUT\motion.pkl` (SMPL: `smpl_poses` 72 次の軸角、`smpl_trans`、`full_pose` 24 関節の位置。z が上、30 fps) と `OUT\audio.wav`。
+- `smpl2vrma.py`: SMPL を `.vrma` に。SMPL の休みの姿は T ポーズ、y が上、+z を向き、左が +x で、VRM 1.0 と `shosa vrma` と同じなので、局所の回転はそのまま移る。EDGE が根に足した x 軸まわり +90 度を戻し、位置は (x, y, z) → (x, z, -y)。床は足の高さ (つま先の関節 - 2 cm、足首 - 7.5 cm の小さい方) の 5 パーセンタイル。`--x` で立ち位置、`--mirror` で鏡写し。
+- `render.ps1`: `tools\vrm_video.html` (three-vrm) で撮って音を付ける。`-Cam` `-At` の既定は 2 頭身のミニモデル向けに寄せた (`0,1.1,3.6` から `0.05,0.5,0` を見る)。
+
+### 110.3 結果 (サビ 8 小節、22.5〜37.5 秒)
+
+- `out\edge\runs\chorus-compare.mp4`: 左が Shosa (AI の振付)、右が EDGE (種 1 をずんだもん、種 2 をずん子に)。同じカメラ、同じ音 (MuseScore_General で鳴らした楽器だけ。歌はない)。EDGE だけの絵は `out\edge\runs\chorus-edge.mp4`。
+- コマで見たこと: EDGE は体重を左右へ移し、上体を倒し、膝を曲げて沈み、腕を横や前へ差す。体のどこかが常に動いていて、Shosa の振付よりずっと「踊っている人」に見える。ただし振付としての意味 (手拍子、歌詞に合わせた指差し、2 人のそろい) は無く、2 人は別々に踊る。
+- 測ったこと: 15 秒で腰が 6〜7.5 m 動く (その場で細かく揺れ続ける)。床は 1 秒ごとの一番低い足で ±4 cm 揺れ、両足が床から 5 cm 以上離れるコマが 4〜5 割ある (跳ねる振りと、足の浮き)。足を床に留める処理 (IK で足を固定する) は入れていない。
+- まだ: ユーザーの目と耳。曲にどれくらい合っているか (拍に乗るか) は音と一緒に見てもらう。
+- 次 (HANDOFF の「次の一手」の 2): Shosa の要所 (手拍子、指差し、お辞儀の瞬間) を EDGE の `inpaint` (生成の各段で固定する値を上書きする。`model\diffusion.py` の `inpaint_loop`、窓 1 つ 5 秒ぶん。長い曲をつなぐ `long_inpaint_loop` は固定を受けない) で固定する。それには Shosa → SMPL の変換 (関節の回転を SMPL の 24 関節へ、6 次の回転表現と正規化) が要る。
+
