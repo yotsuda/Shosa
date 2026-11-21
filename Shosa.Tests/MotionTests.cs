@@ -767,8 +767,9 @@ public class MotionTests
         // Every step is placed from the other foot, so a side of the square is a rigid motion
         // of (right foot, facing): a quarter turn about some point. Four of them are the
         // identity. (The left foot ends one step ahead: it took the last step.)
+        // The toes, where the foot stands: at the first frame the right foot is about to step and its heel is up (DESIGN.md 105).
         var figure = Samples.Compile("square").Clip.Figures[0];
-        Vec3 first = figure.Joint(0, Rig.RAnkle), last = figure.Joint(figure.Frames.Count - 1, Rig.RAnkle);
+        Vec3 first = figure.Joint(0, Rig.RToe), last = figure.Joint(figure.Frames.Count - 1, Rig.RToe);
 
         Assert.True((first - last).Length < 0.01, $"ended {(first - last).Length:0.000} m from the start");
     }

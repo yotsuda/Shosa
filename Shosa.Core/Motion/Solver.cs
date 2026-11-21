@@ -1561,7 +1561,31 @@ internal sealed class FigureSolver
     /// other foot, the leg behind stays long by lifting its heel instead of pulling the hips down (DESIGN.md 100).
     /// From a little before a step on the floor until it is half-way; not a slide, not a foot in the air or turning.
     /// </summary>
-    private static double RollShare(List<FootMove> moves, double t)
+    private double RollShare(List<FootMove> moves, double t)
+    {
+        foreach (var move in moves)
+        {
+            if (t >= move.T1)
+                continue;
+            if (move.Orbit || move.Air || move.Lift <= 0 || move.LiftFrom > 0)
+                return 0;
+            // (t is in beats. It was divided by the seconds as they were, so the heel had 0.18 s at tempo 100. DESIGN.md 105.)
+            if (t <= move.T0)
+                return Smooth(Math.Clamp(1 - (move.T0 - t) / (RollAhead * PerSecond(t)), 0, 1));
+            double u = (t - move.T0) / (move.T1 - move.T0);
+            return 1 - Smooth(Math.Clamp((u - 0.4) / 0.2, 0, 1));
+        }
+        return 0;
+    }
+
+    /// <summary>How far past the reach the heel goes up as a foot pushes off, radians, and from how long before its step (seconds).</summary>
+    private const double PushMore = 0.4, PushAhead = 0.15;
+
+    /// <summary>
+    /// How much a foot is pushing off at <paramref name="t"/>, 0..1 (DESIGN.md 105): rising over the last moments before its step on
+    /// the floor, and gone as the step is a third of the way. The same steps as <see cref="RollShare"/>.
+    /// </summary>
+    private double PushShare(List<FootMove> moves, double t)
     {
         foreach (var move in moves)
         {
@@ -1570,9 +1594,9 @@ internal sealed class FigureSolver
             if (move.Orbit || move.Air || move.Lift <= 0 || move.LiftFrom > 0)
                 return 0;
             if (t <= move.T0)
-                return Smooth(Math.Clamp(1 - (move.T0 - t) / RollAhead, 0, 1));
+                return Smooth(Math.Clamp(1 - (move.T0 - t) / (PushAhead * PerSecond(t)), 0, 1));
             double u = (t - move.T0) / (move.T1 - move.T0);
-            return 1 - Smooth(Math.Clamp((u - 0.4) / 0.2, 0, 1));
+            return 1 - Smooth(Math.Clamp((u - 0.1) / 0.25, 0, 1));
         }
         return 0;
     }
@@ -2281,12 +2305,16 @@ internal sealed class FigureSolver
                 // leg reaches its ankle there instead of bending (DESIGN.md 100). No higher than it must.
                 double roll = isLeft ? c.LRoll : c.RRoll;
                 double straight = Rig.Leg * Rig.StraightLeg;
-                if (roll > 0 && c.Raise < 1e-6 && Behind(hip, floor, footFwd) && (ankle - hip).Length > straight)
+                // Just before it leaves, the heel goes on up past what the reach needs, and the knee folds: a leg
+                // pushing off is bent some 40° as its toes leave the floor (DESIGN.md 105; it left straight).
+                double push = roll > 0 ? PushShare(isLeft ? _leftMoves : _rightMoves, t) : 0;
+                bool reaching = (ankle - hip).Length > straight;
+                if (roll > 0 && c.Raise < 1e-6 && Behind(hip, floor, footFwd) && (reaching || push > 0))
                 {
                     // From where the step has the foot (lifted, rolling through it): on about the toes.
                     double stepPitch = isLeft ? c.LPitch : c.RPitch;
-                    double lo = 0, hi = RollMost * roll;
-                    if ((RolledAnkle(floor, footFwd, hi, lift, stepPitch) - hip).Length <= straight)
+                    double lo = 0, hi = reaching ? RollMost * roll : 0;
+                    if (reaching && (RolledAnkle(floor, footFwd, hi, lift, stepPitch) - hip).Length <= straight)
                     {
                         for (int i = 0; i < 20; i++)
                         {
@@ -2297,7 +2325,7 @@ internal sealed class FigureSolver
                                 hi = mid;
                         }
                     }
-                    ankle = RolledAnkle(floor, footFwd, hi, lift, stepPitch);
+                    ankle = RolledAnkle(floor, footFwd, hi + PushMore * push, lift, stepPitch);
                     onToes = ToeOf(floor, footFwd, lift, stepPitch);
                 }
                 if ((ankle - hip).Length > Rig.Leg + 0.02)
