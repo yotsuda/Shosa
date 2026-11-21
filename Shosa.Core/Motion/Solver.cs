@@ -1487,10 +1487,16 @@ internal sealed class FigureSolver
             {
                 pos = Vec3.Lerp(move.From, move.To, s) + move.Open * Math.Sin(Math.PI * s);
                 yaw = move.YawFrom + (move.YawTo - move.YawFrom) * s;
-                lift = move.Lift * Math.Sin(Math.PI * u) + move.LiftFrom + (move.LiftTo - move.LiftFrom) * s;
+                // The foot comes up early in the step and goes on low to land, as a leg swings: the heel has risen
+                // and the weight has gone over before the step begins, so the toes leave the floor at once (DESIGN.md 103.
+                // Even, the ankle rose slower than the toes pointed down, and the toes stayed on the floor a third of the step).
+                double w = Math.Pow(u, SwingEarly);
+                lift = move.Lift * Math.Sin(Math.PI * w) + move.LiftFrom + (move.LiftTo - move.LiftFrom) * s;
                 // A step forward rolls through the foot: it leaves heel first, toes last, and
                 // lands on the heel with the toes up. A step back does the reverse.
-                pitch = -move.Along * (u < 0.5 ? 0.6 : 0.5) * Math.Sin(2 * Math.PI * u);
+                // Leaving, the toes point down only a little: the heel rose before the step (RollShare), and pointed further
+                // the toes would hold the floor while the ankle rose (DESIGN.md 103).
+                pitch = -move.Along * (w < 0.5 ? 0.3 : 0.5) * Math.Sin(2 * Math.PI * w);
             }
             break;
         }
@@ -1510,6 +1516,15 @@ internal sealed class FigureSolver
     /// ahead of the right. A stride of 0.6 m turns the hips 4° with the leg in front and the shoulders 3° the other way.
     /// </summary>
     private const double HipsPerMetre = 0.12, ShouldersPerMetre = 0.09;
+    /// <summary>
+    /// How far the toes are below the ankle in a level foot: a foot lifted level has its toes as far above the floor
+    /// as its ankle has risen (it was 0.05, and a foot that began to lift flicked its toes up 1 cm and down again. DESIGN.md 103).
+    /// </summary>
+    private const double ToeBelowAnkle = Rig.AnkleHeight - FloorToe;
+
+    /// <summary>How early in a step on the floor the foot comes up: the step's time is raised to this power (1 is even).</summary>
+    private const double SwingEarly = 0.7;
+
     /// <summary>How long before a step its foot may begin to rise onto its toes, seconds.</summary>
     private const double RollAhead = 0.3;
 
@@ -1542,7 +1557,7 @@ internal sealed class FigureSolver
     {
         double ankle = Rig.AnkleHeight + lift;
         var toe = new Vec3(floor.X, 0, floor.Z) + fwd * (Rig.FootLength * Math.Cos(pitch));
-        return new Vec3(toe.X, lift > 0.005 ? Math.Max(FloorToe, ankle - 0.05 + Rig.FootLength * Math.Sin(pitch)) : FloorToe, toe.Z);
+        return new Vec3(toe.X, lift > 0.005 ? Math.Max(FloorToe, ankle - ToeBelowAnkle + Rig.FootLength * Math.Sin(pitch)) : FloorToe, toe.Z);
     }
 
     /// <summary>
@@ -2266,7 +2281,7 @@ internal sealed class FigureSolver
             // A gesturing leg has taken the foot over: the roll of a step fades as it does.
             double pitch = (isLeft ? c.LPitch : c.RPitch) * (1 - gesture);
             var toe = reached + footFwd * (Rig.FootLength * Math.Cos(pitch));
-            toe = new Vec3(toe.X, offFloor ? Math.Max(0.02, reached.Y - 0.05 + Rig.FootLength * Math.Sin(pitch)) : 0.02, toe.Z);
+            toe = new Vec3(toe.X, offFloor ? Math.Max(0.02, reached.Y - ToeBelowAnkle + Rig.FootLength * Math.Sin(pitch)) : 0.02, toe.Z);
             if (onToes is { } ball)
                 toe = ball;
             // In the air of a jump a leg in a shape points its foot too, as the one the steps carry does (DESIGN.md 90).
