@@ -63,18 +63,62 @@ def features(names, out):
     return reps
 
 
-def pin_constraint(model, a, frames):
-    """The Shosa poses to hold (EDGE's normalized vector) and where: windows x 150 x 151 each."""
+def shosa_vector(model, path, a, frames):
+    """A dancer's Shosa motion as EDGE's normalized vector (frames x 151): foot contacts, root, 6D rotations."""
     import shosa2smpl
     from dataset.preprocess import vectorize_many
     from dataset.quaternion import ax_to_6v
 
-    q, pos = shosa2smpl.load(a.pin_vrma, a.start, a.seconds)
+    q, pos = shosa2smpl.load(path, a.start, a.seconds)
     q, pos = q[:frames], pos[:frames]
     pos[:, 2] += 0.93  # EDGE's floor sits about 0.93 below its origin (DESIGN.md 110.3)
-    q6 = ax_to_6v(torch.tensor(q, dtype=torch.float32))[None]
-    vec = vectorize_many([torch.zeros(1, frames, 4), torch.tensor(pos, dtype=torch.float32)[None], q6])
-    value = model.normalizer.normalize(vec.clone())[0]
+    qt = torch.tensor(q, dtype=torch.float32)[None]
+    pt = torch.tensor(pos, dtype=torch.float32)[None]
+    # contacts as EDGE's dataset makes them: a foot joint moving less than 1 cm in a frame
+    feet = model.diffusion.smpl.forward(qt.to(model.accelerator.device), pt.to(model.accelerator.device)).cpu()[:, :, (7, 8, 10, 11)]
+    feetv = torch.zeros(feet.shape[:3])
+    feetv[:, :-1] = (feet[:, 1:] - feet[:, :-1]).norm(dim=-1)
+    contacts = (feetv < 0.01).float()
+    vec = vectorize_many([contacts, pt, ax_to_6v(qt)])
+    return model.normalizer.normalize(vec.clone())[0]
+
+
+def windows_of(t, frames):
+    horizon, half = int(WINDOW * FPS), int(STRIDE * FPS)
+    count = (frames - horizon) // half + 1
+    return torch.stack([t[w * half : w * half + horizon] for w in range(count)])
+
+
+@torch.no_grad()
+def long_ddim_from(diff, shape, cond, x0, strength):
+    """SDEdit with EDGE's long DDIM sampling: noise the guide x0 to strength (0..1 of the diffusion), then denoise."""
+    batch, device = shape[0], diff.betas.device
+    steps, eta = 50, 1
+    times = list(reversed(torch.linspace(-1, diff.n_timestep - 1, steps=steps + 1).int().tolist()))
+    weights = np.clip(np.linspace(0, diff.guidance_weight * 2, steps), None, diff.guidance_weight)
+    pairs = [(t, tn, w) for t, tn, w in zip(times[:-1], times[1:], weights) if t <= strength * (diff.n_timestep - 1)]
+    cond, x0 = cond.to(device), x0.to(device)
+    x = diff.q_sample(x0, torch.full((batch,), pairs[0][0], device=device, dtype=torch.long))
+    half = shape[1] // 2
+    print(f"denoising from t={pairs[0][0]} in {len(pairs)} of {steps} steps", flush=True)
+    for time, time_next, weight in pairs:
+        t = torch.full((batch,), time, device=device, dtype=torch.long)
+        pred_noise, x_start, *_ = diff.model_predictions(x, cond, t, weight=weight, clip_x_start=diff.clip_denoised)
+        if time_next < 0:
+            return x_start
+        alpha, alpha_next = diff.alphas_cumprod[time], diff.alphas_cumprod[time_next]
+        sigma = eta * ((1 - alpha / alpha_next) * (1 - alpha_next) / (1 - alpha)).sqrt()
+        c = (1 - alpha_next - sigma**2).sqrt()
+        x = x_start * alpha_next.sqrt() + c * pred_noise + sigma * torch.randn_like(x)
+        x[1:, :half] = x[:-1, half:]
+    return x
+
+
+def pin_constraint(model, a, frames):
+    """The Shosa poses to hold (EDGE's normalized vector) and where: windows x 150 x 151 each."""
+    import shosa2smpl
+
+    value = shosa_vector(model, a.pin_vrma, a, frames)
 
     joints = {"upper": shosa2smpl.UPPER, "arms": shosa2smpl.ARMS}[a.pin_joints]
     channels = [7 + 6 * j + k for j in joints for k in range(6)]
@@ -92,10 +136,7 @@ def pin_constraint(model, a, frames):
         pinned.append((lo, hi))
     print("pinned frames", pinned, "joints", joints, flush=True)
 
-    horizon, half = int(WINDOW * FPS), int(STRIDE * FPS)
-    windows = (frames - horizon) // half + 1
-    take = lambda t: torch.stack([t[w * half : w * half + horizon] for w in range(windows)])
-    return take(value), take(mask)
+    return windows_of(value, frames), windows_of(mask, frames)
 
 
 @torch.no_grad()
@@ -139,9 +180,13 @@ def main():
     p.add_argument("--pin-before", type=int, default=2, help="frames held before each beat")
     p.add_argument("--pin-after", type=int, default=3, help="frames held after each beat")
     p.add_argument("--pin-feather", type=int, default=6, help="frames over which a pin fades out on each side")
+    p.add_argument("--guide-vrma", help="a dancer's .vrma from `shosa vrma`: redraw it (SDEdit) instead of generating from noise")
+    p.add_argument("--strength", type=float, default=0.5, help="how much of the diffusion the guide goes through (0 keeps it, 1 forgets it)")
     a = p.parse_args()
     if a.pin_vrma:
         a.pin_vrma = str(Path(a.pin_vrma).resolve())
+    if a.guide_vrma:
+        a.guide_vrma = str(Path(a.guide_vrma).resolve())
 
     out = Path(a.out).resolve()
     out.mkdir(parents=True, exist_ok=True)
@@ -162,7 +207,14 @@ def main():
     model.eval()
     fk = out / "fk"
     cond = torch.from_numpy(cond)
-    if a.pin_vrma:
+    if a.guide_vrma:
+        frames = int(round(a.seconds * FPS))
+        x0 = windows_of(shosa_vector(model, a.guide_vrma, a, frames), frames)
+        shape = (len(cond), model.horizon, model.repr_dim)
+        samples = long_ddim_from(model.diffusion, shape, cond, x0, a.strength).cpu()
+        model.diffusion.render_sample(samples, cond.to(model.accelerator.device), model.normalizer, "edge", str(out),
+                                      fk_out=str(fk), name=names, sound=True, mode="long", render=False)
+    elif a.pin_vrma:
         frames = int(round(a.seconds * FPS))
         value, mask = pin_constraint(model, a, frames)
         shape = (len(cond), model.horizon, model.repr_dim)
