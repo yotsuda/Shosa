@@ -48,8 +48,9 @@ style.textContent = `
   html, body { height: 100%; margin: 0; }
   body { display: flex; flex-direction: column; padding: 0; overflow: hidden;
          color: var(--vscode-foreground, #333); font: 13px/1.4 var(--vscode-font-family, system-ui, sans-serif); }
-  #stage { flex: 1; min-height: 0; position: relative; }
-  #stage canvas { display: block; width: 100%; height: 100%; cursor: grab; }
+  #stage { flex: 1; min-height: 0; position: relative; display: flex; align-items: center; justify-content: center;
+           background: var(--vscode-sideBar-background, #8882); }
+  #stage canvas { display: block; width: 100%; height: 100%; cursor: grab; flex: none; }
   #empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
            color: var(--vscode-descriptionForeground, #777); padding: 24px; text-align: center; pointer-events: none; }
   footer { display: flex; gap: 10px; align-items: center; padding: 6px 12px;
@@ -101,6 +102,8 @@ document.body.innerHTML = `
     <span id="space"></span>
     <span id="modelProblem" hidden></span>
     <label id="modelLabel" hidden title="Show the dancers as the characters their dancer lines name (dancer alice humanoid &quot;girl.vrm&quot;), or as sticks."><input id="modelBox" type="checkbox" checked> Character</label>
+    <select id="shape" aria-label="Video shape" title="The shape of the MP4: the view as it is, or a frame the view shows (16:9 is 1920×1080; 9:16 is 1080×1920, for YouTube Shorts).">
+      <option value="view">View</option><option value="wide">16:9</option><option value="tall">9:16</option></select>
     <button id="exportVideo" title="Write the score shown as an MP4 video: this view, with its song.">MP4</button>
     <button id="exportAudio" hidden title="Write the song of the score shown as an MP3 or a WAV, mixed as the Mixer has it, for as long as the dance (the sound of its MP4).">Audio</button>
     <button id="exportModel" title="Write the score shown as a model file for an engine: glTF (.glb), VRM Animation (.vrma) or BVH (.bvh).">Model</button>
@@ -125,6 +128,7 @@ const nameLabel = document.getElementById('name'), kindLabel = document.getEleme
 const soundLabel = document.getElementById('soundLabel'), soundBox = document.getElementById('sound');
 const ticks = document.getElementById('ticks'), marksLabel = document.getElementById('marks');
 const videoButton = document.getElementById('exportVideo'), modelButton = document.getElementById('exportModel');
+const shapeSelect = document.getElementById('shape');
 const modelLabel = document.getElementById('modelLabel'), modelBox = document.getElementById('modelBox'), modelProblem = document.getElementById('modelProblem');
 const audioButton = document.getElementById('exportAudio'), mixerButton = document.getElementById('mixerButton');
 const mixerPanel = document.getElementById('mixer'), mixerRows = document.getElementById('mixerRows'), mixerNotes = document.getElementById('mixerNotes');
@@ -532,7 +536,7 @@ function header() {
   // The bar is there whenever there is something to export.
   const movement = !!(clip && clip.figures.length && clip.totalBeats > 0);
   bar.hidden = !movement && clipSelect.hidden && nameLabel.hidden && kindLabel.hidden;
-  videoButton.hidden = modelButton.hidden = !movement;
+  videoButton.hidden = modelButton.hidden = shapeSelect.hidden = !movement;
   // A loop repeats whatever the box says; the box shows it and comes back afterwards.
   loop.checked = (clip && clip.loop) || wantLoop;
   loop.disabled = !!(clip && clip.loop);
@@ -696,15 +700,22 @@ async function record(id) {
   const filmed = clip, keep = beat;
   setPlaying(false);
   recording = { stop: false };
-  modelButton.disabled = true;
+  modelButton.disabled = shapeSelect.disabled = true;
   videoButton.title = 'Stop writing the video.';
 
-  // The picture: the view as it is, 1080 pixels high (less when that would be wider than 1920).
-  const aspect = stage.clientWidth / Math.max(1, stage.clientHeight);
-  let height = 1080, width = 2 * Math.round(height * aspect / 2);
-  if (width > 1920) {
-    width = 1920;
-    height = 2 * Math.round(width / aspect / 2);
+  // The picture: the frame the view shows (1920×1080, or 1080×1920 for Shorts), or the view as it is,
+  // 1080 pixels high (less when that would be wider than 1920).
+  let width, height;
+  if (FRAMES[shapeSelect.value]) {
+    [width, height] = FRAMES[shapeSelect.value];
+  } else {
+    const aspect = stage.clientWidth / Math.max(1, stage.clientHeight);
+    height = 1080;
+    width = 2 * Math.round(height * aspect / 2);
+    if (width > 1920) {
+      width = 1920;
+      height = 2 * Math.round(width / aspect / 2);
+    }
   }
   renderer.setPixelRatio(1);
   renderer.setSize(width, height, false);
@@ -737,7 +748,7 @@ async function record(id) {
     answer.error = String(error && error.message || error);
   }
   recording = null;
-  modelButton.disabled = false;
+  modelButton.disabled = shapeSelect.disabled = false;
   videoButton.textContent = 'MP4';
   videoButton.title = 'Write the score shown as an MP4 video: this view, with its song.';
   renderer.setPixelRatio(window.devicePixelRatio);
@@ -862,14 +873,34 @@ window.addEventListener('message', event => {
   }
 });
 
+// The MP4's frame, in pixels, for each shape but the view as it is: the view shows it, so what is seen is what is filmed.
+const FRAMES = { wide: [1920, 1080], tall: [1080, 1920] };
+
 function resize() {
   if (recording) return;   // the canvas has the video's size until it is written
-  const width = stage.clientWidth, height = stage.clientHeight;
+  let width = stage.clientWidth, height = stage.clientHeight;
+  const frame = FRAMES[shapeSelect.value];
+  if (frame) {
+    // The largest box of the frame's shape in the stage, in the middle.
+    const aspect = frame[0] / frame[1];
+    if (width / Math.max(1, height) > aspect) width = Math.round(height * aspect);
+    else height = Math.round(width / aspect);
+  }
+  renderer.domElement.style.width = frame ? width + 'px' : '';
+  renderer.domElement.style.height = frame ? height + 'px' : '';
   renderer.setSize(width, height, false);
   camera.aspect = width / Math.max(1, height);
   camera.updateProjectionMatrix();
 }
 new ResizeObserver(resize).observe(stage);
+
+// The shape is kept with the page's state, as the Mixer's levels are.
+shapeSelect.value = (vscode.getState() || {}).shape || 'view';
+if (!shapeSelect.value) shapeSelect.value = 'view';
+shapeSelect.addEventListener('change', () => {
+  vscode.setState({ ...(vscode.getState() || {}), shape: shapeSelect.value });
+  resize();
+});
 resize();
 
 function tick(now) {

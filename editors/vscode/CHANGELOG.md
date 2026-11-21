@@ -22,7 +22,7 @@ The first release, for Windows (x64).
 ### Export
 
 - **Model**: glTF (`.glb`), VRM Animation (`.vrma`) or BVH (`.bvh`), with the marks for a game engine.
-- **MP4**: a video of the preview with its sound, encoded by the editor itself (no ffmpeg).
+- **MP4**: a video of the preview with its sound, encoded by the editor itself (no ffmpeg). The shape is the view's, 16:9 (1920×1080) or 9:16 (1080×1920, for YouTube Shorts); a fixed shape is framed in the preview.
 - *Preview:* **Audio**: the song as the Mixer has it, for as long as the dance, as an MP3 or a WAV (written by the Lily# extension).
 
 ### For AI assistants

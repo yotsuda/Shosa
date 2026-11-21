@@ -31,7 +31,8 @@ score { dancer solo  loop }
 - **Export** from the preview (the buttons at its top right, or *Shosa: Export…* in the command palette), the score shown:
   **Model** writes it for an engine — glTF (`.glb`), VRM Animation (`.vrma`) or BVH (`.bvh`), by the type picked in the save dialog;
   **MP4** writes a video of the preview as you have turned it, with the song (or the clicks and claps of a score without one). Nothing else has to be installed (no ffmpeg):
-  the video is encoded by the editor itself.
+  the video is encoded by the editor itself. The box beside it picks the shape: **View** (the preview as it is), **16:9** (1920×1080) or
+  **9:16** (1080×1920, for YouTube Shorts); a fixed shape is framed in the preview, so what you see is what is filmed.
 - **An AI assistant can write it**: in Copilot Chat's agent mode, ask for a movement in Shosa. The extension gives the assistant
   the language (`#shosaGrammar`), the compiler's verdict (`#shosaCheck`) and a picture of the movement to look at (`#shosaSheet`).
 
