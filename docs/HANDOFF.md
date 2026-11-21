@@ -17,12 +17,12 @@
 
 **次の一手 (ユーザーが EDGE を選んだ。ROADMAP 第 3 段階の「清書」)**: EDGE (github.com/Stanford-TML/EDGE、曲を入力に取るダンス生成。コードは MIT) を手元で動かす小さな実験。
 1. ~~まずサビの 8 小節 (15 秒) を曲だけで生成 (固定なし) して、動きの質をユーザーに見せる。~~ 作った (2026-11-22、DESIGN.md 110)。Windows のまま動く (WSL は要らなかった)。`out\edge\runs\chorus-compare.mp4` (左 Shosa、右 EDGE) を **ユーザーが見るのを待つ**。道具は `tools\edge\` (`gen.py` → `smpl2vrma.py` → `render.ps1`)、環境は `out\edge\` (作り直すときは 110.1)。
-2. 次に Shosa の要所 (手拍子、指差し、お辞儀の瞬間、手つなぎ) を固定して清書し、「振付どおりで、Shosa より生身らしいか」を見てもらう。
+2. ~~次に Shosa の要所 (手拍子、指差し、お辞儀の瞬間、手つなぎ) を固定して清書し、「振付どおりで、Shosa より生身らしいか」を見てもらう。~~ 作った (2026-11-22、DESIGN.md 111)。サビの 11 か所で上半身を固定 (`gen.py --pin-vrma … --pin-beats …`)、固定の端は 6 コマで重みを下げる (下げないと腕が 1 コマで飛ぶ)。要所の姿は全部 Shosa どおり、間は EDGE が埋める (Shosa から平均 25 度。なぞりも無視もしない)。`out\edge\runs\chorus-compare3.mp4` (左から Shosa、固定した EDGE、曲だけの EDGE) を **ユーザーが見るのを待つ**。
+3. 見てもらった後の候補: 1 曲 (108.75 秒) 通し (要所の拍を `.shosa` の印か語の位置から自動で取る)、根の位置を固定して 2 人の立ち位置と手つなぎを守る、足を床に留める (IK)。
 
 調べてある障害:
 - ~~PyTorch 1.12 固定、pytorch3d、Jukebox が 16 GB に収まるか~~ 解決 (PyTorch 2.11 + cu128 で動く、pytorch3d は transforms だけを取った、Jukebox は収まる。DESIGN.md 110.1)。
-- 一部を固定する生成は `model\diffusion.py` の `inpaint_loop` (生成の各段で `mask` の所を `value` で上書き。窓 1 つ = 5 秒 150 コマ)。長い曲をつなぐ `long_inpaint_loop` は固定を受けないので、15 秒を固定つきで作るには足す。
-- 入出力は SMPL。SMPL → VRM は書いた (`tools\edge\smpl2vrma.py`)。Shosa → SMPL はまだ (6 次の回転表現と EDGE の正規化 `Normalizer` に通す)。1 人ずつしか作らないので、2 人の関係 (手つなぎ、指差し) は Shosa の値で固定し直す。
+- ~~長い曲を固定つきで~~ 解決 (`gen.py` の `long_ddim_inpaint`。DESIGN.md 111.1)。~~Shosa → SMPL~~ 書いた (`tools\edge\shosa2smpl.py`)。1 人ずつしか作らないので、2 人の関係 (手つなぎ、指差し) は根の位置も固定しないと守れない。
 - 学習済みの重みと AIST++ の利用条件は未確認 (収益化する動画に使う前に確かめる)。
 - 前の Kimodo の実験 (DESIGN.md 25.7): 要所を間引くと振付を守らず、全部渡すと Shosa をなぞるだけ。`out\kimodo\combo\generated.bvh` はユーザーがまだ見ていない。
 
