@@ -30,6 +30,28 @@ public class SkeletonTests
 
     [Theory]
     [MemberData(nameof(Samples.Names), MemberType = typeof(Samples))]
+    public void A_foot_in_the_air_never_pulls_its_toes_further_up_than_an_ankle_can(string name)
+    {
+        // DESIGN.md 104: swinging a step, the toes went up from level while the bent knee leaned the shin back, and the ankle closed to 50°.
+        var clip = Samples.Compile(name).Clip;
+        foreach (var figure in clip.Figures)
+        {
+            for (int f = 0; f < figure.Frames.Count; f++)
+            {
+                foreach (var (knee, ankle, toe) in new[] { (Rig.LKnee, Rig.LAnkle, Rig.LToe), (Rig.RKnee, Rig.RAnkle, Rig.RToe) })
+                {
+                    Vec3 k = figure.Joint(f, knee), a = figure.Joint(f, ankle), t = figure.Joint(f, toe);
+                    if (t.Y < 0.03 || a.Y < Rig.AnkleHeight + 0.01)
+                        continue;   // on the floor: the foot lies as the floor has it
+                    double angle = Math.Acos(Math.Clamp((k - a).Normalized().Dot((t - a).Normalized()), -1, 1)) * 180 / Math.PI;
+                    Assert.True(angle > 99.5, $"{name} {figure.Id} frame {f}: the ankle is {angle:0.0}°");
+                }
+            }
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(Samples.Names), MemberType = typeof(Samples))]
     public void A_reader_of_the_bvh_file_finds_the_same_joints(string name)
     {
         var clip = Samples.Compile(name).Clip;

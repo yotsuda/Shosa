@@ -1522,6 +1522,34 @@ internal sealed class FigureSolver
     /// </summary>
     private const double ToeBelowAnkle = Rig.AnkleHeight - FloorToe;
 
+    /// <summary>
+    /// The least angle at the ankle, in degrees, between the shin (to the knee) and the foot (to the toes) of a foot off
+    /// the floor. Standing it is 109° (the toes are below the ankle); 100° is the toes pulled up some 9°.
+    /// </summary>
+    private const double LeastAnkle = 100;
+
+    /// <summary>The toe of a foot off the floor, turned down about its ankle as far as the ankle needs to open to <see cref="LeastAnkle"/>; not below the floor.</summary>
+    private static Vec3 AnkleKept(Vec3 knee, Vec3 ankle, Vec3 toe)
+    {
+        var shin = knee - ankle;
+        var foot = toe - ankle;
+        if (shin.Length < 1e-9 || foot.Length < 1e-9)
+            return toe;
+        double angle = Math.Acos(Math.Clamp(shin.Normalized().Dot(foot.Normalized()), -1, 1));
+        double least = LeastAnkle * Math.PI / 180;
+        if (angle >= least)
+            return toe;
+        var axis = shin.Cross(foot);
+        if (axis.Length < 1e-9)
+            return toe;
+        axis = axis.Normalized();
+        // Turned about the line across the ankle, away from the shin (Rodrigues).
+        double turn = least - angle, cos = Math.Cos(turn), sin = Math.Sin(turn);
+        var turned = foot * cos + axis.Cross(foot) * sin + axis * (axis.Dot(foot) * (1 - cos));
+        var kept = ankle + turned;
+        return kept.Y < FloorToe ? new Vec3(kept.X, FloorToe, kept.Z) : kept;
+    }
+
     /// <summary>How early in a step on the floor the foot comes up: the step's time is raised to this power (1 is even).</summary>
     private const double SwingEarly = 0.7;
 
@@ -2284,6 +2312,12 @@ internal sealed class FigureSolver
             toe = new Vec3(toe.X, offFloor ? Math.Max(0.02, reached.Y - ToeBelowAnkle + Rig.FootLength * Math.Sin(pitch)) : 0.02, toe.Z);
             if (onToes is { } ball)
                 toe = ball;
+            // A foot off the floor is turned on its ankle no further toward the shin than a person can pull it (DESIGN.md 104).
+            // The step's roll says the foot's angle in the room; with the knee bent through the swing the shin leans
+            // back, and toes up from level made the ankle 50° (a person's goes to some 90° with this foot, 100° in a swing).
+            // A foot on its toes is held by the floor, until they leave it.
+            if (offFloor && toe.Y > FloorToe + 0.005)
+                toe = AnkleKept(knee, reached, toe);
             // In the air of a jump a leg in a shape points its foot too, as the one the steps carry does (DESIGN.md 90).
             if (gesture > 0 && c.LAir && c.RAir)
                 point = Math.Max(point, Math.Clamp(-(isLeft ? c.LPitch : c.RPitch) / AirPoint, 0, 1));
