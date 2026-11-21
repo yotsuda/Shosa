@@ -1491,7 +1491,11 @@ internal sealed class FigureSolver
                 // and the weight has gone over before the step begins, so the toes leave the floor at once (DESIGN.md 103.
                 // Even, the ankle rose slower than the toes pointed down, and the toes stayed on the floor a third of the step).
                 double w = Math.Pow(u, SwingEarly);
-                lift = move.Lift * Math.Sin(Math.PI * w) + move.LiftFrom + (move.LiftTo - move.LiftFrom) * s;
+                // Highest a third of the way, and low again as the foot passes under the body: it goes on forward
+                // just over the floor and the leg straightens before it lands (DESIGN.md 106. Even, the foot was still high
+                // passing under the hips, and the knee bent most there and straightened in the last frame).
+                double high = Math.Sin(Math.PI * Math.Pow(u, LiftEarly));
+                lift = move.Lift * high * high * high + move.LiftFrom + (move.LiftTo - move.LiftFrom) * s;
                 // A step forward rolls through the foot: it leaves heel first, toes last, and
                 // lands on the heel with the toes up. A step back does the reverse.
                 // Leaving, the toes point down only a little: the heel rose before the step (RollShare), and pointed further
@@ -1510,6 +1514,20 @@ internal sealed class FigureSolver
     /// pelvis, the most either way, and the degrees the elbow bends further at the front of the swing.
     /// </summary>
     private const double SwingPerMetre = 1.2, SwingMost = 0.4, SwingElbow = 20;
+
+    /// <summary>
+    /// How far back of hanging the swing of an arm is centred, radians, and over how long either side the stride
+    /// it follows is taken, seconds (DESIGN.md 106).
+    /// </summary>
+    private const double SwingBack = 0.12, ArmLag = 0.1;
+
+    /// <summary>Half the stride between the feet along <paramref name="fwd"/> at <paramref name="t"/>: how far the right foot is ahead of the middle of the two.</summary>
+    private double HalfStride(double t, Vec3 fwd)
+    {
+        FootAt(_leftMoves, _leftStart, _leftYawStart, t, out var l, out _, out _, out _, out _);
+        FootAt(_rightMoves, _rightStart, _rightYawStart, t, out var r, out _, out _, out _, out _);
+        return 0.5 * (r - l).Dot(fwd);
+    }
 
     /// <summary>
     /// Unwritten hips and shoulders turning while walking (DESIGN.md 102): radians per metre the left foot is
@@ -1553,6 +1571,9 @@ internal sealed class FigureSolver
     /// <summary>How early in a step on the floor the foot comes up: the step's time is raised to this power (1 is even).</summary>
     private const double SwingEarly = 0.7;
 
+    /// <summary>How early in a step on the floor the foot is highest: its time to this power is half-way at the top (a third of the step).</summary>
+    private const double LiftEarly = 0.55;
+
     /// <summary>How long before a step its foot may begin to rise onto its toes, seconds.</summary>
     private const double RollAhead = 0.3;
 
@@ -1579,7 +1600,7 @@ internal sealed class FigureSolver
     }
 
     /// <summary>How far past the reach the heel goes up as a foot pushes off, radians, and from how long before its step (seconds).</summary>
-    private const double PushMore = 0.4, PushAhead = 0.15;
+    private const double PushMore = 0.4, PushAhead = 0.45;
 
     /// <summary>
     /// How much a foot is pushing off at <paramref name="t"/>, 0..1 (DESIGN.md 105): rising over the last moments before its step on
@@ -1593,10 +1614,18 @@ internal sealed class FigureSolver
                 continue;
             if (move.Orbit || move.Air || move.Lift <= 0 || move.LiftFrom > 0)
                 return 0;
+            // A step near the start pushes off only as much as it has had time to since the start: the body stood
+            // still before it, and the first frame is the stance as written (DESIGN.md 106. Its heel was up at the
+            // first frame, and `check` measured a walk from where that foot landed).
+            // (A loop has the end of its last time round before it.)
+            double ahead = PushAhead * PerSecond(t), had = _loop ? ahead : Math.Min(ahead, move.T0);
+            if (had <= 1e-9)
+                return 0;
+            double ready = had / ahead;
             if (t <= move.T0)
-                return Smooth(Math.Clamp(1 - (move.T0 - t) / (PushAhead * PerSecond(t)), 0, 1));
+                return ready * Smooth(Math.Clamp(1 - (move.T0 - t) / had, 0, 1));
             double u = (t - move.T0) / (move.T1 - move.T0);
-            return 1 - Smooth(Math.Clamp((u - 0.1) / 0.25, 0, 1));
+            return ready * (1 - Smooth(Math.Clamp((u - 0.1) / 0.25, 0, 1)));
         }
         return 0;
     }
@@ -2307,9 +2336,15 @@ internal sealed class FigureSolver
                 double straight = Rig.Leg * Rig.StraightLeg;
                 // Just before it leaves, the heel goes on up past what the reach needs, and the knee folds: a leg
                 // pushing off is bent some 40° as its toes leave the floor (DESIGN.md 105; it left straight).
-                double push = roll > 0 ? PushShare(isLeft ? _leftMoves : _rightMoves, t) : 0;
+                // It begins before the heel may rise for the reach: the hips are as high as the leg behind reaches, and
+                // waiting for that, the leg went quite straight (2°) the moment before it folded (DESIGN.md 106).
+                // Only as the hip goes on past the foot: from the first step, the push would begin before the foot is
+                // behind, and the heel jumped up as it came to be (7° of knee in a frame).
+                double past = (hip.X - floor.X) * footFwd.X + (hip.Z - floor.Z) * footFwd.Z;
+                double push = PushShare(isLeft ? _leftMoves : _rightMoves, t) * (1 - (isLeft ? c.GwL : c.GwR))
+                    * Smooth(Math.Clamp((past - 0.05) / 0.1, 0, 1));
                 bool reaching = (ankle - hip).Length > straight;
-                if (roll > 0 && c.Raise < 1e-6 && Behind(hip, floor, footFwd) && (reaching || push > 0))
+                if ((roll > 0 || push > 0) && c.Raise < 1e-6 && Behind(hip, floor, footFwd) && (reaching || push > 0))
                 {
                     // From where the step has the foot (lifted, rolling through it): on about the toes.
                     double stepPitch = isLeft ? c.LPitch : c.RPitch;
@@ -2391,9 +2426,17 @@ internal sealed class FigureSolver
             double swing = 0;
             if (_alive)
             {
-                var otherAnkle = joints[(isLeft ? Rig.RHip : Rig.LHip) + 2];
-                double ahead = (otherAnkle - pelvis).Dot(c.Fwd);
-                swing = Math.Clamp(ahead * SwingPerMetre, -SwingMost, SwingMost) * (1 - FeetStill(t));
+                // Half the stride between the feet where they stand or step, not the other ankle from the pelvis: the pelvis
+                // goes on all the time, so that came forward with the quick swing of the foot and went back slowly with
+                // the body passing over it (DESIGN.md 106). The feet take turns, so the arm takes as long each way.
+                // Taken over a little time either side, as an arm is a pendulum: it does not stop at the end of its
+                // swing while both feet are on the floor. The upper arm goes further back than forward.
+                double ahead = 0;
+                for (int k = -2; k <= 2; k++)
+                    ahead += HalfStride(Clamp(t + k * ArmLag / 2 * PerSecond(t)), c.Fwd) / 5;
+                if (!isLeft)
+                    ahead = -ahead;
+                swing = (Math.Clamp(ahead * SwingPerMetre, -SwingMost, SwingMost) - SwingBack) * (1 - FeetStill(t));
             }
 
             Vec3 Offset(Seg? seg)

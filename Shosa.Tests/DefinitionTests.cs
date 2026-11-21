@@ -289,7 +289,7 @@ public class DefinitionTests
         Assert.Equal(Rig.Stride, At(clip, 1, Rig.RAnkle).Z - At(clip, 1, Rig.LAnkle).Z, 2);
         // The left foot stands through most of the four beats it has to wait, not two.
         Assert.Equal(At(clip, 2, Rig.LToe), At(clip, 3.75, Rig.LToe));
-        Assert.Equal(At(clip, 2, Rig.LAnkle), At(clip, 3.1, Rig.LAnkle));   // the heel down until 0.3 s before it goes
+        Assert.Equal(At(clip, 2, Rig.LAnkle), At(clip, 2.85, Rig.LAnkle));   // the heel down until 0.45 s before it goes (the push off, DESIGN.md 106)
         Assert.True((At(clip, 4.5, Rig.LAnkle) - At(clip, 4, Rig.LAnkle)).Length > 0.1, "on its way in the last beat");
         Assert.Equal(Rig.Stride, At(clip, 5, Rig.LAnkle).Z - At(clip, 5, Rig.RAnkle).Z, 2);
     }

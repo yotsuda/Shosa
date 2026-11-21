@@ -122,6 +122,70 @@ public class LifeTests
         Assert.True(Math.Abs(end.LeftHand - end.RightHand) < 0.02, $"at the end the hands are {end.LeftHand - end.RightHand:0.00} m apart");
     }
 
+    [Fact]
+    public void A_walking_arm_takes_as_long_to_swing_forward_as_back_and_does_not_stop_at_the_ends()
+    {
+        // DESIGN.md 106: it followed the other ankle from the pelvis, and came forward in a quarter of a second and
+        // went back in nearly a second, standing still at each end while both feet were down.
+        var clip = Solve(Samples.Solo(Walk, "tempo 100\ntime 4/4\n"));
+        int forward = 0, back = 0, still = 0;
+        // The middle of the walk: from the second step to the sixth (a beat is 0.6 s).
+        for (int f = (int)(1.2 * clip.Fps); f < (int)(3.6 * clip.Fps); f++)
+        {
+            double change = Ahead(clip, f + 1).RightHand - Ahead(clip, f).RightHand;
+            if (Math.Abs(change) < 0.002)
+                still++;
+            else if (change > 0)
+                forward++;
+            else
+                back++;
+        }
+        Assert.True(forward > 0 && back > 0);
+        Assert.InRange((double)forward / back, 0.8, 1.25);
+        // A pendulum is slow only for a moment as it turns (it stood still five frames at each end, some 20 here).
+        Assert.True(still <= 8, $"the hand stood still {still} frames");
+    }
+
+    /// <summary>The bend of a knee, degrees (0 straight).</summary>
+    private static double KneeBend(MotionClip clip, int f, bool left)
+    {
+        var hip = At(clip, f, left ? Rig.LHip : Rig.RHip);
+        var knee = At(clip, f, left ? Rig.LKnee : Rig.RKnee);
+        var ankle = At(clip, f, left ? Rig.LAnkle : Rig.RAnkle);
+        var thigh = (knee - hip).Normalized();
+        var shin = (ankle - knee).Normalized();
+        return Math.Acos(Math.Clamp(thigh.Dot(shin), -1, 1)) * 180 / Math.PI;
+    }
+
+    [Fact]
+    public void Walking_the_knee_bends_and_straightens_smoothly_and_is_straight_before_the_foot_lands()
+    {
+        // DESIGN.md 106: it was pulled straight the moment before the push off and folded 34° in four frames; it bent
+        // most as the foot passed under the hips and straightened in the last frame before the heel came down.
+        var clip = Solve(Samples.Solo(Walk, "tempo 100\ntime 4/4\n"));
+        int from = (int)(1.2 * clip.Fps), to = (int)(3.6 * clip.Fps);
+        int landings = 0;
+        foreach (bool left in new[] { true, false })
+        {
+            int ankle = left ? Rig.LAnkle : Rig.RAnkle;
+            for (int f = from; f < to; f++)
+            {
+                double change = KneeBend(clip, f + 1, left) - KneeBend(clip, f, left);
+                Assert.True(Math.Abs(change) < 10, $"frame {f}: the {(left ? "left" : "right")} knee changed {change:0.0}° in a frame");
+                // The frame a foot comes down: the frame before and two frames before, the leg is near straight (it was
+                // 26° and 38° then; now some 18° and 26°, with the knee most bent early in the swing).
+                bool up = At(clip, f, ankle).Y > Rig.AnkleHeight + 0.001, down = At(clip, f + 1, ankle).Y <= Rig.AnkleHeight + 0.001;
+                if (up && down)
+                {
+                    landings++;
+                    Assert.True(KneeBend(clip, f, left) < 21, $"frame {f}: the {(left ? "left" : "right")} knee is bent {KneeBend(clip, f, left):0}° the frame before it lands");
+                    Assert.True(KneeBend(clip, f - 1, left) < 30, $"frame {f - 1}: the {(left ? "left" : "right")} knee is bent {KneeBend(clip, f - 1, left):0}° two frames before it lands");
+                }
+            }
+        }
+        Assert.True(landings >= 3);
+    }
+
     /// <summary>Degrees a line from the right joint to the left one is turned to the left, seen from above, from square to the way the walk goes.</summary>
     private static double Turned(MotionClip clip, int f, int left, int right)
     {
