@@ -12,14 +12,16 @@ const FINGERS = ['Index', 'Middle', 'Ring', 'Little'];
 /** Degrees each joint of a finger and of the thumb bends round a handle about 3 cm thick. */
 const CURL = [['Proximal', 70], ['Intermediate', 80], ['Distal', 50]];
 const THUMB = [['Metacarpal', 25], ['Proximal', 35], ['Distal', 30]];
-/** Sizes are for a hand on Shosa's figure, whose forearm is this long; a character's own forearm scales them. */
+/**
+ * The fist's place in the hand is for a hand on Shosa's figure, whose forearm is this long; a character's own forearm
+ * scales it. The mic is the same size in every hand, in metres (the user: scaled to a mini's small hand it was as thin
+ * as a bamboo skewer).
+ */
 const FOREARM = 0.31;
 /** From the wrist to the middle of the closed fist, along the hand and out of the palm. */
 const FIST_ALONG = 0.045, FIST_OUT = 0.025;
 /** From the fist to the middle of the mic's ball, and how far below the first fist the other hand of `mic both` holds. */
 const TO_BALL = 0.12, LOWER_HAND = 0.075;
-/** The radius of a head (as clearance.js measures it, hair and all) these sizes are for: Shosa's figure's. */
-const HEAD_RADIUS = 0.10;
 
 const X = new THREE.Vector3(1, 0, 0), Y = new THREE.Vector3(0, 1, 0), Z = new THREE.Vector3(0, 0, 1);
 
@@ -36,17 +38,7 @@ function makeMic() {
   ball.position.y = TO_BALL;
   group.add(handle, collar, ball);
   group.traverse(o => { if (o.isMesh) o.frustumCulled = false; });
-  group.userData.parts = { handle, collar, ball };
   return group;
-}
-
-/** The handle `r` times as long out from its end below the fist, the collar and the ball moved out with it, none thicker. */
-function lengthen(mic, r) {
-  const { handle, collar, ball } = mic.userData.parts;
-  handle.scale.y = r;
-  handle.position.y = -0.06 + 0.0725 * r;
-  collar.position.y = 0.095 * r;
-  ball.position.y = TO_BALL * r;
 }
 
 const worldPos = node => node.getWorldPosition(new THREE.Vector3());
@@ -168,12 +160,10 @@ export function createMicHands(scene) {
       }
       // Steep, so the fist is under the chin and the mouth is seen above the ball (at 35° from level the fist was in front of the mouth).
       const micWay = headUp.clone().multiplyScalar(0.8).addScaledVector(front, -0.6).normalize();
-      // How far the fist is from the ball goes with the head, not the hand: the fist has to be under the chin. A
-      // character's forearm can be short for its face (scaled by the hand, the fist came up over the chin), and a
-      // two-heads-tall mini's very short. The handle is lengthened; its thickness stays the hand's.
-      const reachK = head ? Math.min(1.5, Math.max(0.8, head.radius * size / HEAD_RADIUS)) : k;
-      const ball = mouth.clone().addScaledVector(front, 0.035 * reachK);
-      const fist = ball.clone().addScaledVector(micWay, -TO_BALL * reachK);
+      // The ball just before the lips, the fist down the handle from it (under the chin: the mic is the same size for
+      // every character, and a fist sized to a short forearm came up over the chin, DESIGN.md 117.4).
+      const ball = mouth.clone().addScaledVector(front, 0.035);
+      const fist = ball.clone().addScaledVector(micWay, -TO_BALL);
 
       // A hand on the mic: the thumb along it, the fingers round it, reaching from its own side across and forward.
       const placeHand = (side, at, amount) => {
@@ -198,7 +188,7 @@ export function createMicHands(scene) {
       };
 
       placeHand(main, fist, up);
-      if (which === 'both') placeHand('left', fist.clone().addScaledVector(micWay, -LOWER_HAND * reachK), up);
+      if (which === 'both') placeHand('left', fist.clone().addScaledVector(micWay, -LOWER_HAND), up);
       else if (entry.mic.helped) closeHand(vrm, 'left', rest, 0);
       entry.mic.helped = which === 'both';
 
@@ -210,8 +200,6 @@ export function createMicHands(scene) {
       const mesh = entry.mic.mesh;
       mesh.position.copy(worldPos(hand).addScaledVector(along, FIST_ALONG * k).addScaledVector(palm, FIST_OUT * k));
       mesh.quaternion.setFromUnitVectors(Y, thumb);
-      mesh.scale.setScalar(k);
-      lengthen(mesh, reachK / k);
     },
 
     /** Takes the mic away (the dancer line no longer has one) and opens the hands. */
