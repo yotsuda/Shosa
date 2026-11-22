@@ -141,7 +141,7 @@ export function measureBody(vrm) {
     const radius = percentile(skull.map(q => q.distanceTo(centre)), 0.7);
     // Where the centre is from the head bone, in the bone's own axes (it turns with the head).
     const local = centre.clone().sub(at('head')).applyQuaternion(turned('head').invert());
-    headShape = { local, radius };
+    headShape = { local, radius, mouth: measureMouth(node, at, turned, head.members) };
   }
 
   const armShapes = {};
@@ -152,6 +152,28 @@ export function measureBody(vrm) {
     };
   }
   return { trunk: trunkShapes, head: headShape, arms: armShapes };
+}
+
+/**
+ * Where the mouth is on the face, in the head bone's own axes (for a mic, DESIGN.md 117): null when it cannot be
+ * found. At rest the character faces +z. Its height is 0.4 of the way from the head bone (the top of the neck) up
+ * to the eyes; it is on the face's surface there, the front of the head's own vertices down the middle (the hair
+ * of the fringe is above it, the locks at the sides are not in the middle).
+ */
+function measureMouth(node, at, turned, members) {
+  const base = at('head');
+  const eyes = ['leftEye', 'rightEye'].filter(node).map(at);
+  const eyeY = eyes.length ? eyes.reduce((s, e) => s + e.y, 0) / eyes.length : base.y + 0.1;
+  if (eyeY <= base.y) return null;
+  const y = base.y + 0.4 * (eyeY - base.y);
+  for (const width of [0.015, 0.03]) {
+    const front = members.filter(q => Math.abs(q.y - y) < width && Math.abs(q.x - base.x) < width).map(q => q.z);
+    if (front.length >= 3) {
+      const point = new THREE.Vector3(base.x, y, percentile(front, 0.95));
+      return point.sub(base).applyQuaternion(turned('head').invert());
+    }
+  }
+  return null;
 }
 
 /**

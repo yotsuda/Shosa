@@ -146,6 +146,8 @@ const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
 camera.position.set(2.4, 1.7, 4.6);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.target.set(0, 0.9, 0);
+// Test pages move the camera close (out\pv\harness-mic.html); nothing in the extension reads it.
+globalThis.shosaPreviewCamera = { camera, controls };
 scene.add(new THREE.HemisphereLight(0xffffff, 0x8890a0, 2.2));
 const sun = new THREE.DirectionalLight(0xffffff, 1.4);
 sun.position.set(2, 5, 3);

@@ -9,6 +9,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
 import { keepArmsOut, measureBody } from './clearance.js';
+import { createMicHands } from './mic.js';
 
 // VRM's mouth expressions, in the order the server sends their weights (`mouth`, Mouth.Shapes).
 const MOUTH = ['aa', 'ih', 'ou', 'ee', 'oh'];
@@ -21,8 +22,10 @@ export function createCharacters(scene, changed) {
   let dressed = [];          // per figure of the clip shown: { file, vrm, hips, flip, loading, error } or null
   let lastFrame = null;
   const q0 = new THREE.Quaternion(), q1 = new THREE.Quaternion();
+  const mics = createMicHands(scene);
 
   function undress(entry) {
+    if (entry) mics.drop(entry);
     if (entry && entry.vrm) {
       scene.remove(entry.vrm.scene);
       VRMUtils.deepDispose(entry.vrm.scene);
@@ -126,7 +129,10 @@ export function createCharacters(scene, changed) {
     },
 
     setVisible(visible) {
-      for (const entry of dressed) if (entry && entry.vrm) entry.vrm.scene.visible = visible;
+      for (const entry of dressed) {
+        if (entry && entry.vrm) entry.vrm.scene.visible = visible;
+        if (entry && entry.mic) entry.mic.mesh.visible = visible;
+      }
     },
 
     /** What went wrong, one line per file; '' when nothing did. */
@@ -180,6 +186,15 @@ export function createCharacters(scene, changed) {
         // The arms out of the character's own body, which is not the figure's the turns were solved on (DESIGN.md 116).
         // (A test page turns it off with globalThis.shosaArmsAsSolved, to compare.)
         if (entry.body && !globalThis.shosaArmsAsSolved) keepArmsOut(vrm, entry.body, size);
+        // A mic in a hand (`mic right`): drawn, the hand closed on it, and at the character's own mouth while it
+        // sings (DESIGN.md 117). After the arms are kept out: the hand at the mouth is where it has to be.
+        const mic = data.mic;
+        if (mic && mic.up && mic.up.length) {
+          const u0 = mic.up[Math.min(mic.up.length - 1, f0)], u1 = mic.up[Math.min(mic.up.length - 1, f0 + 1)];
+          mics.hold(entry, mic.hand, u0 + (u1 - u0) * k, entry.body ? entry.body.head : null, size);
+        } else {
+          mics.drop(entry);
+        }
         // A figure that sings (`sings melody`): the weights of the five mouth expressions, between two frames
         // blended (DESIGN.md 99). vrm.update below applies them.
         const mouth = data.mouth;

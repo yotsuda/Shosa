@@ -230,6 +230,13 @@ public sealed class ClipFigure
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public List<float[]>? Mouth { get; set; }
 
+    /// <summary>
+    /// For a figure that holds a mic (`mic right`): the hand, and how far the mic is up at the mouth at each
+    /// frame (0 in the hand, 1 at the mouth). The preview draws the mic and closes the hand on it. Null for none (DESIGN.md 117).
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public ClipMic? Mic { get; set; }
+
     public Quat Rotation(int frame, int bone)
     {
         var f = Rotations[Math.Clamp(frame, 0, Rotations.Count - 1)];
@@ -249,6 +256,9 @@ public sealed class ClipFigure
         return Vec3.Lerp(Joint(before, joint), Joint(before + 1, joint), frame - before);
     }
 }
+
+/// <summary>A mic in a figure's hand: "right", "left" or "both", and how far it is up at the mouth at each frame, 0..1.</summary>
+public sealed record ClipMic(string Hand, List<float> Up);
 
 /// <summary>
 /// Degrees, more to the figure's left. <paramref name="Feet"/> is from the front of the room; the

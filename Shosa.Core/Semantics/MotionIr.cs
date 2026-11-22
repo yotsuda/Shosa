@@ -86,6 +86,11 @@ public sealed class DancerIr
     /// clip's beats, each with the shape of the mouth it opens to (DESIGN.md 99). Null when it sings nothing.
     /// </summary>
     public List<SyllableIr>? Sings { get; set; }
+    /// <summary>
+    /// The hand that holds a mic (`mic right`): "right", "left" or "both" (two hands while singing, the right
+    /// one between); null for none. While it sings the mic is at the mouth (DESIGN.md 117).
+    /// </summary>
+    public string? Mic { get; set; }
     /// <summary>Channel name (see <see cref="Channels"/>) to its segments, in time order.</summary>
     public Dictionary<string, List<Seg>> Tracks { get; } = [];
 }

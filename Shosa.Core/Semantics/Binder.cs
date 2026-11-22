@@ -54,6 +54,8 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         /// <summary>The part of the song it sings (`sings melody`), and where that is written.</summary>
         public string? Sings;
         public TextSpan SingsSpan;
+        /// <summary>The hand that holds a mic (`mic right`): right, left or both; null for none.</summary>
+        public string? Mic;
         public double X, Z, FacingDeg, Delay;
         public bool Mirror, Free;
         public HashSet<string>? In;
@@ -1109,6 +1111,14 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                             Error("SH1006", clause.Span, "sings names the part of the song this dancer sings, as the song names it: sings melody");
                         break;
 
+                    case "mic":
+                        // A mic in a hand (DESIGN.md 117): at the mouth while the dancer sings, in the hand between.
+                        if (values is [{ Text: "right" or "left" or "both" } hand])
+                            dancer.Mic = hand.Text;
+                        else
+                            Error("SH1006", clause.Span, "mic takes the hand that holds it: mic right, mic left, or mic both (two hands while singing)");
+                        break;
+
                     case "height":
                     {
                         // How tall the preview draws the character, to the top of its hair (DESIGN.md 115): models are made at
@@ -1130,7 +1140,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
 
                     default:
                         Error("SH1006", tokens[0].Span,
-                            $"A dancer line has no '{tokens[0].Text}'.{Hint(tokens[0].Text, ["on", "at", "facing", "mirror", "delay", "free", "in", "sings", "height"])}");
+                            $"A dancer line has no '{tokens[0].Text}'.{Hint(tokens[0].Text, ["on", "at", "facing", "mirror", "delay", "free", "in", "sings", "mic", "height"])}");
                         break;
                 }
             }
@@ -1339,6 +1349,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                 X = dancer.X, Z = dancer.Z, FacingDeg = dancer.FacingDeg, Free = dancer.Free, Model = dancer.Model,
                 ModelHeight = dancer.Model is null ? null : dancer.ModelHeight,
                 Sings = Sung(dancer),
+                Mic = dancer.Mic,
             };
             var sink = new Dictionary<string, List<Raw>>();
             int trackIndex = 0;

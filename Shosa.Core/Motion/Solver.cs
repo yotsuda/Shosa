@@ -87,6 +87,12 @@ public static class Solver
             // The mouth sings with the song, on its clock: frames are even in seconds.
             if (dancer.Sings is { } sung)
                 clipFigure.Mouth = Mouth.Frames(sung, Enumerable.Range(0, frames).Select(f => (double)f / fps).ToList(), clip.SecondsAt);
+            // A mic in a hand (DESIGN.md 117): how far it is up at the mouth, for the preview to draw it.
+            if (dancer.Mic is { } micHand)
+                clipFigure.Mic = new ClipMic(micHand, beatOfFrame.Select(b => (float)Math.Round(solver.MicUp(b), 3)).ToList());
+            foreach (var (seg, channel) in solver.MicHidden())
+                diagnostics.Add(new Diagnostic("SH2018", DiagnosticSeverity.Warning, new TextSpan(seg.Src, seg.Len),
+                    $"The mic is at the mouth here ({dancer.Id} is singing), and the hand that holds it wins: this word of the {channel} row is not seen. Move it to where {dancer.Id} does not sing, or give it to the other arm{(dancer.Mic == "both" ? " (with mic both, both hands are on the mic while singing; mic right frees the left)" : "")}."));
             var flagged = new HashSet<(Seg, string)>();
             Vec3[]? previous = null;
             double previousFacing = 0;
@@ -621,6 +627,70 @@ internal sealed class FigureSolver
         _hips = Row(Channels.Hips);
         _head = Row(Channels.Head);
         SetUpLife();
+        SetUpMic();
+    }
+
+    // A mic in a hand (`mic right`, DESIGN.md 117). While the dancer sings, the hand is at the mouth, whatever its
+    // row says; between phrases the row has the arm again, the mic in its hand. Sung by the phrase, not the
+    // syllable: a singer does not take the mic down for a breath. Up a little before the first syllable (the
+    // breath before it), down a little after the last.
+    private const double MicJoinSeconds = 1.6, MicLeadSeconds = 0.25, MicRaiseSeconds = 0.5, MicStaySeconds = 0.3, MicLowerSeconds = 0.6;
+    /// <summary>The phrases sung, in seconds: from the first syllable to the end of the last.</summary>
+    private readonly List<(double From, double To)> _micPhrases = [];
+
+    private void SetUpMic()
+    {
+        if (_dancer.Mic is null || _dancer.Sings is not { Count: > 0 } sung)
+            return;
+        foreach (var syllable in sung.OrderBy(s => s.Beat))
+        {
+            double from = Seconds(syllable.Beat), to = Seconds(syllable.Beat + syllable.Beats);
+            if (_micPhrases.Count > 0 && from - _micPhrases[^1].To < MicJoinSeconds)
+                _micPhrases[^1] = (_micPhrases[^1].From, Math.Max(_micPhrases[^1].To, to));
+            else
+                _micPhrases.Add((from, to));
+        }
+    }
+
+    private double Seconds(double beat) => TempoMap.Seconds(_tempos, Math.Max(0, beat));
+
+    /// <summary>How far the mic is up at the mouth at beat t: 0 in the hand, 1 at the mouth.</summary>
+    public double MicUp(double t)
+    {
+        double s = Seconds(t), up = 0;
+        foreach (var (from, to) in _micPhrases)
+        {
+            double there = from - MicLeadSeconds, leaves = to + MicStaySeconds;
+            double w = s <= there - MicRaiseSeconds || s >= leaves + MicLowerSeconds ? 0
+                : s < there ? Smooth((s - there + MicRaiseSeconds) / MicRaiseSeconds)
+                : s <= leaves ? 1
+                : Smooth(1 - (s - leaves) / MicLowerSeconds);
+            up = Math.Max(up, w);
+        }
+        return up;
+    }
+
+    /// <summary>
+    /// Words of an arm that holds the mic that arrive while it is at the mouth: they are not seen (the mic wins).
+    /// With `mic both` both arms; otherwise the one hand.
+    /// </summary>
+    public IEnumerable<(Seg Seg, string Channel)> MicHidden()
+    {
+        if (_micPhrases.Count == 0)
+            return [];
+        var channels = _dancer.Mic switch
+        {
+            "both" => new[] { Channels.LeftArm, Channels.RightArm },
+            "left" => [Channels.LeftArm],
+            _ => [Channels.RightArm],
+        };
+        var full = _micPhrases.Select(p => (From: TempoMap.Beat(_tempos, p.From - MicLeadSeconds), To: TempoMap.Beat(_tempos, p.To + MicStaySeconds))).ToList();
+        return from channel in channels
+               where _dancer.Tracks.ContainsKey(channel)
+               from seg in _dancer.Tracks[channel]
+               where seg.Kind is not (SegKinds.Hold or SegKinds.Stay)
+               where full.Any(p => seg.At > p.From + 1e-6 && seg.At < p.To - 1e-6)
+               select (seg, channel);
     }
 
     /// <summary>What has to hold for a loop and does not, in words for the author; null when it joins.</summary>
@@ -2421,11 +2491,16 @@ internal sealed class FigureSolver
             joints[first + 3] = toe;
         }
 
+        // A mic (DESIGN.md 117): the hand that holds it, and with `mic both` the other one while singing.
+        double micUp = _micPhrases.Count > 0 ? MicUp(t) : 0;
+
         // Arms.
         for (int side = 1; side >= -1; side -= 2)
         {
             bool isLeft = side == 1;
             var shoulder = trunk.Shoulder(side);
+            bool holdsMic = _dancer.Mic is { } micHand && (micHand == "left") == isLeft;
+            bool helpsMic = _dancer.Mic == "both" && isLeft;
 
             // An arm that hangs: the upper arm straight down, the elbow a little bent, so the hand
             // is in front of the shoulder. The elbow bends back from the line to the hand; with
@@ -2462,9 +2537,12 @@ internal sealed class FigureSolver
 
             Vec3 Offset(Seg? seg)
             {
-                // An arm nobody wrote hangs, and swings while the feet walk.
+                // An arm nobody wrote hangs, and swings while the feet walk. One that holds a mic holds it before
+                // the belly, the elbow bent: a singer between phrases does not let it dangle.
                 if (seg is null)
-                    return Hang(c.Left, Vec3.Up, c.Fwd, swing);
+                    return holdsMic
+                        ? chest + torsoFwd * 0.24 - torsoUp * 0.30 + torsoLeft * (0.10 * side) - shoulder
+                        : Hang(c.Left, Vec3.Up, c.Fwd, swing);
                 if (seg.Kind == SegKinds.Reach)
                     return _others(seg.Target!) is { } other ? other.PlaceAt(seg.Part!, side, t, this, seg.Level) - (shoulder + lifted) : Offset(null);
                 if (seg.Kind == SegKinds.Anchor)
@@ -2601,6 +2679,20 @@ internal sealed class FigureSolver
                 && reach.Length > Rig.UpperArm + Rig.Forearm + 0.01)
                 problems.HandShort = isLeft ? Channels.LeftArm : Channels.RightArm;
             var hand = shoulder + reach;
+            if (micUp > 0 && (holdsMic || helpsMic))
+            {
+                // At the mouth: the wrist under the chin and a little in front, so the mic in the fist rises to the
+                // lips; the other hand of `mic both` lower on the handle. On the head as it is, so the mic goes with a
+                // nod or a turn. The elbow down and out. Over the row's arm, as far as the mic is up.
+                var neckUp = (head - chest).Normalized();
+                var mouth = head + gaze * 0.09 + neckUp * 0.02;
+                var wrist = holdsMic
+                    ? mouth + gaze * 0.05 - neckUp * 0.15 + faceLeft * (0.03 * side)
+                    : mouth + gaze * 0.06 - neckUp * 0.21 + faceLeft * (0.02 * side);
+                hand = Vec3.Lerp(hand, wrist, micUp);
+                var micPole = (-Vec3.Up + torsoLeft * (0.6 * side) - torsoFwd * 0.2).Normalized();
+                bend = Vec3.Slerp(bend.Length < 1e-6 ? pole.Normalized() : bend.Normalized(), micPole, micUp);
+            }
             var (elbow, reachedHand) = TwoBone(shoulder, hand, Rig.UpperArm, Rig.Forearm, bend.Length < 1e-6 ? pole : bend);
 
             int first = isLeft ? Rig.LShoulder : Rig.RShoulder;

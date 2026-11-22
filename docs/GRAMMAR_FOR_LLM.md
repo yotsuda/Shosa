@@ -1305,6 +1305,16 @@ score { dancer alice  dancer bob  dancer carol }
   ん and っ close it) on the beat it is sung, for as long as it is sung. The preview's character
   and the `.vrma` export move their mouth expressions; the movement is the same. A part nobody
   sings in the song is SH1908; without `sings`, the mouth stays shut.
+- `mic right | left | both`: the dancer holds a mic in that hand: `dancer alice humanoid "girl.vrm"
+  sings melody mic right on lead`. While it sings (by the phrase: up a little before the first
+  syllable, still up through a breath, down after the last) the hand is at the mouth, whatever
+  that arm's row says: the mic wins, and a word of that arm that arrives while singing is
+  SH2018 (it is not seen). Between phrases the arm dances its row with the mic in its hand;
+  where the row says nothing it holds the mic before the belly, the elbow bent (it does not
+  swing). `both`: both hands on the mic while singing (both arms' words wait), and between
+  phrases the right hand holds it and the left is free. Without `sings` the mic just stays in
+  the hand. The preview draws the mic and closes the hand on it; exported files have the arm
+  at the mouth, but no mic and no fingers.
 - `at` is where the feet stand TOGETHER before anything is written, and a first step
   already made moves one foot off it: `rightFoot.fwd(0.3m)` from `at 0 0` stands with the
   middle of the feet at 0.15 m forward, `leftFoot.side(0.6m)` with it 0.3 m to the left. To
