@@ -232,6 +232,17 @@ export function createJuggle(scene) {
           const v = new THREE.Vector3(...[0, 1, 2].map(m => (at(f, wi, m) - at(f, ei, m)) * (1 - r) + (at(g, wi, m) - at(g, ei, m)) * r));
           return v.lengthSq() > 1e-8 ? v.normalize() : fwd.clone();
         };
+        // A club opens out further than the forearm as it is caught (the user), by as much as the hand is out at the side:
+        // 25 degrees where it catches (40 cm out), none where it throws from inside (15 cm), so the throw keeps its way.
+        const pelvisAt = clip.joints.indexOf('pelvis');
+        const opened = (hand, sec, dir) => {
+          const side = hand === 0 ? 'right' : 'left', wi = clip.joints.indexOf(side + 'Hand');
+          const x = Math.max(0, Math.min(figureFrames.length - 1, sec * clip.fps)), f = Math.floor(x), g = Math.min(figureFrames.length - 1, f + 1), r = x - f;
+          const at = (i, m) => figureFrames[f][i * 3 + m] * (1 - r) + figureFrames[g][i * 3 + m] * r;
+          const out = ((at(wi, 0) - at(pelvisAt, 0)) * left.x + (at(wi, 2) - at(pelvisAt, 2)) * left.z) * (hand === 0 ? -1 : 1);
+          const share = Math.max(0, Math.min(1, (out - 0.15) / 0.25));
+          return dir.clone().applyAxisAngle(Y, (hand === 0 ? -1 : 1) * share * 25 * Math.PI / 180);
+        };
 
         entry.meshes.forEach((mesh, b) => {
           mesh.visible = visible;
@@ -272,14 +283,18 @@ export function createJuggle(scene) {
           // seemed to stop at the top (the user).
           const sec = frame / clip.fps;
           const flying = juggle.flights?.find(fl => fl[0] === b && fl[3] <= sec && sec <= fl[4]);
-          const d0 = flying ? forearmAt(flying[1], flying[3]) : forearm[from];
-          const d1 = flying ? forearmAt(flying[2], flying[4]) : forearm[to];
+          const d0 = flying ? forearmAt(flying[1], flying[3]) : forearm[from].clone();
+          const d1 = flying ? forearmAt(flying[2], flying[4]) : forearm[to].clone();
           const uu = flying ? (sec - flying[3]) / Math.max(1e-6, flying[4] - flying[3]) : u;
           if (entry.prop === 'clubs') {
             // Held, the club goes on from the forearm in one line, its handle in the fist (the user), the whole way of the
             // forearm, its part to the side too (not parallel as rings are): caught with the forearm opened out it opens out;
             // thrown from inside, the forearm closed, it opens the other way as much. Its middle is as far on from the fist
             // as when held: on the parabola, moved evenly, so still on a parabola.
+            const c0 = opened(flying ? flying[1] : from, flying ? flying[3] : sec, d0);
+            const c1 = opened(flying ? flying[2] : to, flying ? flying[4] : sec, d1);
+            d0.copy(c0);
+            d1.copy(c1);
             const base = d0.clone().lerp(d1, uu);
             if (base.lengthSq() < 1e-8) base.copy(fwd);
             base.normalize();
