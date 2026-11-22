@@ -131,7 +131,7 @@ export function createJuggle(scene) {
           if (own && own[hand]) o.copy(own[hand]).sub(figurePalm(figure.points, clip.joints, hand === 0 ? 'right' : 'left', p));
           else o.set(0, 0, 0);
         });
-        // The dancer's left and front, from its shoulders: a club turns end over end about the left; a ring faces the front.
+        // The dancer's left and front, from its shoulders: a club turns end over end about the left; a ring faces the side.
         const ls = figure.points[clip.joints.indexOf('leftShoulder')], rs = figure.points[clip.joints.indexOf('rightShoulder')];
         if (ls && rs) left.subVectors(ls, rs).setY(0).normalize(); else left.set(1, 0, 0);
         fwd.crossVectors(left, Y).normalize();
@@ -159,8 +159,9 @@ export function createJuggle(scene) {
             // The middle of a held club is ahead of the fist, not in it.
             if (from === to) mesh.position.addScaledVector(way, CLUB * 0.22);
           } else if (entry.prop === 'rings') {
-            // Its face to the front, the way it is thrown.
-            mesh.quaternion.setFromUnitVectors(Z, fwd);
+            // Thrown along the forearms: the ring in the plane of up and the front, its face to the side, its edge to
+            // the audience (the user: face to the front, it was a quarter turn out as seen from above).
+            mesh.quaternion.setFromUnitVectors(Z, left);
             if (from === to) mesh.position.addScaledVector(Y, RING * 0.8);
           }
         });

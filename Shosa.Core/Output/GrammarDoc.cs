@@ -1355,7 +1355,7 @@ public static class GrammarDoc
             - How high a ball goes is the time it flies: at tempo 120 and `every 1/2`, a 3 rises about
               0.2 m, a 5 about 1 m, a 7 about 2.5 m. Higher than 3 m is SH2020, and so is a throw every less
               than 0.12 s (the hands cannot keep up).
-            - The preview draws the balls (clubs turning end over end, rings face to the front) and turns a
+            - The preview draws the balls (clubs turning end over end, rings along the forearms, edge to the front) and turns a
               character's palms up while it throws. Exported files have the arms; the balls are not in them.
 
             ## Dancing to a song

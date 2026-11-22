@@ -44,7 +44,7 @@ internal static class Words
     [
         new("balls", "Balls (beanbags, 68 mm)."),
         new("clubs", "Clubs, turning end over end: once for a 3, twice for a 5."),
-        new("rings", "Rings, thrown with their face to the front."),
+        new("rings", "Rings, thrown along the forearms: the face to the side, the edge to the front."),
     ];
 
     /// <summary>What a juggle row's words start from: its own words, and patterns jugglers know.</summary>
