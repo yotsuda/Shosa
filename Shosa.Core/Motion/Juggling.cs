@@ -470,16 +470,20 @@ public sealed class Juggling
             catchStyle = Style.Penguin;
         }
         // Mills' Mess: every throw is made with the arms crossed, the throwing hand reaching to the other side, over the
-        // other arm and then under it, one throw and the next; it uncrosses to catch on its own side.
-        // Close in, so the hands go round a small way (the user: the forearms slowly round each other): crossed only just
-        // past the middle, caught near in on its own side.
+        // other arm and then under it, one throw and the next; it uncrosses to catch on its own side. The hands roll round
+        // each other (the user: the forearms turn smoothly, the hands going well up and down): crossed over, high and in
+        // front, it comes down outside to catch low; crossed under, low and behind, it comes up outside to catch high.
         if (Has(throwTricks, "mills"))
         {
             bool over = nth % 2 == 0;
-            from = new Vec3(-s * 0.05, over ? 0.06 : -0.02, over ? 0.07 : -0.05);
+            from = new Vec3(-s * 0.05, over ? 0.12 : -0.10, over ? 0.08 : -0.06);
         }
         if (Has(catchTricks, "mills"))
-            into = new Vec3(c * 0.22, 0.05, 0.0);
+        {
+            // After crossing over (its last throw) it catches low; after crossing under, high.
+            bool cameOver = (_throwsBy[to] - 1) % 2 == 0;
+            into = new Vec3(c * 0.22, cameOver ? -0.06 : 0.10, 0.0);
+        }
         // Behind the back: from behind the waist, toward the other side, over the other shoulder.
         if (Has(throwTricks, "back"))
         {
