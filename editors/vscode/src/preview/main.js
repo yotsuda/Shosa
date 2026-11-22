@@ -270,7 +270,7 @@ function pose(frame) {
   }
   if (clip) characters.pose(clip, clip.figures, frame);
   // The balls juggled (DESIGN.md 118): in the character's hands where it has one, else in the figure's.
-  if (clip) juggle.pose(clip, figures, frame, i => modelBox.checked ? characters.palms(i) : null, true, i => modelBox.checked ? characters.forearms(i) : null);
+  if (clip) juggle.pose(clip, figures, frame, i => modelBox.checked ? characters.palms(i) : null, true, i => modelBox.checked ? characters.forearms(i) : null, i => modelBox.checked ? characters.track(i) : null);
   else juggle.clear();
 }
 

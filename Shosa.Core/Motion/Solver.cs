@@ -360,7 +360,8 @@ public static class Solver
             return below;
         }
 
-        var result = new ClipJuggle(juggling.Prop, juggling.Balls, [], []);
+        var result = new ClipJuggle(juggling.Prop, juggling.Balls, [], [],
+            [.. juggling.Flights.Select(fl => new[] { fl.Ball, fl.From, fl.To, (float)Math.Round(fl.Thrown, 4), (float)Math.Round(fl.Caught, 4) })]);
         for (int f = 0; f < frames.Count; f++)
         {
             double sec = (double)f / fps;

@@ -84,6 +84,97 @@ export function createCharacters(scene, changed) {
     });
   }
 
+  /**
+   * Poses a character's bones for a frame, as far as nothing but the frame decides it (the turns, the hips, the arms kept
+   * out of its body, a juggler's palms): what its springs and expressions do is left to the caller. Returns its scale.
+   */
+  function place(entry, clip, data, frame) {
+    const vrm = entry.vrm, turns = data.turns, frames = data.frames;
+    const names = clip.skeletonBones ?? [];
+    const pelvis = clip.joints.indexOf('pelvis');
+    if (!entry.bones) entry.bones = names.map(name => vrm.humanoid.getNormalizedBoneNode(name));
+    const f0 = Math.max(0, Math.min(turns.length - 1, Math.floor(frame))), f1 = Math.min(turns.length - 1, f0 + 1), k = Math.max(0, frame - f0);
+    const a = turns[f0], b = turns[f1];
+    const s = entry.flip ? -1 : 1;
+    entry.bones.forEach((bone, j) => {
+      if (!bone) return;   // a bone this character does not have (chest is optional in VRM)
+      q0.set(s * a[j * 4], a[j * 4 + 1], s * a[j * 4 + 2], a[j * 4 + 3]);
+      q1.set(s * b[j * 4], b[j * 4 + 1], s * b[j * 4 + 2], b[j * 4 + 3]);
+      bone.quaternion.slerpQuaternions(q0, q1, k);
+    });
+    const hips = entry.bones[names.indexOf('hips')];
+    const size = entry.height && entry.ownHeight ? entry.height / entry.ownHeight : 1;
+    vrm.scene.scale.setScalar(size);
+    if (hips && pelvis >= 0) {
+      const p = frames[f0], q = frames[Math.min(frames.length - 1, f0 + 1)];
+      // The pelvis's way is scaled to the character's legs (its steps are its own length, the feet do not slide),
+      // but from where the figure stands at the start of the clip: the dancer is where `at` puts it, in metres,
+      // whatever the character's size. The scene is scaled by `size`: the bone's position is in its units.
+      const legs = entry.restHips * size / (clip.hipsHeight || 1);
+      const first = frames[0];
+      const at = j => p[pelvis * 3 + j] + (q[pelvis * 3 + j] - p[pelvis * 3 + j]) * k;
+      const ground = j => first[pelvis * 3 + j] + (at(j) - first[pelvis * 3 + j]) * legs;
+      hips.position.set(s * ground(0) / size, at(1) * legs / size, s * ground(2) / size);
+    }
+    // The arms out of the character's own body, which is not the figure's the turns were solved on (DESIGN.md 116).
+    // (A test page turns it off with globalThis.shosaArmsAsSolved, to compare.)
+    if (entry.body && !globalThis.shosaArmsAsSolved) keepArmsOut(vrm, entry.body, size);
+    // Juggling (DESIGN.md 118): the palms up while it throws, so the balls lie on them; for rings an edge, the thumb up.
+    const juggled = data.juggle && data.juggle.weight;
+    if (juggled && juggled.length) {
+      const w0 = juggled[Math.min(juggled.length - 1, f0)], w1 = juggled[Math.min(juggled.length - 1, f0 + 1)];
+      palmsUp(vrm, w0 + (w1 - w0) * k, data.juggle.prop === 'rings');
+    }
+    return size;
+  }
+
+  /** A posed character's palms (past the wrist along the hand toward the fingers, and up) and forearms, [right, left]. */
+  function measure(vrm, prop) {
+    const palms = [], forearms = [];
+    for (const side of ['right', 'left']) {
+      const lower = vrm.humanoid.getNormalizedBoneNode(side + 'LowerArm'), hand = vrm.humanoid.getNormalizedBoneNode(side + 'Hand');
+      if (!lower || !hand) {
+        palms.push(null);
+        forearms.push(null);
+        continue;
+      }
+      const w = hand.getWorldPosition(new THREE.Vector3()), e = lower.getWorldPosition(new THREE.Vector3());
+      const k = e.distanceTo(w) / 0.31;
+      const along = w.clone().sub(e).normalize();
+      palms.push(w.clone().addScaledVector(along, palmAlong(prop) * k).add(new THREE.Vector3(0, 0.04 * k, 0)));
+      forearms.push(along);
+    }
+    return { palms, forearms };
+  }
+
+  /**
+   * A juggling character's palms and forearms at every frame of the clip, posed one frame after another (only what the
+   * frame decides: no springs). Its hands are not the figure's (a child's short arms move less), so the balls are drawn
+   * between these: from the palm at the throw to the palm at the catch, on a parabola (the user: with the figure's arc
+   * moved by the difference of the hands, a ball flew where no ball can).
+   */
+  function trackPalms(entry, clip, data) {
+    const count = data.frames.length;
+    const at = { data, fps: clip.fps, palms: [[], []], forearms: [[], []] };
+    for (let f = 0; f < count; f++) {
+      place(entry, clip, data, f);
+      entry.vrm.scene.updateMatrixWorld(true);
+      const { palms, forearms } = measure(entry.vrm, data.juggle.prop);
+      for (const hand of [0, 1]) {
+        at.palms[hand].push(palms[hand] ?? new THREE.Vector3());
+        at.forearms[hand].push(forearms[hand] ?? new THREE.Vector3(0, 0, 1));
+      }
+    }
+    /** A hand's palm (or forearm) at a time, seconds, between two frames. */
+    const between = (list, hand, sec) => {
+      const x = Math.max(0, Math.min(count - 1, sec * at.fps)), f = Math.floor(x), g = Math.min(count - 1, f + 1);
+      return list[hand][f].clone().lerp(list[hand][g], x - f);
+    };
+    at.palm = (hand, sec) => between(at.palms, hand, sec);
+    at.forearm = (hand, sec) => between(at.forearms, hand, sec).normalize();
+    return at;
+  }
+
   return {
     /** The bytes of a file (or why there are none) have come. Every figure dressed in it is dressed again. */
     setFile(file, data, error) {
@@ -152,47 +243,16 @@ export function createCharacters(scene, changed) {
       const dt = lastFrame === null ? 0 : (frame - lastFrame) / clip.fps;
       const jumped = lastFrame === null || dt < 0 || dt > 0.25;
       lastFrame = frame;
-      const names = clip.skeletonBones ?? [];
-      const pelvis = clip.joints.indexOf('pelvis');
       dressed.forEach((entry, i) => {
         if (!entry || !entry.vrm) return;
         const data = figures[i];
         const turns = data && data.turns, frames = data && data.frames;
         if (!turns || !turns.length || !frames || !frames.length) return;
         const vrm = entry.vrm;
-        if (!entry.bones) entry.bones = names.map(name => vrm.humanoid.getNormalizedBoneNode(name));
+        // A juggler's palms at every frame, before this one is posed: the balls fly between them (juggle.js).
+        if (data.juggle && entry.track?.data !== data) entry.track = trackPalms(entry, clip, data);
         const f0 = Math.max(0, Math.min(turns.length - 1, Math.floor(frame))), f1 = Math.min(turns.length - 1, f0 + 1), k = Math.max(0, frame - f0);
-        const a = turns[f0], b = turns[f1];
-        const s = entry.flip ? -1 : 1;
-        entry.bones.forEach((bone, j) => {
-          if (!bone) return;   // a bone this character does not have (chest is optional in VRM)
-          q0.set(s * a[j * 4], a[j * 4 + 1], s * a[j * 4 + 2], a[j * 4 + 3]);
-          q1.set(s * b[j * 4], b[j * 4 + 1], s * b[j * 4 + 2], b[j * 4 + 3]);
-          bone.quaternion.slerpQuaternions(q0, q1, k);
-        });
-        const hips = entry.bones[names.indexOf('hips')];
-        const size = entry.height && entry.ownHeight ? entry.height / entry.ownHeight : 1;
-        vrm.scene.scale.setScalar(size);
-        if (hips && pelvis >= 0) {
-          const p = frames[f0], q = frames[Math.min(frames.length - 1, f0 + 1)];
-          // The pelvis's way is scaled to the character's legs (its steps are its own length, the feet do not slide),
-          // but from where the figure stands at the start of the clip: the dancer is where `at` puts it, in metres,
-          // whatever the character's size. The scene is scaled by `size`: the bone's position is in its units.
-          const legs = entry.restHips * size / (clip.hipsHeight || 1);
-          const first = frames[0];
-          const at = j => p[pelvis * 3 + j] + (q[pelvis * 3 + j] - p[pelvis * 3 + j]) * k;
-          const ground = j => first[pelvis * 3 + j] + (at(j) - first[pelvis * 3 + j]) * legs;
-          hips.position.set(s * ground(0) / size, at(1) * legs / size, s * ground(2) / size);
-        }
-        // The arms out of the character's own body, which is not the figure's the turns were solved on (DESIGN.md 116).
-        // (A test page turns it off with globalThis.shosaArmsAsSolved, to compare.)
-        if (entry.body && !globalThis.shosaArmsAsSolved) keepArmsOut(vrm, entry.body, size);
-        // Juggling (DESIGN.md 118): the palms up while it throws, so the balls lie on them; for rings an edge, the thumb up.
-        const juggled = data.juggle && data.juggle.weight;
-        if (juggled && juggled.length) {
-          const w0 = juggled[Math.min(juggled.length - 1, f0)], w1 = juggled[Math.min(juggled.length - 1, f0 + 1)];
-          palmsUp(vrm, w0 + (w1 - w0) * k, data.juggle.prop === 'rings');
-        }
+        const size = place(entry, clip, data, frame);
         // A hand holding a ball or a ring is a fist; an empty one opens to catch (the user).
         if (data.juggle && data.juggle.frames && data.juggle.frames.length) {
           gripHands(vrm, heldBy(data.juggle, frame));
@@ -226,25 +286,24 @@ export function createCharacters(scene, changed) {
           vrm.springBoneManager.reset();
         }
         vrm.update(jumped ? 0 : Math.min(dt, 0.1));
-        // Where its palms are, for the balls it juggles (juggle.js): past the wrist along the hand toward the fingers, and up. Right, left.
+        // Where its palms are, for the balls it juggles (juggle.js). Right, left.
         if (data.juggle) {
           vrm.scene.updateMatrixWorld(true);
-          entry.palms = ['right', 'left'].map(side => {
-            const lower = vrm.humanoid.getNormalizedBoneNode(side + 'LowerArm'), hand = vrm.humanoid.getNormalizedBoneNode(side + 'Hand');
-            if (!lower || !hand) return null;
-            const w = hand.getWorldPosition(new THREE.Vector3()), e = lower.getWorldPosition(new THREE.Vector3());
-            const k = e.distanceTo(w) / 0.31;
-            return w.clone().add(w.clone().sub(e).normalize().multiplyScalar(palmAlong(data.juggle.prop) * k)).add(new THREE.Vector3(0, 0.04 * k, 0));
-          });
-          entry.forearms = ['right', 'left'].map(side => {
-            const lower = vrm.humanoid.getNormalizedBoneNode(side + 'LowerArm'), hand = vrm.humanoid.getNormalizedBoneNode(side + 'Hand');
-            return lower && hand ? hand.getWorldPosition(new THREE.Vector3()).sub(lower.getWorldPosition(new THREE.Vector3())).normalize() : null;
-          });
+          ({ palms: entry.palms, forearms: entry.forearms } = measure(vrm, data.juggle.prop));
         } else {
           entry.palms = null;
           entry.forearms = null;
         }
       });
+    },
+
+    /**
+     * Figure i's character's palms at every frame, [right, left] (null when it is not shown as its character): the balls
+     * fly from the palm at the throw to the palm at the catch (juggle.js).
+     */
+    track(i) {
+      const entry = dressed[i];
+      return entry && entry.vrm && entry.vrm.scene.visible && entry.track ? entry.track : null;
     },
 
     /** The forearms [right, left] of figure i's character (elbow to wrist, of length 1) as last posed, or null. */

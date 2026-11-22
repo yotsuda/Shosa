@@ -166,7 +166,7 @@ export function createJuggle(scene) {
      * Puts each figure's balls where they are at a frame. `figures` are the preview's ({ data, points }); `palms(i)`
      * is the character's palms [right, left] for a figure shown as its character, or null for one shown as sticks.
      */
-    pose(clip, figures, frame, palms, visible, forearms = null) {
+    pose(clip, figures, frame, palms, visible, forearms = null, tracks = null) {
       figures.forEach((figure, i) => {
         const juggle = figure.data && figure.data.juggle;
         if (!juggle || !juggle.frames || !juggle.frames.length) {
@@ -187,6 +187,7 @@ export function createJuggle(scene) {
         const frames = juggle.frames;
         const f0 = Math.max(0, Math.min(frames.length - 1, Math.floor(frame))), f1 = Math.min(frames.length - 1, f0 + 1), k = Math.max(0, frame - f0);
         const a = frames[f0], c = frames[f1];
+        const track = tracks ? tracks(i) : null;
 
         // The character's palm from the figure's, for each hand (none for sticks).
         const own = palms ? palms(i) : null;
@@ -215,9 +216,29 @@ export function createJuggle(scene) {
           p.set(a[j] + (c[j] - a[j]) * (sameState ? k : (k < 0.5 ? 0 : 1)),
                 a[j + 1] + (c[j + 1] - a[j + 1]) * (sameState ? k : (k < 0.5 ? 0 : 1)),
                 a[j + 2] + (c[j + 2] - a[j + 2]) * (sameState ? k : (k < 0.5 ? 0 : 1)));
-          const from = src[j + 3] | 0, to = src[j + 4] | 0;
-          const u = src[j + 5] + ((sameState ? c[j + 5] : src[j + 5]) - src[j + 5]) * t;
-          p.add(offsets[from].clone().lerp(offsets[to], u));
+          let from = src[j + 3] | 0, to = src[j + 4] | 0;
+          let u = src[j + 5] + ((sameState ? c[j + 5] : src[j + 5]) - src[j + 5]) * t;
+          if (track && juggle.flights) {
+            // On a character: in the air from its palm at the throw to its palm at the catch, on the parabola that takes
+            // that time under gravity; in a hand, on its palm (stacked as the server stacks them).
+            const sec = frame / clip.fps;
+            const flight = juggle.flights.find(fl => fl[0] === b && fl[3] <= sec && sec <= fl[4]);
+            if (flight) {
+              const [, f, g, thrown, caught] = flight;
+              const tf = Math.max(1e-6, caught - thrown), s = sec - thrown;
+              const p0 = track.palm(f, thrown), p1 = track.palm(g, caught);
+              p.copy(p0).lerp(p1, s / tf).addScaledVector(Y, 9.81 / 2 * s * (tf - s));
+              [from, to, u] = [f, g, s / tf];
+            } else {
+              let hand = frames[0][j + 3] | 0, last = -Infinity;
+              for (const fl of juggle.flights) if (fl[0] === b && fl[4] < sec && fl[4] > last) [hand, last] = [fl[2], fl[4]];
+              const stack = p.clone().sub(figurePalm(figure.points, clip.joints, hand === 0 ? 'right' : 'left', new THREE.Vector3(), palmAlong(juggle.prop)));
+              p.copy(track.palm(hand, sec)).add(stack);
+              [from, to, u] = [hand, hand, 0];
+            }
+          } else {
+            p.add(offsets[from].clone().lerp(offsets[to], u));
+          }
           mesh.position.copy(p);
           if (entry.prop === 'clubs') {
             // Held, it points forward and up out of the fist; thrown, it turns end over end, the knob toward the hand.
