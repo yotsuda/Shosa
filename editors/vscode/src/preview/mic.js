@@ -170,7 +170,8 @@ export function createMicHands(scene) {
       const micWay = headUp.clone().multiplyScalar(0.9).addScaledVector(front, -0.44).normalize();
       // The ball just before the lips, the fist down the handle from it (under the chin: the mic is the same size for
       // every character, and a fist sized to a short forearm came up over the chin, DESIGN.md 117.4).
-      const ball = mouth.clone().addScaledVector(front, 0.035);
+      // Below the lips and out a little, pointing up at them: at the lips the ball hid the face (the user).
+      const ball = mouth.clone().addScaledVector(front, 0.05).addScaledVector(headUp, -0.035);
       const fist = ball.clone().addScaledVector(micWay, -TO_BALL);
 
       // A hand on the mic: the thumb along it, the fingers round it, reaching from its own side across and forward.
