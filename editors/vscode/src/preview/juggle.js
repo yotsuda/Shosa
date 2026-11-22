@@ -254,12 +254,16 @@ export function createJuggle(scene) {
             // comes down as the catching hand holds it. Its middle is as far on from the fist as when held, the way of the
             // forearms in between: on the parabola, moved evenly, so still on a parabola.
             const spin = src[j + 6] + ((sameState ? c[j + 6] : src[j + 6]) - src[j + 6]) * t;
+            // The whole way of the forearm, its part to the side too (the user: not parallel as rings are): caught with the
+            // forearm opened out, the club opens out; thrown from inside, the forearm closed, it opens the other way as much.
             const base = forearm[from].clone().lerp(forearm[to], u);
-            base.addScaledVector(left, -base.dot(left));
             if (base.lengthSq() < 1e-8) base.copy(fwd);
             base.normalize();
             mesh.position.addScaledVector(base, CLUB_GRIP);
-            const way = base.clone().applyAxisAngle(left, spin);
+            // It turns end over end in the upright plane it points in.
+            const turnAxis = new THREE.Vector3().crossVectors(base, Y);
+            if (turnAxis.lengthSq() < 1e-8) turnAxis.copy(left); else turnAxis.normalize();
+            const way = base.clone().applyAxisAngle(turnAxis, spin);   // its body rises first, toward the thrower
             mesh.quaternion.setFromUnitVectors(Y, way.normalize());
           } else if (entry.prop === 'rings') {
             // Held by its near edge, the elbow, the hand and the middle of the ring in one line (the user: held from
