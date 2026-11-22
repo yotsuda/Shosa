@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { LanguageClient, ServerOptions, TransportKind } from 'vscode-languageclient/node';
+import { LanguageClient, ServerOptions, State, TransportKind } from 'vscode-languageclient/node';
 import { registerExport } from './export';
 import { registerModels } from './models';
 import { ClipMusic, createStems } from './stems';
@@ -208,8 +208,27 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       post(message, false);
     }
   });
+  // A server that has stopped (VS Code gives up after it crashes five times, as when the extension's files are
+  // replaced under it) sends nothing more: the preview says so, rather than go on showing the last file's clip.
+  const serverStopped = () => client?.state === State.Stopped;
+  client.onDidChangeState(event => {
+    if (event.newState === State.Stopped && panel && panelUri) {
+      waiting(panelUri);
+    }
+  });
   await client.start();
   context.subscriptions.push({ dispose: () => void client?.stop() });
+
+  /** The preview of a file the server has sent no clip for (yet): nothing of another file's is left on it. */
+  const waiting = (uri: string) => {
+    const name = path.basename(vscode.Uri.parse(uri).fsPath);
+    void panel?.webview.postMessage({
+      type: 'waiting',
+      text: serverStopped()
+        ? `The Shosa server has stopped, so ${name} is not compiled. Run "Developer: Reload Window" to start it again (Output > Shosa says why it stopped).`
+        : `Waiting for the Shosa server to compile ${name}…`,
+    });
+  };
 
   // The grammar, the check and the sheet as tools of an AI assistant in the editor (tools.ts).
   registerTools(context, client);
@@ -221,8 +240,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }
     panel.title = 'Preview ' + path.basename(vscode.Uri.parse(uri).fsPath);
     const known = clips.get(uri);
-    if (known) {
+    if (known && !serverStopped()) {
       post(known, true);
+    } else {
+      waiting(uri);
     }
   };
 

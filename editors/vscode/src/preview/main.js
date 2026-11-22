@@ -121,6 +121,8 @@ document.body.innerHTML = `
   </footer>`;
 
 const stage = document.getElementById('stage'), empty = document.getElementById('empty');
+/** What the empty stage says when a file has nothing to perform (a 'waiting' message says something else for a while). */
+const EMPTY = empty.textContent;
 const playButton = document.getElementById('play'), seek = document.getElementById('seek');
 const beatLabel = document.getElementById('beat'), speed = document.getElementById('speed'), loop = document.getElementById('loop');
 const bar = document.getElementById('bar'), clipSelect = document.getElementById('clips');
@@ -809,7 +811,14 @@ renderer.domElement.addEventListener('pointerup', event => {
 // ---- Messages from the extension.
 window.addEventListener('message', event => {
   const message = event.data;
-  if (message.type === 'clip') {
+  if (message.type === 'waiting') {
+    // A file the server has sent nothing for (yet), or a server that has stopped: the stage is cleared, and says which.
+    clips = [];
+    setPlaying(false);
+    setClip(null, false);
+    empty.textContent = message.text;
+  } else if (message.type === 'clip') {
+    empty.textContent = EMPTY;
     const shown = clip && !message.reset ? clip.name : null;
     clips = message.clips ?? [];
     models = message.models ?? {};

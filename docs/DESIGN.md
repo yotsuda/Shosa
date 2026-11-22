@@ -6479,3 +6479,9 @@ dancer alice humanoid "girl.vrm" sings melody mic right on solo
 - **休みの構えが高かった**: 求解器の構えを胸の 0.30 m 下 → 0.35 m 下、前 0.24 → 0.22 m。ずん子で腹の前に。
 - ミニずんだもん (2 頭身) は腕が口に届かず、胸の前の拳から長い柄で口へ届く (柄は約 3 倍)。2 頭身の絵では、この方が歌っていると読めるので、そのままにした。
 
+### 117.5 ユーザーが VS Code で開くと何も出なかった: サーバーが止まっていた (2026-11-22)
+
+- ユーザー: 「mic.shosa と models.shosa は、プレビューに Nothing to perform yet と出てモデルが表示されない。ほかの .shosa から切り替えると前のプレビューが出たままで、警告も出ない」。
+- 原因は マイクではなく、**言語サーバーが止まっていた**: 出力 (Shosa) のログに 14:39 に 5 回続けて落ち (`exited with code 4294967295`、スタックなし)、VS Code が再起動をやめた記録。拡張を入れ替えたのが 14:52 (動いているサーバーのファイルが入れ替え中に消え、起動できなかったと見ている)。窓は 14:03 の拡張ホストのまま。入っている新しいサーバーに stdio で直接 `didOpen` させると、SH2018 とクリップが返った (`py <scratchpad>\lsp_probe.py SERVER FILE` の形。使い捨て)。→ **拡張を入れ替えたら Reload Window** (HANDOFF のとおり)。
+- **直したこと: サーバーが何も送ってこないファイルに、前のファイルのプレビューを残さない** (`extension.ts`、`preview\main.js`)。プレビューを別のファイルに切り替えてクリップがまだない、またはサーバーが止まっている (`State.Stopped`) ときは、拡張が `{ type: 'waiting', text }` を送り、プレビューは絵 (キャラクター、マイク) を消して「Waiting for the Shosa server to compile X…」か「The Shosa server has stopped … Run "Developer: Reload Window"」と出す。動いているサーバーが止まったときも出す。`out\pv\harness-waiting.html` で、クリップの後に `waiting` を送ると舞台が空になり文言が出ることを確かめた。
+
