@@ -228,10 +228,21 @@ export function createCharacters(scene, changed) {
             const k = e.distanceTo(w) / 0.31;
             return w.clone().add(w.clone().sub(e).normalize().multiplyScalar(0.05 * k)).add(new THREE.Vector3(0, 0.04 * k, 0));
           });
+          entry.forearms = ['right', 'left'].map(side => {
+            const lower = vrm.humanoid.getNormalizedBoneNode(side + 'LowerArm'), hand = vrm.humanoid.getNormalizedBoneNode(side + 'Hand');
+            return lower && hand ? hand.getWorldPosition(new THREE.Vector3()).sub(lower.getWorldPosition(new THREE.Vector3())).normalize() : null;
+          });
         } else {
           entry.palms = null;
+          entry.forearms = null;
         }
       });
+    },
+
+    /** The forearms [right, left] of figure i's character (elbow to wrist, of length 1) as last posed, or null. */
+    forearms(i) {
+      const entry = dressed[i];
+      return entry && entry.vrm && entry.vrm.scene.visible && entry.forearms ? entry.forearms : null;
     },
 
     /** The palms [right, left] of figure i's character as last posed, or null when it is shown as sticks. */

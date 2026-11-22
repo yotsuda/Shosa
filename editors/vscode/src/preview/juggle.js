@@ -106,7 +106,7 @@ export function createJuggle(scene) {
      * Puts each figure's balls where they are at a frame. `figures` are the preview's ({ data, points }); `palms(i)`
      * is the character's palms [right, left] for a figure shown as its character, or null for one shown as sticks.
      */
-    pose(clip, figures, frame, palms, visible) {
+    pose(clip, figures, frame, palms, visible, forearms = null) {
       figures.forEach((figure, i) => {
         const juggle = figure.data && figure.data.juggle;
         if (!juggle || !juggle.frames || !juggle.frames.length) {
@@ -138,6 +138,13 @@ export function createJuggle(scene) {
         const ls = figure.points[clip.joints.indexOf('leftShoulder')], rs = figure.points[clip.joints.indexOf('rightShoulder')];
         if (ls && rs) left.subVectors(ls, rs).setY(0).normalize(); else left.set(1, 0, 0);
         fwd.crossVectors(left, Y).normalize();
+        // Each hand's forearm, elbow to wrist: the character's own where it is shown, else the figure's.
+        const ownArms = forearms ? forearms(i) : null;
+        const forearm = ['right', 'left'].map((side, hand) => {
+          if (ownArms && ownArms[hand]) return ownArms[hand].clone();
+          const w = figure.points[clip.joints.indexOf(side + 'Hand')], e = figure.points[clip.joints.indexOf(side + 'Elbow')];
+          return w && e ? w.clone().sub(e).normalize() : fwd.clone();
+        });
 
         entry.meshes.forEach((mesh, b) => {
           mesh.visible = visible;
@@ -162,12 +169,16 @@ export function createJuggle(scene) {
             // The middle of a held club is ahead of the fist, not in it.
             if (from === to) mesh.position.addScaledVector(way, CLUB * 0.22);
           } else if (entry.prop === 'rings') {
-            // Thrown along the forearms: the ring in the plane of up and the front, its face to the side, its edge to
-            // the audience (the user: face to the front, it was a quarter turn out as seen from above).
-            mesh.quaternion.setFromUnitVectors(Z, left);
-            // Held by its lower edge, and thrown and caught so: its middle a radius above the palm, in the air as well
-            // (only while held, it jumped down a radius at each throw).
-            mesh.position.addScaledVector(Y, RING * 0.9);
+            // Held by its near edge, the elbow, the hand and the middle of the ring in one line (the user: held from
+            // below it was wrong): the middle a radius on along the forearm, the ring in the plane of the forearm and
+            // up, its face to the side, its edge to the audience. In the air from the thrower's forearm to the catcher's.
+            const along = forearm[from].clone().lerp(forearm[to], u);
+            if (along.lengthSq() < 1e-8) along.copy(fwd);
+            along.normalize();
+            // A ring is gripped in the fist, on the line of the forearm, not lying on the palm as a ball is.
+            mesh.position.addScaledVector(along, RING).addScaledVector(Y, -PALM_UP);
+            const face = new THREE.Vector3().crossVectors(along, Y);
+            mesh.quaternion.setFromUnitVectors(Z, face.lengthSq() > 1e-6 ? face.normalize() : left);
           }
         });
       });
