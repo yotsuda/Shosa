@@ -350,7 +350,7 @@ public sealed class Juggling
         : new Vec3(Side(hand) * (across ? 0.15 : 0.21), 0, 0.01);
     private Vec3 Catches(int hand, int value) => value == 1
         ? new Vec3(Side(hand) * 0.16, -0.01, 0.02)
-        : Rings ? new Vec3(Side(hand) * 0.29, 0.18, 0.02)
+        : Rings ? new Vec3(Side(hand) * 0.31, 0.18, 0.02)
         : new Vec3(Side(hand) * 0.32, 0.06, -0.02);
 
     private static readonly Vec3 Still = new(0, 0, 0);
