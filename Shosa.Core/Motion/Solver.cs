@@ -2130,6 +2130,9 @@ internal sealed class FigureSolver
             stride = Math.Clamp((c.LPos - c.RPos).Dot(c.Fwd), -0.8, 0.8) * (1 - FeetStill(t));
         if (_shoulders.Count == 0)
             c.Shoulders += ShouldersPerMetre * stride;
+        // Mills' Mess: the shoulders go with the arm that crosses (DESIGN.md 118.12).
+        if (_shoulders.Count == 0 && Juggling is { } juggled)
+            c.Shoulders += juggled.ShoulderTurn(Seconds(t));
         // Unwritten hips turn a little with the drift of the weight, toward the leg that takes it (3.4°).
         if (_alive && _hips.Count == 0)
             c.Hips -= 0.06 * drift + HipsPerMetre * stride;

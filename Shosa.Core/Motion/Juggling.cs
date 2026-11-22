@@ -273,7 +273,10 @@ public sealed class Juggling
         {
             _keys[hand].Add((lastCatch + 0.2, Ready(hand), Still, Style.Own));
             _keys[hand].Sort((a, b) => a.T.CompareTo(b.T));
+            Soften(hand);
         }
+        foreach (var (seg, _) in run.Where(r => r.Seg.Tricks?.Contains("mills") == true))
+            _mills.Add((Sec(seg.T0), Sec(seg.T1)));
         heldSince = lastCatch + 0.2;
         Runs.Add((start, lastCatch));
         Busy.Add((run[0].Seg.T0, run[^1].Seg.T1));
@@ -399,6 +402,25 @@ public sealed class Juggling
         // Leaves at the speed that brings it to the catch in its time under gravity.
         var leaves = new Vec3((into.X - from.X) / flight, (into.Y - from.Y) / flight + G * flight / 2, (into.Z - from.Z) / flight);
         var arrives = new Vec3(leaves.X, leaves.Y - G * flight, leaves.Z);
+        bool millsThrow = throwTricks?.Contains("mills") == true, millsCatch = catchTricks?.Contains("mills") == true;
+        if (millsThrow || millsCatch)
+        {
+            // Mills' Mess is soft: the hands never stop and never snap, the forearms going slowly round each other (the
+            // user: crossed and uncrossed at the speed of the balls it was a body no one has). Only the places; the speed
+            // at each is from the places either side, once they are all known (Smooth).
+            if (millsThrow)
+                AddSmooth(hand, (thrown, from, Still, throwStyle));
+            else
+            {
+                _keys[hand].Add((thrown - Math.Min(0.05, 0.45 * Dwell * beat), from - leaves * Math.Min(0.025, 0.2 * Dwell * beat), Still, throwStyle));
+                _keys[hand].Add((thrown, from, leaves, throwStyle));
+            }
+            if (millsCatch)
+                AddSmooth(to, (caught, into, Still, catchStyle));
+            else
+                _keys[to].Add((caught, into, arrives * 0.3, catchStyle));
+            return;
+        }
         // From a stop to that speed, evenly faster: over as many seconds as cover the lift, but no more than a part of the hold.
         double speed = Math.Max(0.5, leaves.Length);
         // (A throw every few hundredths of a second, SH2020, leaves less than that: the swing is as short as the hold.)
@@ -449,11 +471,15 @@ public sealed class Juggling
         }
         // Mills' Mess: every throw is made with the arms crossed, the throwing hand reaching to the other side, over the
         // other arm and then under it, one throw and the next; it uncrosses to catch on its own side.
+        // Close in, so the hands go round a small way (the user: the forearms slowly round each other): crossed only just
+        // past the middle, caught near in on its own side.
         if (Has(throwTricks, "mills"))
         {
             bool over = nth % 2 == 0;
-            from = new Vec3(-s * 0.10, over ? 0.04 : -0.03, over ? 0.08 : -0.04);
+            from = new Vec3(-s * 0.05, over ? 0.06 : -0.02, over ? 0.07 : -0.05);
         }
+        if (Has(catchTricks, "mills"))
+            into = new Vec3(c * 0.22, 0.05, 0.0);
         // Behind the back: from behind the waist, toward the other side, over the other shoulder.
         if (Has(throwTricks, "back"))
         {
@@ -467,6 +493,50 @@ public sealed class Juggling
             throwStyle = Style.Under;
         }
         return (from, into, throwStyle, catchStyle);
+    }
+
+    /// <summary>Places whose speed is not the ball's but the hand's own way through them: a trick that goes round softly (Mills).</summary>
+    private readonly HashSet<(int Hand, double T)> _smooth = [];
+
+    private void AddSmooth(int hand, (double T, Vec3 At, Vec3 Velocity, Style Style) key)
+    {
+        _keys[hand].Add(key);
+        _smooth.Add((hand, key.T));
+    }
+
+    /// <summary>
+    /// The speed at each soft place, once a hand's places are in order: the way from the place before to the place after,
+    /// a little slower (a Catmull-Rom curve), so the hand goes round through them without stopping.
+    /// </summary>
+    private void Soften(int hand)
+    {
+        var keys = _keys[hand];
+        for (int i = 1; i + 1 < keys.Count; i++)
+        {
+            if (!_smooth.Contains((hand, keys[i].T)))
+                continue;
+            var (t0, a, _, _) = keys[i - 1];
+            var (t2, b, _, _) = keys[i + 1];
+            if (t2 - t0 < 1e-6)
+                continue;
+            keys[i] = keys[i] with { Velocity = (b - a) * (0.85 / (t2 - t0)) };
+        }
+    }
+
+    /// <summary>The juggling's Mills' Mess at a time (seconds), 0..1: how much the body goes with the crossing arms.</summary>
+    private readonly List<(double From, double To)> _mills = [];
+
+    /// <summary>
+    /// How far the shoulders turn with the arms (radians, to the dancer's left), where the shoulders' row says nothing: in
+    /// Mills' Mess the body goes with the arm that crosses (the user: the whole body soft). The hand reaching across brings
+    /// its shoulder forward.
+    /// </summary>
+    public double ShoulderTurn(double sec)
+    {
+        double w = 0;
+        foreach (var (from, to) in _mills)
+            w = Math.Max(w, sec >= from && sec <= to ? 1 : sec < from ? Smooth(1 - (from - sec) / 0.4) : Smooth(1 - (sec - to) / 0.4));
+        return w <= 0 ? 0 : w * 0.45 * (Hand(0, sec).X + Hand(1, sec).X);
     }
 
     /// <summary>How a hand is held at a time (seconds): as at the nearer of its places either side.</summary>
