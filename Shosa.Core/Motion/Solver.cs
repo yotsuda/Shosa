@@ -267,6 +267,8 @@ public static class Solver
     private const double QuickestBeat = 0.12;
     /// <summary>Metres a ring has to rise over the hands not to meet the others in the air (SH2020): they are 32 cm across.</summary>
     private const double LowestRing = 0.6;
+    /// <summary>A juggling ring across, metres: a flat band 3.4 cm wide and 3.5 mm thick (the user).</summary>
+    private const double RingAcross = 0.324;
 
     /// <summary>A juggle word's `every`, times a factor, as it is written: 1/2, 1, 3/2.</summary>
     private static string Every(Seg seg, double times)
@@ -299,13 +301,13 @@ public static class Solver
                 Say(seg, "SH2020", DiagnosticSeverity.Warning, FormattableString.Invariant(
                     $"A throw every {beat:0.00} s: the hands cannot keep up (each one throws and catches every {2 * beat:0.00} s; quick jugglers take 0.25 s or more). Throw less often (every 1/2 rather than 1/4), or lower the tempo."));
             var high = juggling.Rises().Where(r => r.Thrown >= from - 1e-6 && r.Thrown < to - 1e-6).Select(r => r.Rise).DefaultIfEmpty(0).Max();
-            // Rings are 32 cm across: thrown lower than this they meet in the air and fall (the user). Higher is longer in the
+            // Rings are 32.4 cm across: thrown lower than this they meet in the air and fall (the user). Higher is longer in the
             // air, which is a throw less often: the beats decide, not the hands.
             var low = juggling.Flights.Where(fl => fl.Value >= 3 && fl.Thrown >= from - 1e-6 && fl.Thrown < to - 1e-6)
                 .Select(fl => 9.81 * Math.Pow(fl.Caught - fl.Thrown, 2) / 8).DefaultIfEmpty(double.PositiveInfinity).Min();
             if (juggling.Prop == "rings" && low < LowestRing)
                 Say(seg, "SH2020", DiagnosticSeverity.Warning, FormattableString.Invariant(
-                    $"Rings thrown {low:0.00} m high meet in the air and fall: they are {2 * 0.16:0.00} m across, and want {LowestRing:0.0} m or more. A throw goes higher for longer in the air, which is less often: every {Every(seg, 2)} rather than every {Every(seg, 1)}, or a slower tempo."));
+                    $"Rings thrown {low:0.00} m high meet in the air and fall: they are {RingAcross:0.000} m across, and want {LowestRing:0.0} m or more. A throw goes higher for longer in the air, which is less often: every {Every(seg, 2)} rather than every {Every(seg, 1)}, or a slower tempo."));
             if (high > HighestThrow)
                 Say(seg, "SH2020", DiagnosticSeverity.Warning, FormattableString.Invariant(
                     $"The highest throw here goes {high:0.0} m above the hand: few can throw that high and catch it. Throw more often (every 1/4), raise the tempo, or use lower numbers."));

@@ -7,8 +7,12 @@
 // is: how high a ball goes is the time it flies, whoever throws it.
 import * as THREE from 'three';
 
-/** A beanbag is about 68 mm across; a club 50 cm long; a ring 32 cm across. */
-const BALL = 0.034, CLUB = 0.5, RING = 0.16;
+/**
+ * A beanbag is about 68 mm across; a club 50 cm long. A juggling ring is a flat band (the user): 32.4 cm across, the
+ * band 3.4 cm wide and 3.5 mm thick (about 100 g). It is held by the middle of its band.
+ */
+const BALL = 0.034, CLUB = 0.5;
+const RING_OUTER = 0.162, RING_INNER = 0.162 - 0.034, RING_THICK = 0.0035, RING = (RING_OUTER + RING_INNER) / 2;
 /** From the wrist to where a ball sits: along the hand, and up out of the palm (as the server puts it). */
 const PALM_ALONG = 0.05, PALM_UP = 0.04;
 const COLORS = [0xe8552f, 0x2f8fe8, 0xf2c22e, 0x3fbf6a, 0xb25fe0, 0xf07fb0, 0x5fd0d0, 0xf09a3e, 0x9aa0a8];
@@ -29,7 +33,12 @@ function makeProp(prop, color) {
     knob.position.y = -CLUB * 0.475;
     mesh.add(handle, body, top, knob);
   } else if (prop === 'rings') {
-    mesh = new THREE.Mesh(new THREE.TorusGeometry(RING, 0.012, 8, 40), material);
+    // A flat band, its face square to z, as thick as it is about the middle.
+    const shape = new THREE.Shape().absarc(0, 0, RING_OUTER, 0, Math.PI * 2, false);
+    shape.holes.push(new THREE.Path().absarc(0, 0, RING_INNER, 0, Math.PI * 2, true));
+    const band = new THREE.ExtrudeGeometry(shape, { depth: RING_THICK, bevelEnabled: false, curveSegments: 64 });
+    band.translate(0, 0, -RING_THICK / 2);
+    mesh = new THREE.Mesh(band, material);
   } else {
     mesh = new THREE.Mesh(new THREE.SphereGeometry(BALL, 18, 12), material);
   }
