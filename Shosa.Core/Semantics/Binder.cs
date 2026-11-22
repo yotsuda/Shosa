@@ -2117,14 +2117,31 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         }
 
         bool leftFirst = ctx.Mirror;
+        var tricks = new List<string>();
         foreach (var annotation in ev.ChildNodes(SyntaxKind.Annotation))
         {
             if (annotation.Token(SyntaxKind.Identifier) is not { } name)
                 continue;
             if (name.Text == "mirror")
                 leftFirst = !leftFirst;
+            else if (Vocabulary.Has(Vocabulary.Tricks, name.Text))
+            {
+                // Tricks (DESIGN.md 118.12): how the hands throw and catch, not what is thrown. Some cannot go together.
+                string? clash = name.Text switch
+                {
+                    "penguin" => tricks.FirstOrDefault(t => t is "claw" or "back" or "under"),
+                    "claw" => tricks.FirstOrDefault(t => t is "penguin"),
+                    "back" => tricks.FirstOrDefault(t => t is "under" or "penguin"),
+                    "under" => tricks.FirstOrDefault(t => t is "back" or "penguin"),
+                    _ => null,
+                };
+                if (clash is not null)
+                    Error("SH1010", name.Span, $"'@{name.Text}' and '@{clash}' cannot be thrown at once: a hand is in one place.");
+                else if (!tricks.Contains(name.Text))
+                    tricks.Add(name.Text);
+            }
             else
-                Error("SH1010", name.Span, $"'@{name.Text}' cannot be put on a pattern: it takes @mirror (the left hand throws first).");
+                Error("SH1010", name.Span, $"'@{name.Text}' cannot be put on a pattern: it takes @mirror (the left hand throws first) and the tricks @{string.Join(", @", Vocabulary.Tricks.Select(w => w.Name))}.{Hint(name.Text, Vocabulary.Tricks.Select(w => w.Name))}");
         }
         if (ctx.Clip is null || t1 <= Epsilon)
             return;
@@ -2132,7 +2149,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         var seg = new Seg
         {
             Kind = SegKinds.Juggle, T0 = Math.Max(0, t0), T1 = t1, At = Math.Max(0, t0), Until = t1,
-            Pattern = text, Every = _every * ctx.Scale, LeftFirst = leftFirst, Src = src.Start, Len = src.Length,
+            Pattern = text, Every = _every * ctx.Scale, LeftFirst = leftFirst, Tricks = tricks.Count > 0 ? tricks : null, Src = src.Start, Len = src.Length,
         };
         if (!ctx.Sink.TryGetValue(Channels.Juggle, out var list))
             ctx.Sink[Channels.Juggle] = list = [];

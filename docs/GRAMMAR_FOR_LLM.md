@@ -1391,6 +1391,18 @@ section Show {
   thrown along the forearm, the hand an edge (the thumb up), going up and down in one place.
   A throwing hand sinks, swings up and lets go at the speed the ball or ring leaves at; a
   catching hand gives with it.
+- **Tricks**, put on a pattern with `@`, change how the hands throw and catch it, never what is
+  thrown: `3:4@mills` (Mills' Mess: every throw with the arms crossed, over and then under),
+  `@penguin` (the arms straight down, caught and thrown by the hips), `@claw` (the palm down, the
+  ball snatched from above), `@reverse` (thrown from outside over the top, caught inside),
+  `@back` (from behind the back over the other shoulder), `@under` (from under the thigh of the
+  throwing hand's side). Every throw of the word: one throw is a word of one throw, which a
+  cascade allows anywhere (`3:2 3:1/2@under 3:3/2`; at `every 1/2` a word on a whole beat of a
+  run begun on one is the right hand's). Under the leg, lift that leg in its row by then
+  (`rightLeg { skip:1 fwd.bent:1 then:1 down:1 }`, and the weight on the other foot in `steps`),
+  or it is SH2022; behind the back, throw high enough to clear the shoulder (0.55 m, a throw
+  every 1 at tempo 120), or it is SH2022. `@penguin` goes with neither `@claw`, `@back` nor
+  `@under`, nor `@back` with `@under` (SH1010).
 - The preview draws the balls (clubs turning end over end, rings along the forearms, edge to the front) and turns a
   character's palms up while it throws. Exported files have the arms; the balls are not in them.
 

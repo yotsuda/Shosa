@@ -123,13 +123,13 @@ export function createCharacters(scene, changed) {
     const juggled = data.juggle && data.juggle.weight;
     if (juggled && juggled.length) {
       const w0 = juggled[Math.min(juggled.length - 1, f0)], w1 = juggled[Math.min(juggled.length - 1, f0 + 1)];
-      palmsUp(vrm, w0 + (w1 - w0) * k, data.juggle.prop === 'rings');
+      palmsUp(vrm, w0 + (w1 - w0) * k, data.juggle.prop === 'rings', data.juggle.styles ? data.juggle.styles[Math.min(data.juggle.styles.length - 1, Math.round(frame))] : [0, 0]);
     }
     return size;
   }
 
   /** A posed character's palms (past the wrist along the hand toward the fingers, and up) and forearms, [right, left]. */
-  function measure(vrm, prop) {
+  function measure(vrm, prop, styles = [0, 0]) {
     const palms = [], forearms = [];
     for (const side of ['right', 'left']) {
       const lower = vrm.humanoid.getNormalizedBoneNode(side + 'LowerArm'), hand = vrm.humanoid.getNormalizedBoneNode(side + 'Hand');
@@ -141,7 +141,9 @@ export function createCharacters(scene, changed) {
       const w = hand.getWorldPosition(new THREE.Vector3()), e = lower.getWorldPosition(new THREE.Vector3());
       const k = e.distanceTo(w) / 0.31;
       const along = w.clone().sub(e).normalize();
-      palms.push(w.clone().addScaledVector(along, palmAlong(prop) * k).add(new THREE.Vector3(0, 0.04 * k, 0)));
+      // A claw's palm is down: the ball under it (DESIGN.md 118.12).
+      const up = (styles?.[palms.length] | 0) === 1 ? -0.05 : 0.04;
+      palms.push(w.clone().addScaledVector(along, palmAlong(prop) * k).add(new THREE.Vector3(0, up * k, 0)));
       forearms.push(along);
     }
     return { palms, forearms };
@@ -159,7 +161,7 @@ export function createCharacters(scene, changed) {
     for (let f = 0; f < count; f++) {
       place(entry, clip, data, f);
       entry.vrm.scene.updateMatrixWorld(true);
-      const { palms, forearms } = measure(entry.vrm, data.juggle.prop);
+      const { palms, forearms } = measure(entry.vrm, data.juggle.prop, data.juggle.styles?.[f]);
       for (const hand of [0, 1]) {
         at.palms[hand].push(palms[hand] ?? new THREE.Vector3());
         at.forearms[hand].push(forearms[hand] ?? new THREE.Vector3(0, 0, 1));
@@ -289,7 +291,7 @@ export function createCharacters(scene, changed) {
         // Where its palms are, for the balls it juggles (juggle.js). Right, left.
         if (data.juggle) {
           vrm.scene.updateMatrixWorld(true);
-          ({ palms: entry.palms, forearms: entry.forearms } = measure(vrm, data.juggle.prop));
+          ({ palms: entry.palms, forearms: entry.forearms } = measure(vrm, data.juggle.prop, data.juggle.styles?.[Math.min(data.juggle.styles.length - 1, Math.round(frame))]));
         } else {
           entry.palms = null;
           entry.forearms = null;

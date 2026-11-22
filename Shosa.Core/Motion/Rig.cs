@@ -274,8 +274,10 @@ public sealed record ClipMic(string Hand, List<float> Up);
 /// <paramref name="Weight"/>: how much the juggling has the arms at each frame (0 their rows, 1 the juggling), for the
 /// preview to turn a character's palms up while it throws. <paramref name="Flights"/>: every throw, [ball, the hand it
 /// leaves, the hand it comes down in, seconds thrown, seconds caught], for the preview to draw it between a character's own hands.
+/// <paramref name="Styles"/>: at each frame how each hand is held, [right, left] (<see cref="Juggling.Style"/>: 0 the prop's own
+/// way, 1 a claw's palm down, 2 a penguin's fingers down, 3 behind the back, 4 under the leg), for the preview to turn the hands.
 /// </summary>
-public sealed record ClipJuggle(string Prop, int Count, List<float[]> Frames, List<float> Weight, List<float[]> Flights);
+public sealed record ClipJuggle(string Prop, int Count, List<float[]> Frames, List<float> Weight, List<float[]> Flights, List<int[]> Styles);
 
 /// <summary>
 /// Degrees, more to the figure's left. <paramref name="Feet"/> is from the front of the room; the

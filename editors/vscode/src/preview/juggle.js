@@ -63,7 +63,7 @@ const worldQuat = node => node.getWorldQuaternion(new THREE.Quaternion());
  * as posed, 1 all the way): a juggler's hands carry the balls on the palm. Shosa's figure has no turn of the hand,
  * and the character's hands, posed from its forearms, faced each other edge up. Call after the bones are posed.
  */
-export function palmsUp(vrm, weight, edge = false) {
+export function palmsUp(vrm, weight, edge = false, styles = [0, 0]) {
   if (!(weight > 0)) return;
   const node = name => vrm.humanoid.getNormalizedBoneNode(name);
   vrm.scene.updateMatrixWorld(true);
@@ -79,9 +79,14 @@ export function palmsUp(vrm, weight, edge = false) {
     const along = hand.getWorldPosition(new THREE.Vector3()).sub(lower.getWorldPosition(new THREE.Vector3())).normalize();
     // The thumb out to its own side, square to the hand: with the fingers forward that is the palm up, on both hands.
     // `edge` (rings): the thumb up and the little finger down, the hand an edge, as a karate chop (the user).
-    const thumb = edge
-      ? new THREE.Vector3(0, 1, 0).applyQuaternion(restInverse).applyQuaternion(worldQuat(trunk))
-      : bodyLeft.clone().multiplyScalar(isLeft ? 1 : -1);
+    // A trick's own (DESIGN.md 118.12): a claw's palm down (the thumb in), a penguin's fingers down along the straight arm
+    // with the palm out (the thumb back).
+    const style = styles[isLeft ? 1 : 0] | 0;
+    const out = bodyLeft.clone().multiplyScalar(isLeft ? 1 : -1);
+    const thumb = style === 1 ? out.negate()
+      : style === 2 ? Z.clone().applyQuaternion(restInverse).applyQuaternion(worldQuat(trunk)).negate()
+      : edge ? new THREE.Vector3(0, 1, 0).applyQuaternion(restInverse).applyQuaternion(worldQuat(trunk))
+      : out;
     thumb.addScaledVector(along, -thumb.dot(along));
     if (thumb.lengthSq() < 1e-8) continue;
     thumb.normalize();
@@ -157,10 +162,10 @@ export function createJuggle(scene) {
   const Y = new THREE.Vector3(0, 1, 0), Z = new THREE.Vector3(0, 0, 1);
 
   /** The figure's palm, as the server puts a ball in it: past the wrist along the forearm, and up. */
-  function figurePalm(points, joints, side, out, along) {
+  function figurePalm(points, joints, side, out, along, up = PALM_UP) {
     const wrist = points[joints.indexOf(side + 'Hand')], elbow = points[joints.indexOf(side + 'Elbow')];
     if (!wrist || !elbow) return out.set(0, 0, 0);
-    return out.subVectors(wrist, elbow).normalize().multiplyScalar(along).add(wrist).addScaledVector(Y, PALM_UP);
+    return out.subVectors(wrist, elbow).normalize().multiplyScalar(along).add(wrist).addScaledVector(Y, up);
   }
 
   return {
@@ -234,7 +239,8 @@ export function createJuggle(scene) {
             } else {
               let hand = frames[0][j + 3] | 0, last = -Infinity;
               for (const fl of juggle.flights) if (fl[0] === b && fl[4] < sec && fl[4] > last) [hand, last] = [fl[2], fl[4]];
-              const stack = p.clone().sub(figurePalm(figure.points, clip.joints, hand === 0 ? 'right' : 'left', new THREE.Vector3(), palmAlong(juggle.prop)));
+              const claw = (juggle.styles?.[Math.min(juggle.styles.length - 1, Math.round(frame))]?.[hand] | 0) === 1;
+              const stack = p.clone().sub(figurePalm(figure.points, clip.joints, hand === 0 ? 'right' : 'left', new THREE.Vector3(), palmAlong(juggle.prop), claw ? -0.05 : PALM_UP));
               p.copy(track.palm(hand, sec)).add(stack);
               [from, to, u] = [hand, hand, 0];
             }

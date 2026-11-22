@@ -391,7 +391,7 @@ internal static class Words
             if (name == "juggle")
             {
                 if (trigger == '@')
-                    return ([new Vocabulary.Word("mirror", "The left hand throws first (a pair's first number is the left hand's).")], "annotation");
+                    return ([new Vocabulary.Word("mirror", "The left hand throws first (a pair's first number is the left hand's)."), .. Vocabulary.Tricks], "annotation");
                 return trigger is ':' or '!' or '(' or '.' || (wordStart > 0 && char.IsAsciiDigit(text[wordStart - 1])) ? ([], "none") : (JuggleWords, "word");
             }
             if (trigger == '@')

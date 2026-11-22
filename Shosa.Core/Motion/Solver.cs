@@ -94,7 +94,7 @@ public static class Solver
                 diagnostics.Add(new Diagnostic("SH2018", DiagnosticSeverity.Warning, new TextSpan(seg.Src, seg.Len),
                     $"The mic is at the mouth here ({dancer.Id} is singing), and the hand that holds it wins: this word of the {channel} row is not seen. Move it to where {dancer.Id} does not sing, or give it to the other arm{(dancer.Mic == "both" ? " (with mic both, both hands are on the mic while singing; mic right frees the left)" : "")}."));
             if (solver.Juggling is { } juggle)
-                JuggleProblems(dancer, juggle, clip, diagnostics);
+                JuggleProblems(dancer, juggle, clip, diagnostics, solver);
             var flagged = new HashSet<(Seg, string)>();
             Vec3[]? previous = null;
             double previousFacing = 0;
@@ -283,7 +283,7 @@ public static class Solver
     }
 
     /// <summary>What the juggle row asks that cannot be done or can hardly be, and the arm words it hides.</summary>
-    private static void JuggleProblems(DancerIr dancer, Juggling juggling, MotionClip clip, List<Diagnostic> diagnostics)
+    private static void JuggleProblems(DancerIr dancer, Juggling juggling, MotionClip clip, List<Diagnostic> diagnostics, FigureSolver solver)
     {
         var said = new HashSet<(int, string)>();
         void Say(Seg seg, string code, DiagnosticSeverity severity, string message)
@@ -316,6 +316,29 @@ public static class Solver
             if (high > HighestThrow)
                 Say(seg, "SH2020", DiagnosticSeverity.Warning, FormattableString.Invariant(
                     $"The highest throw here goes {high:0.0} m above the hand: few can throw that high and catch it. Throw more often (every 1/4), raise the tempo, or use lower numbers."));
+        }
+
+        // Tricks the body has to make room for (DESIGN.md 118.12): under the leg, the leg lifted; behind the back, over the shoulder.
+        foreach (var flight in juggling.Flights.Where(f => f.Trick is not null && f.Seg is not null))
+        {
+            double beat = TempoMap.Beat(clip.Tempos, flight.Thrown);
+            var pose = solver.Pose(beat, out _);
+            string side = flight.From == 0 ? "right" : "left";
+            if (flight.Trick == "under")
+            {
+                var hip = pose[flight.From == 0 ? Rig.RHip : Rig.LHip];
+                var knee = pose[flight.From == 0 ? Rig.RKnee : Rig.LKnee];
+                if (knee.Y < hip.Y - 0.2)
+                    Say(flight.Seg!, "SH2022", DiagnosticSeverity.Warning, FormattableString.Invariant(
+                        $"The {side} hand throws from under the {side} leg at beat {beat:0.##}, and the leg is not lifted there: lift it in its row by then (`{side}Leg {{ fwd.bent }}`, the thigh level, the knee at the height of the hip), or the hand goes through the thigh."));
+            }
+            else if (flight.Trick == "back")
+            {
+                double rise = 9.81 * Math.Pow(flight.Caught - flight.Thrown, 2) / 8;
+                if (rise < 0.55)
+                    Say(flight.Seg!, "SH2022", DiagnosticSeverity.Warning, FormattableString.Invariant(
+                        $"Thrown from behind the back, it rises {rise:0.00} m: it has to clear the other shoulder, some 0.55 m above the hand there. Throw a higher number (a 5), or less often."));
+            }
         }
 
         // An arm's word that arrives while the juggling has the arms is not seen.
@@ -354,7 +377,9 @@ public static class Solver
             int wrist = hand == 0 ? Rig.RHand : Rig.LHand, elbow = wrist - 1;
             var w = Vec3.Lerp(Joint(f, wrist), Joint(f + 1, wrist), u);
             var e = Vec3.Lerp(Joint(f, elbow), Joint(f + 1, elbow), u);
-            return w + (w - e).Normalized() * along + Vec3.Up * 0.04;
+            // A claw holds it under the palm, turned down (DESIGN.md 118.12).
+            double up = juggling.StyleAt(hand, sec) == Juggling.Style.Claw ? -0.05 : 0.04;
+            return w + (w - e).Normalized() * along + Vec3.Up * up;
         }
         int Stacked(int ball, double sec)
         {
@@ -366,7 +391,7 @@ public static class Solver
         }
 
         var result = new ClipJuggle(juggling.Prop, juggling.Balls, [], [],
-            [.. juggling.Flights.Select(fl => new[] { fl.Ball, fl.From, fl.To, (float)Math.Round(fl.Thrown, 4), (float)Math.Round(fl.Caught, 4) })]);
+            [.. juggling.Flights.Select(fl => new[] { fl.Ball, fl.From, fl.To, (float)Math.Round(fl.Thrown, 4), (float)Math.Round(fl.Caught, 4) })], []);
         for (int f = 0; f < frames.Count; f++)
         {
             double sec = (double)f / fps;
@@ -384,6 +409,7 @@ public static class Solver
             }
             result.Frames.Add(data);
             result.Weight.Add((float)Math.Round(juggling.Weight(sec), 3));
+            result.Styles.Add([(int)juggling.StyleAt(0, sec), (int)juggling.StyleAt(1, sec)]);
         }
         return result;
     }
@@ -2847,11 +2873,19 @@ internal sealed class FigureSolver
                 // Rings: the elbows straight down by the ribs, a touch in, the upper arm not turned (the user: the shoulder turned in
                 // looked wrong); with a ball a little back as well.
                 // Clubs: the elbows open out to the side, so the hands catch well out (the user).
-                var jugglePole = (Juggling!.Prop switch
+                // A trick holds the arm its own way (DESIGN.md 118.12): behind the back and under the leg the elbow goes out,
+                // a penguin's arm hangs straight with the elbow back.
+                var jugglePole = (Juggling!.StyleAt(isLeft ? 1 : 0, juggleSec) switch
                 {
-                    "rings" => -Vec3.Up - juggleLeft * (0.05 * side) - juggleFwd * 0.15,
-                    "clubs" => -Vec3.Up + juggleLeft * (0.6 * side) - juggleFwd * 0.15,
-                    _ => -Vec3.Up + juggleLeft * (0.08 * side) - juggleFwd * 0.45,
+                    Juggling.Style.Back => -Vec3.Up * 0.3 + juggleLeft * (1.0 * side) - juggleFwd * 0.2,
+                    Juggling.Style.Under => -Vec3.Up * 0.2 + juggleLeft * (1.0 * side) + juggleFwd * 0.1,
+                    Juggling.Style.Penguin => -Vec3.Up * 0.2 - juggleFwd * 1.0 + juggleLeft * (0.3 * side),
+                    _ => Juggling.Prop switch
+                    {
+                        "rings" => -Vec3.Up - juggleLeft * (0.05 * side) - juggleFwd * 0.15,
+                        "clubs" => -Vec3.Up + juggleLeft * (0.6 * side) - juggleFwd * 0.15,
+                        _ => -Vec3.Up + juggleLeft * (0.08 * side) - juggleFwd * 0.45,
+                    },
                 }).Normalized();
                 bend = Vec3.Slerp(bend.Length < 1e-6 ? pole.Normalized() : bend.Normalized(), jugglePole, juggleWeight);
             }

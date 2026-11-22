@@ -204,6 +204,20 @@ public static class Vocabulary
         new("turn", "For a step or a jump: turn while doing it, `leftFoot.fwd@turn(left(90))`, `jump@turn(right(180))`. The step lands where it would after the turn."),
     ];
 
+    /// <summary>
+    /// Juggling tricks, put on a pattern with `@` (DESIGN.md 118.12): how the hands throw and catch it. What is thrown
+    /// (the siteswap) does not change. Every throw of the word; one throw is a word of one throw (`3:1/2@under`).
+    /// </summary>
+    public static readonly Word[] Tricks =
+    [
+        new("mills", "Mills' Mess: each throw is made with the arms crossed, the one arm over the other and then under; each hand uncrosses to catch on its own side. Best on 3 (and 423)."),
+        new("penguin", "Penguin: the arms straight down, the hands by the hips, fingers down: caught and thrown from there."),
+        new("claw", "Claw: the palm down, the ball snatched from above at the top of the hand's loop."),
+        new("reverse", "Reverse: thrown from outside, over the top, and caught inside: the cascade turned the other way."),
+        new("back", "Behind the back: the hand throws from behind the waist, over the other shoulder. Throw it high enough to clear the shoulder (a 5)."),
+        new("under", "Under the leg: the hand throws from under the thigh of its own side. Lift that leg in its row at that moment (`rightLeg { fwd.bent }`: the thigh level, the knee bent); one throw is a word of its own (`3:1/2@under`)."),
+    ];
+
     public const string Hold = "then";
     /// <summary>For an arm: as `then`, but the hand keeps its place in the room.</summary>
     public const string Stay = "stay";

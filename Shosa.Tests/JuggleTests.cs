@@ -229,4 +229,47 @@ public class JuggleTests
         Assert.Contains("every 1 rather than every 1/2", Assert.Single(Compile(Juggle("every 1/2  3:4 |", dancer: "juggles rings")).Diagnostics).Message);
         Assert.Empty(Compile(Juggle("every 1  3:4 |", dancer: "juggles rings")).Diagnostics);
     }
+
+    [Fact]
+    public void Tricks_change_the_hands_and_not_the_throws()
+    {
+        // The same cascade, with and without a trick: the same throws at the same times, other places for the hands.
+        var plain = Compile(Juggle("every 1/2  3:4 |"));
+        Assert.Empty(plain.Diagnostics);
+        foreach (string trick in new[] { "mills", "penguin", "claw", "reverse" })
+        {
+            var c = Compile(Juggle($"every 1/2  3:4@{trick} |"));
+            Assert.Empty(c.Diagnostics);
+            Assert.Equal(plain.Clip.Figures[0].Juggle!.Flights.Select(f => (f[0], f[1], f[2], f[3])), c.Clip.Figures[0].Juggle!.Flights.Select(f => (f[0], f[1], f[2], f[3])));
+        }
+
+        // Mills' Mess: a hand throws from the other side of the body, the arms crossed.
+        var mills = Compile(Juggle("every 1/2  3:4@mills |")).Clip;
+        var right = mills.Figures[0].Juggle!.Flights.First(f => f[1] == 0 && f[3] > 0.4f);
+        int at = (int)Math.Round(right[3] * mills.Fps);
+        Assert.True(mills.Figures[0].Joint(at, Rig.RHand).X > mills.Figures[0].Joint(at, Rig.Pelvis).X, "the right hand throws from the left of the body");
+
+        // Penguin: the hands down by the hips.
+        var penguin = Compile(Juggle("every 1/2  3:4@penguin |")).Clip;
+        int mid = penguin.FrameOfBeat(2);
+        Assert.True(penguin.Figures[0].Joint(mid, Rig.RHand).Y < penguin.Figures[0].Joint(mid, Rig.Pelvis).Y + 0.05);
+        Assert.Contains(penguin.Figures[0].Juggle!.Styles, s => s[0] == (int)Juggling.Style.Penguin);
+        // Claw: the palm down.
+        Assert.Contains(Compile(Juggle("every 1/2  3:4@claw |")).Clip.Figures[0].Juggle!.Styles, s => s[1] == (int)Juggling.Style.Claw);
+    }
+
+    [Fact]
+    public void Tricks_that_need_the_body_say_so()
+    {
+        // Under the leg with the leg down, and lifted.
+        Assert.Contains("SH2022", Codes(Compile(Juggle("every 1/2  3:2 3:1/2@under 3:3/2 |"))));
+        var lifted = Compile(Juggle("every 1/2  3:2 3:1/2@under 3:3/2 |", "steps { shift.left:4 | } rightLeg { skip:1 fwd.bent:1 then:1 down:1 | }"));
+        Assert.DoesNotContain("SH2022", Codes(lifted));
+        // Behind the back, too low to clear the shoulder; at every 1 high enough.
+        Assert.Contains("SH2022", Codes(Compile(Juggle("every 1/2  3:2 3:1/2@back 3:3/2 |"))));
+        Assert.DoesNotContain("SH2022", Codes(Compile(Juggle("every 1  3:2 3:1@back 3:1 |"))));
+        // Two places for one hand, and a trick that is not one.
+        Assert.Contains("SH1010", Codes(Compile(Juggle("every 1/2  3:4@penguin@claw |"))));
+        Assert.Contains("mills", Assert.Single(Compile(Juggle("every 1/2  3:4@mils |")).Diagnostics).Message);
+    }
 }

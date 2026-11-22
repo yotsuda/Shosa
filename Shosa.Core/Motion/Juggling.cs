@@ -25,7 +25,8 @@ public sealed class Juggling
     private const double G = 9.81;
 
     /// <summary>A ball leaving a hand and coming down in one. A hold (a 2 that stays) is not a throw.</summary>
-    public sealed record Flight(int Ball, int From, int To, double Thrown, double Caught, int Value);
+    /// <param name="Trick">A throw from under the leg or behind the back ("under", "back"), and the word it is in: what the solver checks.</param>
+    public sealed record Flight(int Ball, int From, int To, double Thrown, double Caught, int Value, string? Trick = null, Seg? Seg = null);
 
     /// <summary>What went wrong, said at the word it is about.</summary>
     public sealed record Problem(Seg Seg, string Code, bool IsError, string Message);
@@ -42,7 +43,13 @@ public sealed class Juggling
     /// <summary>Where each ball is before it is first thrown: the hand (0 right, 1 left).</summary>
     private readonly List<int> _startHand = [];
     /// <summary>A hand's places to be, in seconds, and what the hand does there.</summary>
-    private readonly List<(double T, Vec3 At, Vec3 Velocity)>[] _keys = [[], []];
+    /// <summary>A hand's places, in seconds: where, how fast, and how the hand is held there (<see cref="Style"/>).</summary>
+    private readonly List<(double T, Vec3 At, Vec3 Velocity, Style Style)>[] _keys = [[], []];
+    /// <summary>How many throws each hand has made, for a trick that changes from one throw to the next (Mills' Mess: over, then under).</summary>
+    private readonly int[] _throwsBy = [0, 0];
+
+    /// <summary>How a hand is held (DESIGN.md 118.12): the prop's own way (a ball on the palm, a ring by an edge), or a trick's.</summary>
+    public enum Style { Own = 0, Claw = 1, Penguin = 2, Back = 3, Under = 4 }
 
     private readonly IReadOnlyList<TempoIr> _tempos;
     /// <summary>Words thrown as a way between two patterns, not patterns of the row's balls themselves: nothing is expected at their start.</summary>
@@ -205,7 +212,7 @@ public sealed class Juggling
             Arrive(beat, ball, hand, -1);
         }
         foreach (var hand in new[] { 0, 1 })
-            _keys[hand].Add((start - Ramp, Ready(hand), Still));
+            _keys[hand].Add((start - Ramp, Ready(hand), Still, Style.Own));
 
         double lastCatch = start;
         Seg? previous = null;
@@ -244,9 +251,11 @@ public sealed class Juggling
                         continue;
                     }
                     double caught = Math.Max(SlotSec(land) - Dwell * BeatSec(Math.Min(land, slots.Count - 1)), thrown + Handover * T);
-                    Flights.Add(new Flight(ball, hand, to, thrown, caught, t.Value));
+                    Flights.Add(new Flight(ball, hand, to, thrown, caught, t.Value,
+                        slot.Seg.Tricks?.FirstOrDefault(x => x is "under" or "back"), slot.Seg));
                     Arrive(land, ball, to, Flights.Count - 1);
-                    Swing(hand, to, t.Value, thrown, caught, T);
+                    var catcher = slots[Math.Min(land, slots.Count - 1)].Seg ?? slot.Seg;
+                    Swing(hand, to, t.Value, thrown, caught, T, slot.Seg.Tricks, catcher.Tricks, _throwsBy[hand]++);
                     lastCatch = Math.Max(lastCatch, caught);
                 }
                 // Balls that came down and are not thrown: held, and thrown on the hand's next turn.
@@ -262,7 +271,7 @@ public sealed class Juggling
                 held[a.Hand].Add(a.Ball);
         foreach (var hand in new[] { 0, 1 })
         {
-            _keys[hand].Add((lastCatch + 0.2, Ready(hand), Still));
+            _keys[hand].Add((lastCatch + 0.2, Ready(hand), Still, Style.Own));
             _keys[hand].Sort((a, b) => a.T.CompareTo(b.T));
         }
         heldSince = lastCatch + 0.2;
@@ -371,15 +380,20 @@ public sealed class Juggling
     /// up a little, slowing; the catcher meets the ball going down with it, and slows it. A hand handed one across
     /// (a 1) only passes it.
     /// </summary>
-    private void Swing(int hand, int to, int value, double thrown, double caught, double beat)
+    private void Swing(int hand, int to, int value, double thrown, double caught, double beat,
+        List<string>? throwTricks = null, List<string>? catchTricks = null, int nth = 0)
     {
-        var from = Throws(hand, value, to != hand);
-        var into = Catches(to, value, to != hand);
+        bool across = to != hand;
+        var from = Throws(hand, value, across);
+        var into = Catches(to, value, across);
+        Style throwStyle = Style.Own, catchStyle = Style.Own;
+        if (value >= 2)
+            (from, into, throwStyle, catchStyle) = Trick(hand, to, value, from, into, throwTricks, catchTricks, nth);
         double flight = caught - thrown;
         if (value < 2 || flight < 0.05)
         {
-            _keys[hand].Add((thrown, from, Still));
-            _keys[to].Add((caught, into, Still));
+            _keys[hand].Add((thrown, from, Still, throwStyle));
+            _keys[to].Add((caught, into, Still, catchStyle));
             return;
         }
         // Leaves at the speed that brings it to the catch in its time under gravity.
@@ -391,11 +405,83 @@ public sealed class Juggling
         double most = Math.Max(0.01, 0.45 * Dwell * beat);
         double swing = Math.Clamp(2 * Lift / speed, Math.Min(0.05, most), most);
         double follow = Math.Min(FollowThrough, 0.35 * (2 - Dwell) * beat);
-        _keys[hand].Add((thrown - swing, from - leaves * (swing / 2), Still));
-        _keys[hand].Add((thrown, from, leaves));
-        _keys[hand].Add((thrown + follow, from + leaves * (follow / 2), Still));
+        _keys[hand].Add((thrown - swing, from - leaves * (swing / 2), Still, throwStyle));
+        _keys[hand].Add((thrown, from, leaves, throwStyle));
+        _keys[hand].Add((thrown + follow, from + leaves * (follow / 2), Still, throwStyle));
         // The catch gives with the ball, a third of its speed, and the hand stops at the bottom before the next swing.
-        _keys[to].Add((caught, into, arrives * 0.3));
+        _keys[to].Add((caught, into, arrives * 0.3, catchStyle));
+    }
+
+    /// <summary>
+    /// Where a trick puts a throw and a catch, and how the hand is held there (DESIGN.md 118.12). The throw is the word's
+    /// it is thrown in; the catch is the word's the ball is thrown again in (a cascade into a penguin catches by the hip).
+    /// </summary>
+    private (Vec3 From, Vec3 Into, Style ThrowStyle, Style CatchStyle) Trick(int hand, int to, int value, Vec3 from, Vec3 into,
+        List<string>? throwTricks, List<string>? catchTricks, int nth)
+    {
+        bool Has(List<string>? tricks, string trick) => tricks?.Contains(trick) == true;
+        Style throwStyle = Style.Own, catchStyle = Style.Own;
+        double s = Side(hand), c = Side(to);
+
+        // Reverse: thrown from outside, over the top, and caught inside — the places of the throw and the catch swapped.
+        if (Has(throwTricks, "reverse"))
+            from = new Vec3(s * Math.Abs(Catches(hand, value, to != hand).X), from.Y + 0.04, from.Z);
+        if (Has(catchTricks, "reverse"))
+            into = new Vec3(c * Math.Abs(Throws(to, value, to != hand).X), into.Y, into.Z);
+        // Claw: the palm down, the ball snatched from above, high at the top of the loop; thrown with the palm down too.
+        if (Has(catchTricks, "claw"))
+        {
+            into = new Vec3(into.X, into.Y + 0.12, into.Z + 0.04);
+            catchStyle = Style.Claw;
+        }
+        if (Has(throwTricks, "claw"))
+            throwStyle = Style.Claw;
+        // Penguin: the arm straight down, the hand by the hip, fingers down: caught and thrown from there.
+        if (Has(throwTricks, "penguin"))
+        {
+            from = new Vec3(s * 0.25, -0.30, -0.02);
+            throwStyle = Style.Penguin;
+        }
+        if (Has(catchTricks, "penguin"))
+        {
+            into = new Vec3(c * 0.27, -0.28, -0.02);
+            catchStyle = Style.Penguin;
+        }
+        // Mills' Mess: every throw is made with the arms crossed, the throwing hand reaching to the other side, over the
+        // other arm and then under it, one throw and the next; it uncrosses to catch on its own side.
+        if (Has(throwTricks, "mills"))
+        {
+            bool over = nth % 2 == 0;
+            from = new Vec3(-s * 0.10, over ? 0.04 : -0.03, over ? 0.08 : -0.04);
+        }
+        // Behind the back: from behind the waist, toward the other side, over the other shoulder.
+        if (Has(throwTricks, "back"))
+        {
+            from = new Vec3(-s * 0.06, -0.08, -0.52);
+            throwStyle = Style.Back;
+        }
+        // Under the leg: from under the thigh of its own side (lifted in its row), inside it.
+        if (Has(throwTricks, "under"))
+        {
+            from = new Vec3(s * 0.08, -0.26, -0.06);
+            throwStyle = Style.Under;
+        }
+        return (from, into, throwStyle, catchStyle);
+    }
+
+    /// <summary>How a hand is held at a time (seconds): as at the nearer of its places either side.</summary>
+    public Style StyleAt(int hand, double sec)
+    {
+        var keys = _keys[hand];
+        if (keys.Count == 0)
+            return Style.Own;
+        for (int i = 0; i + 1 < keys.Count; i++)
+        {
+            if (sec > keys[i + 1].T)
+                continue;
+            return sec - keys[i].T < keys[i + 1].T - sec ? keys[i].Style : keys[i + 1].Style;
+        }
+        return keys[^1].Style;
     }
 
     /// <summary>Where a hand is at a time (seconds), in the juggling's frame: through its places at their speeds.</summary>
@@ -408,8 +494,8 @@ public sealed class Juggling
             return keys[0].At;
         for (int i = 0; i + 1 < keys.Count; i++)
         {
-            var (t0, a, va) = keys[i];
-            var (t1, b, vb) = keys[i + 1];
+            var (t0, a, va, _) = keys[i];
+            var (t1, b, vb, _) = keys[i + 1];
             if (sec > t1)
                 continue;
             double span = t1 - t0;
