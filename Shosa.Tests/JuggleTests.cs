@@ -196,5 +196,8 @@ public class JuggleTests
         // A throw every 1/16 of a beat: 0.03 s.
         Assert.Contains("SH2020", Codes(Compile(Juggle("every 1/16  3:4 |"))));
         Assert.DoesNotContain("SH2020", Codes(Compile(Juggle("every 1/2  3:4 |"))));
+        // Rings 0.22 m high meet in the air; every 1 sends them 0.9 m up.
+        Assert.Contains("every 1 rather than every 1/2", Assert.Single(Compile(Juggle("every 1/2  3:4 |", dancer: "juggles rings")).Diagnostics).Message);
+        Assert.Empty(Compile(Juggle("every 1  3:4 |", dancer: "juggles rings")).Diagnostics);
     }
 }

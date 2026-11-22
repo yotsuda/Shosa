@@ -44,7 +44,7 @@ const worldQuat = node => node.getWorldQuaternion(new THREE.Quaternion());
  * as posed, 1 all the way): a juggler's hands carry the balls on the palm. Shosa's figure has no turn of the hand,
  * and the character's hands, posed from its forearms, faced each other edge up. Call after the bones are posed.
  */
-export function palmsUp(vrm, weight) {
+export function palmsUp(vrm, weight, edge = false) {
   if (!(weight > 0)) return;
   const node = name => vrm.humanoid.getNormalizedBoneNode(name);
   vrm.scene.updateMatrixWorld(true);
@@ -59,7 +59,10 @@ export function palmsUp(vrm, weight) {
     const isLeft = side === 'left';
     const along = hand.getWorldPosition(new THREE.Vector3()).sub(lower.getWorldPosition(new THREE.Vector3())).normalize();
     // The thumb out to its own side, square to the hand: with the fingers forward that is the palm up, on both hands.
-    const thumb = bodyLeft.clone().multiplyScalar(isLeft ? 1 : -1);
+    // `edge` (rings): the thumb up and the little finger down, the hand an edge, as a karate chop (the user).
+    const thumb = edge
+      ? new THREE.Vector3(0, 1, 0).applyQuaternion(restInverse).applyQuaternion(worldQuat(trunk))
+      : bodyLeft.clone().multiplyScalar(isLeft ? 1 : -1);
     thumb.addScaledVector(along, -thumb.dot(along));
     if (thumb.lengthSq() < 1e-8) continue;
     thumb.normalize();
@@ -162,7 +165,9 @@ export function createJuggle(scene) {
             // Thrown along the forearms: the ring in the plane of up and the front, its face to the side, its edge to
             // the audience (the user: face to the front, it was a quarter turn out as seen from above).
             mesh.quaternion.setFromUnitVectors(Z, left);
-            if (from === to) mesh.position.addScaledVector(Y, RING * 0.8);
+            // Held by its lower edge, and thrown and caught so: its middle a radius above the palm, in the air as well
+            // (only while held, it jumped down a radius at each throw).
+            mesh.position.addScaledVector(Y, RING * 0.9);
           }
         });
       });

@@ -343,11 +343,16 @@ public sealed class Juggling
     // Thrown from 15 cm off the middle: from 10–12 cm the forearms, their angles put on a child's narrow
     // shoulders, crossed the middle of the body.
     private static Vec3 Ready(int hand) => new(Side(hand) * 0.23, 0, 0);
-    private static Vec3 Throws(int hand, int value, bool across) => value == 1
+    // Rings go up and down in one place: caught high, carried down, thrown up from low, the hand an edge (the thumb
+    // up). A ring is thrown along the forearm, so it does not go round the loop a ball does (the user).
+    private bool Rings => Prop == "rings";
+    private Vec3 Throws(int hand, int value, bool across) => value == 1
         ? new Vec3(Side(hand) * 0.12, -0.01, 0.02)
+        : Rings ? new Vec3(Side(hand) * 0.21, -0.04, 0.02)
         : new Vec3(Side(hand) * (across ? 0.15 : 0.21), 0, 0.01);
-    private static Vec3 Catches(int hand, int value) => value == 1
+    private Vec3 Catches(int hand, int value) => value == 1
         ? new Vec3(Side(hand) * 0.16, -0.01, 0.02)
+        : Rings ? new Vec3(Side(hand) * 0.23, 0.14, 0.02)
         : new Vec3(Side(hand) * 0.32, 0.06, -0.02);
 
     /// <summary>Where a hand is at a time (seconds), in the juggling's frame.</summary>
@@ -367,7 +372,10 @@ public sealed class Juggling
             double u = t1 - t0 < 1e-6 ? 1 : (sec - t0) / (t1 - t0);
             double e = u * u * (3 - 2 * u);
             var at = a + (b - a) * e;
-            // Holding a ball, the hand scoops: down and in. Empty, it comes up and out to meet the next.
+            // Holding a ball, the hand scoops: down and in. Empty, it comes up and out to meet the next. A ring's hand
+            // goes straight down and up.
+            if (Rings)
+                return at;
             if (k0 == Key.Catch && k1 == Key.Throw)
                 at += new Vec3(0, -0.07 * Math.Sin(Math.PI * u), 0.02 * Math.Sin(Math.PI * u));
             else if (k0 == Key.Throw && k1 == Key.Catch)

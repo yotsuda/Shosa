@@ -187,11 +187,11 @@ export function createCharacters(scene, changed) {
         // The arms out of the character's own body, which is not the figure's the turns were solved on (DESIGN.md 116).
         // (A test page turns it off with globalThis.shosaArmsAsSolved, to compare.)
         if (entry.body && !globalThis.shosaArmsAsSolved) keepArmsOut(vrm, entry.body, size);
-        // Juggling (DESIGN.md 118): the palms up while it throws, so the balls lie on them.
+        // Juggling (DESIGN.md 118): the palms up while it throws, so the balls lie on them; for rings an edge, the thumb up.
         const juggled = data.juggle && data.juggle.weight;
         if (juggled && juggled.length) {
           const w0 = juggled[Math.min(juggled.length - 1, f0)], w1 = juggled[Math.min(juggled.length - 1, f0 + 1)];
-          palmsUp(vrm, w0 + (w1 - w0) * k);
+          palmsUp(vrm, w0 + (w1 - w0) * k, data.juggle.prop === 'rings');
         }
         // A mic in a hand (`mic right`): drawn, the hand closed on it, and at the character's own mouth while it
         // sings (DESIGN.md 117). After the arms are kept out: the hand at the mouth is where it has to be.
