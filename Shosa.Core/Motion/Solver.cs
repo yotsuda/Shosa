@@ -2838,7 +2838,11 @@ internal sealed class FigureSolver
                 hand = Vec3.Lerp(hand, wrist, juggleWeight);
                 // The elbows down by the ribs and a little back, so the forearms point forward: out to the side they
                 // turned the forearms in, and on a character with narrow shoulders the hands crossed the middle.
-                var jugglePole = (-Vec3.Up + juggleLeft * (0.08 * side) - juggleFwd * 0.45).Normalized();
+                // Rings: the elbows straight down by the ribs, a touch in, the upper arm not turned (the user: the shoulder turned in
+                // looked wrong); with a ball a little back as well.
+                var jugglePole = (Juggling!.Prop == "rings"
+                    ? -Vec3.Up - juggleLeft * (0.05 * side) - juggleFwd * 0.15
+                    : -Vec3.Up + juggleLeft * (0.08 * side) - juggleFwd * 0.45).Normalized();
                 bend = Vec3.Slerp(bend.Length < 1e-6 ? pole.Normalized() : bend.Normalized(), jugglePole, juggleWeight);
             }
             var (elbow, reachedHand) = TwoBone(shoulder, hand, Rig.UpperArm, Rig.Forearm, bend.Length < 1e-6 ? pole : bend);

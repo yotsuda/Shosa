@@ -346,16 +346,17 @@ public sealed class Juggling
     // Where the hand lets go: for a ring a little below where it caught, after the swing up from low.
     private Vec3 Throws(int hand, int value, bool across) => value == 1
         ? new Vec3(Side(hand) * 0.12, -0.01, 0.02)
-        : Rings ? new Vec3(Side(hand) * 0.13, 0.06, 0.02)
+        : Rings ? new Vec3(Side(hand) * 0.13, 0.10, 0.02)
         : new Vec3(Side(hand) * (across ? 0.15 : 0.21), 0, 0.01);
     private Vec3 Catches(int hand, int value) => value == 1
         ? new Vec3(Side(hand) * 0.16, -0.01, 0.02)
-        : Rings ? new Vec3(Side(hand) * 0.26, 0.14, 0.02)
+        : Rings ? new Vec3(Side(hand) * 0.26, 0.18, 0.02)
         : new Vec3(Side(hand) * 0.32, 0.06, -0.02);
 
     private static readonly Vec3 Still = new(0, 0, 0);
     /// <summary>How far a hand swings up to throw, metres: a ring from low (the arm's whole swing), a ball a short flick.</summary>
-    private double Lift => Rings ? 0.24 : 0.10;
+    // A ring's swing starts no lower than keeps the elbow bent (the user: from 24 cm below, the arm was straight there).
+    private double Lift => Rings ? 0.16 : 0.10;
     /// <summary>Seconds a hand goes on up after it lets go, slowing to a stop.</summary>
     private const double FollowThrough = 0.08;
 
