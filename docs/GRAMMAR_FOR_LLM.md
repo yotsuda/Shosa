@@ -1387,7 +1387,7 @@ section Show {
 - How high a ball goes is the time it flies: at tempo 120 and `every 1/2`, a 3 rises about
   0.2 m, a 5 about 1 m, a 7 about 2.5 m. Higher than 3 m is SH2020, and so is a throw every less
   than 0.12 s (the hands cannot keep up). Rings (32.4 cm across, flat bands) meet in the air below
-  0.6 m (SH2020): throw them less often (`every 1` at tempo 120 sends a 3 up 0.9 m). A ring is
+  0.6 m, clubs below 0.45 m (SH2020): throw them less often (`every 1` at tempo 120 sends a 3 up 0.9 m). A ring is
   thrown along the forearm, the hand an edge (the thumb up), going up and down in one place.
   A throwing hand sinks, swings up and lets go at the speed the ball or ring leaves at; a
   catching hand gives with it.

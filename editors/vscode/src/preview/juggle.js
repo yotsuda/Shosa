@@ -12,6 +12,8 @@ import * as THREE from 'three';
  * band 3.4 cm wide and 3.5 mm thick (about 100 g). It is held by the middle of its band.
  */
 const BALL = 0.034, CLUB = 0.5;
+/** From the fist to a club's middle: it is held by the handle, a little above the knob. */
+const CLUB_GRIP = CLUB * 0.36;
 const RING_OUTER = 0.162, RING_INNER = 0.162 - 0.034, RING_THICK = 0.0035, RING = (RING_OUTER + RING_INNER) / 2;
 /** How far a held ring lies inside the hand (an edge, the palm to the middle of the body): half a hand's thickness and the band's. */
 const RING_INSIDE = 0.025;
@@ -241,14 +243,18 @@ export function createJuggle(scene) {
           }
           mesh.position.copy(p);
           if (entry.prop === 'clubs') {
-            // Held, it points forward and up out of the fist; thrown, it turns end over end, the knob toward the hand.
+            // Held, the club goes on from the forearm in one line, its handle in the fist (the user). Thrown, it turns end
+            // over end about the dancer's left from the thrower's forearm to the catcher's, a whole number of turns, so it
+            // comes down as the catching hand holds it. Its middle is as far on from the fist as when held, the way of the
+            // forearms in between: on the parabola, moved evenly, so still on a parabola.
             const spin = src[j + 6] + ((sameState ? c[j + 6] : src[j + 6]) - src[j + 6]) * t;
-            const way = fwd.clone().multiplyScalar(Math.cos(Math.PI / 3)).addScaledVector(Y, Math.sin(Math.PI / 3));
-            axis.copy(left);
-            way.applyAxisAngle(axis, -spin);
+            const base = forearm[from].clone().lerp(forearm[to], u);
+            base.addScaledVector(left, -base.dot(left));
+            if (base.lengthSq() < 1e-8) base.copy(fwd);
+            base.normalize();
+            mesh.position.addScaledVector(base, CLUB_GRIP);
+            const way = base.clone().applyAxisAngle(left, spin);
             mesh.quaternion.setFromUnitVectors(Y, way.normalize());
-            // The middle of a held club is ahead of the fist, not in it.
-            if (from === to) mesh.position.addScaledVector(way, CLUB * 0.22);
           } else if (entry.prop === 'rings') {
             // Held by its near edge, the elbow, the hand and the middle of the ring in one line (the user: held from
             // below it was wrong): the middle a radius on along the forearm, the ring in the plane of the forearm and

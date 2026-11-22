@@ -353,7 +353,10 @@ public sealed class Juggling
     private Vec3 Catches(int hand, int value, bool across = true) => value == 1
         ? new Vec3(Side(hand) * 0.16, -0.01, 0.02)
         : Rings ? new Vec3(Side(hand) * 0.31, 0.18, 0.02)
+        : Clubs ? new Vec3(Side(hand) * (across ? 0.40 : 0.42), 0.08, -0.02)
         : new Vec3(Side(hand) * (across ? 0.32 : 0.34), 0.06, -0.02);
+    // A club is half a metre long: caught well out to the side, the elbow out, or two meet in the air (the user).
+    private bool Clubs => Prop == "clubs";
 
     private static readonly Vec3 Still = new(0, 0, 0);
     /// <summary>How far a hand swings up to throw, metres: a ring from low (the arm's whole swing), a ball a short flick.</summary>

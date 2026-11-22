@@ -269,6 +269,8 @@ public static class Solver
     private const double LowestRing = 0.6;
     /// <summary>A juggling ring across, metres: a flat band 3.4 cm wide and 3.5 mm thick (the user).</summary>
     private const double RingAcross = 0.324;
+    /// <summary>Metres a club has to rise over the hands to turn once clear of the others (SH2020): it is half a metre long.</summary>
+    private const double LowestClub = 0.45;
 
     /// <summary>A juggle word's `every`, times a factor, as it is written: 1/2, 1, 3/2.</summary>
     private static string Every(Seg seg, double times)
@@ -305,6 +307,9 @@ public static class Solver
             // air, which is a throw less often: the beats decide, not the hands.
             var low = juggling.Flights.Where(fl => fl.Value >= 3 && fl.Thrown >= from - 1e-6 && fl.Thrown < to - 1e-6)
                 .Select(fl => 9.81 * Math.Pow(fl.Caught - fl.Thrown, 2) / 8).DefaultIfEmpty(double.PositiveInfinity).Min();
+            if (juggling.Prop == "clubs" && low < LowestClub)
+                Say(seg, "SH2020", DiagnosticSeverity.Warning, FormattableString.Invariant(
+                    $"Clubs thrown {low:0.00} m high meet in the air: they are half a metre long and turn once on the way, and want {LowestClub:0.00} m or more. A throw goes higher for longer in the air, which is less often: every {Every(seg, 1.5)} rather than every {Every(seg, 1)}, or a slower tempo."));
             if (juggling.Prop == "rings" && low < LowestRing)
                 Say(seg, "SH2020", DiagnosticSeverity.Warning, FormattableString.Invariant(
                     $"Rings thrown {low:0.00} m high meet in the air and fall: they are {RingAcross:0.000} m across, and want {LowestRing:0.0} m or more. A throw goes higher for longer in the air, which is less often: every {Every(seg, 2)} rather than every {Every(seg, 1)}, or a slower tempo."));
@@ -2841,9 +2846,13 @@ internal sealed class FigureSolver
                 // turned the forearms in, and on a character with narrow shoulders the hands crossed the middle.
                 // Rings: the elbows straight down by the ribs, a touch in, the upper arm not turned (the user: the shoulder turned in
                 // looked wrong); with a ball a little back as well.
-                var jugglePole = (Juggling!.Prop == "rings"
-                    ? -Vec3.Up - juggleLeft * (0.05 * side) - juggleFwd * 0.15
-                    : -Vec3.Up + juggleLeft * (0.08 * side) - juggleFwd * 0.45).Normalized();
+                // Clubs: the elbows open out to the side, so the hands catch well out (the user).
+                var jugglePole = (Juggling!.Prop switch
+                {
+                    "rings" => -Vec3.Up - juggleLeft * (0.05 * side) - juggleFwd * 0.15,
+                    "clubs" => -Vec3.Up + juggleLeft * (0.6 * side) - juggleFwd * 0.15,
+                    _ => -Vec3.Up + juggleLeft * (0.08 * side) - juggleFwd * 0.45,
+                }).Normalized();
                 bend = Vec3.Slerp(bend.Length < 1e-6 ? pole.Normalized() : bend.Normalized(), jugglePole, juggleWeight);
             }
             var (elbow, reachedHand) = TwoBone(shoulder, hand, Rig.UpperArm, Rig.Forearm, bend.Length < 1e-6 ? pole : bend);
