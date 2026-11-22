@@ -1293,6 +1293,12 @@ score { dancer alice  dancer bob  dancer carol }
   `dancer alice humanoid "girl.vrm" on lead` (from the folder of the .shosa file). The preview
   shows the dancer as that character instead of sticks; it changes nothing of the movement or
   of what is exported. Without it, the dancer is drawn as sticks.
+- `height N m`: how tall the character is drawn, from the floor to the top of its hair, ears and all
+  (0.1 m to 5 m; `150cm` also does): `dancer alice humanoid "girl.vrm" height 1.5m on lead`. Models are
+  made at their own heights (a child, a two-heads-tall mini): give dancers who should be the same size the
+  same height. Without it, a character is as tall as its file makes it. Only the preview's character
+  changes: the movement and what is exported stay the same. Without a character it does nothing.
+  (Not the `height` track of a section, which lowers or raises the body.)
 - `sings PART`: the dancer's mouth sings the words of that part of the song (`music`), as the
   song's `singer … on PART` line sings them: `dancer alice humanoid "girl.vrm" sings melody on lead`.
   PART is the song's name for the part. Each syllable opens the mouth to its vowel (あ い う え お;

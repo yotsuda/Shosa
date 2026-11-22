@@ -56,7 +56,11 @@ export function createCharacters(scene, changed) {
       const hips = vrm.humanoid.getNormalizedBoneNode('hips');
       entry.vrm = vrm;
       entry.restHips = hips ? hips.getWorldPosition(new THREE.Vector3()).y : 1;
-      // A VRM 0.x model's rig faces -z inside its scene (rotateVRM0 turns the scene round): the turns are mirrored to it.
+      // How tall the file makes the character, standing at rest: the floor (its feet are at 0) to the top of
+      // the highest mesh, hair and ears and all, as it is seen. `height` is measured the same way.
+      vrm.scene.updateMatrixWorld(true);
+      const top = new THREE.Box3().setFromObject(vrm.scene).max.y;
+      entry.ownHeight = top > 0.05 ? top : 0;      // A VRM 0.x model's rig faces -z inside its scene (rotateVRM0 turns the scene round): the turns are mirrored to it.
       entry.flip = vrm.meta && vrm.meta.metaVersion === '0';
       entry.bones = null;
       entry.error = '';
@@ -77,7 +81,7 @@ export function createCharacters(scene, changed) {
       dressed = dressed.map(entry => {
         if (!entry || entry.file !== file) return entry;
         undress(entry);
-        const next = { file };
+        const next = { file, height: entry.height };
         load(next);
         return next;
       });
@@ -88,11 +92,16 @@ export function createCharacters(scene, changed) {
     dress(figures, models) {
       dressed = figures.map((figure, i) => {
         const file = figure.model ? models[figure.model] : null;
+        // `height 1.5m` on the dancer line: how tall the character is drawn, to the top of its hair (DESIGN.md 115).
+        const height = figure.modelHeight > 0 ? figure.modelHeight : 0;
         const was = dressed[i];
-        if (was && was.file === file) return was;
+        if (was && was.file === file) {
+          was.height = height;
+          return was;
+        }
         undress(was);
         if (!file) return null;
-        const entry = { file };
+        const entry = { file, height };
         load(entry);
         return entry;
       });
@@ -149,11 +158,18 @@ export function createCharacters(scene, changed) {
           bone.quaternion.slerpQuaternions(q0, q1, k);
         });
         const hips = entry.bones[names.indexOf('hips')];
+        const size = entry.height && entry.ownHeight ? entry.height / entry.ownHeight : 1;
+        vrm.scene.scale.setScalar(size);
         if (hips && pelvis >= 0) {
           const p = frames[f0], q = frames[Math.min(frames.length - 1, f0 + 1)];
-          const scale = entry.restHips / (clip.hipsHeight || 1);
-          const at = j => (p[pelvis * 3 + j] + (q[pelvis * 3 + j] - p[pelvis * 3 + j]) * k) * scale;
-          hips.position.set(s * at(0), at(1), s * at(2));
+          // The pelvis's way is scaled to the character's legs (its steps are its own length, the feet do not slide),
+          // but from where the figure stands at the start of the clip: the dancer is where `at` puts it, in metres,
+          // whatever the character's size. The scene is scaled by `size`: the bone's position is in its units.
+          const legs = entry.restHips * size / (clip.hipsHeight || 1);
+          const first = frames[0];
+          const at = j => p[pelvis * 3 + j] + (q[pelvis * 3 + j] - p[pelvis * 3 + j]) * k;
+          const ground = j => first[pelvis * 3 + j] + (at(j) - first[pelvis * 3 + j]) * legs;
+          hips.position.set(s * ground(0) / size, at(1) * legs / size, s * ground(2) / size);
         }
         // A figure that sings (`sings melody`): the weights of the five mouth expressions, between two frames
         // blended (DESIGN.md 99). vrm.update below applies them.

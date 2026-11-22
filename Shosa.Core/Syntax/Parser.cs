@@ -17,7 +17,7 @@ internal sealed class Parser
 {
     private static readonly HashSet<string> TopKeywords =
         ["using", "title", "tempo", "time", "fps", "music", "role", "dancer", "pose", "move", "section", "form", "score"];
-    private static readonly HashSet<string> ClauseKeywords = ["on", "at", "facing", "mirror", "delay", "free", "in", "sings"];
+    private static readonly HashSet<string> ClauseKeywords = ["on", "at", "facing", "mirror", "delay", "free", "in", "sings", "height"];
     private static readonly HashSet<string> ScoreItemKeywords = ["form", "tempo", "title", "music", "dancer", "loop", "inPlace"];
 
     private readonly List<GreenToken> _tokens;

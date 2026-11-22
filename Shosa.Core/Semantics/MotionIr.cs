@@ -72,6 +72,8 @@ public sealed class DancerIr
     public string Rig { get; set; } = "humanoid";
     /// <summary>The character file (VRM) the preview puts on this body, as written (from the .shosa file's folder); null for none.</summary>
     public string? Model { get; set; }
+    /// <summary>How tall the preview draws the character, in metres to the top of its hair (`height 1.5m`); null for its own height.</summary>
+    public double? ModelHeight { get; set; }
     /// <summary>Start position on the floor: x to stage left, z toward the audience.</summary>
     public double X { get; set; }
     public double Z { get; set; }

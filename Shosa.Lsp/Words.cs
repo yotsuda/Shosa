@@ -35,6 +35,7 @@ internal static class Words
         new("free", "The rules of weight and gravity never apply to this body: it can hang in the air (lift)."),
         new("in", "in SECTION … — dances only in these sections."),
         new("sings", "sings PART — the mouth sings the words of this part of the song (its singer line): sings melody."),
+        new("height", "height N m — how tall the preview draws the character (the VRM file), to the top of its hair: height 1.5m (or 150cm). Write the same height to match dancers; the movement does not change."),
     ];
 
     private static readonly Vocabulary.Word[] Facings =
@@ -412,7 +413,7 @@ internal static class Words
                 ["dancer", _] => ([new Vocabulary.Word("humanoid", "A human figure, 1.7 m tall.")], "value"),
                 [.., "on"] => (figures, "figure"),
                 [.., "facing"] => (Facings, "value"),
-                [.., "at"] or [.., "at", _] or [.., "delay"] or [.., "sings"] => ([], "none"),
+                [.., "at"] or [.., "at", _] or [.., "delay"] or [.., "sings"] or [.., "height"] => ([], "none"),
                 _ when line.Contains("in") && !DancerClauses.Any(c => c.Name == line[^1] && c.Name != "in") => ([.. sections, .. DancerClauses], "section"),
                 _ => (DancerClauses, "property"),
             };

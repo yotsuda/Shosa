@@ -49,6 +49,8 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
     {
         public string Id = "", Name = "", Figure = "";
         public string? Model;
+        /// <summary>How tall the preview draws the character, in metres to the top of its hair (`height 1.5m`); null for its own height.</summary>
+        public double? ModelHeight;
         /// <summary>The part of the song it sings (`sings melody`), and where that is written.</summary>
         public string? Sings;
         public TextSpan SingsSpan;
@@ -1107,9 +1109,28 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                             Error("SH1006", clause.Span, "sings names the part of the song this dancer sings, as the song names it: sings melody");
                         break;
 
+                    case "height":
+                    {
+                        // How tall the preview draws the character, to the top of its hair (DESIGN.md 115): models are made at
+                        // their own heights (a child, a two-heads-tall mini); dancers side by side are matched by writing the
+                        // same height, not by trying factors. Metres (`1.5m`, or a bare number like `at`) or centimetres. The movement does not change.
+                        double? metres = values switch
+                        {
+                            [{ Kind: SyntaxKind.Number } n] => Number(n),
+                            [{ Kind: SyntaxKind.Number } n, { Text: "m" }] => Number(n),
+                            [{ Kind: SyntaxKind.Number } n, { Text: "cm" }] => Number(n) / 100,
+                            _ => null,
+                        };
+                        if (metres is >= 0.1 and <= 5)
+                            dancer.ModelHeight = metres;
+                        else
+                            Error("SH1006", clause.Span, "height takes how tall the character is drawn, to the top of its hair, from 0.1 m to 5 m: height 1.5m (or 150cm)");
+                        break;
+                    }
+
                     default:
                         Error("SH1006", tokens[0].Span,
-                            $"A dancer line has no '{tokens[0].Text}'.{Hint(tokens[0].Text, ["on", "at", "facing", "mirror", "delay", "free", "in", "sings"])}");
+                            $"A dancer line has no '{tokens[0].Text}'.{Hint(tokens[0].Text, ["on", "at", "facing", "mirror", "delay", "free", "in", "sings", "height"])}");
                         break;
                 }
             }
@@ -1316,6 +1337,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
             {
                 Id = dancer.Id, Name = dancer.Name == "" ? dancer.Id : dancer.Name, Figure = dancer.Figure,
                 X = dancer.X, Z = dancer.Z, FacingDeg = dancer.FacingDeg, Free = dancer.Free, Model = dancer.Model,
+                ModelHeight = dancer.Model is null ? null : dancer.ModelHeight,
                 Sings = Sung(dancer),
             };
             var sink = new Dictionary<string, List<Raw>>();

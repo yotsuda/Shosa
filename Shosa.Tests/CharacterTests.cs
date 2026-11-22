@@ -30,6 +30,40 @@ public class CharacterTests
     }
 
     [Theory]
+    [InlineData("height 1.5m", 1.5)]
+    [InlineData("height 150cm", 1.5)]
+    [InlineData("height 1.5", 1.5)]
+    public void Height_says_how_tall_the_character_is_and_changes_nothing_of_the_movement(string clause, double metres)
+    {
+        var plain = ShosaCompilation.Compile("role a\nrole b\ndancer alice humanoid \"girl.vrm\" on a at -1 0\ndancer bob humanoid \"boy.vrm\" on b at 1 0\n" + Tracks);
+        var sized = ShosaCompilation.Compile($"role a\nrole b\ndancer alice humanoid \"girl.vrm\" {clause} on a at -1 0\ndancer bob humanoid \"boy.vrm\" on b at 1 0\n" + Tracks);
+        Assert.Empty(sized.Diagnostics);
+        Assert.Equal(metres, sized.Clip.Figures.Single(f => f.Id == "alice").ModelHeight!.Value, 9);
+        Assert.Null(sized.Clip.Figures.Single(f => f.Id == "bob").ModelHeight);
+        Assert.Equal(plain.Clip.Figures[0].Frames.Last(), sized.Clip.Figures[0].Frames.Last());
+
+        var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+        var figures = JsonDocument.Parse(JsonSerializer.Serialize(sized.Clip, options)).RootElement.GetProperty("figures").EnumerateArray().ToList();
+        Assert.Equal(metres, figures[0].GetProperty("modelHeight").GetDouble(), 9);
+        Assert.False(figures[1].TryGetProperty("modelHeight", out _));
+    }
+
+    [Theory]
+    [InlineData("height 0")]
+    [InlineData("height -1m")]
+    [InlineData("height 6m")]
+    [InlineData("height")]
+    [InlineData("height tall")]
+    [InlineData("height 1.5ft")]
+    public void A_height_that_is_not_a_height_is_an_error(string clause)
+    {
+        var compilation = ShosaCompilation.Compile($"role a\nrole b\ndancer alice humanoid \"girl.vrm\" {clause} on a\ndancer bob humanoid on b at 1 0\n" + Tracks);
+        var error = Assert.Single(compilation.Diagnostics);
+        Assert.Equal("SH1006", error.Code);
+        Assert.Null(compilation.Clip.Figures[0].ModelHeight);
+    }
+
+    [Theory]
     [InlineData("\"\"")]
     [InlineData("\"girl.png\"")]
     public void A_character_that_is_not_a_VRM_file_is_an_error(string model)

@@ -211,6 +211,10 @@ public sealed class ClipFigure
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public string? Model { get; set; }
 
+    /// <summary>How tall the preview draws the character, in metres to the top of its hair (`dancer alice humanoid "girl.vrm" height 1.5m`); null for its own height.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public double? ModelHeight { get; set; }
+
     /// <summary>
     /// <see cref="Rotations"/> in the JSON, for a figure with a <see cref="Model"/> only: the preview poses the
     /// character's bones with them. A figure drawn as sticks is sent its positions alone.

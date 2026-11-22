@@ -83,7 +83,7 @@ public static class Solver
         foreach (var dancer in ir.Dancers)
         {
             var solver = solvers[dancer.Id];
-            var clipFigure = new ClipFigure { Id = dancer.Id, Name = dancer.Name, Model = dancer.Model };
+            var clipFigure = new ClipFigure { Id = dancer.Id, Name = dancer.Name, Model = dancer.Model, ModelHeight = dancer.ModelHeight };
             // The mouth sings with the song, on its clock: frames are even in seconds.
             if (dancer.Sings is { } sung)
                 clipFigure.Mouth = Mouth.Frames(sung, Enumerable.Range(0, frames).Select(f => (double)f / fps).ToList(), clip.SecondsAt);

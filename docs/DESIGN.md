@@ -6399,3 +6399,16 @@ dancer alice humanoid "girl.vrm" sings melody on solo
 - 試験: `editors\vscode\hosttest\index.cjs` (`tools\test-extension-host.ps1`) に 3 つ: 順に進む (下位フォルダー、両端で止まる、上)、カーソルが名前に残る、パスの外では何もしない。キーの割り当て自体は package.json の宣言で、試験はコマンドを呼ぶ。
 - まだ: ユーザーが VS Code で押して、プレビューの着せ替えを見ること。
 
+
+## 115. キャラクターの背丈 `height 1.5m` (2026-11-22)
+
+ユーザー: `dancer zundamon humanoid "../out/vrm/zundamon.vrm" …` と `dancer metan humanoid "../out/vrm/zunko.vrm" …` を並べると縮尺が合わない。dancer ごとに縮尺を指定したい。
+
+- 最初に倍率 `scale N` を作ったが、ユーザーの指摘で替えた: 「dancer ごとの数字を試行錯誤して調整しないといけない」。倍率はモデルの元の背丈を知らないと揃わない。**背丈をメートルで書く** (ユーザーが選んだ): `height 1.5m` (`150cm`、単位なしはメートル。`at` と同じ)。0.1〜5 m。揃えたい dancer には同じ数を書けばよく、身長差もそのまま書ける。`scale` は無い。
+- **背丈の測り方** (ユーザーが選んだ): 立ち姿 (VRM の休みの姿) で、床 (足は 0) から一番上のメッシュまで。髪・耳・アホ毛を含む、見た目の高さ。プレビューが読み込んだときに `Box3.setFromObject` で測り、`height / 測った値` 倍に描く。測った値: `zundamon.vrm` 1.34 m (耳まで)、`zunko.vrm` 1.63 m (アホ毛まで)。両方 `height 1.5m` で並べて撮った (`out\pv\harness-scale.html`、`out\pv\scale\`)。
+- 書かなければ、ファイルのままの背丈。キャラクターがないと何もしない (IR には載せない)。動きと書き出し (glTF、VRMA、BVH) は変わらない: プレビューと MP4 のキャラクターだけ。
+- 語 `height` はセクションのトラック `height { … }` (体を下げる・上げる) と同じ綴り。パーサーの `ClauseKeywords` は dancer の行でしか使わないので衝突しない。ホバーは場所で決まる (Words.cs)。文法書に「トラックの height ではない」と書いた。
+- **ついでに直したこと: `at` の位置が縮んでいた**。プレビューは骨盤の道のりを、キャラクターの脚の長さ / Shosa の人形の脚の長さ倍にしていた (歩幅がキャラクターの脚に合い、足が滑らない) が、**立ち位置まで**その倍率で縮んでいた (脚の短いミニを `at 0.8 0` に置くと 0.5 m ほどに)。いまはクリップの最初のコマの骨盤の位置を基準に、そこからの道のりだけを脚の倍率にする。立ち位置はメートルのまま、棒の人形と同じ所に立つ。上下は前のまま脚の倍率。
+- 試験: `CharacterTests` に、`1.5m` `150cm` `1.5` が 1.5 m になる、動きが変わらない、JSON の `modelHeight` (書いた dancer だけ)、0・負・6 m・単位違い・数なしが SH1006。
+- まだ: ユーザーが VS Code のプレビューで、自分の曲 (`scratch\Zunda-to-Metan-no-Jikoshokai.shosa`) で見ること。
+
