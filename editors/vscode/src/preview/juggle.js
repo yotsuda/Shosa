@@ -63,7 +63,7 @@ const worldQuat = node => node.getWorldQuaternion(new THREE.Quaternion());
  * as posed, 1 all the way): a juggler's hands carry the balls on the palm. Shosa's figure has no turn of the hand,
  * and the character's hands, posed from its forearms, faced each other edge up. Call after the bones are posed.
  */
-export function palmsUp(vrm, weight, edge = false, styles = [0, 0]) {
+export function palmsUp(vrm, weight, edge = false, styles = [0, 0], club = false) {
   if (!(weight > 0)) return;
   const node = name => vrm.humanoid.getNormalizedBoneNode(name);
   vrm.scene.updateMatrixWorld(true);
@@ -76,7 +76,16 @@ export function palmsUp(vrm, weight, edge = false, styles = [0, 0]) {
     const lower = node(side + 'LowerArm'), hand = node(side + 'Hand');
     if (!lower || !hand) continue;
     const isLeft = side === 'left';
-    const along = hand.getWorldPosition(new THREE.Vector3()).sub(lower.getWorldPosition(new THREE.Vector3())).normalize();
+    const forearm = hand.getWorldPosition(new THREE.Vector3()).sub(lower.getWorldPosition(new THREE.Vector3())).normalize();
+    // A club is gripped (the user): the hand an edge, the thumb up, the wrist bent down so the fingers go 60 degrees below the
+    // forearm and close round the handle, which crosses the palm and goes on out of the fist on the thumb's side, in line
+    // with the forearm. A ball is carried on the open palm, the fingers along the forearm.
+    const gripsClub = club && (styles[side === 'left' ? 1 : 0] | 0) === 0;
+    const along = forearm.clone();
+    if (gripsClub) {
+      const down = new THREE.Vector3().crossVectors(forearm, new THREE.Vector3(0, 1, 0));
+      if (down.lengthSq() > 1e-8) along.applyAxisAngle(down.normalize(), -Math.PI / 3);
+    }
     // The thumb out to its own side, square to the hand: with the fingers forward that is the palm up, on both hands.
     // `edge` (rings): the thumb up and the little finger down, the hand an edge, as a karate chop (the user).
     // A trick's own (DESIGN.md 118.12): a claw's palm down (the thumb in), a penguin's fingers down along the straight arm
@@ -85,7 +94,7 @@ export function palmsUp(vrm, weight, edge = false, styles = [0, 0]) {
     const out = bodyLeft.clone().multiplyScalar(isLeft ? 1 : -1);
     const thumb = style === 1 ? out.negate()
       : style === 2 ? Z.clone().applyQuaternion(restInverse).applyQuaternion(worldQuat(trunk)).negate()
-      : edge ? new THREE.Vector3(0, 1, 0).applyQuaternion(restInverse).applyQuaternion(worldQuat(trunk))
+      : edge || gripsClub ? new THREE.Vector3(0, 1, 0).applyQuaternion(restInverse).applyQuaternion(worldQuat(trunk))
       : out;
     thumb.addScaledVector(along, -thumb.dot(along));
     if (thumb.lengthSq() < 1e-8) continue;

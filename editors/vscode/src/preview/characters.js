@@ -123,7 +123,7 @@ export function createCharacters(scene, changed) {
     const juggled = data.juggle && data.juggle.weight;
     if (juggled && juggled.length) {
       const w0 = juggled[Math.min(juggled.length - 1, f0)], w1 = juggled[Math.min(juggled.length - 1, f0 + 1)];
-      palmsUp(vrm, w0 + (w1 - w0) * k, data.juggle.prop === 'rings', data.juggle.styles ? data.juggle.styles[Math.min(data.juggle.styles.length - 1, Math.round(frame))] : [0, 0]);
+      palmsUp(vrm, w0 + (w1 - w0) * k, data.juggle.prop === 'rings', data.juggle.styles ? data.juggle.styles[Math.min(data.juggle.styles.length - 1, Math.round(frame))] : [0, 0], data.juggle.prop === 'clubs');
     }
     return size;
   }
@@ -141,6 +141,18 @@ export function createCharacters(scene, changed) {
       const w = hand.getWorldPosition(new THREE.Vector3()), e = lower.getWorldPosition(new THREE.Vector3());
       const k = e.distanceTo(w) / 0.31;
       const along = w.clone().sub(e).normalize();
+      // A club is in the fist (the user: gripped): from the hand as it is turned, along its fingers and out of its palm,
+      // as mic.js finds the fist. The palms of a hand whose wrist is bent are not on the line of the forearm.
+      if (prop === 'clubs' && (styles?.[palms.length] | 0) === 0) {
+        const rest = vrm.scene.getWorldQuaternion(new THREE.Quaternion()).invert(), turned = hand.getWorldQuaternion(new THREE.Quaternion());
+        const isLeft = side === 'left';
+        const fingers = new THREE.Vector3(isLeft ? 1 : -1, 0, 0).applyQuaternion(rest).applyQuaternion(turned);
+        const thumb = new THREE.Vector3(0, 0, 1).applyQuaternion(rest).applyQuaternion(turned);
+        const palm = fingers.clone().cross(thumb).multiplyScalar(isLeft ? 1 : -1);
+        palms.push(w.clone().addScaledVector(fingers, 0.06 * k).addScaledVector(palm, 0.03 * k));
+        forearms.push(along);
+        continue;
+      }
       // A claw's palm is down: the ball under it (DESIGN.md 118.12).
       const up = (styles?.[palms.length] | 0) === 1 ? -0.05 : 0.04;
       palms.push(w.clone().addScaledVector(along, palmAlong(prop) * k).add(new THREE.Vector3(0, up * k, 0)));
