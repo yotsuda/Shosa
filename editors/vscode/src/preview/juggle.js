@@ -172,13 +172,15 @@ export function createJuggle(scene) {
             // Held by its near edge, the elbow, the hand and the middle of the ring in one line (the user: held from
             // below it was wrong): the middle a radius on along the forearm, the ring in the plane of the forearm and
             // up, its face to the side, its edge to the audience. In the air from the thrower's forearm to the catcher's.
+            // Every ring in one plane, square to the dancer's left (the user: seen from above the two hands' rings were
+            // at an angle): the forearm without its part to the side, so from the side the line still holds.
             const along = forearm[from].clone().lerp(forearm[to], u);
+            along.addScaledVector(left, -along.dot(left));
             if (along.lengthSq() < 1e-8) along.copy(fwd);
             along.normalize();
             // A ring is gripped in the fist, on the line of the forearm, not lying on the palm as a ball is.
             mesh.position.addScaledVector(along, RING).addScaledVector(Y, -PALM_UP);
-            const face = new THREE.Vector3().crossVectors(along, Y);
-            mesh.quaternion.setFromUnitVectors(Z, face.lengthSq() > 1e-6 ? face.normalize() : left);
+            mesh.quaternion.setFromUnitVectors(Z, left);
           }
         });
       });
