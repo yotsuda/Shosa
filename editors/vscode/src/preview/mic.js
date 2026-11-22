@@ -20,8 +20,13 @@ const THUMB = [['Metacarpal', 25], ['Proximal', 35], ['Distal', 30]];
 const FOREARM = 0.31;
 /** From the wrist to the middle of the closed fist, along the hand and out of the palm. */
 const FIST_ALONG = 0.045, FIST_OUT = 0.025;
-/** From the fist to the middle of the mic's ball, and how far below the first fist the other hand of `mic both` holds. */
-const TO_BALL = 0.12, LOWER_HAND = 0.075;
+/**
+ * The mic along +y from the fist: its foot, and the middle of its ball (21 cm from the foot to the top of the ball).
+ * The fist holds it 1 cm above the middle of its length (the user: at 6 cm from the foot it was held too low).
+ */
+const FOOT = -0.115, TO_BALL = 0.065;
+/** How far below the first fist the other hand of `mic both` holds. */
+const LOWER_HAND = 0.075;
 
 const X = new THREE.Vector3(1, 0, 0), Y = new THREE.Vector3(0, 1, 0), Z = new THREE.Vector3(0, 0, 1);
 
@@ -29,11 +34,12 @@ function makeMic() {
   const group = new THREE.Group();
   const body = new THREE.MeshStandardMaterial({ color: 0x2b2b2e, metalness: 0.6, roughness: 0.4 });
   const grille = new THREE.MeshStandardMaterial({ color: 0xb8bcc2, metalness: 0.8, roughness: 0.35 });
-  // Along +y, the fist at 0: the handle from -0.06 to 0.085, the collar, the ball.
-  const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.012, 0.145, 20), body);
-  handle.position.y = 0.0125;
+  // Along +y, the fist at 0: the handle from the foot to under the collar, the collar, the ball.
+  const collarFoot = TO_BALL - 0.025;
+  const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.012, collarFoot - FOOT, 20), body);
+  handle.position.y = (FOOT + collarFoot) / 2;
   const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.017, 0.02, 20), body);
-  collar.position.y = 0.095;
+  collar.position.y = collarFoot + 0.01;
   const ball = new THREE.Mesh(new THREE.SphereGeometry(0.03, 24, 16), grille);
   ball.position.y = TO_BALL;
   group.add(handle, collar, ball);
@@ -158,8 +164,9 @@ export function createMicHands(scene) {
       } else {
         mouth = worldPos(headBone).addScaledVector(front, 0.09 * k).addScaledVector(headUp, 0.02 * k);
       }
-      // Steep, so the fist is under the chin and the mouth is seen above the ball (at 35° from level the fist was in front of the mouth).
-      const micWay = headUp.clone().multiplyScalar(0.8).addScaledVector(front, -0.6).normalize();
+      // Steep, so the fist is under the chin and the mouth is seen above the ball (at 35° from level the fist was in front
+      // of the mouth; at 53°, held near the middle of the mic, in front of the chin and the lips).
+      const micWay = headUp.clone().multiplyScalar(0.9).addScaledVector(front, -0.44).normalize();
       // The ball just before the lips, the fist down the handle from it (under the chin: the mic is the same size for
       // every character, and a fist sized to a short forearm came up over the chin, DESIGN.md 117.4).
       const ball = mouth.clone().addScaledVector(front, 0.035);
