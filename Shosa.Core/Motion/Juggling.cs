@@ -343,16 +343,16 @@ public sealed class Juggling
     // Thrown from 15 cm off the middle: from 10–12 cm the forearms, their angles put on a child's narrow
     // shoulders, crossed the middle of the body.
     private static Vec3 Ready(int hand) => new(Side(hand) * 0.23, 0, 0);
-    // Rings go up and down in one place: caught high, carried down, thrown up from low, the hand an edge (the thumb
-    // up). A ring is thrown along the forearm, so it does not go round the loop a ball does (the user).
+    // Rings go up and down, the hand an edge (the thumb up): caught high and outside, carried down and in, thrown up
+    // from low and inside (the user: thrown where they were caught, a ring going up met the one coming down).
     private bool Rings => Prop == "rings";
     private Vec3 Throws(int hand, int value, bool across) => value == 1
         ? new Vec3(Side(hand) * 0.12, -0.01, 0.02)
-        : Rings ? new Vec3(Side(hand) * 0.21, -0.04, 0.02)
+        : Rings ? new Vec3(Side(hand) * 0.13, -0.04, 0.02)
         : new Vec3(Side(hand) * (across ? 0.15 : 0.21), 0, 0.01);
     private Vec3 Catches(int hand, int value) => value == 1
         ? new Vec3(Side(hand) * 0.16, -0.01, 0.02)
-        : Rings ? new Vec3(Side(hand) * 0.23, 0.14, 0.02)
+        : Rings ? new Vec3(Side(hand) * 0.26, 0.14, 0.02)
         : new Vec3(Side(hand) * 0.32, 0.06, -0.02);
 
     /// <summary>Where a hand is at a time (seconds), in the juggling's frame.</summary>
