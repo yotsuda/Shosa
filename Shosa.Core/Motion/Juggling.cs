@@ -347,11 +347,13 @@ public sealed class Juggling
     private Vec3 Throws(int hand, int value, bool across) => value == 1
         ? new Vec3(Side(hand) * 0.12, -0.01, 0.02)
         : Rings ? new Vec3(Side(hand) * 0.13, 0.10, 0.02)
-        : new Vec3(Side(hand) * (across ? 0.15 : 0.21), 0, 0.01);
-    private Vec3 Catches(int hand, int value) => value == 1
+        : new Vec3(Side(hand) * (across ? 0.15 : 0.28), 0, 0.01);
+    // A throw that comes back to its own hand (an even one: 441, the box (4,2x)*, the fountain) goes up on the hand's own
+    // side, the hands well apart (the user: in the box they looked better further out). Thrown 28 cm out, caught 34.
+    private Vec3 Catches(int hand, int value, bool across = true) => value == 1
         ? new Vec3(Side(hand) * 0.16, -0.01, 0.02)
         : Rings ? new Vec3(Side(hand) * 0.31, 0.18, 0.02)
-        : new Vec3(Side(hand) * 0.32, 0.06, -0.02);
+        : new Vec3(Side(hand) * (across ? 0.32 : 0.34), 0.06, -0.02);
 
     private static readonly Vec3 Still = new(0, 0, 0);
     /// <summary>How far a hand swings up to throw, metres: a ring from low (the arm's whole swing), a ball a short flick.</summary>
@@ -369,7 +371,7 @@ public sealed class Juggling
     private void Swing(int hand, int to, int value, double thrown, double caught, double beat)
     {
         var from = Throws(hand, value, to != hand);
-        var into = Catches(to, value);
+        var into = Catches(to, value, to != hand);
         double flight = caught - thrown;
         if (value < 2 || flight < 0.05)
         {
