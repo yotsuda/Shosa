@@ -135,8 +135,52 @@ def pin_constraint(model, a, frames):
             mask[g, channels] = torch.maximum(mask[g, channels], torch.tensor(w))
         pinned.append((lo, hi))
     print("pinned frames", pinned, "joints", joints, flush=True)
+    if a.pin_holds:
+        mask = torch.maximum(mask, hold_mask(a, frames, value.shape[1]))
 
     return windows_of(value, frames), windows_of(mask, frames)
+
+
+HOLD_GROUPS = {"leftArm": [13, 16, 18, 20], "rightArm": [14, 17, 19, 21], "torso": [0, 3, 6, 9, 12, 15]}
+
+
+def hold_mask(a, frames, width):
+    """Pin each part (left arm, right arm, torso with the facing) for as long as Shosa holds it still:
+    the fastest of its joints turns slower than --hold-speed, for at least --hold-min frames.
+    Only Shosa's moves from pose to pose are left to EDGE, with --pin-feather frames of fade."""
+    import shosa2smpl
+    from scipy.spatial.transform import Rotation as R
+
+    q, _ = shosa2smpl.load(a.pin_vrma, a.start, a.seconds)
+    q = q[:frames]
+    mask = torch.zeros(frames, width)
+    report = []
+    for name, joints in HOLD_GROUPS.items():
+        speed = np.degrees(np.stack([(R.from_rotvec(q[1:, j]) * R.from_rotvec(q[:-1, j]).inv()).magnitude() for j in joints], 1).max(1)) * FPS
+        still = np.concatenate([[speed[0] < a.hold_speed], speed < a.hold_speed])
+        w = np.zeros(frames)
+        f = 0
+        while f < frames:
+            if still[f]:
+                g = f
+                while g < frames and still[g]:
+                    g += 1
+                if g - f >= a.hold_min:
+                    w[f:g] = 1
+                f = g
+            else:
+                f += 1
+        # fade out into the moves
+        held = w.copy()
+        for d in range(1, a.pin_feather + 1):
+            fade = 1.0 - d / (a.pin_feather + 1)
+            w[:-d] = np.maximum(w[:-d], held[d:] * fade)
+            w[d:] = np.maximum(w[d:], held[:-d] * fade)
+        channels = [7 + 6 * j + k for j in joints for k in range(6)]
+        mask[:, channels] = torch.tensor(w, dtype=torch.float32)[:, None]
+        report.append(f"{name} held {held.mean() * 100:.0f}%")
+    print("holds:", ", ".join(report), flush=True)
+    return mask
 
 
 @torch.no_grad()
@@ -180,6 +224,9 @@ def main():
     p.add_argument("--pin-before", type=int, default=2, help="frames held before each beat")
     p.add_argument("--pin-after", type=int, default=3, help="frames held after each beat")
     p.add_argument("--pin-feather", type=int, default=6, help="frames over which a pin fades out on each side")
+    p.add_argument("--pin-holds", action="store_true", help="also pin each part for as long as Shosa holds it still")
+    p.add_argument("--hold-speed", type=float, default=30, help="deg/s below which a part counts as held")
+    p.add_argument("--hold-min", type=int, default=4, help="frames a hold must last to be pinned")
     p.add_argument("--guide-vrma", help="a dancer's .vrma from `shosa vrma`: redraw it (SDEdit) instead of generating from noise")
     p.add_argument("--strength", type=float, default=0.5, help="how much of the diffusion the guide goes through (0 keeps it, 1 forgets it)")
     a = p.parse_args()
