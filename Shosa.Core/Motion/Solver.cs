@@ -338,7 +338,9 @@ public static class Solver
             var f = frames[Math.Clamp(frame, 0, frames.Count - 1)];
             return new Vec3(f[joint * 3], f[joint * 3 + 1], f[joint * 3 + 2]);
         }
-        // A ball lies in the palm: past the wrist along the forearm, and on top of the hand.
+        // A ball lies in the hand toward the fingers, so they can close on it: past the wrist along the forearm, and on top
+        // of the hand (the user: at 5 cm it was too near the body to be held). A ring is gripped in the fist, nearer.
+        double along = juggling.Prop == "rings" ? 0.05 : 0.085;
         Vec3 Palm(int hand, double sec)
         {
             double at = sec * fps;
@@ -347,7 +349,7 @@ public static class Solver
             int wrist = hand == 0 ? Rig.RHand : Rig.LHand, elbow = wrist - 1;
             var w = Vec3.Lerp(Joint(f, wrist), Joint(f + 1, wrist), u);
             var e = Vec3.Lerp(Joint(f, elbow), Joint(f + 1, elbow), u);
-            return w + (w - e).Normalized() * 0.05 + Vec3.Up * 0.04;
+            return w + (w - e).Normalized() * along + Vec3.Up * 0.04;
         }
         int Stacked(int ball, double sec)
         {

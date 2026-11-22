@@ -13,8 +13,12 @@ import * as THREE from 'three';
  */
 const BALL = 0.034, CLUB = 0.5;
 const RING_OUTER = 0.162, RING_INNER = 0.162 - 0.034, RING_THICK = 0.0035, RING = (RING_OUTER + RING_INNER) / 2;
-/** From the wrist to where a ball sits: along the hand, and up out of the palm (as the server puts it). */
-const PALM_ALONG = 0.05, PALM_UP = 0.04;
+/**
+ * From the wrist to where a ball sits: along the hand toward the fingers, and up out of the palm (as the server puts it;
+ * the user: at 5 cm it was too near the body for the fingers to hold). A ring is gripped in the fist, nearer the wrist.
+ */
+export const palmAlong = prop => prop === 'rings' ? 0.05 : 0.085;
+const PALM_UP = 0.04;
 const COLORS = [0xe8552f, 0x2f8fe8, 0xf2c22e, 0x3fbf6a, 0xb25fe0, 0xf07fb0, 0x5fd0d0, 0xf09a3e, 0x9aa0a8];
 
 function makeProp(prop, color) {
@@ -147,10 +151,10 @@ export function createJuggle(scene) {
   const Y = new THREE.Vector3(0, 1, 0), Z = new THREE.Vector3(0, 0, 1);
 
   /** The figure's palm, as the server puts a ball in it: past the wrist along the forearm, and up. */
-  function figurePalm(points, joints, side, out) {
+  function figurePalm(points, joints, side, out, along) {
     const wrist = points[joints.indexOf(side + 'Hand')], elbow = points[joints.indexOf(side + 'Elbow')];
     if (!wrist || !elbow) return out.set(0, 0, 0);
-    return out.subVectors(wrist, elbow).normalize().multiplyScalar(PALM_ALONG).add(wrist).addScaledVector(Y, PALM_UP);
+    return out.subVectors(wrist, elbow).normalize().multiplyScalar(along).add(wrist).addScaledVector(Y, PALM_UP);
   }
 
   return {
@@ -183,7 +187,7 @@ export function createJuggle(scene) {
         // The character's palm from the figure's, for each hand (none for sticks).
         const own = palms ? palms(i) : null;
         offsets.forEach((o, hand) => {
-          if (own && own[hand]) o.copy(own[hand]).sub(figurePalm(figure.points, clip.joints, hand === 0 ? 'right' : 'left', p));
+          if (own && own[hand]) o.copy(own[hand]).sub(figurePalm(figure.points, clip.joints, hand === 0 ? 'right' : 'left', p, palmAlong(juggle.prop)));
           else o.set(0, 0, 0);
         });
         // The dancer's left and front, from its shoulders: a club turns end over end about the left; a ring faces the side.

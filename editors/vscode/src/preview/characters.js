@@ -10,7 +10,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
 import { keepArmsOut, measureBody } from './clearance.js';
 import { createMicHands } from './mic.js';
-import { gripHands, heldBy, palmsUp } from './juggle.js';
+import { gripHands, heldBy, palmAlong, palmsUp } from './juggle.js';
 
 // VRM's mouth expressions, in the order the server sends their weights (`mouth`, Mouth.Shapes).
 const MOUTH = ['aa', 'ih', 'ou', 'ee', 'oh'];
@@ -226,7 +226,7 @@ export function createCharacters(scene, changed) {
           vrm.springBoneManager.reset();
         }
         vrm.update(jumped ? 0 : Math.min(dt, 0.1));
-        // Where its palms are, for the balls it juggles (juggle.js): past the wrist along the hand, and up. Right, left.
+        // Where its palms are, for the balls it juggles (juggle.js): past the wrist along the hand toward the fingers, and up. Right, left.
         if (data.juggle) {
           vrm.scene.updateMatrixWorld(true);
           entry.palms = ['right', 'left'].map(side => {
@@ -234,7 +234,7 @@ export function createCharacters(scene, changed) {
             if (!lower || !hand) return null;
             const w = hand.getWorldPosition(new THREE.Vector3()), e = lower.getWorldPosition(new THREE.Vector3());
             const k = e.distanceTo(w) / 0.31;
-            return w.clone().add(w.clone().sub(e).normalize().multiplyScalar(0.05 * k)).add(new THREE.Vector3(0, 0.04 * k, 0));
+            return w.clone().add(w.clone().sub(e).normalize().multiplyScalar(palmAlong(data.juggle.prop) * k)).add(new THREE.Vector3(0, 0.04 * k, 0));
           });
           entry.forearms = ['right', 'left'].map(side => {
             const lower = vrm.humanoid.getNormalizedBoneNode(side + 'LowerArm'), hand = vrm.humanoid.getNormalizedBoneNode(side + 'Hand');
