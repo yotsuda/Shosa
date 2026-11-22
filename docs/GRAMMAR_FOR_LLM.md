@@ -1406,7 +1406,7 @@ Do not try to express these; mention them as a limitation instead.
 
 - Hands and fingers, the face, the shoulders on their own (a shrug).
 - "As far as it goes" (write the limit: 45 for the hips; the shoulders say when they do not get there, SH2010), a place on the other dancer's face (`b.chin`), the way an elbow travels in a hook.
-- Holding an object. Contact other than a hand reaching a place.
+- Holding an object, but a mic (`mic` on the dancer line). Contact other than a hand reaching a place.
 - Walking along a curve.
 - Sitting, kneeling, lying down, or anything else where a part other than the feet
   carries weight. Standing on one leg is possible (a leg gesture).
