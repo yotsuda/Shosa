@@ -213,6 +213,16 @@ export function createJuggle(scene) {
           const w = figure.points[clip.joints.indexOf(side + 'Hand')], e = figure.points[clip.joints.indexOf(side + 'Elbow')];
           return w && e ? w.clone().sub(e).normalize() : fwd.clone();
         });
+        // A hand's forearm at a time (seconds): the character's where it is shown (tracked at every frame), else the figure's.
+        const figureFrames = figure.data.frames;
+        const forearmAt = (hand, sec) => {
+          if (track) return track.forearm(hand, sec);
+          const side = hand === 0 ? 'right' : 'left', wi = clip.joints.indexOf(side + 'Hand'), ei = clip.joints.indexOf(side + 'Elbow');
+          const x = Math.max(0, Math.min(figureFrames.length - 1, sec * clip.fps)), f = Math.floor(x), g = Math.min(figureFrames.length - 1, f + 1), r = x - f;
+          const at = (fr, i, m) => figureFrames[fr][i * 3 + m];
+          const v = new THREE.Vector3(...[0, 1, 2].map(m => (at(f, wi, m) - at(f, ei, m)) * (1 - r) + (at(g, wi, m) - at(g, ei, m)) * r));
+          return v.lengthSq() > 1e-8 ? v.normalize() : fwd.clone();
+        };
 
         entry.meshes.forEach((mesh, b) => {
           mesh.visible = visible;
@@ -248,22 +258,35 @@ export function createJuggle(scene) {
             p.add(offsets[from].clone().lerp(offsets[to], u));
           }
           mesh.position.copy(p);
+          // In the air a prop's way is set by the two hands at the throw and at the catch, not by the hands as they are now:
+          // the catching hand moves on through the flight, and following it the club (and the ring's middle) swayed and
+          // seemed to stop at the top (the user).
+          const sec = frame / clip.fps;
+          const flying = juggle.flights?.find(fl => fl[0] === b && fl[3] <= sec && sec <= fl[4]);
+          const d0 = flying ? forearmAt(flying[1], flying[3]) : forearm[from];
+          const d1 = flying ? forearmAt(flying[2], flying[4]) : forearm[to];
+          const uu = flying ? (sec - flying[3]) / Math.max(1e-6, flying[4] - flying[3]) : u;
           if (entry.prop === 'clubs') {
-            // Held, the club goes on from the forearm in one line, its handle in the fist (the user). Thrown, it turns end
-            // over end about the dancer's left from the thrower's forearm to the catcher's, a whole number of turns, so it
-            // comes down as the catching hand holds it. Its middle is as far on from the fist as when held, the way of the
-            // forearms in between: on the parabola, moved evenly, so still on a parabola.
-            const spin = src[j + 6] + ((sameState ? c[j + 6] : src[j + 6]) - src[j + 6]) * t;
-            // The whole way of the forearm, its part to the side too (the user: not parallel as rings are): caught with the
-            // forearm opened out, the club opens out; thrown from inside, the forearm closed, it opens the other way as much.
-            const base = forearm[from].clone().lerp(forearm[to], u);
+            // Held, the club goes on from the forearm in one line, its handle in the fist (the user), the whole way of the
+            // forearm, its part to the side too (not parallel as rings are): caught with the forearm opened out it opens out;
+            // thrown from inside, the forearm closed, it opens the other way as much. Its middle is as far on from the fist
+            // as when held: on the parabola, moved evenly, so still on a parabola.
+            const base = d0.clone().lerp(d1, uu);
             if (base.lengthSq() < 1e-8) base.copy(fwd);
             base.normalize();
             mesh.position.addScaledVector(base, CLUB_GRIP);
-            // It turns end over end in the upright plane it points in.
-            const turnAxis = new THREE.Vector3().crossVectors(base, Y);
-            if (turnAxis.lengthSq() < 1e-8) turnAxis.copy(left); else turnAxis.normalize();
-            const way = base.clone().applyAxisAngle(turnAxis, spin);   // its body rises first, toward the thrower
+            // Thrown, it turns end over end at an even speed in the upright plane it left the hand in, its body rising first,
+            // a whole number of turns; the difference between the thrower's forearm and the catcher's is made up evenly on
+            // the way, so it comes down as the catching hand holds it.
+            const spin = src[j + 6] + ((sameState ? c[j + 6] : src[j + 6]) - src[j + 6]) * t;
+            let way = base.clone();
+            if (flying) {
+              const turnAxis = new THREE.Vector3().crossVectors(d0, Y);
+              if (turnAxis.lengthSq() < 1e-8) turnAxis.copy(left); else turnAxis.normalize();
+              way = d0.clone().normalize().applyAxisAngle(turnAxis, spin);
+              const settle = new THREE.Quaternion().setFromUnitVectors(d0.clone().normalize(), d1.clone().normalize());
+              way.applyQuaternion(new THREE.Quaternion().slerp(settle, uu));
+            }
             mesh.quaternion.setFromUnitVectors(Y, way.normalize());
           } else if (entry.prop === 'rings') {
             // Held by its near edge, the elbow, the hand and the middle of the ring in one line (the user: held from
@@ -271,16 +294,21 @@ export function createJuggle(scene) {
             // up, its face to the side, its edge to the audience. In the air from the thrower's forearm to the catcher's.
             // Every ring in one plane, square to the dancer's left (the user: seen from above the two hands' rings were
             // at an angle): the forearm without its part to the side, so from the side the line still holds.
-            const along = forearm[from].clone().lerp(forearm[to], u);
+            const along = d0.clone().lerp(d1, uu);
             along.addScaledVector(left, -along.dot(left));
             if (along.lengthSq() < 1e-8) along.copy(fwd);
             along.normalize();
             // A ring is gripped in the fist, on the line of the forearm, not lying on the palm as a ball is. The hand is an
             // edge, its palm to the middle of the body: the ring lies on the palm's side of it, a hand's half thickness in
             // (the user: in the hand's place it went into the back of the hand). In the air, from the one hand's to the other's.
-            const inward = left.clone().multiplyScalar((from === 0 ? 1 : -1) * (1 - u) + (to === 0 ? 1 : -1) * u);
+            const inward = left.clone().multiplyScalar((from === 0 ? 1 : -1) * (1 - uu) + (to === 0 ? 1 : -1) * uu);
             mesh.position.addScaledVector(along, RING + RING_AHEAD).addScaledVector(Y, -PALM_UP).addScaledVector(inward, RING_INSIDE);
             mesh.quaternion.setFromUnitVectors(Z, left);
+          }
+          // A test page reads where and how each prop is drawn (out\pv\harness-juggle.html); nothing in the extension sets it.
+          if (globalThis.shosaJuggleDebug) {
+            const q = mesh.quaternion, at = mesh.position;
+            globalThis.shosaJuggleDebug(frame, b, at.x, at.y, at.z, from, to, uu, q.x, q.y, q.z, q.w);
           }
         });
       });
