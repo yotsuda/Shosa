@@ -77,6 +77,49 @@ export function palmsUp(vrm, weight, edge = false) {
   }
 }
 
+const FINGERS = ['Index', 'Middle', 'Ring', 'Little'];
+/** Degrees each joint of a finger and of the thumb bends in a fist round a handle (as mic.js). */
+const CURL = [['Proximal', 70], ['Intermediate', 80], ['Distal', 50]];
+const THUMB = [['Metacarpal', 25], ['Proximal', 35], ['Distal', 30]];
+
+/** How many props each hand holds at a frame (between two frames blended), [right, left]: 1 for one or more, 0 empty. */
+export function heldBy(juggle, frame) {
+  const frames = juggle.frames;
+  const f0 = Math.max(0, Math.min(frames.length - 1, Math.floor(frame))), f1 = Math.min(frames.length - 1, f0 + 1), k = Math.max(0, frame - f0);
+  const held = (f, hand) => {
+    for (let b = 0; b < juggle.count; b++)
+      if (frames[f][b * 7 + 3] === hand && frames[f][b * 7 + 4] === hand) return 1;
+    return 0;
+  };
+  return [0, 1].map(hand => held(f0, hand) * (1 - k) + held(f1, hand) * k);
+}
+
+/**
+ * Closes a character's hands round what they hold, `amounts` [right, left] (0 open, 1 a fist): a hand holding a ball or a
+ * ring is a fist, an empty one opens to catch (the user). Call after the hands are turned (palmsUp).
+ */
+export function gripHands(vrm, amounts) {
+  vrm.scene.updateMatrixWorld(true);
+  const inverse = worldQuat(vrm.scene).invert();
+  // In the rest frame the fingers close down toward the palm about the forward axis (the other way on the left hand); the
+  // thumb turns about x, under the palm, on both.
+  const thumbAxis = new THREE.Vector3(1, 0, 0).applyQuaternion(inverse);
+  ['right', 'left'].forEach((side, hand) => {
+    const amount = Math.max(0, Math.min(1, amounts[hand]));
+    const fingerAxis = new THREE.Vector3(0, 0, side === 'left' ? -1 : 1).applyQuaternion(inverse);
+    for (const finger of FINGERS) {
+      for (const [joint, degrees] of CURL) {
+        const bone = vrm.humanoid.getNormalizedBoneNode(side + finger + joint);
+        if (bone) bone.quaternion.setFromAxisAngle(fingerAxis, amount * degrees * Math.PI / 180);
+      }
+    }
+    for (const [joint, degrees] of THUMB) {
+      const bone = vrm.humanoid.getNormalizedBoneNode(side + 'Thumb' + joint);
+      if (bone) bone.quaternion.setFromAxisAngle(thumbAxis, amount * degrees * Math.PI / 180);
+    }
+  });
+}
+
 export function createJuggle(scene) {
   const shown = new Map();   // figure index -> { prop, meshes }
 

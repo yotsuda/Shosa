@@ -10,7 +10,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
 import { keepArmsOut, measureBody } from './clearance.js';
 import { createMicHands } from './mic.js';
-import { palmsUp } from './juggle.js';
+import { gripHands, heldBy, palmsUp } from './juggle.js';
 
 // VRM's mouth expressions, in the order the server sends their weights (`mouth`, Mouth.Shapes).
 const MOUTH = ['aa', 'ih', 'ou', 'ee', 'oh'];
@@ -192,6 +192,14 @@ export function createCharacters(scene, changed) {
         if (juggled && juggled.length) {
           const w0 = juggled[Math.min(juggled.length - 1, f0)], w1 = juggled[Math.min(juggled.length - 1, f0 + 1)];
           palmsUp(vrm, w0 + (w1 - w0) * k, data.juggle.prop === 'rings');
+        }
+        // A hand holding a ball or a ring is a fist; an empty one opens to catch (the user).
+        if (data.juggle && data.juggle.frames && data.juggle.frames.length) {
+          gripHands(vrm, heldBy(data.juggle, frame));
+          entry.gripped = true;
+        } else if (entry.gripped) {
+          gripHands(vrm, [0, 0]);
+          entry.gripped = false;
         }
         // A mic in a hand (`mic right`): drawn, the hand closed on it, and at the character's own mouth while it
         // sings (DESIGN.md 117). After the arms are kept out: the hand at the mouth is where it has to be.
