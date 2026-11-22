@@ -2541,7 +2541,7 @@ internal sealed class FigureSolver
                 // the belly, the elbow bent: a singer between phrases does not let it dangle.
                 if (seg is null)
                     return holdsMic
-                        ? chest + torsoFwd * 0.24 - torsoUp * 0.30 + torsoLeft * (0.10 * side) - shoulder
+                        ? chest + torsoFwd * 0.22 - torsoUp * 0.35 + torsoLeft * (0.10 * side) - shoulder
                         : Hang(c.Left, Vec3.Up, c.Fwd, swing);
                 if (seg.Kind == SegKinds.Reach)
                     return _others(seg.Target!) is { } other ? other.PlaceAt(seg.Part!, side, t, this, seg.Level) - (shoulder + lifted) : Offset(null);

@@ -18,6 +18,8 @@ const FOREARM = 0.31;
 const FIST_ALONG = 0.045, FIST_OUT = 0.025;
 /** From the fist to the middle of the mic's ball, and how far below the first fist the other hand of `mic both` holds. */
 const TO_BALL = 0.12, LOWER_HAND = 0.075;
+/** The radius of a head (as clearance.js measures it, hair and all) these sizes are for: Shosa's figure's. */
+const HEAD_RADIUS = 0.10;
 
 const X = new THREE.Vector3(1, 0, 0), Y = new THREE.Vector3(0, 1, 0), Z = new THREE.Vector3(0, 0, 1);
 
@@ -25,15 +27,26 @@ function makeMic() {
   const group = new THREE.Group();
   const body = new THREE.MeshStandardMaterial({ color: 0x2b2b2e, metalness: 0.6, roughness: 0.4 });
   const grille = new THREE.MeshStandardMaterial({ color: 0xb8bcc2, metalness: 0.8, roughness: 0.35 });
-  // Along +y, the fist at 0: the handle from -0.085 to 0.085, the collar, the ball.
-  const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.012, 0.17, 20), body);
+  // Along +y, the fist at 0: the handle from -0.06 to 0.085, the collar, the ball.
+  const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.012, 0.145, 20), body);
+  handle.position.y = 0.0125;
   const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.017, 0.02, 20), body);
   collar.position.y = 0.095;
   const ball = new THREE.Mesh(new THREE.SphereGeometry(0.03, 24, 16), grille);
   ball.position.y = TO_BALL;
   group.add(handle, collar, ball);
   group.traverse(o => { if (o.isMesh) o.frustumCulled = false; });
+  group.userData.parts = { handle, collar, ball };
   return group;
+}
+
+/** The handle `r` times as long out from its end below the fist, the collar and the ball moved out with it, none thicker. */
+function lengthen(mic, r) {
+  const { handle, collar, ball } = mic.userData.parts;
+  handle.scale.y = r;
+  handle.position.y = -0.06 + 0.0725 * r;
+  collar.position.y = 0.095 * r;
+  ball.position.y = TO_BALL * r;
 }
 
 const worldPos = node => node.getWorldPosition(new THREE.Vector3());
@@ -155,8 +168,12 @@ export function createMicHands(scene) {
       }
       // Steep, so the fist is under the chin and the mouth is seen above the ball (at 35° from level the fist was in front of the mouth).
       const micWay = headUp.clone().multiplyScalar(0.8).addScaledVector(front, -0.6).normalize();
-      const ball = mouth.clone().addScaledVector(front, 0.035 * k);
-      const fist = ball.clone().addScaledVector(micWay, -TO_BALL * k);
+      // How far the fist is from the ball goes with the head, not the hand: the fist has to be under the chin. A
+      // character's forearm can be short for its face (scaled by the hand, the fist came up over the chin), and a
+      // two-heads-tall mini's very short. The handle is lengthened; its thickness stays the hand's.
+      const reachK = head ? Math.min(1.5, Math.max(0.8, head.radius * size / HEAD_RADIUS)) : k;
+      const ball = mouth.clone().addScaledVector(front, 0.035 * reachK);
+      const fist = ball.clone().addScaledVector(micWay, -TO_BALL * reachK);
 
       // A hand on the mic: the thumb along it, the fingers round it, reaching from its own side across and forward.
       const placeHand = (side, at, amount) => {
@@ -180,7 +197,8 @@ export function createMicHands(scene) {
         closeHand(vrm, side, rest, side === main ? 1 : amount);
       };
 
-      placeHand(main, fist, up);      if (which === 'both') placeHand('left', fist.clone().addScaledVector(micWay, -LOWER_HAND * k), up);
+      placeHand(main, fist, up);
+      if (which === 'both') placeHand('left', fist.clone().addScaledVector(micWay, -LOWER_HAND * reachK), up);
       else if (entry.mic.helped) closeHand(vrm, 'left', rest, 0);
       entry.mic.helped = which === 'both';
 
@@ -193,6 +211,7 @@ export function createMicHands(scene) {
       mesh.position.copy(worldPos(hand).addScaledVector(along, FIST_ALONG * k).addScaledVector(palm, FIST_OUT * k));
       mesh.quaternion.setFromUnitVectors(Y, thumb);
       mesh.scale.setScalar(k);
+      lengthen(mesh, reachK / k);
     },
 
     /** Takes the mic away (the dancer line no longer has one) and opens the hands. */
