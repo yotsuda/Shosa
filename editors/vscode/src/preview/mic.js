@@ -22,9 +22,10 @@ const FOREARM = 0.31;
 const FIST_ALONG = 0.045, FIST_OUT = 0.025;
 /**
  * The mic along +y from the fist: its foot, and the middle of its ball (21 cm from the foot to the top of the ball).
- * The fist holds it 1 cm above the middle of its length (the user: at 6 cm from the foot it was held too low).
+ * The fist is 9 cm from the foot, so the top of a fist (some 8 cm tall) is a little above the middle (the user: at
+ * 6 cm it was held too low, at 11.5 cm too high).
  */
-const FOOT = -0.115, TO_BALL = 0.065;
+const FOOT = -0.09, TO_BALL = 0.09;
 /** How far below the first fist the other hand of `mic both` holds. */
 const LOWER_HAND = 0.075;
 
