@@ -47,7 +47,8 @@ These work, but are new and may still change.
 - **A VRM character for a dancer**: `dancer alice humanoid "girl.vrm" on lead` dresses the dancer in a VRM model,
   in the preview and in its MP4. What **Model** exports does not change: the movement, for any character.
   `height 1.5m` on the line draws the character that tall (to the top of its hair): models are made at their own sizes,
-  and dancers who should be the same size are given the same height.
+  and dancers who should be the same size are given the same height. The character's arms are kept out of its
+  own body (its trunk and head are measured from the model): the elbow goes round, and the hand stays where the words put it.
   Set `shosa.models.folder` to the folder you keep your models in; with the cursor on the file of a dancer line,
   **Ctrl+Shift+Up / Ctrl+Shift+Down** put the model before or after it there, and the preview changes with it.
 - **Dancing to a recording**: when a song made from a recording has its `NAME.orecchiante.json` beside it,

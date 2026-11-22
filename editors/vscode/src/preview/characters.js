@@ -8,6 +8,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
+import { keepArmsOut, measureBody } from './clearance.js';
 
 // VRM's mouth expressions, in the order the server sends their weights (`mouth`, Mouth.Shapes).
 const MOUTH = ['aa', 'ih', 'ou', 'ee', 'oh'];
@@ -60,7 +61,12 @@ export function createCharacters(scene, changed) {
       // the highest mesh, hair and ears and all, as it is seen. `height` is measured the same way.
       vrm.scene.updateMatrixWorld(true);
       const top = new THREE.Box3().setFromObject(vrm.scene).max.y;
-      entry.ownHeight = top > 0.05 ? top : 0;      // A VRM 0.x model's rig faces -z inside its scene (rotateVRM0 turns the scene round): the turns are mirrored to it.
+      entry.ownHeight = top > 0.05 ? top : 0;
+      // Its trunk and head, to keep its arms out of them (clearance.js). A model it cannot measure is shown as posed.
+      try {
+        entry.body = measureBody(vrm);      } catch {
+        entry.body = null;
+      }      // A VRM 0.x model's rig faces -z inside its scene (rotateVRM0 turns the scene round): the turns are mirrored to it.
       entry.flip = vrm.meta && vrm.meta.metaVersion === '0';
       entry.bones = null;
       entry.error = '';
@@ -171,6 +177,9 @@ export function createCharacters(scene, changed) {
           const ground = j => first[pelvis * 3 + j] + (at(j) - first[pelvis * 3 + j]) * legs;
           hips.position.set(s * ground(0) / size, at(1) * legs / size, s * ground(2) / size);
         }
+        // The arms out of the character's own body, which is not the figure's the turns were solved on (DESIGN.md 116).
+        // (A test page turns it off with globalThis.shosaArmsAsSolved, to compare.)
+        if (entry.body && !globalThis.shosaArmsAsSolved) keepArmsOut(vrm, entry.body, size);
         // A figure that sings (`sings melody`): the weights of the five mouth expressions, between two frames
         // blended (DESIGN.md 99). vrm.update below applies them.
         const mouth = data.mouth;
