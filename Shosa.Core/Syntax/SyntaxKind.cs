@@ -53,6 +53,7 @@ public enum SyntaxKind
     Annotation,    // @ word arguments?
     Arguments,     // ( (target | N)* )
     Mark,          // ! NAME
+    Every,         // every N (/ N)?                   (in a juggle track: a throw every so many beats, from here on. DESIGN.md 118)
     FormDecl,      // form NAME? { (formItem | formChange | formSign | formEnding)* }
     FormItem,      // NAME
     FormChange,    // tempo N | time N/N                (for the section named after it, this time it is played)

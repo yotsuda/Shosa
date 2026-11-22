@@ -91,6 +91,11 @@ public sealed class DancerIr
     /// one between); null for none. While it sings the mic is at the mouth (DESIGN.md 117).
     /// </summary>
     public string? Mic { get; set; }
+    /// <summary>
+    /// What the hands throw (`juggles balls`): "balls", "clubs" or "rings"; null for nothing. What they throw
+    /// and when is the juggle track (DESIGN.md 118).
+    /// </summary>
+    public string? Juggles { get; set; }
     /// <summary>Channel name (see <see cref="Channels"/>) to its segments, in time order.</summary>
     public Dictionary<string, List<Seg>> Tracks { get; } = [];
 }
@@ -269,6 +274,13 @@ public static class Channels
 
     public static readonly string[] All = [Support, Height, LeftArm, RightArm, LeftLeg, RightLeg, Turnout, Hips, Torso, Shoulders, Head];
 
+    /// <summary>
+    /// What the hands throw and catch, in siteswap (DESIGN.md 118). Not a part of the body, so not in
+    /// <see cref="All"/> (`body` does not write it): while it has a word the arms are its, over their rows.
+    /// Its segments are `Juggle`, from T0 to T1, a throw every <see cref="Seg.Every"/> beats.
+    /// </summary>
+    public const string Juggle = "juggle";
+
     public static string Mirror(string channel) => channel switch
     {
         LeftArm => RightArm,
@@ -296,6 +308,7 @@ public static class SegKinds
     public const string Shift = "shift";        // support: the weight goes over Foot (left | right | center)
     public const string Lift = "lift";          // support, free: hang with the feet Height above the floor
     public const string Land = "land";          // support, free: back to the floor
+    public const string Juggle = "juggle";      // juggle: throw Pattern from T0 to T1, a throw every Every beats
 }
 
 /// <summary>
@@ -368,6 +381,13 @@ public sealed class Seg
     /// end; the beat the word before it begins. If the feet already stand so, it is a way of standing: no foot
     /// moves, and the weight goes back between them from this beat (DESIGN.md 88).</summary>
     public double? Kept { get; set; }
+
+    /// <summary>Juggle: the siteswap as written (`531`, `(4,2x)*`).</summary>
+    public string? Pattern { get; set; }
+    /// <summary>Juggle: beats from one throw to the next (`every 1/2`).</summary>
+    public double? Every { get; set; }
+    /// <summary>Juggle (`@mirror`): the left hand throws the first plain beat, or the first number of a pair.</summary>
+    public bool LeftFirst { get; set; }
 
     /// <summary>smooth | sharp | linear.</summary>
     public string Ease { get; set; } = "smooth";

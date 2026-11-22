@@ -32,6 +32,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { createCharacters } from './characters.js';
 import { createFontSound } from './fontsound.js';
+import { createJuggle } from './juggle.js';
 import { createRecording, cutRecording } from './recording.js';
 import { createSound } from './sound.js';
 import { MaxLevel, createStemPlayer, stemRows } from './stems.js';
@@ -168,6 +169,8 @@ const characters = createCharacters(scene, () => {
   show();
 });
 
+const juggle = createJuggle(scene);
+
 function look() {
   const wanted = characters.any();
   modelLabel.hidden = !wanted;
@@ -266,6 +269,9 @@ function pose(frame) {
     });
   }
   if (clip) characters.pose(clip, clip.figures, frame);
+  // The balls juggled (DESIGN.md 118): in the character's hands where it has one, else in the figure's.
+  if (clip) juggle.pose(clip, figures, frame, i => modelBox.checked ? characters.palms(i) : null, true);
+  else juggle.clear();
 }
 
 // An event is "being performed" from just after it starts until it ends: at its last
@@ -561,7 +567,7 @@ function setClip(next, keepBeat) {
   const rebuild = !next || !clip || figures.length !== next.figures.length;
   clip = next;
   if (rebuild) build(); else figures.forEach((figure, i) => { figure.data = clip.figures[i]; });
-  if (clip) characters.dress(clip.figures, models); else characters.clear();
+  if (clip) characters.dress(clip.figures, models); else { characters.clear(); juggle.clear(); }
   look();
   empty.style.display = clip && clip.figures.length && clip.totalBeats > 0 ? 'none' : 'flex';
   if (!keepBeat) beat = 0;

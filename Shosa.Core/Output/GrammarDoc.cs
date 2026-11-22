@@ -1284,6 +1284,9 @@ public static class GrammarDoc
               phrases the right hand holds it and the left is free. Without `sings` the mic just stays in
               the hand. The preview draws the mic and closes the hand on it; exported files have the arm
               at the mouth, but no mic and no fingers.
+            - `juggles balls | clubs | rings`: what the dancer's hands throw in its `juggle` row (next
+              section). How many is not written: the pattern says (`3` is three balls). A dancer cannot
+              hold a mic and juggle (SH1043).
             - `at` is where the feet stand TOGETHER before anything is written, and a first step
               already made moves one foot off it: `rightFoot.fwd(0.3m)` from `at 0 0` stands with the
               middle of the feet at 0.15 m forward, `leftFoot.side(0.6m)` with it 0.3 m to the left. To
@@ -1299,6 +1302,61 @@ public static class GrammarDoc
               `at` is where the feet stand together: a stance with a foot forward (`leftFoot.fwd(0.3m)`)
               brings each of them nearer, and at 1 m the front legs of two such fighters meet (SH2007).
               Start those 1.1 m apart or more.
+
+            ## Juggling: `juggle`
+
+            A dancer whose line says `juggles balls` (or `clubs`, `rings`) throws them in a `juggle` row,
+            written in **siteswap** exactly as jugglers write it. One word is one pattern; its length is how
+            long that pattern goes on. `every` says how many beats from one throw to the next, and is
+            written before the first pattern of the row (SH1042); it holds until it is written again.
+
+            ```
+            dancer alice humanoid juggles balls on solo
+
+            section Show {
+              solo {
+                juggle { every 1/2  3:4 | 531:3 3:1 | 441:3 3:1 | skip:2 (4,2x)*:2 | }
+                steps  { then:4 | leftFoot.side:2 together:2 | then:4 | then:4 | }
+              }
+            }
+            ```
+
+            - Siteswap: each digit is one throw, and the number is how many throwing beats until that ball
+              is thrown again (a = 10, b = 11 …). The hands take turns, the right first (`@mirror`: the
+              left); an odd number goes across to the other hand, an even one comes back to the same hand.
+              `0` is an empty hand, `1` hands a ball straight across, `2` holds it. The number of balls is
+              the average of the numbers: `3` and `531` are three, `4` and `(4,4)` four.
+            - `(a,b)`: both hands throw at once, the right hand's number first; a pair takes two throwing
+              beats, its numbers are even, and `x` sends one across (`(4,2x)`). `*` after pairs plays them
+              again with the hands swapped: `(4,2x)*` is `(4,2x)(2x,4)`. `[ab]` throws two balls from one
+              hand at once (`[32]1`).
+            - A pattern that cannot be juggled (two balls coming down together, `54`, `543`; an odd number
+              in a pair) is SH1041, which says the beat where it goes wrong. A pattern of another number of
+              balls than the row began with is SH2019.
+            - **The patterns of a row written one against the other are one run of throws**: the hands keep
+              taking turns through it, and a ball thrown in one pattern comes down in the next. A pattern can
+              follow another only when what is in the air at the change is what it would have thrown itself
+              before (`3` → `531`, `531` → `3`, `3` → `441` are direct; `3` → `51` is not). When it cannot, it is
+              SH2019, which says the throws that make the change when there are some: `3:3/2 4:1/2 51:2`.
+              A word thrown once through or less is such a passage: it need not be a pattern on its own (`4`
+              once is not four balls), and is judged only by what is in the air before it. A plain pattern
+              and a pattern of pairs need throws of their own between them; `skip` between them always works.
+            - A length need not be a whole number of the pattern: at `every 1/2`, `531:3` is six throws (531
+              531) and `531:2` four (5 3 1 5). The next pattern takes over from what is in the air then, so a
+              cut in the middle of a pattern is a change like any other.
+            - `skip:N`: no throwing for N beats. The balls in the air are caught, the hands keep them, and
+              the arms dance their rows; the next pattern starts again from the hands.
+            - The beats are the score's: `{ 531:3/2 3:1/2 } q q`, `%`, `verse 2 { … }` and bar lines work as
+              in any row, and a pattern can start on the beat of the song where it changes.
+            - While a pattern is thrown, both arms are the juggle row's: a word of `arms`, `leftArm` or
+              `rightArm` that arrives then is SH2021 (it is not seen). Before and after, the hands come to
+              the juggling and go back over a third of a second. The legs, the hips, the torso and the head
+              dance their rows: walk, turn or bow while juggling.
+            - How high a ball goes is the time it flies: at tempo 120 and `every 1/2`, a 3 rises about
+              0.2 m, a 5 about 1 m, a 7 about 2.5 m. Higher than 3 m is SH2020, and so is a throw every less
+              than 0.12 s (the hands cannot keep up).
+            - The preview draws the balls (clubs turning end over end, rings face to the front) and turns a
+              character's palms up while it throws. Exported files have the arms; the balls are not in them.
 
             ## Dancing to a song
 

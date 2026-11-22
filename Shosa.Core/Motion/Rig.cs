@@ -237,6 +237,13 @@ public sealed class ClipFigure
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public ClipMic? Mic { get; set; }
 
+    /// <summary>
+    /// For a figure that juggles (`juggles balls`): what it throws, how many, and each one at each frame
+    /// (x y z, the hand it left and the one it goes to, how far through the flight, a club's turn). Null for none (DESIGN.md 118).
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public ClipJuggle? Juggle { get; set; }
+
     public Quat Rotation(int frame, int bone)
     {
         var f = Rotations[Math.Clamp(frame, 0, Rotations.Count - 1)];
@@ -259,6 +266,15 @@ public sealed class ClipFigure
 
 /// <summary>A mic in a figure's hand: "right", "left" or "both", and how far it is up at the mouth at each frame, 0..1.</summary>
 public sealed record ClipMic(string Hand, List<float> Up);
+
+/// <summary>
+/// The balls (clubs, rings) a figure juggles: <paramref name="Prop"/> balls | clubs | rings, <paramref name="Count"/> of
+/// them, and at each frame seven numbers for each: x, y, z (metres, as the joints), the hand it left and the one it goes
+/// to (0 right, 1 left; the same while it is held), how far through its flight (0..1), and a club's turn (radians).
+/// <paramref name="Weight"/>: how much the juggling has the arms at each frame (0 their rows, 1 the juggling), for the
+/// preview to turn a character's palms up while it throws.
+/// </summary>
+public sealed record ClipJuggle(string Prop, int Count, List<float[]> Frames, List<float> Weight);
 
 /// <summary>
 /// Degrees, more to the figure's left. <paramref name="Feet"/> is from the front of the room; the

@@ -56,6 +56,9 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         public TextSpan SingsSpan;
         /// <summary>The hand that holds a mic (`mic right`): right, left or both; null for none.</summary>
         public string? Mic;
+        /// <summary>What the hands throw (`juggles balls`): balls, clubs or rings; null for nothing.</summary>
+        public string? Juggles;
+        public TextSpan JugglesSpan;
         public double X, Z, FacingDeg, Delay;
         public bool Mirror, Free;
         public HashSet<string>? In;
@@ -1119,6 +1122,14 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                             Error("SH1006", clause.Span, "mic takes the hand that holds it: mic right, mic left, or mic both (two hands while singing)");
                         break;
 
+                    case "juggles":
+                        // What the hands throw in a juggle track (DESIGN.md 118). How many: the pattern says.
+                        if (values is [{ Text: "balls" or "clubs" or "rings" } prop])
+                            (dancer.Juggles, dancer.JugglesSpan) = (prop.Text, clause.Span);
+                        else
+                            Error("SH1006", clause.Span, "juggles takes what the hands throw: juggles balls, juggles clubs, or juggles rings. How many is the pattern's: 3 is three");
+                        break;
+
                     case "height":
                     {
                         // How tall the preview draws the character, to the top of its hair (DESIGN.md 115): models are made at
@@ -1140,10 +1151,13 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
 
                     default:
                         Error("SH1006", tokens[0].Span,
-                            $"A dancer line has no '{tokens[0].Text}'.{Hint(tokens[0].Text, ["on", "at", "facing", "mirror", "delay", "free", "in", "sings", "mic", "height"])}");
+                            $"A dancer line has no '{tokens[0].Text}'.{Hint(tokens[0].Text, ["on", "at", "facing", "mirror", "delay", "free", "in", "sings", "mic", "juggles", "height"])}");
                         break;
                 }
             }
+            // The hands that throw cannot hold a mic as well.
+            if (dancer.Mic is not null && dancer.Juggles is not null)
+                Error("SH1043", dancer.JugglesSpan, $"{dancer.Id} holds a mic, and a hand on the mic cannot throw: take out mic {dancer.Mic} or juggles {dancer.Juggles}.");
 
             if (!on)
                 Error("SH1003", words[1].Span, $"Say which role this dancer dances: dancer {dancer.Id} humanoid on {(_figures.Count > 0 ? _figures.Keys.First() : "ROLE")}");
@@ -1162,6 +1176,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         "height" => [Channels.Height],
         "arms" => [Channels.LeftArm, Channels.RightArm],
         Channels.LeftArm or Channels.RightArm or Channels.LeftLeg or Channels.RightLeg or Channels.Turnout or Channels.Hips or Channels.Torso or Channels.Shoulders or Channels.Head => [trackName],
+        Channels.Juggle => [Channels.Juggle],
         _ => null,
     };
 
@@ -1187,6 +1202,11 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         {
             if (TrackChannels(track, false) is not { } channels)
                 continue;
+            if (channels is [Channels.Juggle])
+            {
+                Error("SH1043", track.Token(SyntaxKind.Identifier)!.Span, "A juggle track is written in a section, beside the body's rows: a pattern is already a name for a juggling move (531, (4,4)).");
+                continue;
+            }
             var ctx = new Ctx(Nobody, null, [], channels, track.Token(SyntaxKind.Identifier)!.Text, [0], double.NaN, Free: true, Depth: 1);
             double time = 0, bar = 0;
             if (isPose)
@@ -1261,6 +1281,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                 continue;
             // The upbeat is before the section: it is not a part of its length.
             double time = BeginsWithUpbeat(track, channels, trackName.Text, upbeat, 0) ? -upbeat : 0, bar = time;
+            _every = double.NaN;
             Walk(track, new Ctx(Nobody, null, [], channels, trackName.Text, [0], 0, Free: true), ref time, ref bar);
             length = Math.Max(length, time);
         }
@@ -1350,6 +1371,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                 ModelHeight = dancer.Model is null ? null : dancer.ModelHeight,
                 Sings = Sung(dancer),
                 Mic = dancer.Mic,
+                Juggles = dancer.Juggles,
             };
             var sink = new Dictionary<string, List<Raw>>();
             int trackIndex = 0;
@@ -1379,6 +1401,16 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                 if (sink.TryGetValue(channel, out var raws))
                     ir.Tracks[channel] = Resolve(channel, raws, clip, dancer.Delay);
             }
+            // The juggle row: one pattern at a time, a later one cutting the one before short (DESIGN.md 118).
+            if (sink.TryGetValue(Channels.Juggle, out var thrown))
+            {
+                var segs = thrown.OrderBy(r => r.Seg.T0).ThenBy(r => r.Order).Select(r => r.Seg).ToList();
+                for (int k = 0; k + 1 < segs.Count; k++)
+                    segs[k].T1 = segs[k].Until = Math.Min(segs[k].T1, segs[k + 1].T0);
+                ir.Tracks[Channels.Juggle] = segs.Where(s => s.T1 > s.T0 + Epsilon).ToList();
+                if (dancer.Juggles is null && segs.Count > 0)
+                    Error("SH1043", new TextSpan(segs[0].Src, segs[0].Len), $"{dancer.Id} has nothing to throw: say what on its dancer line, dancer {dancer.Id} humanoid juggles balls (or clubs, or rings).");
+            }
             CheckThrough(ir, clip);
             // A mark names an arrival: one whose event lost its part to another track at that moment names nothing.
             clip.Marks.AddRange(_marks.Where(m => m.Raws.Count == 0 || m.Raws.Any(r => Arrives(r.Raw, m.Mark.Beat, sink[r.Channel]))).Select(m => m.Mark));
@@ -1406,6 +1438,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         bool early = BeginsWithUpbeat(track, channels, name.Text, upbeat, start);
         double time = early ? start - upbeat : start, barStart = time;
         _upbeatEnd = early ? start : double.NaN;
+        _every = double.NaN;   // each juggle row says its own
         double since = Walk(track, ctx, ref time, ref barStart);
         _upbeatEnd = double.NaN;
 
@@ -1602,6 +1635,22 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                         Verses(run, Again(c, start - lag), start, start, [.. soFar.Select(e => (e.T0 + start - t0, e.T1 + start - t0, e.Play))], row0 + start - t0).Time));
                     since = t0;
                     i = lastVerse;
+                    break;
+                }
+
+                case SyntaxKind.Every:
+                {
+                    // A throw every so many beats, from here on in the row (DESIGN.md 118). Takes no time.
+                    var numbers = Tokens(item, SyntaxKind.Number);
+                    double every = numbers.Count switch
+                    {
+                        1 => Number(numbers[0]),
+                        2 when Number(numbers[1]) != 0 => Number(numbers[0]) / Number(numbers[1]),
+                        _ => double.NaN,
+                    };
+                    if (numbers.Count > 0 && !(every > 0))
+                        Error("SH1042", item.Span, "every takes the beats from one throw to the next: every 1/2 throws on every quaver of 4/4, every 1 on every beat.");
+                    _every = every > 0 ? every : 0.5;
                     break;
                 }
 
@@ -1845,7 +1894,8 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         var words = target is null ? [] : target.ChildTokens().Where(t => t.Kind is SyntaxKind.Identifier or SyntaxKind.Number && !t.IsMissing).ToList();
         var parts = Parts(target);
         bool bracketed = parts.Any(p => p.Bracket is not null);
-        SyntaxNode? definition = words.Count == 1 && !bracketed ? _defs.GetValueOrDefault(words[0].Text) : null;
+        bool juggle = ctx.TrackName == Channels.Juggle;
+        SyntaxNode? definition = words.Count == 1 && !bracketed && !juggle ? _defs.GetValueOrDefault(words[0].Text) : null;
         if (words.Count == 1 && !bracketed && words[0].Text == Vocabulary.Again && ctx.ForcedLength is null)
         {
             BindAgain(ev, words[0], ctx, ref time, ref barStart, extra);
@@ -1898,6 +1948,12 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                 break;
             }
             rank = own;
+        }
+
+        if (juggle)
+        {
+            BindJuggle(ev, target, words, ctx, t0, t1);
+            return;
         }
 
         var annotations = new List<SyntaxNode>();
@@ -2017,6 +2073,72 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         // The moment a mark names is the beat its word is written at: the hand is there, the foot lands, the jump comes down.
         if (mark is not null && ctx.Clip is not null && t0 + wrap > -Epsilon)
             _marks.Add((new MarkIr(Math.Max(0, t0 + wrap), mark.Text, ctx.Dancer.Id, src.Start, src.Length, _playing, _verse), raws));
+    }
+
+    private double _every = double.NaN;   // the juggle row's beats from one throw to the next, as its `every` says
+
+    /// <summary>
+    /// A word of a juggle row (DESIGN.md 118): a pattern in siteswap, thrown from its beat for its length,
+    /// a throw every `every` beats. Whether it can follow the word before is the solver's to say: it is
+    /// the balls in the air that decide, and they are counted in throws, not in words.
+    /// </summary>
+    private void BindJuggle(SyntaxNode ev, SyntaxNode target, List<SyntaxToken> words, Ctx ctx, double t0, double t1)
+    {
+        if (words is [{ Text: Vocabulary.Skip }])
+            return;   // the hands hold what they have, and the arms dance their rows
+        if (words is [{ Text: Vocabulary.Hold } hold])
+        {
+            Error("SH1041", hold.Span, "A juggle row does not hold a pattern still: `skip` stops throwing (the hands keep what they have and dance their rows); the next pattern starts again.");
+            return;
+        }
+        string text = target.ToString().Trim();
+        if (double.IsNaN(_every))
+        {
+            Error("SH1042", target.Span, "Say how often the hands throw before the first pattern of the row: juggle { every 1/2  3:8 } throws on every half beat.");
+            _every = 0.5;
+        }
+        var (pattern, problem) = Siteswap.Parse(text);
+        if (pattern is null)
+        {
+            // Thrown once through or less, it is a passage between two patterns (`3:3/2 4:1/2 51:2`): what is in the
+            // air decides whether it can be thrown there, and the solver says so. Its spelling must still be siteswap.
+            var (once, spelling) = Siteswap.Parse(text, repeated: false);
+            if (once is null || Siteswap.Throws(t1 - t0, _every * ctx.Scale) > once.Beats.Count)
+            {
+                Error("SH1041", target.Span, $"'{text}' is not a pattern that can be juggled: {spelling ?? problem}.{(once is null ? "" : " Thrown once, as the way from one pattern to another, it can be: give it no more time than its throws.")}");
+                return;
+            }
+            pattern = once;
+        }
+        else if (pattern.Balls == 0)
+        {
+            Error("SH1041", target.Span, $"'{text}' throws nothing. A pause in the throwing is `skip`.");
+            return;
+        }
+
+        bool leftFirst = ctx.Mirror;
+        foreach (var annotation in ev.ChildNodes(SyntaxKind.Annotation))
+        {
+            if (annotation.Token(SyntaxKind.Identifier) is not { } name)
+                continue;
+            if (name.Text == "mirror")
+                leftFirst = !leftFirst;
+            else
+                Error("SH1010", name.Span, $"'@{name.Text}' cannot be put on a pattern: it takes @mirror (the left hand throws first).");
+        }
+        if (ctx.Clip is null || t1 <= Epsilon)
+            return;
+        var src = ctx.Src ?? ev.Span;
+        var seg = new Seg
+        {
+            Kind = SegKinds.Juggle, T0 = Math.Max(0, t0), T1 = t1, At = Math.Max(0, t0), Until = t1,
+            Pattern = text, Every = _every * ctx.Scale, LeftFirst = leftFirst, Src = src.Start, Len = src.Length,
+        };
+        if (!ctx.Sink.TryGetValue(Channels.Juggle, out var list))
+            ctx.Sink[Channels.Juggle] = list = [];
+        list.Add(new Raw(seg, ctx.Priority, _order++, t0, ctx.Since));
+        if (ev.Child(SyntaxKind.Mark)?.Token(SyntaxKind.Identifier) is { } mark && t0 > -Epsilon)
+            _marks.Add((new MarkIr(Math.Max(0, t0), mark.Text, ctx.Dancer.Id, src.Start, src.Length, _playing, _verse), []));
     }
 
     /// <summary>

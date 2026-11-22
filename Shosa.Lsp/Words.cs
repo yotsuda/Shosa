@@ -36,7 +36,31 @@ internal static class Words
         new("in", "in SECTION … — dances only in these sections."),
         new("sings", "sings PART — the mouth sings the words of this part of the song (its singer line): sings melody."),
         new("mic", "mic right | left | both — the dancer holds a mic in that hand (both: two hands while singing, the right one between). While it sings (sings PART) the mic is at the mouth, and that arm's words wait; between phrases the arm dances its words, the mic in hand."),
+        new("juggles", "juggles balls | clubs | rings — what the dancer's hands throw in its juggle row. How many is the pattern's: 3 is three, (4,4) four."),
         new("height", "height N m — how tall the preview draws the character (the VRM file), to the top of its hair: height 1.5m (or 150cm). Write the same height to match dancers; the movement does not change."),
+    ];
+
+    private static readonly Vocabulary.Word[] Props =
+    [
+        new("balls", "Balls (beanbags, 68 mm)."),
+        new("clubs", "Clubs, turning end over end: once for a 3, twice for a 5."),
+        new("rings", "Rings, thrown with their face to the front."),
+    ];
+
+    /// <summary>What a juggle row's words start from: its own words, and patterns jugglers know.</summary>
+    private static readonly Vocabulary.Word[] JuggleWords =
+    [
+        new("every", "every N — beats from one throw to the next, from here on: every 1/2 throws on every half beat. Written before the first pattern of the row."),
+        new(Vocabulary.Skip, "No throwing for its length: the hands keep the balls and the arms dance their rows. The next pattern starts again from the hands."),
+        new(Vocabulary.Again, "The group in braces before it again: { 531:3 3:1 } q q"),
+        new("3", "The cascade: three balls, each thrown across to the other hand."),
+        new("531", "Three balls: a high throw across, a middle one, and one handed straight across."),
+        new("441", "Three balls: two throws to the same hand, then one handed across."),
+        new("51", "Three balls: a high throw across, then one handed across (the shower)."),
+        new("4", "The fountain: four balls, each hand on its own side."),
+        new("5", "The five-ball cascade."),
+        new("(4,4)", "Four balls, both hands at once, each on its own side."),
+        new("(4,2x)*", "Three balls, both hands at once: a throw on one side while the other hand passes one across."),
     ];
 
     private static readonly Vocabulary.Word[] MicHands =
@@ -363,6 +387,13 @@ internal static class Words
         if (track is not null)
         {
             string name = track.Token(SyntaxKind.Identifier)?.Text ?? "";
+            // A juggle row's words are siteswap (DESIGN.md 118): offer `every`, `skip` and a few patterns to start from.
+            if (name == "juggle")
+            {
+                if (trigger == '@')
+                    return ([new Vocabulary.Word("mirror", "The left hand throws first (a pair's first number is the left hand's).")], "annotation");
+                return trigger is ':' or '!' or '(' or '.' || (wordStart > 0 && char.IsAsciiDigit(text[wordStart - 1])) ? ([], "none") : (JuggleWords, "word");
+            }
             if (trigger == '@')
                 return (ForAnnotation(name), "annotation");
             if (trigger == ':' && AtBars(text, wordStart, offset))
@@ -422,6 +453,7 @@ internal static class Words
                 [.., "on"] => (figures, "figure"),
                 [.., "facing"] => (Facings, "value"),
                 [.., "mic"] => (MicHands, "value"),
+                [.., "juggles"] => (Props, "value"),
                 [.., "at"] or [.., "at", _] or [.., "delay"] or [.., "sings"] or [.., "height"] => ([], "none"),
                 _ when line.Contains("in") && !DancerClauses.Any(c => c.Name == line[^1] && c.Name != "in") => ([.. sections, .. DancerClauses], "section"),
                 _ => (DancerClauses, "property"),

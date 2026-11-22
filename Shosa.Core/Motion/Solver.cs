@@ -93,6 +93,8 @@ public static class Solver
             foreach (var (seg, channel) in solver.MicHidden())
                 diagnostics.Add(new Diagnostic("SH2018", DiagnosticSeverity.Warning, new TextSpan(seg.Src, seg.Len),
                     $"The mic is at the mouth here ({dancer.Id} is singing), and the hand that holds it wins: this word of the {channel} row is not seen. Move it to where {dancer.Id} does not sing, or give it to the other arm{(dancer.Mic == "both" ? " (with mic both, both hands are on the mic while singing; mic right frees the left)" : "")}."));
+            if (solver.Juggling is { } juggle)
+                JuggleProblems(dancer, juggle, clip, diagnostics);
             var flagged = new HashSet<(Seg, string)>();
             Vec3[]? previous = null;
             double previousFacing = 0;
@@ -239,6 +241,9 @@ public static class Solver
                 }
             }
 
+            // The balls (DESIGN.md 118): drawn from the hands as they are, at the throw and at the catch.
+            if (solver.Juggling is { } juggling)
+                clipFigure.Juggle = JuggleFrames(juggling, clipFigure.Frames, fps);
             clip.Figures.Add(clipFigure);
             foreach (var (channel, segs) in dancer.Tracks)
             {
@@ -254,6 +259,104 @@ public static class Solver
 
         Collisions(ir, bodies, beatOfFrame, diagnostics);
         return clip;
+    }
+
+    /// <summary>A throw higher than this over the hand is a warning (SH2020): a 7 at a lively tempo is 2.5 m.</summary>
+    private const double HighestThrow = 3.0;
+    /// <summary>Seconds from one throw to the next below which the hands cannot keep up (SH2020).</summary>
+    private const double QuickestBeat = 0.12;
+
+    /// <summary>What the juggle row asks that cannot be done or can hardly be, and the arm words it hides.</summary>
+    private static void JuggleProblems(DancerIr dancer, Juggling juggling, MotionClip clip, List<Diagnostic> diagnostics)
+    {
+        var said = new HashSet<(int, string)>();
+        void Say(Seg seg, string code, DiagnosticSeverity severity, string message)
+        {
+            if (said.Add((seg.Src, code)))
+                diagnostics.Add(new Diagnostic(code, severity, new TextSpan(seg.Src, seg.Len), message));
+        }
+        foreach (var problem in juggling.Problems)
+            Say(problem.Seg, problem.Code, problem.IsError ? DiagnosticSeverity.Error : DiagnosticSeverity.Warning, problem.Message);
+
+        var segs = dancer.Tracks[Channels.Juggle];
+        foreach (var seg in segs)
+        {
+            double from = clip.SecondsAt(seg.T0), to = clip.SecondsAt(seg.T1);
+            double beat = clip.SecondsAt(seg.T0 + (seg.Every ?? 0.5)) - from;
+            if (beat < QuickestBeat)
+                Say(seg, "SH2020", DiagnosticSeverity.Warning, FormattableString.Invariant(
+                    $"A throw every {beat:0.00} s: the hands cannot keep up (each one throws and catches every {2 * beat:0.00} s; quick jugglers take 0.25 s or more). Throw less often (every 1/2 rather than 1/4), or lower the tempo."));
+            var high = juggling.Rises().Where(r => r.Thrown >= from - 1e-6 && r.Thrown < to - 1e-6).Select(r => r.Rise).DefaultIfEmpty(0).Max();
+            if (high > HighestThrow)
+                Say(seg, "SH2020", DiagnosticSeverity.Warning, FormattableString.Invariant(
+                    $"The highest throw here goes {high:0.0} m above the hand: few can throw that high and catch it. Throw more often (every 1/4), raise the tempo, or use lower numbers."));
+        }
+
+        // An arm's word that arrives while the juggling has the arms is not seen.
+        foreach (var channel in new[] { Channels.LeftArm, Channels.RightArm })
+        {
+            if (!dancer.Tracks.TryGetValue(channel, out var arm))
+                continue;
+            foreach (var seg in arm.Where(s => s.Kind is not (SegKinds.Hold or SegKinds.Stay)))
+            {
+                if (juggling.Busy.Any(b => seg.At > b.From + 1e-6 && seg.At < b.To - 1e-6))
+                    Say(seg, "SH2021", DiagnosticSeverity.Warning,
+                        $"{dancer.Id} is juggling here, and the juggle row has both arms: this word of the {channel} row is not seen. Move it to where the juggle row has no pattern (`skip` there), or juggle later.");
+            }
+        }
+    }
+
+    /// <summary>
+    /// The balls at each frame, for the preview: where each one is (x y z), the hand it left and the one it
+    /// goes to (0 right, 1 left; the same while held), how far through its flight (0..1), and a club's turn.
+    /// </summary>
+    private static ClipJuggle JuggleFrames(Juggling juggling, List<float[]> frames, int fps)
+    {
+        Vec3 Joint(int frame, int joint)
+        {
+            var f = frames[Math.Clamp(frame, 0, frames.Count - 1)];
+            return new Vec3(f[joint * 3], f[joint * 3 + 1], f[joint * 3 + 2]);
+        }
+        // A ball lies in the palm: past the wrist along the forearm, and on top of the hand.
+        Vec3 Palm(int hand, double sec)
+        {
+            double at = sec * fps;
+            int f = (int)Math.Floor(at);
+            double u = at - f;
+            int wrist = hand == 0 ? Rig.RHand : Rig.LHand, elbow = wrist - 1;
+            var w = Vec3.Lerp(Joint(f, wrist), Joint(f + 1, wrist), u);
+            var e = Vec3.Lerp(Joint(f, elbow), Joint(f + 1, elbow), u);
+            return w + (w - e).Normalized() * 0.05 + Vec3.Up * 0.04;
+        }
+        int Stacked(int ball, double sec)
+        {
+            int hand = juggling.HandOf(ball, sec), below = 0;
+            for (int b = 0; b < ball; b++)
+                if (juggling.HandOf(b, sec) == hand)
+                    below++;
+            return below;
+        }
+
+        var result = new ClipJuggle(juggling.Prop, juggling.Balls, [], []);
+        for (int f = 0; f < frames.Count; f++)
+        {
+            double sec = (double)f / fps;
+            var data = new float[juggling.Balls * 7];
+            for (int b = 0; b < juggling.Balls; b++)
+            {
+                var (at, from, to, u, spin) = juggling.Ball(b, sec, Palm, Stacked);
+                data[b * 7] = (float)Math.Round(at.X, 4);
+                data[b * 7 + 1] = (float)Math.Round(at.Y, 4);
+                data[b * 7 + 2] = (float)Math.Round(at.Z, 4);
+                data[b * 7 + 3] = from;
+                data[b * 7 + 4] = to;
+                data[b * 7 + 5] = (float)Math.Round(u, 3);
+                data[b * 7 + 6] = (float)Math.Round(spin, 3);
+            }
+            result.Frames.Add(data);
+            result.Weight.Add((float)Math.Round(juggling.Weight(sec), 3));
+        }
+        return result;
     }
 
     private const double HeadRadius = 0.10, TrunkRadius = 0.11, LegRadius = 0.05, StandingAnkle = 0.15;
@@ -628,7 +731,11 @@ internal sealed class FigureSolver
         _head = Row(Channels.Head);
         SetUpLife();
         SetUpMic();
+        Juggling = Juggling.Build(dancer, _tempos);
     }
+
+    /// <summary>The juggle row timed (DESIGN.md 118), or null for a dancer that does not juggle.</summary>
+    public Juggling? Juggling { get; }
 
     // A mic in a hand (`mic right`, DESIGN.md 117). While the dancer sings, the hand is at the mouth, whatever its
     // row says; between phrases the row has the arm again, the mic in its hand. Sung by the phrase, not the
@@ -2493,6 +2600,12 @@ internal sealed class FigureSolver
 
         // A mic (DESIGN.md 117): the hand that holds it, and with `mic both` the other one while singing.
         double micUp = _micPhrases.Count > 0 ? MicUp(t) : 0;
+        // Juggling: both hands, while a pattern is thrown. The point the hands go round: before the belly, a little above the hips.
+        double juggleSec = Seconds(t), juggleWeight = Juggling?.Weight(juggleSec) ?? 0;
+        var juggleFwd = new Vec3(torsoFwd.X, 0, torsoFwd.Z);
+        juggleFwd = juggleFwd.Length > 1e-6 ? juggleFwd.Normalized() : c.Fwd;
+        var juggleLeft = Vec3.Up.Cross(juggleFwd);
+        var juggleOrigin = pelvis + Vec3.Up * 0.15 + juggleFwd * 0.30;
 
         // Arms.
         for (int side = 1; side >= -1; side -= 2)
@@ -2692,6 +2805,18 @@ internal sealed class FigureSolver
                 hand = Vec3.Lerp(hand, wrist, micUp);
                 var micPole = (-Vec3.Up + torsoLeft * (0.6 * side) - torsoFwd * 0.2).Normalized();
                 bend = Vec3.Slerp(bend.Length < 1e-6 ? pole.Normalized() : bend.Normalized(), micPole, micUp);
+            }
+            if (juggleWeight > 0)
+            {
+                // Juggling (DESIGN.md 118): the hand goes round its small loop before the belly, the elbow down by the
+                // side, the forearm forward. In the frame of the chest as it faces, level: the throws go up, whatever the lean.
+                var local = Juggling!.Hand(isLeft ? 1 : 0, juggleSec);
+                var wrist = juggleOrigin + juggleLeft * local.X + Vec3.Up * local.Y + juggleFwd * local.Z;
+                hand = Vec3.Lerp(hand, wrist, juggleWeight);
+                // The elbows down by the ribs and a little back, so the forearms point forward: out to the side they
+                // turned the forearms in, and on a character with narrow shoulders the hands crossed the middle.
+                var jugglePole = (-Vec3.Up + juggleLeft * (0.08 * side) - juggleFwd * 0.45).Normalized();
+                bend = Vec3.Slerp(bend.Length < 1e-6 ? pole.Normalized() : bend.Normalized(), jugglePole, juggleWeight);
             }
             var (elbow, reachedHand) = TwoBone(shoulder, hand, Rig.UpperArm, Rig.Forearm, bend.Length < 1e-6 ? pole : bend);
 

@@ -315,7 +315,20 @@ public static class ContactSheet
         double tipX = head.X + (nose.X - head.X) * 1.7, tipY = head.Y + (nose.Y - head.Y) * 1.7;
         canvas.Line(nose.X, nose.Y, tipX, tipY, 2.2, Ink);
         canvas.Disc(tipX, tipY, 2.2, Ink);
+
+        // The balls it juggles (DESIGN.md 118), where they are at this frame.
+        if (figure.Juggle is { Frames.Count: > 0 } juggle)
+        {
+            var balls = juggle.Frames[Math.Clamp((int)Math.Round(frame), 0, juggle.Frames.Count - 1)];
+            for (int b = 0; b < juggle.Count; b++)
+            {
+                var (x, y, _) = Project(new Vec3(balls[b * 7], balls[b * 7 + 1], balls[b * 7 + 2]) - centre, yaw);
+                canvas.Disc(originX + x * scale, floorY - y * scale, Math.Max(2.5, scale * 0.035), BallColor);
+            }
+        }
     }
+
+    private const uint BallColor = 0xE08A1E;
 
     /// <summary>Whether a figure as <see cref="DrawFigure"/> draws it (its bones, its head) comes into a rectangle of the picture.</summary>
     private static bool Covers(MotionClip clip, ClipFigure figure, double frame, Vec3 centre,

@@ -17,7 +17,7 @@ internal sealed class Parser
 {
     private static readonly HashSet<string> TopKeywords =
         ["using", "title", "tempo", "time", "fps", "music", "role", "dancer", "pose", "move", "section", "form", "score"];
-    private static readonly HashSet<string> ClauseKeywords = ["on", "at", "facing", "mirror", "delay", "free", "in", "sings", "mic", "height"];
+    private static readonly HashSet<string> ClauseKeywords = ["on", "at", "facing", "mirror", "delay", "free", "in", "sings", "mic", "juggles", "height"];
     private static readonly HashSet<string> ScoreItemKeywords = ["form", "tempo", "title", "music", "dancer", "loop", "inPlace"];
 
     private readonly List<GreenToken> _tokens;
@@ -282,10 +282,44 @@ internal sealed class Parser
 
     private GreenNode ParseTrack()
     {
+        // In a juggle track the words are siteswap as jugglers write it: (4,2x)*, [33]3 (DESIGN.md 118).
+        _juggle = At("juggle");
         var children = new List<GreenNode> { Next(), Expect(SyntaxKind.OpenBrace, "'{'") };
         ParseTrackItems(children);
         children.Add(Expect(SyntaxKind.CloseBrace, "'}'"));
+        _juggle = false;
         return new GreenInner(SyntaxKind.Track, children);
+    }
+
+    private bool _juggle;   // inside a juggle track
+
+    /// <summary>A word of siteswap begins here: a digit, a bracket, or letters that are not a word of the row itself.</summary>
+    private bool AtSiteswap => _juggle && (Kind is SyntaxKind.Number or SyntaxKind.OpenParen or SyntaxKind.OpenBracket
+        || (Kind == SyntaxKind.Identifier && Current.Text is not ("q" or "skip" or "then" or "verse" or "repeat" or "every") && Peek(1).Kind != SyntaxKind.OpenBrace));
+
+    /// <summary>
+    /// One pattern: the tokens written against each other, (4,2x)* being ( 4 , 2 x ) *. The binder reads the text.
+    /// </summary>
+    private GreenNode ParseSiteswap()
+    {
+        var children = new List<GreenNode> { Next() };
+        while (SameLine && _prevTight && Current.Leading.Length == 0
+            && Kind is SyntaxKind.Number or SyntaxKind.Identifier or SyntaxKind.OpenParen or SyntaxKind.CloseParen
+                or SyntaxKind.Comma or SyntaxKind.OpenBracket or SyntaxKind.CloseBracket or SyntaxKind.Star)
+            children.Add(Next());
+        return new GreenInner(SyntaxKind.Target, children);
+    }
+
+    /// <summary>every N or every N/N: how many beats from one throw to the next, from here on.</summary>
+    private GreenNode ParseEvery()
+    {
+        var children = new List<GreenNode> { Next(), ExpectOnLine(SyntaxKind.Number, "How many beats from one throw to the next (every 1/2)") };
+        if (SameLine && Kind == SyntaxKind.Slash)
+        {
+            children.Add(Next());
+            children.Add(ExpectOnLine(SyntaxKind.Number, "A number"));
+        }
+        return new GreenInner(SyntaxKind.Every, children);
     }
 
     private void ParseTrackItems(List<GreenNode> children)
@@ -311,6 +345,14 @@ internal sealed class Parser
             else if (Kind == SyntaxKind.Colon)
             {
                 children.Add(ParseEvent());   // a length alone: the rest of a tied event
+            }
+            else if (AtSiteswap)
+            {
+                children.Add(ParseEvent(ParseSiteswap()));
+            }
+            else if (_juggle && At("every"))
+            {
+                children.Add(ParseEvery());
             }
             else if (Kind == SyntaxKind.Identifier)
             {
@@ -377,10 +419,12 @@ internal sealed class Parser
         return new GreenInner(SyntaxKind.Sequence, children);
     }
 
-    private GreenNode ParseEvent()
+    private GreenNode ParseEvent(GreenNode? target = null)
     {
         var children = new List<GreenNode>();
-        if (Kind != SyntaxKind.Colon)
+        if (target is not null)
+            children.Add(target);
+        else if (Kind != SyntaxKind.Colon)
             children.Add(ParseTarget(arguments: true));
         bool hasDuration = false;
 

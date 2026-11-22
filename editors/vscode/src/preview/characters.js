@@ -10,6 +10,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
 import { keepArmsOut, measureBody } from './clearance.js';
 import { createMicHands } from './mic.js';
+import { palmsUp } from './juggle.js';
 
 // VRM's mouth expressions, in the order the server sends their weights (`mouth`, Mouth.Shapes).
 const MOUTH = ['aa', 'ih', 'ou', 'ee', 'oh'];
@@ -186,6 +187,12 @@ export function createCharacters(scene, changed) {
         // The arms out of the character's own body, which is not the figure's the turns were solved on (DESIGN.md 116).
         // (A test page turns it off with globalThis.shosaArmsAsSolved, to compare.)
         if (entry.body && !globalThis.shosaArmsAsSolved) keepArmsOut(vrm, entry.body, size);
+        // Juggling (DESIGN.md 118): the palms up while it throws, so the balls lie on them.
+        const juggled = data.juggle && data.juggle.weight;
+        if (juggled && juggled.length) {
+          const w0 = juggled[Math.min(juggled.length - 1, f0)], w1 = juggled[Math.min(juggled.length - 1, f0 + 1)];
+          palmsUp(vrm, w0 + (w1 - w0) * k);
+        }
         // A mic in a hand (`mic right`): drawn, the hand closed on it, and at the character's own mouth while it
         // sings (DESIGN.md 117). After the arms are kept out: the hand at the mouth is where it has to be.
         const mic = data.mic;
@@ -211,7 +218,26 @@ export function createCharacters(scene, changed) {
           vrm.springBoneManager.reset();
         }
         vrm.update(jumped ? 0 : Math.min(dt, 0.1));
+        // Where its palms are, for the balls it juggles (juggle.js): past the wrist along the hand, and up. Right, left.
+        if (data.juggle) {
+          vrm.scene.updateMatrixWorld(true);
+          entry.palms = ['right', 'left'].map(side => {
+            const lower = vrm.humanoid.getNormalizedBoneNode(side + 'LowerArm'), hand = vrm.humanoid.getNormalizedBoneNode(side + 'Hand');
+            if (!lower || !hand) return null;
+            const w = hand.getWorldPosition(new THREE.Vector3()), e = lower.getWorldPosition(new THREE.Vector3());
+            const k = e.distanceTo(w) / 0.31;
+            return w.clone().add(w.clone().sub(e).normalize().multiplyScalar(0.05 * k)).add(new THREE.Vector3(0, 0.04 * k, 0));
+          });
+        } else {
+          entry.palms = null;
+        }
       });
+    },
+
+    /** The palms [right, left] of figure i's character as last posed, or null when it is shown as sticks. */
+    palms(i) {
+      const entry = dressed[i];
+      return entry && entry.vrm && entry.vrm.scene.visible && entry.palms ? entry.palms : null;
     },
   };
 }
