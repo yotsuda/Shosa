@@ -160,11 +160,13 @@ exports.run = async function run() {
     dressed.selection = new vscode.Selection(onName, onName);
     const named = () => /"([^"]*)"/.exec(dressedDoc.lineAt(1).text)[1];
     const seen = [];
-    for (const command of ['shosa.nextModel', 'shosa.nextModel', 'shosa.nextModel', 'shosa.nextModel', 'shosa.previousModel', 'shosa.previousModel']) {
+    for (const command of ['shosa.nextModel', 'shosa.nextModel', 'shosa.nextModel', 'shosa.nextModel', 'shosa.previousModel', 'shosa.previousModel', 'shosa.previousModel']) {
       await vscode.commands.executeCommand(command);
       seen.push(named());
     }
-    check('Next/Previous Character go through the models folder', seen.join(' ') === 'models/a.vrm models/b.vrm models/sub/c.vrm models/a.vrm models/sub/c.vrm models/b.vrm', seen);
+    // The list has ends: past the last or the first, the file stays (no wrapping round).
+    check('Next/Previous Character go through the models folder and stop at its ends',
+      seen.join(' ') === 'models/a.vrm models/b.vrm models/sub/c.vrm models/sub/c.vrm models/b.vrm models/a.vrm models/a.vrm', seen);
     check('the cursor stays in the file name', dressed.selection.active.line === 1 && /"[^"]*$/.test(dressedDoc.lineAt(1).text.slice(0, dressed.selection.active.character)),
       dressed.selection.active);
     // Off the file name the commands do nothing (and the keys are not ours there: shosa.onModelPath).

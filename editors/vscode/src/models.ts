@@ -115,7 +115,12 @@ async function step(by: 1 | -1): Promise<void> {
   // Untitled files have no folder: the path is written in full.
   const current = at.file && !document.isUntitled ? path.resolve(path.dirname(document.uri.fsPath), at.file) : at.file;
   const index = files.findIndex(file => samePath(file, current));
-  const next = index < 0 ? (by > 0 ? 0 : files.length - 1) : (index + by + files.length) % files.length;
+  // The list has ends (the user asked): past the last or the first, nothing changes.
+  const next = index < 0 ? (by > 0 ? 0 : files.length - 1) : index + by;
+  if (next < 0 || next >= files.length) {
+    vscode.window.setStatusBarMessage(`Shosa: ${path.relative(folder, files[index])} is the ${by > 0 ? 'last' : 'first'} of ${files.length} characters`, 3000);
+    return;
+  }
   const text = document.isUntitled ? files[next].replace(/\\/g, '/') : written(files[next], document);
   const range = at.range;
   // The cursor stays in the string, as far from its end as it was (on the name, usually), so the key can be pressed again.
