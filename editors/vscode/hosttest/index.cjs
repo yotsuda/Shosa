@@ -144,6 +144,37 @@ exports.run = async function run() {
     }
     fs.rmSync(exports, { recursive: true, force: true });
 
+    // Ctrl+Shift+Up/Down on the file of a dancer line: the models of shosa.models.folder in turn (models.ts).
+    // The commands behind the keys; the files need only be named .vrm.
+    const models = path.join(folder, 'models');
+    fs.mkdirSync(path.join(models, 'sub'), { recursive: true });
+    for (const name of ['a.vrm', 'b.vrm', path.join('sub', 'c.vrm'), 'notes.txt']) {
+      fs.writeFileSync(path.join(models, name), '');
+    }
+    const dancing = path.join(folder, 'dressed.shosa');
+    fs.writeFileSync(dancing, 'role solo\ndancer solo humanoid "elsewhere.vrm" on solo\n');
+    await vscode.workspace.getConfiguration('shosa').update('models.folder', 'models', vscode.ConfigurationTarget.Global);
+    const dressedDoc = await vscode.workspace.openTextDocument(dancing);
+    const dressed = await vscode.window.showTextDocument(dressedDoc);
+    const onName = new vscode.Position(1, 'dancer solo humanoid "else'.length);
+    dressed.selection = new vscode.Selection(onName, onName);
+    const named = () => /"([^"]*)"/.exec(dressedDoc.lineAt(1).text)[1];
+    const seen = [];
+    for (const command of ['shosa.nextModel', 'shosa.nextModel', 'shosa.nextModel', 'shosa.nextModel', 'shosa.previousModel', 'shosa.previousModel']) {
+      await vscode.commands.executeCommand(command);
+      seen.push(named());
+    }
+    check('Next/Previous Character go through the models folder', seen.join(' ') === 'models/a.vrm models/b.vrm models/sub/c.vrm models/a.vrm models/sub/c.vrm models/b.vrm', seen);
+    check('the cursor stays in the file name', dressed.selection.active.line === 1 && /"[^"]*$/.test(dressedDoc.lineAt(1).text.slice(0, dressed.selection.active.character)),
+      dressed.selection.active);
+    // Off the file name the commands do nothing (and the keys are not ours there: shosa.onModelPath).
+    const before = dressedDoc.getText();
+    dressed.selection = new vscode.Selection(new vscode.Position(0, 2), new vscode.Position(0, 2));
+    await vscode.commands.executeCommand('shosa.nextModel');
+    check('off a dancer\'s file the command changes nothing', dressedDoc.getText() === before);
+    await vscode.commands.executeCommand('workbench.action.files.revert');
+    await vscode.workspace.getConfiguration('shosa').update('models.folder', undefined, vscode.ConfigurationTarget.Global);
+
     // A new terminal finds `shosa` by name: only where the extension carries the programs.
     const extension = vscode.extensions.all.find(e => e.packageJSON.name === 'shosa');
     const packaged = fs.existsSync(path.join(extension.extensionPath, 'server', process.platform === 'win32' ? 'shosa.exe' : 'shosa'));

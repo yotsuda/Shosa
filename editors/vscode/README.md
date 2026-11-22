@@ -46,6 +46,8 @@ These work, but are new and may still change.
 
 - **A VRM character for a dancer**: `dancer alice humanoid "girl.vrm" on lead` dresses the dancer in a VRM model,
   in the preview and in its MP4. What **Model** exports does not change: the movement, for any character.
+  Set `shosa.models.folder` to the folder you keep your models in; with the cursor on the file of a dancer line,
+  **Ctrl+Shift+Up / Ctrl+Shift+Down** put the model before or after it there, and the preview changes with it.
 - **Dancing to a recording**: when a song made from a recording has its `NAME.orecchiante.json` beside it,
   the dance keeps the recording's beat, and the preview and the MP4 play the recording.
 - **Mixer** (the button at the bottom of the preview): each part of the score, each singing voice and the recording

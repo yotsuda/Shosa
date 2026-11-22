@@ -82,6 +82,16 @@
         "command": "shosa.exportAudio",
         "category": "Shosa",
         "title": "Export Audio (MP3, WAV)…"
+      },
+      {
+        "command": "shosa.nextModel",
+        "category": "Shosa",
+        "title": "Next Character (VRM) for This Dancer"
+      },
+      {
+        "command": "shosa.previousModel",
+        "category": "Shosa",
+        "title": "Previous Character (VRM) for This Dancer"
       }
     ],
     "menus": {
@@ -114,6 +124,14 @@
         {
           "command": "shosa.exportAudio",
           "when": "editorLangId == shosa"
+        },
+        {
+          "command": "shosa.nextModel",
+          "when": "shosa.onModelPath"
+        },
+        {
+          "command": "shosa.previousModel",
+          "when": "shosa.onModelPath"
         }
       ]
     },
@@ -235,6 +253,18 @@
         "key": "ctrl+k v",
         "mac": "cmd+k v",
         "when": "editorLangId == shosa"
+      },
+      {
+        "command": "shosa.nextModel",
+        "key": "ctrl+shift+down",
+        "mac": "cmd+shift+down",
+        "when": "editorTextFocus && editorLangId == shosa && shosa.onModelPath"
+      },
+      {
+        "command": "shosa.previousModel",
+        "key": "ctrl+shift+up",
+        "mac": "cmd+shift+up",
+        "when": "editorTextFocus && editorLangId == shosa && shosa.onModelPath"
       }
     ],
     "configuration": {
@@ -244,6 +274,11 @@
           "type": "string",
           "default": "",
           "description": "Path to Shosa.Lsp.dll. Empty uses the server shipped with the extension, or the one built in this repository."
+        },
+        "shosa.models.folder": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "The folder your VRM models (`.vrm`) are kept in, and the folders below it (three levels). With the cursor on the file of a dancer line (`dancer alice humanoid \"girl.vrm\"`), `Ctrl+Shift+Up` / `Ctrl+Shift+Down` put the model before or after it in this folder there, written from the dance's own folder. A full path, `~` for the home folder, or a path from the workspace folder."
         },
         "shosa.playback.soundFont": {
           "type": "string",

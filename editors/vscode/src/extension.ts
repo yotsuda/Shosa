@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { LanguageClient, ServerOptions, TransportKind } from 'vscode-languageclient/node';
 import { registerExport } from './export';
+import { registerModels } from './models';
 import { ClipMusic, createStems } from './stems';
 import { registerTools } from './tools';
 
@@ -71,6 +72,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     const start = newFileText.indexOf(newFileTitle);
     editor.selection = new vscode.Selection(document.positionAt(start), document.positionAt(start + newFileTitle.length));
   }));
+
+  // Ctrl+Shift+Up/Down on the file of a dancer line: the character before or after it in shosa.models.folder (models.ts). Needs no server.
+  registerModels(context);
 
   // The compiler the package carries (`shosa check`, `shosa sheet`, `shosa gltf` …) on the PATH
   // of VS Code's terminals: an AI agent working in one runs it by its name, whatever folder this
