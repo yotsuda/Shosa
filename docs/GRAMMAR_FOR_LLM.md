@@ -1389,6 +1389,8 @@ section Show {
   than 0.12 s (the hands cannot keep up). Rings (32.4 cm across, flat bands) meet in the air below
   0.6 m (SH2020): throw them less often (`every 1` at tempo 120 sends a 3 up 0.9 m). A ring is
   thrown along the forearm, the hand an edge (the thumb up), going up and down in one place.
+  A throwing hand sinks, swings up and lets go at the speed the ball or ring leaves at; a
+  catching hand gives with it.
 - The preview draws the balls (clubs turning end over end, rings along the forearms, edge to the front) and turns a
   character's palms up while it throws. Exported files have the arms; the balls are not in them.
 

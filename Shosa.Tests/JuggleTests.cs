@@ -189,6 +189,35 @@ public class JuggleTests
     }
 
     [Fact]
+    public void The_hand_swings_up_as_fast_as_the_ring_it_lets_go()
+    {
+        // Rings every 1 at tempo 120: a 3 leaves at about 4 m/s. The hand is going up nearly as fast as it lets go.
+        var c = Compile(Juggle("every 1  3:4 | 3:4 |", dancer: "juggles rings"));
+        Assert.Empty(c.Diagnostics);
+        var figure = c.Clip.Figures[0];
+        var juggle = figure.Juggle!;
+        int fps = c.Clip.Fps, seen = 0;
+        for (int f = 2; f + 1 < juggle.Frames.Count; f++)
+        {
+            for (int b = 0; b < juggle.Count; b++)
+            {
+                // Let go between f−1 and f: held at f−1, in the air at f.
+                var before = juggle.Frames[f - 1];
+                var now = juggle.Frames[f];
+                if (before[b * 7 + 3] != before[b * 7 + 4] || now[b * 7 + 3] == now[b * 7 + 4])
+                    continue;
+                int wrist = now[b * 7 + 3] == 0 ? Rig.RHand : Rig.LHand;
+                double hand = (figure.Joint(f, wrist).Y - figure.Joint(f - 1, wrist).Y) * fps;
+                double ring = (juggle.Frames[f + 1][b * 7 + 1] - now[b * 7 + 1]) * fps;
+                Assert.True(ring > 3, $"the ring leaves at {ring:0.0} m/s");
+                Assert.True(hand > 0.6 * ring, $"frame {f}: the hand goes up at {hand:0.0} m/s, the ring at {ring:0.0}");
+                seen++;
+            }
+        }
+        Assert.True(seen >= 6);
+    }
+
+    [Fact]
     public void Too_high_and_too_fast_are_warnings()
     {
         // tempo 120, every 1: a 9 flies 9 × 0.5 − 0.65 s and rises 18 m.

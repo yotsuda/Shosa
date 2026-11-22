@@ -42,9 +42,7 @@ public sealed class Juggling
     /// <summary>Where each ball is before it is first thrown: the hand (0 right, 1 left).</summary>
     private readonly List<int> _startHand = [];
     /// <summary>A hand's places to be, in seconds, and what the hand does there.</summary>
-    private readonly List<(double T, Vec3 At, Key Key)>[] _keys = [[], []];
-
-    private enum Key { Ready, Throw, Catch }
+    private readonly List<(double T, Vec3 At, Vec3 Velocity)>[] _keys = [[], []];
 
     private readonly IReadOnlyList<TempoIr> _tempos;
     /// <summary>Words thrown as a way between two patterns, not patterns of the row's balls themselves: nothing is expected at their start.</summary>
@@ -207,7 +205,7 @@ public sealed class Juggling
             Arrive(beat, ball, hand, -1);
         }
         foreach (var hand in new[] { 0, 1 })
-            _keys[hand].Add((start - Ramp, Ready(hand), Key.Ready));
+            _keys[hand].Add((start - Ramp, Ready(hand), Still));
 
         double lastCatch = start;
         Seg? previous = null;
@@ -248,8 +246,7 @@ public sealed class Juggling
                     double caught = Math.Max(SlotSec(land) - Dwell * BeatSec(Math.Min(land, slots.Count - 1)), thrown + Handover * T);
                     Flights.Add(new Flight(ball, hand, to, thrown, caught, t.Value));
                     Arrive(land, ball, to, Flights.Count - 1);
-                    _keys[hand].Add((thrown, Throws(hand, t.Value, to != hand), Key.Throw));
-                    _keys[to].Add((caught, Catches(to, t.Value), Key.Catch));
+                    Swing(hand, to, t.Value, thrown, caught, T);
                     lastCatch = Math.Max(lastCatch, caught);
                 }
                 // Balls that came down and are not thrown: held, and thrown on the hand's next turn.
@@ -265,7 +262,7 @@ public sealed class Juggling
                 held[a.Hand].Add(a.Ball);
         foreach (var hand in new[] { 0, 1 })
         {
-            _keys[hand].Add((lastCatch + 0.2, Ready(hand), Key.Ready));
+            _keys[hand].Add((lastCatch + 0.2, Ready(hand), Still));
             _keys[hand].Sort((a, b) => a.T.CompareTo(b.T));
         }
         heldSince = lastCatch + 0.2;
@@ -343,19 +340,59 @@ public sealed class Juggling
     // Thrown from 15 cm off the middle: from 10–12 cm the forearms, their angles put on a child's narrow
     // shoulders, crossed the middle of the body.
     private static Vec3 Ready(int hand) => new(Side(hand) * 0.23, 0, 0);
-    // Rings go up and down, the hand an edge (the thumb up): caught high and outside, carried down and in, thrown up
-    // from low and inside (the user: thrown where they were caught, a ring going up met the one coming down).
+    // Rings go up and down, the hand an edge (the thumb up): caught high and outside, carried down and in, swung up from
+    // low and let go inside (the user: thrown where they were caught, a ring going up met the one coming down).
     private bool Rings => Prop == "rings";
+    // Where the hand lets go: for a ring a little below where it caught, after the swing up from low.
     private Vec3 Throws(int hand, int value, bool across) => value == 1
         ? new Vec3(Side(hand) * 0.12, -0.01, 0.02)
-        : Rings ? new Vec3(Side(hand) * 0.13, -0.04, 0.02)
+        : Rings ? new Vec3(Side(hand) * 0.13, 0.06, 0.02)
         : new Vec3(Side(hand) * (across ? 0.15 : 0.21), 0, 0.01);
     private Vec3 Catches(int hand, int value) => value == 1
         ? new Vec3(Side(hand) * 0.16, -0.01, 0.02)
         : Rings ? new Vec3(Side(hand) * 0.26, 0.14, 0.02)
         : new Vec3(Side(hand) * 0.32, 0.06, -0.02);
 
-    /// <summary>Where a hand is at a time (seconds), in the juggling's frame.</summary>
+    private static readonly Vec3 Still = new(0, 0, 0);
+    /// <summary>How far a hand swings up to throw, metres: a ring from low (the arm's whole swing), a ball a short flick.</summary>
+    private double Lift => Rings ? 0.24 : 0.10;
+    /// <summary>Seconds a hand goes on up after it lets go, slowing to a stop.</summary>
+    private const double FollowThrough = 0.08;
+
+    /// <summary>
+    /// The hands' way for one throw (the user: the arm has to swing up as fast as the ring goes). The thrower sinks to
+    /// a stop, swings up and lets go at the speed the ball leaves at — up and toward where it comes down — and goes on
+    /// up a little, slowing; the catcher meets the ball going down with it, and slows it. A hand handed one across
+    /// (a 1) only passes it.
+    /// </summary>
+    private void Swing(int hand, int to, int value, double thrown, double caught, double beat)
+    {
+        var from = Throws(hand, value, to != hand);
+        var into = Catches(to, value);
+        double flight = caught - thrown;
+        if (value < 2 || flight < 0.05)
+        {
+            _keys[hand].Add((thrown, from, Still));
+            _keys[to].Add((caught, into, Still));
+            return;
+        }
+        // Leaves at the speed that brings it to the catch in its time under gravity.
+        var leaves = new Vec3((into.X - from.X) / flight, (into.Y - from.Y) / flight + G * flight / 2, (into.Z - from.Z) / flight);
+        var arrives = new Vec3(leaves.X, leaves.Y - G * flight, leaves.Z);
+        // From a stop to that speed, evenly faster: over as many seconds as cover the lift, but no more than a part of the hold.
+        double speed = Math.Max(0.5, leaves.Length);
+        // (A throw every few hundredths of a second, SH2020, leaves less than that: the swing is as short as the hold.)
+        double most = Math.Max(0.01, 0.45 * Dwell * beat);
+        double swing = Math.Clamp(2 * Lift / speed, Math.Min(0.05, most), most);
+        double follow = Math.Min(FollowThrough, 0.35 * (2 - Dwell) * beat);
+        _keys[hand].Add((thrown - swing, from - leaves * (swing / 2), Still));
+        _keys[hand].Add((thrown, from, leaves));
+        _keys[hand].Add((thrown + follow, from + leaves * (follow / 2), Still));
+        // The catch gives with the ball, a third of its speed, and the hand stops at the bottom before the next swing.
+        _keys[to].Add((caught, into, arrives * 0.3));
+    }
+
+    /// <summary>Where a hand is at a time (seconds), in the juggling's frame: through its places at their speeds.</summary>
     public Vec3 Hand(int hand, double sec)
     {
         var keys = _keys[hand];
@@ -365,22 +402,16 @@ public sealed class Juggling
             return keys[0].At;
         for (int i = 0; i + 1 < keys.Count; i++)
         {
-            var (t0, a, k0) = keys[i];
-            var (t1, b, k1) = keys[i + 1];
+            var (t0, a, va) = keys[i];
+            var (t1, b, vb) = keys[i + 1];
             if (sec > t1)
                 continue;
-            double u = t1 - t0 < 1e-6 ? 1 : (sec - t0) / (t1 - t0);
-            double e = u * u * (3 - 2 * u);
-            var at = a + (b - a) * e;
-            // Holding a ball, the hand scoops: down and in. Empty, it comes up and out to meet the next. A ring's hand
-            // goes straight down and up.
-            if (Rings)
-                return at;
-            if (k0 == Key.Catch && k1 == Key.Throw)
-                at += new Vec3(0, -0.07 * Math.Sin(Math.PI * u), 0.02 * Math.Sin(Math.PI * u));
-            else if (k0 == Key.Throw && k1 == Key.Catch)
-                at += new Vec3(0, 0.03 * Math.Sin(Math.PI * u), 0);
-            return at;
+            double span = t1 - t0;
+            if (span < 1e-6)
+                return b;
+            // Cubic Hermite: at each place with its speed.
+            double u = (sec - t0) / span, u2 = u * u, u3 = u2 * u;
+            return a * (2 * u3 - 3 * u2 + 1) + va * ((u3 - 2 * u2 + u) * span) + b * (-2 * u3 + 3 * u2) + vb * ((u3 - u2) * span);
         }
         return keys[^1].At;
     }
