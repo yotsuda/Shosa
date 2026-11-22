@@ -92,6 +92,11 @@
         "command": "shosa.previousModel",
         "category": "Shosa",
         "title": "Previous Character (VRM) for This Dancer"
+      },
+      {
+        "command": "shosa.chooseModelsFolder",
+        "category": "Shosa",
+        "title": "Choose Models Folder…"
       }
     ],
     "menus": {
@@ -278,7 +283,7 @@
         "shosa.models.folder": {
           "type": "string",
           "default": "",
-          "markdownDescription": "The folder your VRM models (`.vrm`) are kept in, and the folders below it (three levels). With the cursor on the file of a dancer line (`dancer alice humanoid \"girl.vrm\"`), `Ctrl+Shift+Up` / `Ctrl+Shift+Down` put the model before or after it in this folder there, written from the dance's own folder. A full path, `~` for the home folder, or a path from the workspace folder."
+          "markdownDescription": "The folder your VRM models (`.vrm`) are kept in, and the folders below it (three levels). With the cursor on the file of a dancer line (`dancer alice humanoid \"girl.vrm\"`), `Ctrl+Shift+Up` / `Ctrl+Shift+Down` put the model before or after it in this folder there, written from the dance's own folder. A full path, `~` for the home folder, or a path from the workspace folder (also the **Shosa: Choose Models Folder…** command).\n\n**[Choose a folder…](command:shosa.chooseModelsFolder)**"
         },
         "shosa.playback.soundFont": {
           "type": "string",

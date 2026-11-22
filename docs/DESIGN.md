@@ -6394,7 +6394,8 @@ dancer alice humanoid "girl.vrm" sings melody on solo
 - **設定 `shosa.models.folder`**: 文字列 1 つ。絶対パス、`~` (ホーム)、またはワークスペースのフォルダーからのパス。下 3 段のフォルダーまでの `.vrm` を、フォルダーからの相対パスの順 (大小文字を区別しない) に並べる。モデルの zip は自分の名前のフォルダーに展開されることが多いので下も見る。
 - **キーは VRM のパスの上でだけ取る**: 文脈キー `shosa.onModelPath` (カーソルが `dancer` で始まる行の引用符の中、引用符の上を含む) を選択が動くたびに立てる。ほかの場所では Ctrl+Shift+Up/Down は VS Code やユーザーの割り当てのまま。mac は Cmd+Shift+Up/Down。コマンド `shosa.nextModel` / `shosa.previousModel` (パレットにも、同じ条件で出る)。
 - **書く形**: `.shosa` のフォルダーからの相対パスを `/` 区切りで (言語サーバーと拡張はこのフォルダーから解く。文字列にエスケープがないので `\` でも読めるが、`/` は他の OS でもそのまま)。別のドライブなら絶対パス。今のファイルが一覧にないとき、下は最初、上は最後から。端で折り返す。カーソルは名前の中の同じ位置 (末尾からの距離) に残り、続けて押せる。ステータスバーに `character 2/5 — zunko.vrm`。
-- 設定がないときは設定を開くボタンつきの知らせ、フォルダーに `.vrm` がないときは警告。
+- 設定がないときは「Choose a Folder…」と「Open Settings」のボタンつきの知らせ、フォルダーに `.vrm` がないときは警告。
+- **フォルダーのダイアログ** (ユーザーの依頼、同じ日。Lily# の設定画面と体裁を揃える): 説明の最後の段に `**[Choose a folder…](command:shosa.chooseModelsFolder)**` (Lily# の `playback.soundFont` の `**[Choose a file…](command:…)**` と同じ形。設定画面では説明が編集ボックスの直前に出る)。本文にも「(also the **Shosa: Choose Models Folder…** command)」と、Lily# の「(also the **Lily#: Choose Sound Font…** command)」に倣って書く。選んだフォルダーはユーザーの設定 (Global) へ絶対パスで。選んだあとに `.vrm` の数をステータスバーに、0 なら警告。ホストの試験: リンクのコマンドが登録されていること。
 - 試験: `editors\vscode\hosttest\index.cjs` (`tools\test-extension-host.ps1`) に 3 つ: 順に回る (下位フォルダー、折り返し、上)、カーソルが名前に残る、パスの外では何もしない。キーの割り当て自体は package.json の宣言で、試験はコマンドを呼ぶ。
 - まだ: ユーザーが VS Code で押して、プレビューの着せ替えを見ること。
 

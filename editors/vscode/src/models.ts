@@ -99,8 +99,10 @@ async function step(by: 1 | -1): Promise<void> {
   if (!folder) {
     const choice = await vscode.window.showInformationMessage(
       'Shosa: set the folder of your VRM models (shosa.models.folder) to switch a dancer\'s character with Ctrl+Shift+Up/Down.',
-      'Open Settings');
-    if (choice) {
+      'Choose a Folder…', 'Open Settings');
+    if (choice === 'Choose a Folder…') {
+      await chooseFolder();
+    } else if (choice) {
       void vscode.commands.executeCommand('workbench.action.openSettings', 'shosa.models.folder');
     }
     return;
@@ -129,6 +131,31 @@ async function step(by: 1 | -1): Promise<void> {
   vscode.window.setStatusBarMessage(`Shosa: character ${next + 1}/${files.length} — ${path.relative(folder, files[next])}`, 3000);
 }
 
+/** `shosa.models.folder` through the folder dialog: the link at the end of the setting's description, and the command palette. */
+async function chooseFolder(): Promise<void> {
+  const document = vscode.window.activeTextEditor?.document;
+  const current = document ? modelsFolder(document) : undefined;
+  const picked = await vscode.window.showOpenDialog({
+    title: 'Shosa: the folder your VRM models (.vrm) are kept in',
+    openLabel: 'Choose Folder',
+    canSelectFiles: false,
+    canSelectFolders: true,
+    canSelectMany: false,
+    defaultUri: current && fs.existsSync(current) ? vscode.Uri.file(current) : undefined,
+  });
+  if (!picked || picked.length === 0) {
+    return;
+  }
+  const folder = picked[0].fsPath;
+  await vscode.workspace.getConfiguration('shosa').update('models.folder', folder, vscode.ConfigurationTarget.Global);
+  const count = (await modelFiles(folder)).length;
+  if (count === 0) {
+    void vscode.window.showWarningMessage(`Shosa: there is no .vrm file in ${folder} or the folders below it.`);
+  } else {
+    vscode.window.setStatusBarMessage(`Shosa: the models are in ${folder} (${count} .vrm)`, 4000);
+  }
+}
+
 export function registerModels(context: vscode.ExtensionContext): void {
   const update = (editor: vscode.TextEditor | undefined) => {
     const on = !!editor && !!modelAt(editor.document, editor.selection.active);
@@ -139,5 +166,6 @@ export function registerModels(context: vscode.ExtensionContext): void {
     vscode.window.onDidChangeTextEditorSelection(event => update(event.textEditor)),
     vscode.window.onDidChangeActiveTextEditor(update),
     vscode.commands.registerCommand('shosa.nextModel', () => step(1)),
-    vscode.commands.registerCommand('shosa.previousModel', () => step(-1)));
+    vscode.commands.registerCommand('shosa.previousModel', () => step(-1)),
+    vscode.commands.registerCommand('shosa.chooseModelsFolder', () => chooseFolder()));
 }

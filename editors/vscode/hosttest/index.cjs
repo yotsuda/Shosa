@@ -174,6 +174,10 @@ exports.run = async function run() {
     check('off a dancer\'s file the command changes nothing', dressedDoc.getText() === before);
     await vscode.commands.executeCommand('workbench.action.files.revert');
     await vscode.workspace.getConfiguration('shosa').update('models.folder', undefined, vscode.ConfigurationTarget.Global);
+    // The link before the setting's box (its description's last line) runs a command that is there.
+    const ownJson = vscode.extensions.all.find(e => e.packageJSON.name === 'shosa').packageJSON;
+    const link = /\(command:([\w.]+)\)\*\*$/.exec(ownJson.contributes.configuration.properties['shosa.models.folder'].markdownDescription);
+    check('the setting\'s "Choose a folder…" link runs a registered command', !!link && (await vscode.commands.getCommands(true)).includes(link[1]), link && link[1]);
 
     // A new terminal finds `shosa` by name: only where the extension carries the programs.
     const extension = vscode.extensions.all.find(e => e.packageJSON.name === 'shosa');
