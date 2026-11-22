@@ -13,6 +13,8 @@ import * as THREE from 'three';
  */
 const BALL = 0.034, CLUB = 0.5;
 const RING_OUTER = 0.162, RING_INNER = 0.162 - 0.034, RING_THICK = 0.0035, RING = (RING_OUTER + RING_INNER) / 2;
+/** How far a held ring lies inside the hand (an edge, the palm to the middle of the body): half a hand's thickness and the band's. */
+const RING_INSIDE = 0.025;
 /**
  * From the wrist to where a ball sits: along the hand toward the fingers, and up out of the palm (as the server puts it;
  * the user: at 5 cm it was too near the body for the fingers to hold). A ring is gripped in the fist, nearer the wrist.
@@ -234,8 +236,11 @@ export function createJuggle(scene) {
             along.addScaledVector(left, -along.dot(left));
             if (along.lengthSq() < 1e-8) along.copy(fwd);
             along.normalize();
-            // A ring is gripped in the fist, on the line of the forearm, not lying on the palm as a ball is.
-            mesh.position.addScaledVector(along, RING).addScaledVector(Y, -PALM_UP);
+            // A ring is gripped in the fist, on the line of the forearm, not lying on the palm as a ball is. The hand is an
+            // edge, its palm to the middle of the body: the ring lies on the palm's side of it, a hand's half thickness in
+            // (the user: in the hand's place it went into the back of the hand). In the air, from the one hand's to the other's.
+            const inward = left.clone().multiplyScalar((from === 0 ? 1 : -1) * (1 - u) + (to === 0 ? 1 : -1) * u);
+            mesh.position.addScaledVector(along, RING).addScaledVector(Y, -PALM_UP).addScaledVector(inward, RING_INSIDE);
             mesh.quaternion.setFromUnitVectors(Z, left);
           }
         });
