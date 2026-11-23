@@ -273,18 +273,21 @@ export function createCharacters(scene, changed) {
       return best;
     };
     const sum = new THREE.Vector3();
-    let total = 0;
+    let total = 0, all = 0;
     // On a fixed grid of times, weighted by how far each is from now (sampled round now instead, the highest top changing
     // between samples, the place hopped to and fro 1.5 cm from frame to frame).
     const step = 1 / 60;
     for (let n = Math.ceil((sec - 2.5 * EYES_SOFTEN) / step); n * step <= sec + 2.5 * EYES_SOFTEN; n++) {
+      const k = Math.exp(-0.5 * ((n * step - sec) / EYES_SOFTEN) ** 2);
+      all += k;
       const p = topAt(n * step);
       if (!p) continue;
-      const k = Math.exp(-0.5 * ((n * step - sec) / EYES_SOFTEN) ** 2);
       sum.addScaledVector(p, k);
       total += k;
     }
-    return total > 0 && topAt(sec) ? sum.multiplyScalar(1 / total) : null;
+    // How much the eyes are on the balls: the share of that time a ball is up, so they turn to it before the first throw
+    // and back ahead after the last catch smoothly (the user: at the last catch they snapped ahead).
+    return total > 0 ? { at: sum.multiplyScalar(1 / total), share: total / all } : null;
   }
 
   function trackPalms(entry, clip, data) {
@@ -435,15 +438,17 @@ export function createCharacters(scene, changed) {
           MOUTH.forEach(name => vrm.expressionManager.setValue(name, 0));
           entry.sang = false;
         }
-        // Juggling: the eyes on the ball highest in the air now (the user; the head tips back for a very high one in the
-        // figure itself). Looking ahead when none is up. vrm.update below turns the eyes.
+        // Juggling: the eyes on the top of the highest way in the air (the user; the head tips back for a very high one in
+        // the figure itself), turned from and back to ahead as balls go up and come down. vrm.update below turns the eyes.
         if (vrm.lookAt) {
           const target = data.juggle && entry.track ? highestTop(entry.track, data.juggle.flights, frame / clip.fps) : null;
           if (target) {
             vrm.humanoid.update();
             vrm.scene.updateMatrixWorld(true);
-            vrm.lookAt.lookAt(target);
-            entry.lookTarget = target;
+            vrm.lookAt.lookAt(target.at);
+            vrm.lookAt.yaw *= target.share;
+            vrm.lookAt.pitch *= target.share;
+            entry.lookTarget = target.at;
             entry.looking = true;
           } else if (entry.looking) {
             vrm.lookAt.reset();
