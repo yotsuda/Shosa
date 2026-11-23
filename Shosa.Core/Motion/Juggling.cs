@@ -448,24 +448,12 @@ public sealed class Juggling
                 // off at a sudden angle): caught high near the middle going in and down with the ball, round the bottom,
                 // out and up to the throw, and on up and in with the ball to the next catch.
                 var caughtAt = MillsPlace(_mills6.ThrowK, _mills6.ThrowMirror, _mills6.Windmill).Catch;
-                // The windmill's top hand carries its ball back high, over the bottom hand; the bottom hand low, under the top arm.
-                double low = Math.Min(from.Y, caughtAt.Y) - MillsLoopDepth;
-                if (_mills6.Windmill)
-                    low = Top(_mills6.ThrowK) ? Math.Max(from.Y, caughtAt.Y) + WindmillCarryRise : Math.Min(from.Y, caughtAt.Y) - WindmillLoopDepth;
-                var bottom = new Vec3((from.X + caughtAt.X) / 2, low, from.Z);
+                var bottom = new Vec3((from.X + caughtAt.X) / 2, Math.Min(from.Y, caughtAt.Y) - MillsLoopDepth, from.Z);
                 AddSmooth(hand, (thrown - MillsBottomAt * Dwell * beat, bottom, Still, throwStyle));
                 AddSmooth(hand, (thrown, from, Still, throwStyle));
-                // Up and across with the ball; the windmill's bottom hand hardly up, going back low under the top arm.
-                double launch = _mills6.Windmill && !Top(_mills6.ThrowK) ? WindmillUnderLaunch : MillsLaunch;
-                _launch[(hand, thrown)] = leaves.Y * launch;
-                _launchAcross[(hand, thrown)] = leaves.X * launch;
-                if (_mills6.Windmill && !Top(_mills6.ThrowK))
-                {
-                    var next = MillsPlace(_mills6.ThrowK + 2, _mills6.ThrowMirror, true).Catch;
-                    var way = Vec3.Lerp(from, next, 0.5);
-                    // Back a little higher than it carried, round a loop, still well under the top arm.
-                    AddSmooth(hand, (thrown + 0.5 * (2 - Dwell) * beat, new Vec3(way.X, Math.Max(from.Y, next.Y) + WindmillUnderReturn, way.Z), Still, throwStyle));
-                }
+                // Up and across with the ball.
+                _launch[(hand, thrown)] = leaves.Y * MillsLaunch;
+                _launchAcross[(hand, thrown)] = leaves.X * MillsLaunch;
                 // The first throw, over the top: the hand goes on up after the ball and comes round high, in an arc, to
                 // the next catch near the middle (the user: it dropped at once).
                 if (Top(_mills6.ThrowK))
@@ -750,17 +738,8 @@ public sealed class Juggling
     private const double MillsFirstEarlier = 0.25;
     /// <summary>After Mills' first throw, how far above the higher of the throw and the next catch the hand comes round, metres.</summary>
     private const double MillsOverRise = 0.25;
-    /// <summary>How far the windmill's circle goes above the higher of the throw and the catch, and below the lower, metres.</summary>
-    private const double WindmillOverRise = 0.16, WindmillLoopDepth = 0.14;
-    /// <summary>
-    /// How far above the higher of its catch and throw the windmill's top hand carries its ball back, metres: a little
-    /// below, so it goes round a loop (over with the ball, back lower), still well over the bottom hand.
-    /// </summary>
-    private const double WindmillCarryRise = -0.05;
-    /// <summary>How fast the windmill's bottom hand goes up with its ball at the throw, as a part of the ball's speed.</summary>
-    private const double WindmillUnderLaunch = 0.3;
-    /// <summary>How far above the higher of its throw and next catch the windmill's bottom hand comes back, metres: higher than it carried (a loop), under the top arm.</summary>
-    private const double WindmillUnderReturn = 0.0;
+    /// <summary>After the windmill's top hand throws, how far above the higher of the throw and its next catch it comes round, metres.</summary>
+    private const double WindmillOverRise = 0.12;
     /// <summary>When the top of that arc is, as a part of the time from the throw to the next catch.</summary>
     private const double MillsOverAt = 0.45;
     /// <summary>Where the top of that arc is, from the throw (0) to the next catch (1).</summary>
@@ -785,17 +764,21 @@ public sealed class Juggling
     /// The windmill's two throws round (x to the dancer's left, as written for a word whose first throw is the right hand's):
     /// every ball thrown on the right and caught on the left, all one way round, the underarm throws on the same path as
     /// the ones over the top (libraryofjuggling.com, "Windmill"; twjc.jugglingedge.com tutorial 48, "Spiral"). Both hands go
-    /// to and fro, one always going left while the other goes right, the right arm always the one on top: the right hand
-    /// on the top half, thrown on the right, over with the ball, caught high on the left (crossed over) and carried back
-    /// high; the left hand on the bottom half, caught low on its own side, carried under the right arm, thrown from low on
-    /// the right and back low. (Both hands round one circle the same way, the arms crossed changed which was on top while
-    /// crossed, and the forearms went through each other. The left hand going up with its ball after the throw crossed the
-    /// right hand coming back.)
+    /// to and fro, the right arm always the one on top. It is Mills' Mess one way round only (the user): of Mills' six
+    /// throws, the hand on its own side and the other hand from under the arm on top, again and again, never mirrored —
+    /// here Mills' second and third mirrored, so the right arm is the one on top. The right hand throws from its own side and
+    /// catches high near the middle, crossed over (as Mills' first ball is caught); the left hand reaches under the right
+    /// arm, throws from low on the right, and catches out on its own side (as Mills' third ball is caught), its forearm
+    /// swinging round. The hands go round Mills' soft loops. (Each hand on its own half, the top hand to and fro over the top
+    /// and the bottom one under, turned sharply at the ends; both round one circle, the forearms went through each other.)
+    /// The top hand catches higher than Mills' 25 cm: every ball goes one way on one path, and the top hand's own ball was
+    /// coming up through the middle just as the one from under the arm came down there into the hand (7.7 cm apart); lower,
+    /// to the left or a little earlier the forearms met or the balls still did.
     /// </summary>
     private static readonly (Vec3 Throw, Vec3 Catch)[] WindmillRight =
     [
-        (new Vec3(-0.28, 0.12, 0.03), new Vec3(0.16, 0.22, 0.03)),
-        (new Vec3(-0.24, -0.12, 0.03), new Vec3(0.30, 0.00, 0.03)),   // thrown low: from 8 cm down the forearms came within 6 cm
+        (new Vec3(-0.40, 0.12, 0.03), new Vec3(0.03, 0.38, 0.03)),
+        (new Vec3(-0.30, -0.08, 0.03), new Vec3(0.40, 0.12, 0.03)),
     ];
 
     private static (Vec3 Throw, Vec3 Catch) MillsPlace(int k, bool mirrored, bool windmill = false)
