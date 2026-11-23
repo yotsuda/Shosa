@@ -254,9 +254,10 @@ export function createCharacters(scene, changed) {
    * Where the eyes rest while juggling at a time (seconds): the top of the highest way of the balls in the air (on the
    * parabola juggle.js flies them on, from the character's palm at the throw to its palm at the catch), not the ball
    * itself (the user: following each ball, the eyes rolled about too much). Eased over a little time either side, so
-   * they glide from one top to the next. Null when no ball is in the air.
+   * they glide from one top to the next. Only a top above the eyes (`eyeY`, world): one below it is not followed side to
+   * side either, the eyes kept ahead (the user: a penguin's low throws looked wrong). Null when no such top is up.
    */
-  function highestTop(track, flights, sec) {
+  function highestTop(track, flights, sec, eyeY) {
     const topAt = at => {
       let best = null;
       (flights || []).forEach((fl, i) => {
@@ -281,7 +282,7 @@ export function createCharacters(scene, changed) {
       const k = Math.exp(-0.5 * ((n * step - sec) / EYES_SOFTEN) ** 2);
       all += k;
       const p = topAt(n * step);
-      if (!p) continue;
+      if (!p || p.y < eyeY) continue;
       sum.addScaledVector(p, k);
       total += k;
     }
@@ -441,13 +442,17 @@ export function createCharacters(scene, changed) {
         // Juggling: the eyes on the top of the highest way in the air (the user; the head tips back for a very high one in
         // the figure itself), turned from and back to ahead as balls go up and come down. vrm.update below turns the eyes.
         if (vrm.lookAt) {
-          const target = data.juggle && entry.track ? highestTop(entry.track, data.juggle.flights, frame / clip.fps) : null;
-          if (target) {
+          let target = null;
+          if (data.juggle && entry.track) {
             vrm.humanoid.update();
             vrm.scene.updateMatrixWorld(true);
+            target = highestTop(entry.track, data.juggle.flights, frame / clip.fps, vrm.lookAt.getLookAtWorldPosition(new THREE.Vector3()).y);
+          }
+          if (target) {
             vrm.lookAt.lookAt(target.at);
             vrm.lookAt.yaw *= target.share;
-            vrm.lookAt.pitch *= target.share;
+            // Never below ahead (the user). three-vrm's pitch is down positive.
+            vrm.lookAt.pitch = Math.min(0, vrm.lookAt.pitch) * target.share;
             entry.lookTarget = target.at;
             entry.looking = true;
           } else if (entry.looking) {
