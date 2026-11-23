@@ -700,7 +700,7 @@ public sealed class Juggling
     public double ShoulderTurn(double sec)
     {
         double w = MillsWeight(sec);
-        double turn = w <= 0 ? 0 : w * 0.45 * (Hand(0, sec).X + Hand(1, sec).X);
+        double turn = w <= 0 ? 0 : w * 0.45 * MillsAcross(sec);
         // A penguin catch by the hip: the shoulders turn, level, the catching one forward (the user; it was back, which is
         // the wrong way), most at the catch and coming and going smoothly round it.
         foreach (var (hand, at) in _penguinCatches)
@@ -870,6 +870,33 @@ public sealed class Juggling
 
     /// <summary>How much Mills' Mess has the juggling at a time (seconds), 0..1.</summary>
     public double MillsAt(double sec) => MillsWeight(sec);
+
+    /// <summary>
+    /// How far the two hands are to the dancer's left together, metres, taken over two throws round <paramref name="sec"/>
+    /// (a right one and a left one): the shoulders turn with the arms across over the Mills' cycle, not with each throw.
+    /// (Taken at the moment, the sum swung with every pair of throws and the shoulders rocked 2 to 3 cm back and forth
+    /// at the joints twice a second: the user saw them shake, most front to back. DESIGN.md 118.23.)
+    /// </summary>
+    private double MillsAcross(double sec)
+    {
+        double beat = 0.25;
+        foreach (var (from, to, b, _) in _millsSway)
+            if (sec >= from - 0.5 && sec <= to + 0.5)
+            {
+                beat = b;
+                break;
+            }
+        double span = 2 * beat, sum = 0;
+        for (int k = 0; k < MillsAcrossSamples; k++)
+        {
+            double at = sec - span / 2 + span * (k + 0.5) / MillsAcrossSamples;
+            sum += Hand(0, at).X + Hand(1, at).X;
+        }
+        return sum / MillsAcrossSamples;
+    }
+
+    /// <summary>How many times over the two throws <see cref="MillsAcross"/> looks at the hands.</summary>
+    private const int MillsAcrossSamples = 12;
 
     private double MillsWeight(double sec)
     {
