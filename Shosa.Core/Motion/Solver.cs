@@ -399,7 +399,7 @@ public static class Solver
         }
 
         var result = new ClipJuggle(juggling.Prop, juggling.Balls, [], [],
-            [.. juggling.Flights.Select(fl => new[] { fl.Ball, fl.From, fl.To, (float)Math.Round(fl.Thrown, 4), (float)Math.Round(fl.Caught, 4), fl.Mills ? 1f : 0f })], [], []);
+            [.. juggling.Flights.Select(fl => new[] { fl.Ball, fl.From, fl.To, (float)Math.Round(fl.Thrown, 4), (float)Math.Round(fl.Caught, 4), fl.Mills ? 1f : 0f, fl.MillsThird })], [], []);
         for (int f = 0; f < frames.Count; f++)
         {
             double sec = (double)f / fps;

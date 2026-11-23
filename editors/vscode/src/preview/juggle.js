@@ -12,6 +12,8 @@ import * as THREE from 'three';
  * band 3.4 cm wide and 3.5 mm thick (about 100 g). It is held by the middle of its band.
  */
 const BALL = 0.034, CLUB = 0.5;
+/** Gravity, m/s². */
+const G = 9.81;
 const propBox = new THREE.Box3(), propMiddle = new THREE.Vector3(), propSize = new THREE.Vector3();
 /** From the fist to a club's middle: it is held by the handle, a little above the knob. */
 const CLUB_GRIP = CLUB * 0.36;
@@ -241,6 +243,35 @@ export function createJuggle(scene) {
           }
           track.millsPlane = n > 0 ? sum / n : null;
         }
+        // Mills' first and second of each three as high as each other (the user): on a character each ball flies from its
+        // palm at the throw to its palm at the catch in the figure's time, so how high it goes is the hands' heights and
+        // the time, and the hands' heights are the character's (a two-heads-tall mini's differ by less: its second went
+        // 6.5 cm higher than its first). Each such pair is brought to the higher of the two by a gravity of its own.
+        if (track && juggle.flights && track.millsGravity === undefined) {
+          track.millsGravity = new Map();
+          const ends = fl => [track.palm(fl[1], fl[3]).y, track.palm(fl[2], fl[4]).y, Math.max(1e-6, fl[4] - fl[3])];
+          const apexOf = (fl, g) => {
+            const [y0, y1, T] = ends(fl);
+            const s = THREE.MathUtils.clamp(T / 2 + (y1 - y0) / (g * T), 0, T);
+            return y0 + (y1 - y0) * s / T + g / 2 * s * (T - s);
+          };
+          const gravityFor = (fl, height) => {
+            let lo = 1, hi = 40;
+            for (let n = 0; n < 40; n++) {
+              const mid = (lo + hi) / 2;
+              if (apexOf(fl, mid) < height) lo = mid; else hi = mid;
+            }
+            return (lo + hi) / 2;
+          };
+          const thirds = juggle.flights.map((fl, i) => ({ fl, i })).filter(x => x.fl[5] === 1 && (x.fl[6] ?? -1) >= 0).sort((a, b) => a.fl[3] - b.fl[3]);
+          thirds.forEach((first, n) => {
+            const second = thirds[n + 1];
+            if (first.fl[6] !== 0 || !second || second.fl[6] !== 1) return;
+            const height = Math.max(apexOf(first.fl, G), apexOf(second.fl, G));
+            track.millsGravity.set(first.i, gravityFor(first.fl, height));
+            track.millsGravity.set(second.i, gravityFor(second.fl, height));
+          });
+        }
         const toPlane = (v, sec) => {
           if (track?.millsPlane == null) return;
           v.addScaledVector(bodyFwd, track.millsPlane - v.clone().sub(feetAt(sec)).dot(bodyFwd));
@@ -289,12 +320,14 @@ export function createJuggle(scene) {
             // On a character: in the air from its palm at the throw to its palm at the catch, on the parabola that takes
             // that time under gravity; in a hand, on its palm (stacked as the server stacks them).
             const sec = frame / clip.fps;
-            const flight = juggle.flights.find(fl => fl[0] === b && fl[3] <= sec && sec <= fl[4]);
+            const index = juggle.flights.findIndex(fl => fl[0] === b && fl[3] <= sec && sec <= fl[4]);
+            const flight = index >= 0 ? juggle.flights[index] : null;
             if (flight) {
               const [, f, g, thrown, caught] = flight;
               const tf = Math.max(1e-6, caught - thrown), s = sec - thrown;
               const p0 = track.palm(f, thrown), p1 = track.palm(g, caught);
-              p.copy(p0).lerp(p1, s / tf).addScaledVector(Y, 9.81 / 2 * s * (tf - s));
+              const gravity = track.millsGravity?.get(index) ?? G;
+              p.copy(p0).lerp(p1, s / tf).addScaledVector(Y, gravity / 2 * s * (tf - s));
               [from, to, u] = [f, g, s / tf];
               if (flight[5] === 1) toPlane(p, sec);
             } else {

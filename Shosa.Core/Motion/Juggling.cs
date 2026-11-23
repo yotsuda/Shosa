@@ -27,7 +27,8 @@ public sealed class Juggling
     /// <summary>A ball leaving a hand and coming down in one. A hold (a 2 that stays) is not a throw.</summary>
     /// <param name="Trick">A throw from under the leg or behind the back ("under", "back"), and the word it is in: what the solver checks.</param>
     /// <param name="Mills">Thrown and caught in Mills' Mess: its balls are all in one plane before the body.</param>
-    public sealed record Flight(int Ball, int From, int To, double Thrown, double Caught, int Value, string? Trick = null, Seg? Seg = null, bool Mills = false);
+    /// <param name="MillsThird">In Mills' Mess, which of each three throws it is (0 the first, over the top; 1 the second; 2 the third, from under), else -1.</param>
+    public sealed record Flight(int Ball, int From, int To, double Thrown, double Caught, int Value, string? Trick = null, Seg? Seg = null, bool Mills = false, int MillsThird = -1);
 
     /// <summary>What went wrong, said at the word it is about.</summary>
     public sealed record Problem(Seg Seg, string Code, bool IsError, string Message);
@@ -264,8 +265,7 @@ public sealed class Juggling
                     if (millsFlight && slot.Index % 3 == 0 && slot.Index > 0)
                         thrown -= MillsFirstEarlier * T;
                     Flights.Add(new Flight(ball, hand, to, thrown, caught, t.Value,
-                        slot.Seg.Tricks?.FirstOrDefault(x => x is "under" or "back"), slot.Seg,
-                        slot.Seg.Tricks?.Contains("mills") == true && landingSeg?.Tricks?.Contains("mills") == true));
+                        slot.Seg.Tricks?.FirstOrDefault(x => x is "under" or "back"), slot.Seg, millsFlight, millsFlight ? slot.Index % 3 : -1));
                     Arrive(land, ball, to, Flights.Count - 1);
                     var landing = slots[Math.Min(land, slots.Count - 1)];
                     var catcher = landing.Seg;   // none: caught for good at the end of the run, as a plain catch (not Mills' middle)

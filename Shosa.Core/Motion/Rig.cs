@@ -274,7 +274,8 @@ public sealed record ClipMic(string Hand, List<float> Up);
 /// <paramref name="Weight"/>: how much the juggling has the arms at each frame (0 their rows, 1 the juggling), for the
 /// preview to turn a character's palms up while it throws. <paramref name="Flights"/>: every throw, [ball, the hand it
 /// leaves, the hand it comes down in, seconds thrown, seconds caught, 1 when thrown and caught in Mills' Mess (its balls in one
-/// plane before the body)], for the preview to draw it between a character's own hands.
+/// plane before the body), which of each three throws of Mills' Mess it is (0 over the top, 1, 2 from under; -1 none)], for
+/// the preview to draw it between a character's own hands (the first and the second of each three as high as each other).
 /// <paramref name="Styles"/>: at each frame how each hand is held, [right, left] (<see cref="Juggling.Style"/>: 0 the prop's own
 /// way, 1 a claw's palm down, 2 a penguin's fingers down, 3 behind the back, 4 under the leg), for the preview to turn the hands.
 /// <paramref name="Mills"/>: how much Mills' Mess has the arms at each frame (0..1), for the preview to solve a character's
