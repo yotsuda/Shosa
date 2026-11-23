@@ -459,14 +459,17 @@ public sealed class Juggling
         if (Has(throwTricks, "claw"))
             throwStyle = Style.Claw;
         // Penguin: the arm straight down, the hand by the hip, fingers down: caught and thrown from there.
+        // Penguin: the arm straight down by the side and turned in at the shoulder, the palm turned right round to face back,
+        // the ball caught behind the hip (the user); then the arm swings forward past the thigh and throws it up across the
+        // front (from behind the hip it went through the body).
         if (Has(throwTricks, "penguin"))
         {
-            from = new Vec3(s * 0.25, -0.30, -0.02);
+            from = new Vec3(s * 0.20, -0.22, 0.05);
             throwStyle = Style.Penguin;
         }
         if (Has(catchTricks, "penguin"))
         {
-            into = new Vec3(c * 0.27, -0.28, -0.02);
+            into = new Vec3(c * 0.30, -0.26, -0.30);   // outside the hip: coming down nearer in, it grazed the body
             catchStyle = Style.Penguin;
         }
         // Mills' Mess: every throw is made with the arms crossed, the throwing hand reaching to the other side, over the

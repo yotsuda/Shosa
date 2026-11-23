@@ -377,8 +377,16 @@ public static class Solver
             int wrist = hand == 0 ? Rig.RHand : Rig.LHand, elbow = wrist - 1;
             var w = Vec3.Lerp(Joint(f, wrist), Joint(f + 1, wrist), u);
             var e = Vec3.Lerp(Joint(f, elbow), Joint(f + 1, elbow), u);
-            // A claw holds it under the palm, turned down (DESIGN.md 118.12).
-            double up = juggling.StyleAt(hand, sec) == Juggling.Style.Claw ? -0.05 : 0.04;
+            // A claw holds it under the palm, turned down; a penguin in the palm turned back, behind the hand (DESIGN.md 118.12).
+            var style = juggling.StyleAt(hand, sec);
+            if (style == Juggling.Style.Penguin)
+            {
+                var ls = Vec3.Lerp(Joint(f, Rig.LShoulder), Joint(f + 1, Rig.LShoulder), u);
+                var rs = Vec3.Lerp(Joint(f, Rig.RShoulder), Joint(f + 1, Rig.RShoulder), u);
+                var front = (ls - rs).Cross(Vec3.Up).Normalized();
+                return w + (w - e).Normalized() * along - front * 0.04;
+            }
+            double up = style == Juggling.Style.Claw ? -0.05 : 0.04;
             return w + (w - e).Normalized() * along + Vec3.Up * up;
         }
         int Stacked(int ball, double sec)
@@ -2882,7 +2890,8 @@ internal sealed class FigureSolver
                 {
                     Juggling.Style.Back => -Vec3.Up * 0.3 + juggleLeft * (1.0 * side) - juggleFwd * 0.2,
                     Juggling.Style.Under => -Vec3.Up * 0.2 + juggleLeft * (1.0 * side) + juggleFwd * 0.1,
-                    Juggling.Style.Penguin => -Vec3.Up * 0.2 - juggleFwd * 1.0 + juggleLeft * (0.3 * side),
+                    // A penguin's arm is turned in at the shoulder (the user: the shoulder put in): the elbow out to the side.
+                    Juggling.Style.Penguin => -Vec3.Up * 0.1 + juggleLeft * (1.0 * side) - juggleFwd * 0.2,
                     _ => Juggling.Prop switch
                     {
                         "rings" => -Vec3.Up - juggleLeft * (0.05 * side) - juggleFwd * 0.15,

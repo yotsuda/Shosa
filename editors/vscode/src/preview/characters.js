@@ -143,13 +143,14 @@ export function createCharacters(scene, changed) {
       const along = w.clone().sub(e).normalize();
       // A club is in the fist (the user: gripped): from the hand as it is turned, along its fingers and out of its palm,
       // as mic.js finds the fist. The palms of a hand whose wrist is bent are not on the line of the forearm.
-      if (prop === 'clubs' && (styles?.[palms.length] | 0) === 0) {
+      const penguin = (styles?.[palms.length] | 0) === 2;
+      if ((prop === 'clubs' && (styles?.[palms.length] | 0) === 0) || penguin) {
         const rest = vrm.scene.getWorldQuaternion(new THREE.Quaternion()).invert(), turned = hand.getWorldQuaternion(new THREE.Quaternion());
         const isLeft = side === 'left';
         const fingers = new THREE.Vector3(isLeft ? 1 : -1, 0, 0).applyQuaternion(rest).applyQuaternion(turned);
         const thumb = new THREE.Vector3(0, 0, 1).applyQuaternion(rest).applyQuaternion(turned);
         const palm = fingers.clone().cross(thumb).multiplyScalar(isLeft ? 1 : -1);
-        palms.push(w.clone().addScaledVector(fingers, 0.06 * k).addScaledVector(palm, 0.03 * k));
+        palms.push(w.clone().addScaledVector(fingers, (penguin ? 0.07 : 0.06) * k).addScaledVector(palm, 0.03 * k));
         forearms.push(along);
         continue;
       }

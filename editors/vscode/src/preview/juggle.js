@@ -88,12 +88,12 @@ export function palmsUp(vrm, weight, edge = false, styles = [0, 0], club = false
     }
     // The thumb out to its own side, square to the hand: with the fingers forward that is the palm up, on both hands.
     // `edge` (rings): the thumb up and the little finger down, the hand an edge, as a karate chop (the user).
-    // A trick's own (DESIGN.md 118.12): a claw's palm down (the thumb in), a penguin's fingers down along the straight arm
-    // with the palm out (the thumb back).
+    // A trick's own (DESIGN.md 118.12): a claw's palm down (the thumb in); a penguin's fingers down along the straight arm,
+    // the thumb in, so the palm is turned right round to face back (the user).
     const style = styles[isLeft ? 1 : 0] | 0;
     const out = bodyLeft.clone().multiplyScalar(isLeft ? 1 : -1);
     const thumb = style === 1 ? out.negate()
-      : style === 2 ? Z.clone().applyQuaternion(restInverse).applyQuaternion(worldQuat(trunk)).negate()
+      : style === 2 ? out.clone().negate()
       : edge || gripsClub ? new THREE.Vector3(0, 1, 0).applyQuaternion(restInverse).applyQuaternion(worldQuat(trunk))
       : out;
     thumb.addScaledVector(along, -thumb.dot(along));
