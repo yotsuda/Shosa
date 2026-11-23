@@ -938,10 +938,10 @@ public sealed class Juggling
         // The second: thrown well out, a little after the first and up its way, chasing it (the user); caught low under the
         // arm on top (higher, the forearms met) and past the middle, clear of the third coming up.
         (new Vec3(0.40, 0.12, 0.03), new Vec3(0.10, -0.02, 0.03)),
-        // The third: thrown as far out as the arm reaches across, bent (4 cm further it went straight). Its ball is caught
-        // well out on the hand's own side: the hand that threw the first swings its forearm out round the body (the elbow
-        // kept in, Solver) and comes back under the other arm, the arms not seeming to pass through each other (the user).
-        (new Vec3(0.30, -0.08, 0.03), new Vec3(-0.40, 0.12, 0.03)),
+        // The third: thrown as far out as the arm reaches across, bent (4 cm further it went straight). Its ball goes the
+        // same way across as the other two, from the left toward the middle (the user; caught out on the catching hand's own
+        // side, -0.40 here, it went back out to the thrower's side), so the hand that threw the first swings out less.
+        (new Vec3(0.30, -0.08, 0.03), new Vec3(-0.08, 0.12, 0.03)),
     ];
 
     /// <summary>How far below the lower of its throw and catch each Mills loop goes round, metres.</summary>
