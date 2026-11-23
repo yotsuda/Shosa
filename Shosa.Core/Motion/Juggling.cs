@@ -282,7 +282,12 @@ public sealed class Juggling
             Soften(hand);
         }
         foreach (var (seg, _) in run.Where(r => r.Seg.Tricks?.Contains("mills") == true))
+        {
             _mills.Add((Sec(seg.T0), Sec(seg.T1)));
+            var firstSlot = slots.First(x => ReferenceEquals(x.Seg, seg));
+            double beatSec = Sec(seg.T0 + (seg.Every ?? 0.5)) - Sec(seg.T0);
+            _millsSway.Add((Sec(seg.T0), Sec(seg.T1), beatSec, Siteswap.HandAt(firstSlot.InRun, seg.LeftFirst) == 1));
+        }
         heldSince = lastCatch + 0.2;
         Runs.Add((start, lastCatch));
         Busy.Add((run[0].Seg.T0, run[^1].Seg.T1));
@@ -550,6 +555,8 @@ public sealed class Juggling
 
     /// <summary>The juggling's Mills' Mess at a time (seconds), 0..1: how much the body goes with the crossing arms.</summary>
     private readonly List<(double From, double To)> _mills = [];
+    /// <summary>Each Mills word for the back's sway: when, seconds from one throw to the next, and whether its first throw is the left hand's.</summary>
+    private readonly List<(double From, double To, double Beat, bool Mirrored)> _millsSway = [];
 
     /// <summary>
     /// How far the shoulders turn with the arms (radians, to the dancer's left), where the shoulders' row says nothing: in
@@ -569,9 +576,25 @@ public sealed class Juggling
     /// </summary>
     public double SideLean(double sec)
     {
+        // A slow, even sway, once each way in the six throws (the user: right, left, right, left, smoothly; following the
+        // hands it leaned twice to each side, rattling): furthest to the side of the arm below at the throw from below
+        // (the third and the sixth), the shoulder of the arm on top up, so the throw has room under it.
         double w = MillsWeight(sec);
-        return w <= 0 ? 0 : w * 1.2 * (Hand(0, sec).Y - Hand(1, sec).Y);   // the user: more, so the third throw has room below
+        if (w <= 0)
+            return 0;
+        foreach (var (from, to, beat, mirrored) in _millsSway)
+        {
+            if (sec < from - 0.4 || sec > to + 0.4)
+                continue;
+            double phase = (sec - from) / (6 * beat);
+            double lean = -MillsLean * Math.Cos(2 * Math.PI * (phase - 2.0 / 6));
+            return w * (mirrored ? -lean : lean);
+        }
+        return 0;
     }
+
+    /// <summary>How far Mills' back leans at the most (the torso's sideways part): some 17 degrees.</summary>
+    private const double MillsLean = 0.3;
 
     private double MillsWeight(double sec)
     {
