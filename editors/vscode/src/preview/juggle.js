@@ -28,6 +28,8 @@ const RING_AHEAD = 0.02;
  */
 export const palmAlong = prop => prop === 'rings' ? 0.05 : 0.085;
 const PALM_UP = 0.04;
+/** How far a hand gripping a club bends out at the wrist, to the back of the hand (radians): a little (the user). */
+const CLUB_WRIST_OUT = 20 * Math.PI / 180;
 const COLORS = [0xe8552f, 0x2f8fe8, 0xf2c22e, 0x3fbf6a, 0xb25fe0, 0xf07fb0, 0x5fd0d0, 0xf09a3e, 0x9aa0a8];
 
 function makeProp(prop, color) {
@@ -112,6 +114,14 @@ export function palmsUp(vrm, weight, edge = false, styles = [0, 0], club = false
     thumb.addScaledVector(along, -thumb.dot(along));
     if (thumb.lengthSq() < 1e-8) continue;
     thumb.normalize();
+    // A club's grip: the wrist bent a little out, to the back of the hand (the user: it looked bent in). The hand turns
+    // about the thumb, so the fist stays the same way round and the handle goes on along the thumb's side.
+    if (clubThumb) {
+      const outward = bodyLeft.clone().multiplyScalar(isLeft ? 1 : -1);
+      const bent = along.clone().applyAxisAngle(thumb, CLUB_WRIST_OUT);
+      const other = along.clone().applyAxisAngle(thumb, -CLUB_WRIST_OUT);
+      along.copy(bent.dot(outward) >= other.dot(outward) ? bent : other);
+    }
     // At rest (the T-pose, facing +z) a left hand points +x, a right one -x, and the thumbs point forward (+z) (as mic.js).
     const restAlong = isLeft ? X.clone() : X.clone().negate();
     const from = new THREE.Matrix4().makeBasis(restAlong, Z, restAlong.clone().cross(Z));
