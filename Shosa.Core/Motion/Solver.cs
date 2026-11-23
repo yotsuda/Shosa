@@ -344,6 +344,26 @@ public static class Solver
             }
         }
 
+        // A penguin's balls go up above the shoulders (the user): thrown in front of the belly and caught low behind the hip,
+        // a ball has to be long in the air for it, which is a throw less often. Said once at each penguin word, of the balls
+        // thrown in it (one thrown into it from a word before is thrown at that word's pace).
+        foreach (var flight in juggling.PenguinFlights)
+        {
+            double caughtBeat = TempoMap.Beat(clip.Tempos, flight.Caught);
+            if (flight.Seg is not { } word || word.Tricks?.Contains("penguin") != true)
+                continue;
+            int hand = flight.From == 0 ? Rig.RHand : Rig.LHand, to = flight.To == 0 ? Rig.RHand : Rig.LHand;
+            var atThrow = solver.Pose(TempoMap.Beat(clip.Tempos, flight.Thrown), out _);
+            var atCatch = solver.Pose(caughtBeat, out _);
+            double air = flight.Caught - flight.Thrown, y0 = atThrow[hand].Y, y1 = atCatch[to].Y;
+            double up = (y1 - y0) / air + 9.81 * air / 2;
+            double top = y0 + (up > 0 ? up * up / (2 * 9.81) : 0);
+            double shoulders = Math.Max(atThrow[Rig.LShoulder].Y, atThrow[Rig.RShoulder].Y);
+            if (top < shoulders)
+                Say(word, "SH2020", DiagnosticSeverity.Warning, FormattableString.Invariant(
+                    $"A penguin's ball goes up to {top:0.00} m here, below the shoulders ({shoulders:0.00} m): caught low behind the hip and thrown in front, it wants to go above them, and so to be longer in the air, which is a throw less often: every {Every(word, 2)} rather than every {Every(word, 1)}, or a slower tempo."));
+        }
+
         // A claw catch too slow to be on the ball's way up (the user: snatched at the face before its top; at a quicker tempo).
         foreach (var (seg, air, most, reach, slowest, quickest, tooQuick) in juggling.ClawTiming)
         {

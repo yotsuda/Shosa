@@ -239,7 +239,8 @@ public class JuggleTests
         foreach (string trick in new[] { "mills", "penguin", "claw", "reverse" })
         {
             var c = Compile(Juggle($"every 1/2  3:4@{trick} |"));
-            Assert.Empty(c.Diagnostics);
+            // A penguin's balls at this pace stay below the shoulders (DESIGN.md 118.17): said, and nothing else.
+            Assert.Equal(trick == "penguin" ? ["SH2020"] : Array.Empty<string>(), Codes(c).Distinct());
             var was = plain.Clip.Figures[0].Juggle!.Flights;
             var now = c.Clip.Figures[0].Juggle!.Flights;
             Assert.Equal(was.Select(f => (f[0], f[1], f[2])), now.Select(f => (f[0], f[1], f[2])));
@@ -262,11 +263,22 @@ public class JuggleTests
         int at = (int)Math.Round(right[3] * mills.Fps);
         Assert.True(mills.Figures[0].Joint(at, Rig.RHand).X > mills.Figures[0].Joint(at, Rig.Pelvis).X, "the right hand throws from the left of the body");
 
-        // Penguin: the hands down by the hips.
+        // Penguin: caught down by the hip and a little behind it, the arm straight (DESIGN.md 118.17).
         var penguin = Compile(Juggle("every 1/2  3:4@penguin |")).Clip;
-        int mid = penguin.FrameOfBeat(2);
-        Assert.True(penguin.Figures[0].Joint(mid, Rig.RHand).Y < penguin.Figures[0].Joint(mid, Rig.Pelvis).Y + 0.05);
+        var caughtRight = penguin.Figures[0].Juggle!.Flights.First(f => f[2] == 0 && f[4] > 0.6f);
+        int mid = (int)Math.Round(caughtRight[4] * penguin.Fps);
+        var fig = penguin.Figures[0];
+        Assert.True(fig.Joint(mid, Rig.RHand).Y < fig.Joint(mid, Rig.Pelvis).Y + 0.05, "caught down by the hip");
+        Assert.True(fig.Joint(mid, Rig.RHand).Z < fig.Joint(mid, Rig.Pelvis).Z, "caught behind the hip");
+        Assert.True((fig.Joint(mid, Rig.RHand) - fig.Joint(mid, Rig.RShoulder)).Length > 0.97 * (Rig.UpperArm + Rig.Forearm), "the arm straight");
         Assert.Contains(penguin.Figures[0].Juggle!.Styles, s => s[0] == (int)Juggling.Style.Penguin);
+        // Thrown less often, its balls go above the shoulders, thrown in front of the body with the palm up (DESIGN.md 118.17).
+        var high = Compile(Juggle("every 1  3:4@penguin |"));
+        Assert.DoesNotContain("SH2020", Codes(high));
+        var thrown = high.Clip.Figures[0].Juggle!.Flights.First(f => f[1] == 0 && f[3] > 0.4f);
+        int throwAt = (int)Math.Round(thrown[3] * high.Clip.Fps);
+        Assert.True(high.Clip.Figures[0].Joint(throwAt, Rig.RHand).Z > high.Clip.Figures[0].Joint(throwAt, Rig.Pelvis).Z + 0.15, "thrown in front of the body");
+        Assert.NotEqual((int)Juggling.Style.Penguin, high.Clip.Figures[0].Juggle!.Styles[throwAt][0]);
         // Claw: the palm down.
         Assert.Contains(Compile(Juggle("every 1/2  3:4@claw |")).Clip.Figures[0].Juggle!.Styles, s => s[1] == (int)Juggling.Style.Claw);
     }

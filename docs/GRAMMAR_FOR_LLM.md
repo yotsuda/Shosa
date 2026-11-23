@@ -1394,7 +1394,7 @@ section Show {
 - **Tricks**, put on a pattern with `@`, change how the hands throw and catch it, never what is
   thrown: `3:4@mills` (Mills' Mess: six throws round, three from the left and three from the right, the arms crossing and uncrossing),
   `@windmill` (the first hand's arm always on top, every ball thrown on its side and caught on the other, all one way round),
-  `@penguin` (the arms straight down, caught and thrown by the hips), `@claw` (the palm down, the
+  `@penguin` (caught behind the hip, the arm straight and the palm turned back, and thrown in front, palm up, above the shoulders: at tempo 120 `every 1`, else SH2020), `@claw` (the palm down, the
   ball thrown up to the face and snatched from above there near its top; at `every 1/2` it suits a tempo
   of about 113 to 197, else SH2023 says the tempo it suits), `@reverse` (thrown from outside over the top, caught inside),
   `@back` (from behind the back over the other shoulder), `@under` (from under the thigh of the

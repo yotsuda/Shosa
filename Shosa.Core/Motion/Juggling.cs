@@ -573,11 +573,9 @@ public sealed class Juggling
         // Penguin: the arm straight down by the side and turned in at the shoulder, the palm turned right round to face back,
         // the ball caught behind the hip (the user); then the arm swings forward past the thigh and throws it up across the
         // front (from behind the hip it went through the body).
-        if (Has(throwTricks, "penguin"))
-        {
-            from = new Vec3(s * 0.20, -0.22, 0.05);
-            throwStyle = Style.Penguin;
-        }
+        // A penguin's ball is thrown as a cascade's, from in front of the belly with the palm up (the user: caught behind,
+        // the ball is brought forward and thrown in front, above the shoulders): only its catch is the penguin's. (Thrown
+        // from the hanging arm with the palm still turned back, it left from behind the hand, low.)
         if (Has(catchTricks, "penguin"))
         {
             // Outside the hip and a little behind it, the arm straight down and back (the user: the elbow straight, the
@@ -677,6 +675,8 @@ public sealed class Juggling
 
     /// <summary>The penguin catches: the catching hand and when (seconds).</summary>
     private readonly List<(int Hand, double At)> _penguinCatches = [];
+    /// <summary>The flights caught in a penguin's way, behind the hip.</summary>
+    public IEnumerable<Flight> PenguinFlights => Flights.Where(f => _penguinCatches.Any(c => c.Hand == f.To && Math.Abs(c.At - f.Caught) < 1e-9));
     /// <summary>How far the shoulders turn at a penguin catch, the catching one back (radians: some 14 degrees), and over how many seconds either side.</summary>
     private const double PenguinTurn = 0.25, PenguinTurnSpan = 0.3;
 

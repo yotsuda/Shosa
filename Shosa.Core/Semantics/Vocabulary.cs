@@ -212,7 +212,7 @@ public static class Vocabulary
     [
         new("mills", "Mills' Mess: six throws round. The arms crossed, the right hand over throws from the left side in; the arms uncrossing, the left hand throws; crossing the other way, the right hand under throws from low on the left. The three go up from left to right; then the same mirrored. Best on 3."),
         new("windmill", "Windmill: the first hand's arm always on top, every ball thrown on that hand's side and caught on the other, all one way round. That hand throws over the top from its own side and catches crossed over, high on the other side; the other hand catches on its own side and throws from under the top arm. Best on 3. `@mirror` puts the left arm on top."),
-        new("penguin", "Penguin: the arms straight down, the hands by the hips, fingers down: caught and thrown from there."),
+        new("penguin", "Penguin: caught behind the hip, the arm straight and the palm turned back; thrown in front, palm up, above the shoulders."),
         new("claw", "Claw: the palm down, the ball thrown up to the face and snatched from above there, near its top. The catching hand has to come up to the face after its own throw and bring the ball down again: at `every 1/2` it suits a tempo of about 113 to 197 (SH2023 says when not)."),
         new("reverse", "Reverse: thrown from outside, over the top, and caught inside: the cascade turned the other way."),
         new("back", "Behind the back: the hand throws from behind the waist, over the other shoulder. Throw it high enough to clear the shoulder (a 5)."),
