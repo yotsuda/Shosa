@@ -415,7 +415,13 @@ public sealed class Juggling
             // user: crossed and uncrossed at the speed of the balls it was a body no one has). Only the places; the speed
             // at each is from the places either side, once they are all known (Smooth).
             if (millsThrow)
+            {
+                // The second of the three (the arms uncrossing): caught near the middle, the ball goes well down and round
+                // in an arc out to where it is thrown, not straight out (the user).
+                if (_mills6.ThrowK % 3 == 1)
+                    AddSmooth(hand, (thrown - 0.55 * Dwell * beat, MillsDip(_mills6.ThrowK, _mills6.ThrowMirror), Still, throwStyle));
                 AddSmooth(hand, (thrown, from, Still, throwStyle));
+            }
             else
             {
                 _keys[hand].Add((thrown - Math.Min(0.05, 0.45 * Dwell * beat), from - leaves * Math.Min(0.025, 0.2 * Dwell * beat), Still, throwStyle));
@@ -583,6 +589,14 @@ public sealed class Juggling
         (new Vec3(0.24, 0.01, 0.02), new Vec3(0.03, 0.03, 0.02)),
         (new Vec3(0.13, -0.09, -0.05), new Vec3(0.03, -0.07, -0.05)),   // as far out as the arm reaches across, bent: 4 cm further it went straight   // below, still in reach: lower and further across the arm went straight
     ];
+
+    /// <summary>The bottom of the arc the second throw's hand goes round, from the catch near the middle out to the throw.</summary>
+    private static Vec3 MillsDip(int k, bool mirrored)
+    {
+        int at = ((k % 6) + 6) % 6;
+        var dip = new Vec3(0.14, -0.15, 0.02);
+        return ((at >= 3) ^ mirrored) ? new Vec3(-dip.X, dip.Y, dip.Z) : dip;
+    }
 
     private static (Vec3 Throw, Vec3 Catch) MillsPlace(int k, bool mirrored)
     {
