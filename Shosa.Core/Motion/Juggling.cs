@@ -442,7 +442,16 @@ public sealed class Juggling
                 _keys[hand].Add((thrown, from, leaves, throwStyle));
             }
             if (millsCatch)
+            {
                 AddSmooth(to, (caught, into, Still, catchStyle));
+                // The first throw's ball is caught high, the hand moving with it the way it comes down, and going on down
+                // along its path (the user), not stopping it dead.
+                if (_mills6.CatchK % 3 == 0)
+                {
+                    _arrive[(to, caught)] = arrives * 0.6;
+                    AddSmooth(to, (caught + 0.3 * Dwell * beat, into + arrives * (0.6 * 0.3 * Dwell * beat * 0.6), Still, catchStyle));
+                }
+            }
             else
                 _keys[to].Add((caught, into, arrives * 0.3, catchStyle));
             return;
@@ -525,6 +534,8 @@ public sealed class Juggling
     private readonly HashSet<(int Hand, double T)> _smooth = [];
     /// <summary>A soft throw's upward speed: the ball's as it leaves the hand, which the hand has there too.</summary>
     private readonly Dictionary<(int Hand, double T), double> _launch = [];
+    /// <summary>A soft catch that goes with the ball: the hand's speed there, along the ball's way down.</summary>
+    private readonly Dictionary<(int Hand, double T), Vec3> _arrive = [];
 
     private void AddSmooth(int hand, (double T, Vec3 At, Vec3 Velocity, Style Style) key)
     {
@@ -552,6 +563,8 @@ public sealed class Juggling
             // across and forward the way round goes on as before.
             if (_launch.TryGetValue((hand, keys[i].T), out double up))
                 tangent = new Vec3(tangent.X, up, tangent.Z);
+            if (_arrive.TryGetValue((hand, keys[i].T), out var moving))
+                tangent = moving;
             keys[i] = keys[i] with { Velocity = tangent };
         }
     }
@@ -651,7 +664,7 @@ public sealed class Juggling
         // round each other and do not go through each other (the user); the third throw is from below the crossed arms.
         // All three balls in one plane a little before the body, the same distance out (the user: seen from above, the
         // three at different distances from the body). The arms keep apart up and down, and the back leans.
-        (new Vec3(0.17, 0.12, 0.03), new Vec3(0.03, 0.09, 0.03)),
+        (new Vec3(0.21, 0.12, 0.03), new Vec3(0.03, 0.17, 0.03)),   // the first: thrown further out, caught high (the user), the hand going down with it
         (new Vec3(0.24, 0.01, 0.03), new Vec3(0.06, -0.05, 0.03)),   // caught under the arm crossing on top (level with it, the forearms met), at the very middle, clear of the third coming up
         (new Vec3(0.22, -0.08, 0.03), new Vec3(0.03, -0.07, 0.03)),   // as far out as the arm reaches across, bent: 4 cm further it went straight
     ];
