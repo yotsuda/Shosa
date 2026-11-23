@@ -800,6 +800,9 @@ internal sealed class FigureSolver
     /// <summary>The juggle row timed (DESIGN.md 118), or null for a dancer that does not juggle.</summary>
     public Juggling? Juggling { get; }
 
+    /// <summary>The farthest a juggling hand goes from its shoulder, metres: the elbow bent some 40 degrees (0.60 is straight).</summary>
+    private const double JuggleReach = 0.575;
+
     // A mic in a hand (`mic right`, DESIGN.md 117). While the dancer sings, the hand is at the mouth, whatever its
     // row says; between phrases the row has the arm again, the mic in its hand. Sung by the phrase, not the
     // syllable: a singer does not take the mic down for a breath. Up a little before the first syllable (the
@@ -2116,10 +2119,6 @@ internal sealed class FigureSolver
         }
 
         var torso = Direction(_torso, t, Vec3.Up, new Vec3(0, 0, 1));
-        // Mills' Mess: the back sways to the side of the arm that crosses below, the shoulder of the one above up, so the
-        // two have room (DESIGN.md 118.12). Where the torso's row says nothing.
-        if (_torso.Count == 0 && Juggling is { } swaying && swaying.SideLean(Seconds(t)) is var sway && sway != 0)
-            torso = new Vec3(torso.X + sway, torso.Y, torso.Z).Normalized();
         if (_alive && _torso.Count == 0)
         {
             // An unwritten torso breathes (a degree each way), goes a little back and up as the arms rise or
@@ -2130,6 +2129,11 @@ internal sealed class FigureSolver
             double sideways = 0.05 * (upR - upL) + 0.02 * drift;
             torso = new Vec3(sideways, 1, 0.02 * Wave(t, _breath) - back).Normalized();
         }
+        // Mills' Mess: the back sways at the waist to the side of the arm that crosses below, the shoulder of the one above
+        // up, so the two have room (DESIGN.md 118.12). Where the torso's row says nothing; after the unwritten torso's own
+        // sway, which set it afresh and had undone this.
+        if (_torso.Count == 0 && Juggling is { } swaying && swaying.SideLean(Seconds(t)) is var sway && sway != 0)
+            torso = new Vec3(torso.X + sway, torso.Y, torso.Z).Normalized();
         c.TorsoUp = (c.Left * torso.X + Vec3.Up * torso.Y + c.Fwd * torso.Z).Normalized();
         c.Round = Chain(_torso, t, seg => seg is { Round: true } ? 1.0 : 0.0, (a, b, e) => a + (b - a) * e, Dist);
         c.Shoulders = Chain(_shoulders, t, seg => (seg?.TurnDeg ?? 0) * Math.PI / 180, (a, b, e) => a + (b - a) * e, Dist);
@@ -2882,6 +2886,11 @@ internal sealed class FigureSolver
                 // side, the forearm forward. In the frame of the chest as it faces, level: the throws go up, whatever the lean.
                 var local = Juggling!.Hand(isLeft ? 1 : 0, juggleSec);
                 var wrist = juggleOrigin + juggleLeft * local.X + Vec3.Up * local.Y + juggleFwd * local.Z;
+                // Never so far from the shoulder that the arm goes straight: the elbow stays bent some 40 degrees (the
+                // user: going up with the ball, the arm turning about the elbow). A juggler's elbow is never locked.
+                var reachOut = wrist - shoulder;
+                if (reachOut.Length > JuggleReach)
+                    wrist = shoulder + reachOut * (JuggleReach / reachOut.Length);
                 hand = Vec3.Lerp(hand, wrist, juggleWeight);
                 // The elbows down by the ribs and a little back, so the forearms point forward: out to the side they
                 // turned the forearms in, and on a character with narrow shoulders the hands crossed the middle.

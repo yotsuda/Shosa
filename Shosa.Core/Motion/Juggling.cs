@@ -421,6 +421,12 @@ public sealed class Juggling
                 if (_mills6.ThrowK % 3 == 1)
                     AddSmooth(hand, (thrown - 0.55 * Dwell * beat, MillsDip(_mills6.ThrowK, _mills6.ThrowMirror), Still, throwStyle));
                 AddSmooth(hand, (thrown, from, Still, throwStyle));
+                // Up with the ball; from below the crossed arms less far, or it went on up into the arm on top.
+                _launch[(hand, thrown)] = leaves.Y * (_mills6.ThrowK % 3 == 2 ? 0.85 : 1.0);
+                // From below the crossed arms, the hand draws back toward the body as it follows the ball up, and so passes
+                // behind the arm on top, not into it; the balls stay in their one plane (the user).
+                if (_mills6.ThrowK % 3 == 2)
+                    AddSmooth(hand, (thrown + 0.35 * (2 - Dwell) * beat, new Vec3(from.X * 0.6, from.Y + 0.04, from.Z - 0.12), Still, throwStyle));
             }
             else
             {
@@ -509,6 +515,8 @@ public sealed class Juggling
 
     /// <summary>Places whose speed is not the ball's but the hand's own way through them: a trick that goes round softly (Mills).</summary>
     private readonly HashSet<(int Hand, double T)> _smooth = [];
+    /// <summary>A soft throw's upward speed: the ball's as it leaves the hand, which the hand has there too.</summary>
+    private readonly Dictionary<(int Hand, double T), double> _launch = [];
 
     private void AddSmooth(int hand, (double T, Vec3 At, Vec3 Velocity, Style Style) key)
     {
@@ -531,7 +539,12 @@ public sealed class Juggling
             var (t2, b, _, _) = keys[i + 1];
             if (t2 - t0 < 1e-6)
                 continue;
-            keys[i] = keys[i] with { Velocity = (b - a) * (0.85 / (t2 - t0)) };
+            var tangent = (b - a) * (0.85 / (t2 - t0));
+            // At a throw the hand goes up as fast as the ball leaves it (the user: the ball flew off a hand that stayed);
+            // across and forward the way round goes on as before.
+            if (_launch.TryGetValue((hand, keys[i].T), out double up))
+                tangent = new Vec3(tangent.X, up, tangent.Z);
+            keys[i] = keys[i] with { Velocity = tangent };
         }
     }
 
@@ -557,7 +570,7 @@ public sealed class Juggling
     public double SideLean(double sec)
     {
         double w = MillsWeight(sec);
-        return w <= 0 ? 0 : w * 0.6 * (Hand(0, sec).Y - Hand(1, sec).Y);
+        return w <= 0 ? 0 : w * 1.2 * (Hand(0, sec).Y - Hand(1, sec).Y);   // the user: more, so the third throw has room below
     }
 
     private double MillsWeight(double sec)
@@ -585,9 +598,11 @@ public sealed class Juggling
         // which lie past the wrist along the forearm, leave from one place: a crossed forearm points out to the left.
         // Crossing, the arm on top goes well up and in front and the one below well down and behind, so the forearms turn
         // round each other and do not go through each other (the user); the third throw is from below the crossed arms.
-        (new Vec3(0.17, 0.12, 0.08), new Vec3(0.03, 0.09, 0.07)),   // above, not so far forward that the arm goes straight
-        (new Vec3(0.24, 0.01, 0.02), new Vec3(0.03, 0.03, 0.02)),
-        (new Vec3(0.13, -0.09, -0.05), new Vec3(0.03, -0.07, -0.05)),   // as far out as the arm reaches across, bent: 4 cm further it went straight   // below, still in reach: lower and further across the arm went straight
+        // All three balls in one plane a little before the body, the same distance out (the user: seen from above, the
+        // three at different distances from the body). The arms keep apart up and down, and the back leans.
+        (new Vec3(0.17, 0.12, 0.03), new Vec3(0.03, 0.09, 0.03)),
+        (new Vec3(0.24, 0.01, 0.03), new Vec3(0.03, -0.05, 0.03)),   // caught under the arm crossing on top: level with it, the forearms met
+        (new Vec3(0.13, -0.09, 0.03), new Vec3(0.03, -0.07, 0.03)),   // as far out as the arm reaches across, bent: 4 cm further it went straight
     ];
 
     /// <summary>The bottom of the arc the second throw's hand goes round, from the catch near the middle out to the throw.</summary>
