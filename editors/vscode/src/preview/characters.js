@@ -15,6 +15,8 @@ import { clubCatching, gripHands, heldBy, palmAlong, palmsUp } from './juggle.js
 
 // VRM's mouth expressions, in the order the server sends their weights (`mouth`, Mouth.Shapes).
 const MOUTH = ['aa', 'ih', 'ou', 'ee', 'oh'];
+/** How far a club's handle lies from the middle of the hand toward the thumb, metres (on the figure's 0.31 m forearm). */
+const CLUB_TOWARD_THUMB = 0.025;
 
 export function createCharacters(scene, changed) {
   const loader = new GLTFLoader();
@@ -188,7 +190,10 @@ export function createCharacters(scene, changed) {
         const fingers = new THREE.Vector3(isLeft ? 1 : -1, 0, 0).applyQuaternion(rest).applyQuaternion(turned);
         const thumb = new THREE.Vector3(0, 0, 1).applyQuaternion(rest).applyQuaternion(turned);
         const palm = fingers.clone().cross(thumb).multiplyScalar(isLeft ? 1 : -1);
-        palms.push(w.clone().addScaledVector(fingers, (penguin ? 0.07 : 0.06) * k).addScaledVector(palm, 0.03 * k));
+        // A club's handle between the thumb and the first finger (the user: through the middle of the hand it went between
+        // the first and the middle finger): toward the thumb by about a finger and a half.
+        palms.push(w.clone().addScaledVector(fingers, (penguin ? 0.07 : 0.06) * k).addScaledVector(palm, 0.03 * k)
+          .addScaledVector(thumb, penguin ? 0 : CLUB_TOWARD_THUMB * k));
         forearms.push(along);
         continue;
       }
