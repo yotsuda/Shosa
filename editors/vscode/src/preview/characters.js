@@ -8,7 +8,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
-import { keepArmsOut, measureBody } from './clearance.js';
+import { elbowSwings, keepArmsOut, measureBody } from './clearance.js';
 import { createMicHands } from './mic.js';
 import { gripHands, heldBy, palmAlong, palmsUp } from './juggle.js';
 
@@ -91,7 +91,7 @@ export function createCharacters(scene, changed) {
    * Poses a character's bones for a frame, as far as nothing but the frame decides it (the turns, the hips, the arms kept
    * out of its body, a juggler's palms): what its springs and expressions do is left to the caller. Returns its scale.
    */
-  function place(entry, clip, data, frame) {
+  function place(entry, clip, data, frame, clear = true) {
     const vrm = entry.vrm, turns = data.turns, frames = data.frames;
     const names = clip.skeletonBones ?? [];
     const pelvis = clip.joints.indexOf('pelvis');
@@ -121,7 +121,8 @@ export function createCharacters(scene, changed) {
     }
     // The arms out of the character's own body, which is not the figure's the turns were solved on (DESIGN.md 116).
     // (A test page turns it off with globalThis.shosaArmsAsSolved, to compare.)
-    if (entry.body && !globalThis.shosaArmsAsSolved) keepArmsOut(vrm, entry.body, size);
+    // The elbows' swings are worked out for the whole clip beforehand (swingsOf): found afresh in each frame they flapped.
+    if (entry.body && clear && !globalThis.shosaArmsAsSolved) keepArmsOut(vrm, entry.body, size, swingsAt(entry, data, frame));
     // Juggling (DESIGN.md 118): the palms up while it throws, so the balls lie on them; for rings an edge, the thumb up.
     const juggled = data.juggle && data.juggle.weight;
     if (juggled && juggled.length) {
@@ -129,6 +130,23 @@ export function createCharacters(scene, changed) {
       palmsUp(vrm, w0 + (w1 - w0) * k, data.juggle.prop === 'rings', data.juggle.styles ? data.juggle.styles[Math.min(data.juggle.styles.length - 1, Math.round(frame))] : [0, 0], data.juggle.prop === 'clubs');
     }
     return size;
+  }
+
+  /** The elbows' swings for a clip's figure at every frame, worked out once per movement (clearance.js elbowSwings). */
+  function swingsOf(entry, clip, data) {
+    const size = entry.height && entry.ownHeight ? entry.height / entry.ownHeight : 1;
+    if (entry.swings?.data === data && entry.swings.size === size) return entry.swings;
+    const count = data.turns.length;
+    entry.swings = { data, size, ...elbowSwings(entry.vrm, entry.body, size, count, f => place(entry, clip, data, f, false)) };
+    return entry.swings;
+  }
+
+  /** The elbows' swings at a frame (between two frames, blended), or null to find them in the frame itself. */
+  function swingsAt(entry, data, frame) {
+    const swings = entry.swings?.data === data ? entry.swings : null;
+    if (!swings || globalThis.shosaSwingsEachFrame) return null;   // a test page compares with the swings found frame by frame
+    const count = swings.left.length, x = Math.max(0, Math.min(count - 1, frame)), f = Math.floor(x), g = Math.min(count - 1, f + 1), k = x - f;
+    return { left: swings.left[f] + (swings.left[g] - swings.left[f]) * k, right: swings.right[f] + (swings.right[g] - swings.right[f]) * k };
   }
 
   /** A posed character's palms (past the wrist along the hand toward the fingers, and up) and forearms, [right, left]. */
@@ -195,6 +213,15 @@ export function createCharacters(scene, changed) {
     at.hipsAt = sec => { const x = Math.max(0, Math.min(count - 1, sec * at.fps)), f = Math.floor(x), g = Math.min(count - 1, f + 1); return at.hips[f].clone().lerp(at.hips[g], x - f); };
     return at;
   }
+
+  // Test pages read where a character's joints are (out\pv\harness-elbows.html); nothing in the extension does.
+  globalThis.shosaPreviewCharacters = {
+    joint(i, name) {
+      const entry = dressed[i];
+      const bone = entry && entry.vrm && entry.vrm.humanoid.getNormalizedBoneNode(name);
+      return bone ? bone.getWorldPosition(new THREE.Vector3()).toArray() : null;
+    },
+  };
 
   return {
     /** The bytes of a file (or why there are none) have come. Every figure dressed in it is dressed again. */
@@ -270,7 +297,10 @@ export function createCharacters(scene, changed) {
         const turns = data && data.turns, frames = data && data.frames;
         if (!turns || !turns.length || !frames || !frames.length) return;
         const vrm = entry.vrm;
-        // A juggler's palms at every frame, before this one is posed: the balls fly between them (juggle.js).
+        // The elbows' swings round the body at every frame, then a juggler's palms (posed with them): the balls fly
+        // between those (juggle.js).
+        const swings = entry.body && !globalThis.shosaArmsAsSolved ? entry.swings : null;
+        if (entry.body && !globalThis.shosaArmsAsSolved && swingsOf(entry, clip, data) !== swings) entry.track = null;   // the palms move with the elbows
         if (data.juggle && entry.track?.data !== data) entry.track = trackPalms(entry, clip, data);
         const f0 = Math.max(0, Math.min(turns.length - 1, Math.floor(frame))), f1 = Math.min(turns.length - 1, f0 + 1), k = Math.max(0, frame - f0);
         const size = place(entry, clip, data, frame);

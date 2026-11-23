@@ -439,6 +439,16 @@ public sealed class Juggling
                 // Up and across with the ball.
                 _launch[(hand, thrown)] = leaves.Y * MillsLaunch;
                 _launchAcross[(hand, thrown)] = leaves.X * MillsLaunch;
+                // The first throw, over the top: the hand goes on up after the ball and comes round high, in an arc, to
+                // the next catch near the middle (the user: it dropped at once).
+                if (_mills6.ThrowK % 3 == 0)
+                {
+                    var next = MillsPlace(_mills6.ThrowK + 2, _mills6.ThrowMirror).Catch;
+                    double gap = (2 - Dwell) * beat;
+                    var way = Vec3.Lerp(from, next, MillsOverAcross);
+                    var over = new Vec3(way.X, Math.Max(from.Y, next.Y) + MillsOverRise, way.Z);
+                    AddSmooth(hand, (thrown + MillsOverAt * gap, over, Still, throwStyle));
+                }
             }
             else
             {
@@ -694,15 +704,23 @@ public sealed class Juggling
         // Each catch is higher than the hand's throw before it, so the hand goes on up and in with that ball to the catch
         // and round a loop, not down at a sudden angle (the user: circles).
         (new Vec3(0.29, 0.12, 0.03), new Vec3(0.03, 0.25, 0.03)),   // the first: thrown further out, caught high (the user)
-        (new Vec3(0.32, 0.01, 0.03), new Vec3(0.10, -0.02, 0.03)),   // caught low under the arm on top (higher, the forearms met) and past the middle, clear of the third coming up
+        // The second: thrown well out, a little after the first and up its way, chasing it (the user); caught low under the
+        // arm on top (higher, the forearms met) and past the middle, clear of the third coming up.
+        (new Vec3(0.40, 0.12, 0.03), new Vec3(0.10, -0.02, 0.03)),
         (new Vec3(0.30, -0.08, 0.03), new Vec3(0.03, 0.12, 0.03)),   // thrown as far out as the arm reaches across, bent: 4 cm further it went straight
     ];
 
     /// <summary>How far below the lower of its throw and catch each Mills loop goes round, metres.</summary>
     private const double MillsLoopDepth = 0.08;
+    /// <summary>After Mills' first throw, how far above the higher of the throw and the next catch the hand comes round, metres.</summary>
+    private const double MillsOverRise = 0.25;
+    /// <summary>When the top of that arc is, as a part of the time from the throw to the next catch.</summary>
+    private const double MillsOverAt = 0.45;
+    /// <summary>Where the top of that arc is, from the throw (0) to the next catch (1).</summary>
+    private const double MillsOverAcross = 0.4;
     /// <summary>How much before its beat Mills' second throw leaves the hand, as a part of a throwing beat: longer in the air,
     /// so higher (caught later instead, the hand under the crossed arms waited up against the arm on top).</summary>
-    private const double MillsSecondEarlier = 0.45;
+    private const double MillsSecondEarlier = 0.6;
     /// <summary>When the bottom of the loop is, as a part of the hold before the throw.</summary>
     private const double MillsBottomAt = 0.4;
     /// <summary>How fast the hand goes with the ball at a Mills throw, as a part of the ball's speed.</summary>

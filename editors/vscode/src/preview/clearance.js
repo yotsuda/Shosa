@@ -180,7 +180,7 @@ function measureMouth(node, at, turned, members) {
  * Turns each arm out at the shoulder until it is clear of the trunk and head, by as little as does it.
  * The bones are the character's normalized ones, posed this frame; `size` is the scene's scale.
  */
-export function keepArmsOut(vrm, body, size) {
+export function keepArmsOut(vrm, body, size, swings = null) {
   if (!body) return;
   const node = name => vrm.humanoid.getNormalizedBoneNode(name);
   for (const side of ['left', 'right']) {
@@ -189,7 +189,9 @@ export function keepArmsOut(vrm, body, size) {
     if (!thickness || !upperArm || !lowerArm || !hand) continue;
     // First the elbow is swung round the line from the shoulder to the wrist: the hand stays where the words put
     // it (on the chin, on the chest, in the other hand), and only the elbow and forearm find their way round the body.
-    swingElbow(vrm, body, size, side, thickness, upperArm, lowerArm, hand);
+    // By the angle worked out for the whole clip beforehand when there is one (elbowSwings), else found now.
+    const swing = swings ? swings[side] : elbowSwing(vrm, body, size, side, 0);
+    if (swing) turnElbow(vrm, side, swing);
     // What that cannot clear (an arm hanging straight down has no elbow to swing), the arm turned out at the shoulder.
     let turnedBy = 0;
     for (let pass = 0; pass < PASSES && turnedBy < MOST; pass++) {
@@ -218,41 +220,107 @@ export function keepArmsOut(vrm, body, size) {
 
 /** How far the elbow may be swung each way, and in what steps. */
 const SWING_MOST = 90, SWING_STEP = 5;
+/**
+ * How much further the other way round has to be before the elbow is swung that way instead of the way it went the
+ * frame before: found afresh every frame, the smallest swing went up one frame and down the next (the user: the elbows
+ * flapped in Mills' Mess).
+ */
+const SWING_KEEP = 30;
+/** Over how many frames either side a swing is held and eased in and out (elbowSwings). */
+const SWING_HOLD = 3, SWING_EASE = 3;
 
 /**
- * Swings the elbow round the shoulder–wrist line by the smallest angle that clears the arm (or, if none does,
- * the one that leaves it least inside), keeping the hand where it was and turned as it was.
+ * The angle (radians) to swing the elbow round the shoulder–wrist line by: the smallest that clears the arm (or, if
+ * none does, the one that leaves it least inside), on the side of `before` (the last frame's) unless the other side is
+ * much smaller. 0 when the arm is clear or has no elbow to swing. The arm is as posed, not yet swung.
  */
-function swingElbow(vrm, body, size, side, thickness, upperArm, lowerArm, hand) {
+export function elbowSwing(vrm, body, size, side, before) {
+  const node = name => vrm.humanoid.getNormalizedBoneNode(name);
+  const thickness = body.arms[side];
+  const upperArm = node(side + 'UpperArm'), lowerArm = node(side + 'LowerArm'), hand = node(side + 'Hand');
+  if (!thickness || !upperArm || !lowerArm || !hand) return 0;
   vrm.scene.updateMatrixWorld(true);
   const shoulder = upperArm.getWorldPosition(new THREE.Vector3());
   const elbow = lowerArm.getWorldPosition(new THREE.Vector3());
   const wrist = hand.getWorldPosition(new THREE.Vector3());
   const first = deepestPoint(vrm, body, size, side, shoulder, elbow, wrist, thickness);
-  if (!first) return;
+  if (!first) return 0;
   const axis = new THREE.Vector3().subVectors(wrist, shoulder);
-  if (axis.lengthSq() < 1e-8) return;
+  if (axis.lengthSq() < 1e-8) return 0;
   axis.normalize();
   // An arm almost straight has nothing to swing: the elbow is on the line.
-  if (v1.subVectors(elbow, shoulder).cross(axis).length() < 0.01 * size) return;
+  if (v1.subVectors(elbow, shoulder).cross(axis).length() < 0.01 * size) return 0;
 
   const turn = new THREE.Quaternion(), swung = new THREE.Vector3();
-  let best = { angle: 0, depth: first.depth };
-  for (let k = 1; k <= SWING_MOST / SWING_STEP && best.depth > 0; k++) {
-    for (const sign of [1, -1]) {
+  // Each way round: the smallest swing that clears, else the one least inside.
+  const ways = [1, -1].map(sign => {
+    let best = { angle: 0, depth: first.depth };
+    for (let k = 1; k <= SWING_MOST / SWING_STEP && best.depth > 0; k++) {
       const angle = sign * k * SWING_STEP * Math.PI / 180;
       turn.setFromAxisAngle(axis, angle);
       swung.subVectors(elbow, shoulder).applyQuaternion(turn).add(shoulder);
       const found = deepestPoint(vrm, body, size, side, shoulder, swung, wrist, thickness);
       const depth = found ? found.depth : 0;
       if (depth < best.depth - 1e-4) best = { angle, depth };
-      if (depth === 0) break;
+    }
+    return best;
+  });
+  const keep = SWING_KEEP * Math.PI / 180;
+  const score = way => way.depth * 100 + Math.abs(way.angle);   // clearing first, then the smaller swing
+  const [own, other] = before < 0 ? [ways[1], ways[0]] : [ways[0], ways[1]];
+  // The way it went before, unless the other clears where it does not, or is much the smaller swing.
+  if (before !== 0 && !(own.depth > 1e-4 && other.depth < own.depth - 1e-4) && Math.abs(own.angle) <= Math.abs(other.angle) + keep) return own.angle;
+  return score(ways[0]) <= score(ways[1]) ? ways[0].angle : ways[1].angle;
+}
+
+/**
+ * The elbows' swings at every frame of a clip, worked out once (`pose(f)` poses the character at frame f as solved,
+ * without its arms kept out): each frame on the side the frame before went, then every swing held a few frames either
+ * side and eased in and out, so an elbow moves round the body in one sweep and does not flap. { left, right } per frame.
+ */
+export function elbowSwings(vrm, body, size, count, pose) {
+  const raw = { left: new Float64Array(count), right: new Float64Array(count) };
+  for (let f = 0; f < count; f++) {
+    pose(f);
+    for (const side of ['left', 'right']) raw[side][f] = elbowSwing(vrm, body, size, side, f > 0 ? raw[side][f - 1] : 0);
+  }
+  const eased = { left: new Float64Array(count), right: new Float64Array(count) };
+  for (const side of ['left', 'right']) {
+    // Held: the largest swing within a few frames, on its own side.
+    const held = new Float64Array(count);
+    for (let f = 0; f < count; f++) {
+      let most = 0;
+      for (let g = Math.max(0, f - SWING_HOLD); g <= Math.min(count - 1, f + SWING_HOLD); g++) if (Math.abs(raw[side][g]) > Math.abs(most)) most = raw[side][g];
+      held[f] = most;
+    }
+    // Eased: a Gaussian over a few frames.
+    for (let f = 0; f < count; f++) {
+      let sum = 0, weight = 0;
+      for (let g = Math.max(0, f - 2 * SWING_EASE); g <= Math.min(count - 1, f + 2 * SWING_EASE); g++) {
+        const w = Math.exp(-0.5 * ((g - f) / SWING_EASE) ** 2);
+        sum += held[g] * w;
+        weight += w;
+      }
+      eased[side][f] = sum / weight;
     }
   }
-  if (best.angle === 0) return;
+  return eased;
+}
+
+/** Swings the elbow round the shoulder–wrist line by `angle`, keeping the hand where it was and turned as it was. */
+function turnElbow(vrm, side, angle) {
+  const node = name => vrm.humanoid.getNormalizedBoneNode(name);
+  const upperArm = node(side + 'UpperArm'), hand = node(side + 'Hand');
+  vrm.scene.updateMatrixWorld(true);
+  const shoulder = upperArm.getWorldPosition(new THREE.Vector3());
+  const wrist = hand.getWorldPosition(new THREE.Vector3());
+  const axis = new THREE.Vector3().subVectors(wrist, shoulder);
+  if (axis.lengthSq() < 1e-8) return;
+  axis.normalize();
+  const turn = new THREE.Quaternion();
   // The swing is a turn of the upper arm in the world about the line; the hand is put back as it was turned.
   const handWorld = hand.getWorldQuaternion(new THREE.Quaternion());
-  turn.setFromAxisAngle(axis, best.angle);
+  turn.setFromAxisAngle(axis, angle);
   const parent = upperArm.parent.getWorldQuaternion(new THREE.Quaternion());
   const world = upperArm.getWorldQuaternion(new THREE.Quaternion());
   upperArm.quaternion.copy(parent.invert().multiply(turn).multiply(world));
