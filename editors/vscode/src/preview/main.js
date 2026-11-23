@@ -47,6 +47,9 @@ const vscode = acquireVsCodeApi();
 const style = document.createElement('style');
 style.textContent = `
   html, body { height: 100%; margin: 0; }
+  /* The buttons and the words on the page are not selected by a drag (the user): it is a tool, not a document. */
+  body { user-select: none; -webkit-user-select: none; }
+  input[type=text], textarea { user-select: text; -webkit-user-select: text; }
   body { display: flex; flex-direction: column; padding: 0; overflow: hidden;
          color: var(--vscode-foreground, #333); font: 13px/1.4 var(--vscode-font-family, system-ui, sans-serif); }
   #stage { flex: 1; min-height: 0; position: relative; display: flex; align-items: center; justify-content: center;
