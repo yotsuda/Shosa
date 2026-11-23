@@ -68,7 +68,7 @@ const worldQuat = node => node.getWorldQuaternion(new THREE.Quaternion());
  * as posed, 1 all the way): a juggler's hands carry the balls on the palm. Shosa's figure has no turn of the hand,
  * and the character's hands, posed from its forearms, faced each other edge up. Call after the bones are posed.
  */
-export function palmsUp(vrm, weight, edge = false, styles = [0, 0], club = false, catching = [0, 0]) {
+export function palmsUp(vrm, weight, edge = false, styles = [0, 0], club = false, catching = [0, 0], penguin = null) {
   if (!(weight > 0)) return;
   const node = name => vrm.humanoid.getNormalizedBoneNode(name);
   vrm.scene.updateMatrixWorld(true);
@@ -77,10 +77,48 @@ export function palmsUp(vrm, weight, edge = false, styles = [0, 0], club = false
   if (!trunk) return;
   const X = new THREE.Vector3(1, 0, 0), Z = new THREE.Vector3(0, 0, 1);
   const bodyLeft = X.clone().applyQuaternion(restInverse).applyQuaternion(worldQuat(trunk));
+  const bodyFwd = Z.clone().applyQuaternion(restInverse).applyQuaternion(worldQuat(trunk));
   for (const side of ['left', 'right']) {
-    const lower = node(side + 'LowerArm'), hand = node(side + 'Hand');
+    const upper = node(side + 'UpperArm'), lower = node(side + 'LowerArm'), hand = node(side + 'Hand');
     if (!lower || !hand) continue;
     const isLeft = side === 'left';
+    // A penguin's catch (DESIGN.md 118.17): how much, 0..1, smoothed over a few frames (`penguin`, [right, left]); without
+    // it, as the frame's style says.
+    const penguinShare = penguin ? Math.max(0, Math.min(1, penguin[isLeft ? 1 : 0] || 0)) : ((styles[isLeft ? 1 : 0] | 0) === 2 ? 1 : 0);
+    // The whole arm turned in about its own length, not the hand alone at the wrist (the user: the arm's turn about its
+    // axis was not enough): the upper arm and the forearm each turned in, as much as the catch is a penguin's.
+    if (penguinShare > 0 && upper) {
+      const inward = bodyLeft.clone().multiplyScalar(isLeft ? -1 : 1);
+      vrm.scene.updateMatrixWorld(true);
+      // Where the hand is: turning the upper arm about its length swings a bent forearm round, so the forearm is aimed back
+      // at it after (the hand jumped, and the balls with it, while the elbow was still bent on the way to the catch).
+      const wristWas = hand.getWorldPosition(new THREE.Vector3());
+      for (const [bone, child, degrees] of [[upper, lower, PENGUIN_UPPER_TWIST], [lower, hand, PENGUIN_FORE_TWIST]]) {
+        vrm.scene.updateMatrixWorld(true);
+        const axis = child.getWorldPosition(new THREE.Vector3()).sub(bone.getWorldPosition(new THREE.Vector3()));
+        if (axis.lengthSq() < 1e-10) continue;
+        axis.normalize();
+        // Turned in: the front of the arm toward the body.
+        const front = bodyFwd.clone().addScaledVector(axis, -bodyFwd.dot(axis));
+        const angle = penguinShare * degrees * Math.PI / 180;
+        const sign = front.clone().applyAxisAngle(axis, angle).dot(inward) >= front.clone().applyAxisAngle(axis, -angle).dot(inward) ? 1 : -1;
+        const turn = new THREE.Quaternion().setFromAxisAngle(axis, sign * angle);
+        const world = turn.multiply(worldQuat(bone));
+        bone.quaternion.copy(worldQuat(bone.parent).invert().multiply(world));
+        bone.updateMatrixWorld(true);
+        if (bone === upper) {
+          // The forearm back on the hand by the least turn.
+          vrm.scene.updateMatrixWorld(true);
+          const elbow = lower.getWorldPosition(new THREE.Vector3());
+          const now = hand.getWorldPosition(new THREE.Vector3()).sub(elbow), want = wristWas.clone().sub(elbow);
+          if (now.lengthSq() > 1e-10 && want.lengthSq() > 1e-10) {
+            const back = new THREE.Quaternion().setFromUnitVectors(now.normalize(), want.normalize());
+            lower.quaternion.copy(worldQuat(upper).invert().multiply(back.multiply(worldQuat(lower))));
+            lower.updateMatrixWorld(true);
+          }
+        }
+      }
+    }
     const forearm = hand.getWorldPosition(new THREE.Vector3()).sub(lower.getWorldPosition(new THREE.Vector3())).normalize();
     // A club is gripped (the user): the hand an edge, the thumb up, the wrist bent down so the fingers go 60 degrees below the
     // forearm and close round the handle, which crosses the palm and goes on out of the fist on the thumb's side, in line
@@ -104,7 +142,8 @@ export function palmsUp(vrm, weight, edge = false, styles = [0, 0], club = false
     // `edge` (rings): the thumb up and the little finger down, the hand an edge, as a karate chop (the user).
     // A trick's own (DESIGN.md 118.12): a claw's palm down (the thumb in); a penguin's fingers down along the straight arm,
     // the thumb in, so the palm is turned right round to face back (the user).
-    const style = styles[isLeft ? 1 : 0] | 0;
+    // A penguin's own hand is put after (by its share); here the hand as it would be without it.
+    const style = (styles[isLeft ? 1 : 0] | 0) === 2 && penguin ? 0 : styles[isLeft ? 1 : 0] | 0;
     const out = bodyLeft.clone().multiplyScalar(isLeft ? 1 : -1);
     const thumb = style === 1 ? out.negate()
       : style === 2 ? out.clone().negate()
@@ -135,6 +174,25 @@ export function palmsUp(vrm, weight, edge = false, styles = [0, 0], club = false
       const palmThumb = out.clone().addScaledVector(forearm, -out.dot(forearm));
       if (palmThumb.lengthSq() > 1e-8) target.slerp(turnTo(forearm, palmThumb.normalize()), share);
     }
+    // A penguin's catch: the fingers down along the straight arm, the thumb in and back, so the palm faces back and out,
+    // turned past the half turn (the user: turned further about the arm).
+    // The hand turns from the palm up to that about the fingers, always the way the arm turns in, by as much as the catch is
+    // a penguin's. (Blended as two turns of the hand, which are nearly opposite, the shorter way between them changed sides
+    // as the arm moved and the hand jumped some 100 degrees in a frame.)
+    if (penguin && penguinShare > 0 && !clubThumb && style === 0) {
+      const fingers = forearm.clone();
+      const penguinThumb = out.clone().negate().addScaledVector(bodyFwd, -PENGUIN_THUMB_BACK);
+      penguinThumb.addScaledVector(fingers, -penguinThumb.dot(fingers));
+      if (penguinThumb.lengthSq() > 1e-8) {
+        penguinThumb.normalize();
+        // Turned in about the arm from the shoulder to the hand: the left one positive about it, the right one negative.
+        const inward = isLeft ? 1 : -1;
+        let angle = inward * Math.atan2(thumb.clone().cross(penguinThumb).dot(fingers), thumb.dot(penguinThumb));
+        if (angle < 0) angle += 2 * Math.PI;
+        const turnedThumb = thumb.clone().applyAxisAngle(fingers, inward * angle * penguinShare);
+        target.copy(turnTo(fingers, turnedThumb));
+      }
+    }
     const turned = worldQuat(hand).slerp(target, Math.min(1, weight));
     hand.quaternion.copy(worldQuat(hand.parent).invert().multiply(turned));
     hand.updateMatrixWorld(true);
@@ -142,6 +200,29 @@ export function palmsUp(vrm, weight, edge = false, styles = [0, 0], club = false
     if (globalThis.shosaPalmsDebug) globalThis.shosaPalmsDebug(side, forearm.toArray(), along.toArray(), thumb.toArray(), weight, turned.toArray(), share);
   }
 }
+
+/** A penguin's catch: degrees the upper arm and the forearm turn in about their length, and how far back the thumb points besides in (per unit in). */
+const PENGUIN_UPPER_TWIST = 45, PENGUIN_FORE_TWIST = 60, PENGUIN_THUMB_BACK = 1.0;
+
+/**
+ * How much each hand is in a penguin's catch at a frame, [right, left], 0..1: the share of the frames round it (some 0.3 s
+ * either side) whose style is the penguin's, so the arm turns in and out smoothly rather than in a frame.
+ */
+export function penguinShares(styles, frame) {
+  if (!styles || !styles.length) return [0, 0];
+  const at = Math.round(frame);
+  return [0, 1].map(hand => {
+    let n = 0, of = 0;
+    for (let k = -PENGUIN_SPREAD; k <= PENGUIN_SPREAD; k++) {
+      const s = styles[Math.max(0, Math.min(styles.length - 1, at + k))];
+      const w = PENGUIN_SPREAD + 1 - Math.abs(k);
+      of += w;
+      if ((s?.[hand] | 0) === 2) n += w;
+    }
+    return n / of;
+  });
+}
+const PENGUIN_SPREAD = 9;
 
 /** How far a hand holding a club turns from the palm up toward the grip at the most, halfway through its hold (0..1). */
 const CLUB_HOLD_TURN = 0.3;

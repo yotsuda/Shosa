@@ -521,6 +521,34 @@ public sealed class Juggling
                 _keys[to].Add((caught, into, arrives * 0.3, catchStyle));
             return;
         }
+        // A penguin's arm swings softly too (the user: from the catch to the throw it jerked, quick all at once): caught behind
+        // the hip going down with the ball, swung forward and up without stopping, and let go going up with the ball; then on
+        // up a little and round, down and back to the next catch. Only the throw and the catch are placed; the speed between
+        // is from the places either side (Soften), as in Mills' Mess. (With a cascade's stop, swing up and stop after, the hand
+        // stopped before the throw, flicked up at 80 m/s², and was flung back to the catch at 4.7 m/s to stop dead there.)
+        bool penguinThrow = throwTricks?.Contains("penguin") == true, penguinCatch = catchStyle == Style.Penguin;
+        if (penguinThrow || penguinCatch)
+        {
+            if (penguinThrow)
+            {
+                AddSmooth(hand, (thrown, from, Still, throwStyle));
+                _launch[(hand, thrown)] = leaves.Y * PenguinLaunch;
+                _launchAcross[(hand, thrown)] = leaves.X * PenguinLaunch;
+            }
+            else
+            {
+                _keys[hand].Add((thrown - Math.Min(0.05, 0.45 * Dwell * beat), from - leaves * Math.Min(0.025, 0.2 * Dwell * beat), Still, throwStyle));
+                _keys[hand].Add((thrown, from, leaves, throwStyle));
+            }
+            if (penguinCatch)
+            {
+                AddSmooth(to, (caught, into, Still, catchStyle));
+                _arrive[(to, caught)] = arrives * PenguinArrive;
+            }
+            else
+                _keys[to].Add((caught, into, arrives * 0.3, catchStyle));
+            return;
+        }
         // From a stop to that speed, evenly faster: over as many seconds as cover the lift, but no more than a part of the hold.
         double speed = Math.Max(0.5, leaves.Length);
         // (A throw every few hundredths of a second, SH2020, leaves less than that: the swing is as short as the hold.)
@@ -581,7 +609,12 @@ public sealed class Juggling
             // Outside the hip and a little behind it, the arm straight down and back (the user: the elbow straight, the
             // shoulder put in, the palm turned, caught a little behind). The place is past the arm's reach, so the arm goes
             // straight toward it (the solver lets a penguin's arm out nearly straight). (Coming down nearer in, it grazed the body.)
-            into = new Vec3(c * 0.30, -0.50, -0.50);
+            // By the side of the body (the user: further forward than behind the hip), front to back about the pelvis's: the
+            // shoulder is some 0.18 m out, 0.33 m above and 0.30 m behind the middle of the juggling, and the place is a
+            // little past the straight arm from there, down and a little out and back. (Well past its reach, the hand ran into
+            // the end of the arm and stopped there at 84 m/s²: the solver now holds a penguin's reach in softly, so the place is
+            // well past it again, for the arm to come out nearly straight.)
+            into = new Vec3(c * 0.30, -0.52, -0.38);
             catchStyle = Style.Penguin;
         }
         // Mills' Mess, as the user laid it out: six throws round, three from the left and three, mirrored, from the right.
@@ -673,12 +706,15 @@ public sealed class Juggling
         return turn;
     }
 
+    /// <summary>How fast a penguin's hand goes with the ball at its throw, and at its catch, as parts of the ball's speed.</summary>
+    private const double PenguinLaunch = 0.4, PenguinArrive = 0.15;
+
     /// <summary>The penguin catches: the catching hand and when (seconds).</summary>
     private readonly List<(int Hand, double At)> _penguinCatches = [];
     /// <summary>The flights caught in a penguin's way, behind the hip.</summary>
     public IEnumerable<Flight> PenguinFlights => Flights.Where(f => _penguinCatches.Any(c => c.Hand == f.To && Math.Abs(c.At - f.Caught) < 1e-9));
     /// <summary>How far the shoulders turn at a penguin catch, the catching one back (radians: some 14 degrees), and over how many seconds either side.</summary>
-    private const double PenguinTurn = 0.25, PenguinTurnSpan = 0.3;
+    private const double PenguinTurn = 0.45, PenguinTurnSpan = 0.3;
 
     /// <summary>
     /// How far the back leans to the side (the torso's sideways part, to the dancer's left), where the torso's row says

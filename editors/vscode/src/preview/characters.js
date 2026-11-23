@@ -11,7 +11,7 @@ import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
 import { millsArms } from './arms.js';
 import { elbowSwings, keepArmsOut, measureBody } from './clearance.js';
 import { createMicHands } from './mic.js';
-import { clubCatching, gripHands, heldBy, palmAlong, palmsUp } from './juggle.js';
+import { clubCatching, gripHands, heldBy, palmAlong, palmsUp, penguinShares } from './juggle.js';
 
 // VRM's mouth expressions, in the order the server sends their weights (`mouth`, Mouth.Shapes).
 const MOUTH = ['aa', 'ih', 'ou', 'ee', 'oh'];
@@ -146,7 +146,7 @@ export function createCharacters(scene, changed) {
       const w0 = juggled[Math.min(juggled.length - 1, f0)], w1 = juggled[Math.min(juggled.length - 1, f0 + 1)];
       const clubs = data.juggle.prop === 'clubs';
       palmsUp(vrm, w0 + (w1 - w0) * k, data.juggle.prop === 'rings', data.juggle.styles ? data.juggle.styles[Math.min(data.juggle.styles.length - 1, Math.round(frame))] : [0, 0], clubs,
-        clubs && data.juggle.flights ? clubCatching(data.juggle.flights, frame / clip.fps) : [0, 0]);
+        clubs && data.juggle.flights ? clubCatching(data.juggle.flights, frame / clip.fps) : [0, 0], penguinShares(data.juggle.styles, frame));
     }
     return size;
   }
@@ -169,7 +169,7 @@ export function createCharacters(scene, changed) {
   }
 
   /** A posed character's palms (past the wrist along the hand toward the fingers, and up) and forearms, [right, left]. */
-  function measure(vrm, prop, styles = [0, 0]) {
+  function measure(vrm, prop, styles = [0, 0], shares = null) {
     const palms = [], forearms = [];
     for (const side of ['right', 'left']) {
       const lower = vrm.humanoid.getNormalizedBoneNode(side + 'LowerArm'), hand = vrm.humanoid.getNormalizedBoneNode(side + 'Hand');
@@ -181,25 +181,29 @@ export function createCharacters(scene, changed) {
       const w = hand.getWorldPosition(new THREE.Vector3()), e = lower.getWorldPosition(new THREE.Vector3());
       const k = e.distanceTo(w) / 0.31;
       const along = w.clone().sub(e).normalize();
-      // A club is in the fist (the user: gripped): from the hand as it is turned, along its fingers and out of its palm,
-      // as mic.js finds the fist. The palms of a hand whose wrist is bent are not on the line of the forearm.
-      const penguin = (styles?.[palms.length] | 0) === 2;
-      if ((prop === 'clubs' && (styles?.[palms.length] | 0) === 0) || penguin) {
-        const rest = vrm.scene.getWorldQuaternion(new THREE.Quaternion()).invert(), turned = hand.getWorldQuaternion(new THREE.Quaternion());
-        const isLeft = side === 'left';
-        const fingers = new THREE.Vector3(isLeft ? 1 : -1, 0, 0).applyQuaternion(rest).applyQuaternion(turned);
-        const thumb = new THREE.Vector3(0, 0, 1).applyQuaternion(rest).applyQuaternion(turned);
-        const palm = fingers.clone().cross(thumb).multiplyScalar(isLeft ? 1 : -1);
+      // From the hand as it is turned: along its fingers, out of its palm, toward its thumb (as mic.js finds the fist).
+      const isLeft = side === 'left';
+      const rest = vrm.scene.getWorldQuaternion(new THREE.Quaternion()).invert(), turned = hand.getWorldQuaternion(new THREE.Quaternion());
+      const fingers = new THREE.Vector3(isLeft ? 1 : -1, 0, 0).applyQuaternion(rest).applyQuaternion(turned);
+      const thumb = new THREE.Vector3(0, 0, 1).applyQuaternion(rest).applyQuaternion(turned);
+      const palm = fingers.clone().cross(thumb).multiplyScalar(isLeft ? 1 : -1);
+      const style = styles?.[palms.length] | 0;
+      // A club is in the fist (the user: gripped). The palms of a hand whose wrist is bent are not on the line of the forearm.
+      if (prop === 'clubs' && style === 0) {
         // A club's handle between the thumb and the first finger (the user: through the middle of the hand it went between
         // the first and the middle finger): toward the thumb by about a finger and a half.
-        palms.push(w.clone().addScaledVector(fingers, (penguin ? 0.07 : 0.06) * k).addScaledVector(palm, 0.03 * k)
-          .addScaledVector(thumb, penguin ? 0 : CLUB_TOWARD_THUMB * k));
+        palms.push(w.clone().addScaledVector(fingers, 0.06 * k).addScaledVector(palm, 0.03 * k).addScaledVector(thumb, CLUB_TOWARD_THUMB * k));
         forearms.push(along);
         continue;
       }
+      // A penguin's ball is in the palm turned back and out, as much as the catch is a penguin's (its share, smoothed over a
+      // few frames, so the ball goes from the one place to the other as the hand turns).
+      const share = shares ? shares[palms.length] : (style === 2 ? 1 : 0);
+      const inPenguin = w.clone().addScaledVector(fingers, 0.07 * k).addScaledVector(palm, 0.03 * k);
       // A claw's palm is down: the ball under it (DESIGN.md 118.12).
-      const up = (styles?.[palms.length] | 0) === 1 ? -0.05 : 0.04;
-      palms.push(w.clone().addScaledVector(along, palmAlong(prop) * k).add(new THREE.Vector3(0, up * k, 0)));
+      const up = style === 1 ? -0.05 : 0.04;
+      const onPalm = w.clone().addScaledVector(along, palmAlong(prop) * k).add(new THREE.Vector3(0, up * k, 0));
+      palms.push(onPalm.lerp(inPenguin, share));
       forearms.push(along);
     }
     return { palms, forearms };
@@ -218,7 +222,7 @@ export function createCharacters(scene, changed) {
     for (let f = 0; f < count; f++) {
       place(entry, clip, data, f);
       entry.vrm.scene.updateMatrixWorld(true);
-      const { palms, forearms } = measure(entry.vrm, data.juggle.prop, data.juggle.styles?.[f]);
+      const { palms, forearms } = measure(entry.vrm, data.juggle.prop, data.juggle.styles?.[f], penguinShares(data.juggle.styles, f));
       at.hips.push(hipsBone ? hipsBone.getWorldPosition(new THREE.Vector3()) : new THREE.Vector3());
       for (const hand of [0, 1]) {
         at.palms[hand].push(palms[hand] ?? new THREE.Vector3());
@@ -362,7 +366,7 @@ export function createCharacters(scene, changed) {
         // Where its palms are, for the balls it juggles (juggle.js). Right, left.
         if (data.juggle) {
           vrm.scene.updateMatrixWorld(true);
-          ({ palms: entry.palms, forearms: entry.forearms } = measure(vrm, data.juggle.prop, data.juggle.styles?.[Math.min(data.juggle.styles.length - 1, Math.round(frame))]));
+          ({ palms: entry.palms, forearms: entry.forearms } = measure(vrm, data.juggle.prop, data.juggle.styles?.[Math.min(data.juggle.styles.length - 1, Math.round(frame))], penguinShares(data.juggle.styles, frame)));
         } else {
           entry.palms = null;
           entry.forearms = null;

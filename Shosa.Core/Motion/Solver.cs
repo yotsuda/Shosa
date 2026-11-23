@@ -850,14 +850,18 @@ internal sealed class FigureSolver
     /// </summary>
     /// <summary>How far a penguin's hand goes from the shoulder at the most, metres: the arm 0.998 of its length, the elbow bent some 7 degrees.</summary>
     private const double PenguinReach = 0.998 * (Rig.UpperArm + Rig.Forearm);
+    /// <summary>Where a penguin's reach starts to be held in, metres.</summary>
+    private const double PenguinReachSoft = 0.50;
 
-    private static Vec3 SoftReach(Vec3 out_)
+    private static Vec3 SoftReach(Vec3 out_) => SoftReach(out_, JuggleReachSoft, JuggleReach);
+
+    private static Vec3 SoftReach(Vec3 out_, double soft, double most)
     {
         double r = out_.Length;
-        if (r <= JuggleReachSoft)
+        if (r <= soft)
             return out_;
-        double room = JuggleReach - JuggleReachSoft;
-        return out_ * ((JuggleReachSoft + room * Math.Tanh((r - JuggleReachSoft) / room)) / r);
+        double room = most - soft;
+        return out_ * ((soft + room * Math.Tanh((r - soft) / room)) / r);
     }
     /// <summary>How far in front of the feet Mills' balls go, metres: all the same.</summary>
     private const double MillsPlane = 0.33;
@@ -3017,7 +3021,8 @@ internal sealed class FigureSolver
                 double penguin = 0;
                 for (int k = -4; k <= 4; k++)
                     penguin += Juggling!.StyleAt(isLeft ? 1 : 0, juggleSec + k * 0.03) == Juggling.Style.Penguin ? 1.0 / 9 : 0;
-                var straight = reachOut * (Math.Min(reachOut.Length, PenguinReach) / Math.Max(1e-9, reachOut.Length));
+                // Held in softly as it comes to the straight arm, not stopped there (the user: it jerked at the catch).
+                var straight = SoftReach(reachOut, PenguinReachSoft, PenguinReach);
                 wrist = shoulder + Vec3.Lerp(SoftReach(reachOut), straight, penguin);
                 hand = Vec3.Lerp(hand, wrist, juggleWeight);
                 // The elbows down by the ribs and a little back, so the forearms point forward: out to the side they
@@ -3027,19 +3032,26 @@ internal sealed class FigureSolver
                 // Clubs: the elbows open out to the side, so the hands catch well out (the user).
                 // A trick holds the arm its own way (DESIGN.md 118.12): behind the back and under the leg the elbow goes out,
                 // a penguin's arm hangs straight with the elbow back.
+                var ownPole = Juggling.Prop switch
+                {
+                    "rings" => -Vec3.Up - juggleLeft * (0.05 * side) - juggleFwd * 0.15,
+                    "clubs" => -Vec3.Up + juggleLeft * (0.6 * side) - juggleFwd * 0.15,
+                    _ => -Vec3.Up + juggleLeft * (0.08 * side) - juggleFwd * 0.45,
+                };
                 var jugglePole = (Juggling!.StyleAt(isLeft ? 1 : 0, juggleSec) switch
                 {
                     Juggling.Style.Back => -Vec3.Up * 0.3 + juggleLeft * (1.0 * side) - juggleFwd * 0.2,
                     Juggling.Style.Under => -Vec3.Up * 0.2 + juggleLeft * (1.0 * side) + juggleFwd * 0.1,
-                    // A penguin's arm is turned in at the shoulder (the user: the shoulder put in): the elbow out to the side.
-                    Juggling.Style.Penguin => -Vec3.Up * 0.1 + juggleLeft * (1.0 * side) - juggleFwd * 0.2,
-                    _ => Juggling.Prop switch
-                    {
-                        "rings" => -Vec3.Up - juggleLeft * (0.05 * side) - juggleFwd * 0.15,
-                        "clubs" => -Vec3.Up + juggleLeft * (0.6 * side) - juggleFwd * 0.15,
-                        _ => -Vec3.Up + juggleLeft * (0.08 * side) - juggleFwd * 0.45,
-                    },
+                    _ => ownPole,
                 }).Normalized();
+                // A penguin's arm is turned in at the shoulder (the user: the shoulder put in): the elbow out to the side. As much
+                // as it is a penguin's over a little time (above), so the elbow does not turn over in a frame (it swung the
+                // forearm round at 1600 degrees a second).
+                // Only as the arm comes out straight: bent (after the throw, the hand up before the chest) the elbow out to the
+                // side stood out like a hand on the hip (the user's eye on the swing down to the catch).
+                double straightness = Smooth(Math.Clamp(((wrist - shoulder).Length / (Rig.UpperArm + Rig.Forearm) - 0.8) / 0.15, 0, 1));
+                if (penguin * straightness > 0)
+                    jugglePole = Vec3.Slerp(jugglePole, (-Vec3.Up * 0.1 + juggleLeft * (1.0 * side) - juggleFwd * 0.2).Normalized(), penguin * straightness);
                 // Mills' Mess: the elbow in toward the ribs, so the forearm swings out round the body from it rather than the
                 // whole arm going to and fro (the user).
                 double mills = Juggling.MillsAt(juggleSec);
