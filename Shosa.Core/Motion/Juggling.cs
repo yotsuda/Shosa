@@ -417,14 +417,18 @@ public sealed class Juggling
     private Vec3 Throws(int hand, int value, bool across) => value == 1
         ? new Vec3(Side(hand) * 0.12, -0.01, 0.02)
         : Rings ? new Vec3(Side(hand) * 0.13, 0.10, 0.02)
-        : new Vec3(Side(hand) * (across ? 0.15 : 0.28), 0, 0.01);
+        : new Vec3(Side(hand) * (across ? 0.15 : SameThrowX), 0, across ? 0.01 : SameThrowZ);
     // A throw that comes back to its own hand (an even one: 441, the box (4,2x)*, the fountain) goes up on the hand's own
     // side, the hands well apart (the user: in the box they looked better further out). Thrown 28 cm out, caught 34.
     private Vec3 Catches(int hand, int value, bool across = true) => value == 1
         ? new Vec3(Side(hand) * 0.16, -0.01, 0.02)
         : Rings ? new Vec3(Side(hand) * 0.31, 0.18, 0.02)
         : Clubs ? new Vec3(Side(hand) * (across ? 0.40 : 0.42), 0.08, -0.02)
-        : new Vec3(Side(hand) * (across ? 0.32 : 0.34), 0.06, -0.02);
+        : new Vec3(Side(hand) * (across ? 0.32 : SameCatchX), 0.06, across ? -0.02 : SameCatchZ);
+    // A ball thrown back to its own hand (441, the box): thrown in front and inside, caught behind and outside, so the one going
+    // up and the one coming down in the same hand's column pass apart, and the one going up is in front of a ball crossing over
+    // into that hand (the user: in 441 a ball going up met one coming down; thrown at 28 cm and caught at 34 they passed 4 cm apart).
+    private const double SameThrowX = 0.34, SameThrowZ = 0.08, SameCatchX = 0.42, SameCatchZ = -0.06;
     // A club is half a metre long: caught well out to the side, the elbow out, or two meet in the air (the user).
     private bool Clubs => Prop == "clubs";
 
