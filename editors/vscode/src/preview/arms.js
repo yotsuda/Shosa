@@ -18,13 +18,7 @@ const ELBOW_SIDE = -0.05, ELBOW_SLACK = 0.045, ELBOW_TURN = 0.6;
 const ELBOW_CLEAR = 0.01;
 /** How far in front of the trunk's front the hand is at the least, metres (scaled): room for the forearm to go round. */
 const HAND_CLEAR = 0.08;
-const TRUNK_PARTS = new Set(['spine', 'chest', 'upperChest']);
-/** The windmill's pulled elbow: how far behind the shoulder's front it is drawn, and how much it may be off that, metres (scaled). */
-const PULL_BACK = 0.08, PULL_SLACK = 0.03;
-/** Over how far either side of the trunk's side the pulled hand is let in from the trunk's front, metres (scaled). */
-const PULL_BESIDE = 0.10;
-
-const qa = new THREE.Quaternion(), qb = new THREE.Quaternion();
+const TRUNK_PARTS = new Set(['spine', 'chest', 'upperChest']);const qa = new THREE.Quaternion(), qb = new THREE.Quaternion();
 
 /**
  * Aims a bone so that its child joint goes to `to` (world), turning it by the least that does, and puts its children back
@@ -87,17 +81,13 @@ export function millsArms(vrm, body, size, figure, weight, angles = null, pull =
 
     // The hand: the figure's from its shoulder, scaled, and forward by that much, and at least clear of the trunk's front
     // with room for the forearm; as the character's is, the rest.
-    // The windmill's top arm, as the other hand throws from under it, pulls its elbow back and draws the hand in (the user:
-    // the elbow's front-to-back has to move): the hand is not brought forward for the thicker trunk, and out beside the
-    // trunk (by the shoulder) it is not held in front of it either.
+    // The windmill's top arm, as the other hand throws from under it, draws its forearm in against the body (the user: the
+    // hand pulled in toward the body, the forearm as if against it): the hand is not brought forward for the thicker trunk,
+    // and is let in to the trunk's front, the arm's thickness off it, instead of being kept the forearm's room in front.
     const pulled = Math.max(0, Math.min(1, pull?.[side] ?? 0));
     const target = fw.clone().sub(fs).multiplyScalar(k).add(shoulder).addScaledVector(forward, ahead * (1 - pulled));
     if (trunkAt) {
-      let short = rz + armRadius + HAND_CLEAR * k - target.clone().sub(trunkAt).dot(forward);
-      if (pulled > 0) {
-        const beside = Math.abs(target.clone().sub(trunkAt).dot(left)) - (rx + armRadius);
-        short *= 1 - pulled * THREE.MathUtils.smoothstep(beside, -PULL_BESIDE * k, PULL_BESIDE * k);
-      }
+      const short = rz + armRadius + HAND_CLEAR * (1 - pulled) * k - target.clone().sub(trunkAt).dot(forward);
       if (short > 0) target.addScaledVector(forward, short);
     }
     const wrist = wristNow.clone().lerp(target, weight);
@@ -122,17 +112,9 @@ export function millsArms(vrm, body, size, figure, weight, angles = null, pull =
     // side or in front of it, whichever is less far.
     const centre = shoulder.clone().addScaledVector(axis, along), at = new THREE.Vector3();
     const sideR = rx + armRadius, frontR = rz + armRadius;
-    // The windmill's top arm, as the other hand throws from under it, pulls its elbow back (the user: the front of the body
-    // cleared for the ball and the hand coming up): held side to side less, and drawn back behind the shoulder.
-    const elbowAt = new THREE.Vector3(), backTo = shoulder.dot(forward) - PULL_BACK * k;
     const cost = t => {
       const miss = (c0 + a * Math.cos(t) + b * Math.sin(t) - wanted) / (ELBOW_SLACK * k), turn = t / (globalThis.shosaElbowTurn ?? ELBOW_TURN);
-      let c = miss * miss * (1 - pulled) + turn * turn;
-      if (pulled > 0) {
-        elbowAt.copy(centre).addScaledVector(u, height * Math.cos(t)).addScaledVector(v, height * Math.sin(t));
-        const ahead = (elbowAt.dot(forward) - backTo) / (PULL_SLACK * k);
-        if (ahead > 0) c += pulled * ahead * ahead;
-      }
+      let c = miss * miss + turn * turn;
       if (trunkAt) {
         at.copy(centre).addScaledVector(u, height * Math.cos(t)).addScaledVector(v, height * Math.sin(t)).sub(trunkAt);
         const f = Math.hypot(at.dot(outward) / sideR, at.dot(forward) / frontR);

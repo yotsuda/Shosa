@@ -880,9 +880,8 @@ internal sealed class FigureSolver
     private const double MillsLegSway = -0.4;
     /// <summary>Seconds between the nine looks either side at how a hand is held behind the back or under the leg (some 0.16 s each way).</summary>
     private const double TrickPoleStep = 0.04;
-    /// <summary>How far down, as well as back, the windmill's top elbow is pulled (back is 1), and how far the hand (and the
-    /// ball it holds) is drawn in toward the body meanwhile, metres.</summary>
-    private const double WindmillPullDown = 1.5, WindmillPullIn = 0.14;
+    /// <summary>How far the windmill's top hand (and the ball it holds) is drawn in toward the body, metres, as the other hand throws from under it.</summary>
+    private const double WindmillDrawIn = 0.18;
 
     // A mic in a hand (`mic right`, DESIGN.md 117). While the dancer sings, the hand is at the mouth, whatever its
     // row says; between phrases the row has the arm again, the mic in its hand. Sung by the phrase, not the
@@ -3075,9 +3074,11 @@ internal sealed class FigureSolver
                             wrist = shoulder + moved.Normalized() * length;
                     }
                 }
-                // The windmill's top arm, its elbow pulled back, draws the hand (and the ball it holds) in toward the body.
+                // The windmill's top arm, as the other hand throws from under it, draws its forearm in against the body (the
+                // user: the hand pulled in, the forearm as if against the body), the ball it holds with it, so the ball from
+                // under goes up in front of it.
                 if (Juggling.WindmillPull(isLeft ? 1 : 0, juggleSec) is var drawIn && drawIn > 0)
-                    wrist -= juggleFwd * (WindmillPullIn * drawIn);
+                    wrist -= juggleFwd * (WindmillDrawIn * drawIn);
                 hand = Vec3.Lerp(hand, wrist, juggleWeight);
                 // The elbows down by the ribs and a little back, so the forearms point forward: out to the side they
                 // turned the forearms in, and on a character with narrow shoulders the hands crossed the middle.
@@ -3124,10 +3125,6 @@ internal sealed class FigureSolver
                 // forearm goes round (the user: the elbow's x fixed, the arm past it swung wide).
                 if (mills > 0)
                     bend = Vec3.Slerp(bend, ElbowOut(shoulder, hand, Rig.UpperArm, Rig.Forearm, juggleLeft * side, MillsElbowSide, bend), mills * juggleWeight * MillsElbowHold);
-                // The windmill's top arm pulls its elbow back as the other hand throws from under it (the user: the front of
-                // the body cleared, the forearm out of the way of the ball going up on the right of the hand).
-                if (Juggling.WindmillPull(isLeft ? 1 : 0, juggleSec) is var pull && pull > 0)
-                    bend = Vec3.Slerp(bend, (-juggleFwd - Vec3.Up * WindmillPullDown).Normalized(), pull * juggleWeight);
             }
             var (elbow, reachedHand) = TwoBone(shoulder, hand, Rig.UpperArm, Rig.Forearm, bend.Length < 1e-6 ? pole : bend);
             // Mills' Mess: the balls all the same distance in front of the body (the user: exactly). The ball lies past the
