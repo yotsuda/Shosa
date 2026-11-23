@@ -454,6 +454,8 @@ public sealed class Juggling
         Style throwStyle = Style.Own, catchStyle = Style.Own;
         if (value >= 2)
             (from, into, throwStyle, catchStyle) = Trick(hand, to, value, from, into, throwTricks, catchTricks, nth);
+        if (catchStyle == Style.Penguin)
+            _penguinCatches.Add((to, caught));
         double flight = caught - thrown;
         if (value < 2 || flight < 0.05)
         {
@@ -578,7 +580,10 @@ public sealed class Juggling
         }
         if (Has(catchTricks, "penguin"))
         {
-            into = new Vec3(c * 0.30, -0.26, -0.30);   // outside the hip: coming down nearer in, it grazed the body
+            // Outside the hip and a little behind it, the arm straight down and back (the user: the elbow straight, the
+            // shoulder put in, the palm turned, caught a little behind). The place is past the arm's reach, so the arm goes
+            // straight toward it (the solver lets a penguin's arm out nearly straight). (Coming down nearer in, it grazed the body.)
+            into = new Vec3(c * 0.30, -0.50, -0.50);
             catchStyle = Style.Penguin;
         }
         // Mills' Mess, as the user laid it out: six throws round, three from the left and three, mirrored, from the right.
@@ -658,8 +663,22 @@ public sealed class Juggling
     public double ShoulderTurn(double sec)
     {
         double w = MillsWeight(sec);
-        return w <= 0 ? 0 : w * 0.45 * (Hand(0, sec).X + Hand(1, sec).X);
+        double turn = w <= 0 ? 0 : w * 0.45 * (Hand(0, sec).X + Hand(1, sec).X);
+        // A penguin catch behind the hip: the shoulders turn a little, level, the catching one back (the user), most at the
+        // catch and coming and going smoothly round it.
+        foreach (var (hand, at) in _penguinCatches)
+        {
+            double d = Math.Abs(sec - at);
+            if (d < PenguinTurnSpan)
+                turn += Side(hand) * PenguinTurn * Smooth(1 - d / PenguinTurnSpan);
+        }
+        return turn;
     }
+
+    /// <summary>The penguin catches: the catching hand and when (seconds).</summary>
+    private readonly List<(int Hand, double At)> _penguinCatches = [];
+    /// <summary>How far the shoulders turn at a penguin catch, the catching one back (radians: some 14 degrees), and over how many seconds either side.</summary>
+    private const double PenguinTurn = 0.25, PenguinTurnSpan = 0.3;
 
     /// <summary>
     /// How far the back leans to the side (the torso's sideways part, to the dancer's left), where the torso's row says

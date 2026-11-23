@@ -828,6 +828,9 @@ internal sealed class FigureSolver
     /// ever less, never past <see cref="JuggleReach"/>. (Stopped hard there, the hand stood still where it went beyond and
     /// turned off at a sudden angle as it came back: the user, Mills' crossed throws.)
     /// </summary>
+    /// <summary>How far a penguin's hand goes from the shoulder at the most, metres: the arm 0.998 of its length, the elbow bent some 7 degrees.</summary>
+    private const double PenguinReach = 0.998 * (Rig.UpperArm + Rig.Forearm);
+
     private static Vec3 SoftReach(Vec3 out_)
     {
         double r = out_.Length;
@@ -2987,7 +2990,15 @@ internal sealed class FigureSolver
                 // Never so far from the shoulder that the arm goes straight: the elbow stays bent some 40 degrees (the
                 // user: going up with the ball, the arm turning about the elbow). A juggler's elbow is never locked.
                 var reachOut = wrist - shoulder;
-                wrist = shoulder + SoftReach(reachOut);
+                // A penguin's arm is let out nearly straight (the user: the elbow straight at the catch), bent some 7 degrees
+                // so that the way the elbow points, and the upper arm turned in with it, still holds.
+                // How much of a penguin it is, over a little time either side, so the reach does not change in a frame where
+                // the hand's way turns to or from one.
+                double penguin = 0;
+                for (int k = -4; k <= 4; k++)
+                    penguin += Juggling!.StyleAt(isLeft ? 1 : 0, juggleSec + k * 0.03) == Juggling.Style.Penguin ? 1.0 / 9 : 0;
+                var straight = reachOut * (Math.Min(reachOut.Length, PenguinReach) / Math.Max(1e-9, reachOut.Length));
+                wrist = shoulder + Vec3.Lerp(SoftReach(reachOut), straight, penguin);
                 hand = Vec3.Lerp(hand, wrist, juggleWeight);
                 // The elbows down by the ribs and a little back, so the forearms point forward: out to the side they
                 // turned the forearms in, and on a character with narrow shoulders the hands crossed the middle.
