@@ -934,7 +934,7 @@ public sealed class Juggling
         // three at different distances from the body). The arms keep apart up and down, and the back leans.
         // Each catch is higher than the hand's throw before it, so the hand goes on up and in with that ball to the catch
         // and round a loop, not down at a sudden angle (the user: circles).
-        (new Vec3(0.29, 0.12, 0.03), new Vec3(0.03, 0.25, 0.03)),   // the first: thrown further out, caught high (the user)
+        (new Vec3(0.42, 0.12, 0.03), new Vec3(0.03, 0.25, 0.03)),   // the first: thrown further out, caught high (the user); aimed past the arm's reach across (it leaves some 30 cm out)
         // The second: thrown well out, a little after the first and up its way, chasing it (the user); caught low under the
         // arm on top (higher, the forearms met) and past the middle, clear of the third coming up.
         (new Vec3(0.40, 0.12, 0.03), new Vec3(0.10, -0.02, 0.03)),
