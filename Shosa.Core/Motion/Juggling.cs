@@ -652,8 +652,8 @@ public sealed class Juggling
         // All three balls in one plane a little before the body, the same distance out (the user: seen from above, the
         // three at different distances from the body). The arms keep apart up and down, and the back leans.
         (new Vec3(0.17, 0.12, 0.03), new Vec3(0.03, 0.09, 0.03)),
-        (new Vec3(0.24, 0.01, 0.03), new Vec3(0.03, -0.05, 0.03)),   // caught under the arm crossing on top: level with it, the forearms met
-        (new Vec3(0.13, -0.09, 0.03), new Vec3(0.03, -0.07, 0.03)),   // as far out as the arm reaches across, bent: 4 cm further it went straight
+        (new Vec3(0.24, 0.01, 0.03), new Vec3(0.06, -0.05, 0.03)),   // caught under the arm crossing on top (level with it, the forearms met), at the very middle, clear of the third coming up
+        (new Vec3(0.22, -0.08, 0.03), new Vec3(0.03, -0.07, 0.03)),   // as far out as the arm reaches across, bent: 4 cm further it went straight
     ];
 
     /// <summary>The bottom of the arc the second throw's hand goes round, from the catch near the middle out to the throw.</summary>

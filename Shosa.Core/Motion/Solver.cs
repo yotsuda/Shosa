@@ -803,7 +803,9 @@ internal sealed class FigureSolver
     /// <summary>The farthest a juggling hand goes from its shoulder, metres: the elbow bent some 40 degrees (0.60 is straight).</summary>
     private const double JuggleReach = 0.575;
     /// <summary>How far in front of the feet Mills' balls go, metres: all the same.</summary>
-    private const double MillsPlane = 0.37;
+    private const double MillsPlane = 0.28;
+    /// <summary>How far the pelvis goes to the side with Mills' sway, per unit of the back's lean: 0.3 of lean is 4.5 cm.</summary>
+    private const double MillsLegSway = 0.15;
 
     // A mic in a hand (`mic right`, DESIGN.md 117). While the dancer sings, the hand is at the mouth, whatever its
     // row says; between phrases the row has the arm again, the mic in its hand. Sung by the phrase, not the
@@ -2112,6 +2114,10 @@ internal sealed class FigureSolver
             if (apart > 1e-6)
                 p += across * (Math.Min(0.05, apart / 3) * drift / apart);
         }
+        // Mills' Mess: the body sways from the feet as well as at the waist (the user: the legs too, a little from the
+        // floor): the pelvis goes over to the side the back leans to, the legs leaning from the ankles.
+        if (Juggling is { } juggler && juggler.SideLean(Seconds(t)) is var legSway && legSway != 0)
+            p += c.Left * (legSway * MillsLegSway);
         if (c.Float < 0.01)
         {
             if (c.GwL > 0)
