@@ -88,7 +88,7 @@ style.textContent = `
            padding: 8px 10px; border-radius: 4px; border: 1px solid var(--vscode-panel-border, #ccc);
            background: var(--vscode-editorWidget-background, #f3f3f3); color: var(--vscode-editorWidget-foreground, inherit); }
   #mixer[hidden], #camera[hidden] { display: none; }
-  #camera { top: 8px; bottom: auto; min-width: 220px; }
+  #camera { min-width: 220px; }
   #cameraRows { display: grid; grid-template-columns: auto 1fr; gap: 6px 8px; align-items: center; }
   #cameraButtons { display: flex; gap: 6px; grid-column: 1 / -1; }
   #cameraButtons button { min-width: 0; padding: 1px 10px; }
@@ -979,10 +979,24 @@ for (const slider of [zoomSlider, liftSlider, tiltSlider]) {
 }
 controls.addEventListener('change', () => { if (!cameraPanel.hidden) syncCamera(); });
 controls.addEventListener('end', keepCamera);
+/**
+ * The panel just above its button, its right edge at the button's (the user: near the button), kept in the stage; above
+ * the Mixer when that is open too.
+ */
+function placeCameraPanel() {
+  if (cameraPanel.hidden) return;
+  const area = stage.getBoundingClientRect(), button = cameraButton.getBoundingClientRect();
+  const right = Math.max(8, Math.min(area.right - button.right, area.width - cameraPanel.offsetWidth - 8));
+  cameraPanel.style.right = right + 'px';
+  cameraPanel.style.bottom = (mixerPanel.hidden ? 8 : mixerPanel.offsetHeight + 16) + 'px';
+}
+new ResizeObserver(placeCameraPanel).observe(stage);
+new ResizeObserver(placeCameraPanel).observe(mixerPanel);
 cameraButton.addEventListener('click', () => {
   cameraPanel.hidden = !cameraPanel.hidden;
   cameraButton.setAttribute('aria-pressed', String(!cameraPanel.hidden));
   if (!cameraPanel.hidden) syncCamera();
+  placeCameraPanel();
   cameraButton.blur();
 });
 document.getElementById('cameraReset').addEventListener('click', event => {
