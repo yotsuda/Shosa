@@ -886,6 +886,9 @@ internal sealed class FigureSolver
     private const double TrickPoleStep = 0.04;
     /// <summary>How far the windmill's top hand (and the ball it holds) is drawn in toward the body, metres, as the other hand throws from under it.</summary>
     private const double WindmillDrawIn = 0.18;
+    /// <summary>The head tipped back after a high ball: from how far above the head the ball begins to tip it, at how far it
+    /// is tipped all the way, and how far that is (radians); and the time it is eased over (seconds, the Gaussian's spread).</summary>
+    private const double HeadBackFrom = 0.3, HeadBackFull = 1.2, HeadBackMost = 20 * Math.PI / 180, HeadBackSoften = 0.15;
 
     // A mic in a hand (`mic right`, DESIGN.md 117). While the dancer sings, the hand is at the mouth, whatever its
     // row says; between phrases the row has the arm again, the mic in its hand. Sung by the phrase, not the
@@ -2601,6 +2604,30 @@ internal sealed class FigureSolver
             double up = (ArmRaise(_leftArm, t).Up + ArmRaise(_rightArm, t).Up) / 2;
             double yaw = 0.08 * Wave(t, _wander, 0.3), pitch = 0.025 * Wave(t, _breath, 0.25) + 0.07 * up;
             gaze = (gaze + faceLeft * yaw + Vec3.Up * pitch).Normalized();
+        }
+        // Juggling, a ball thrown well above the head: the head tips back a little to follow it (the user; the eyes, which
+        // the figure has not, follow the highest ball in the preview). Eased over a little time either side, so it does
+        // not nod at every catch.
+        if (Juggling is { } juggler && juggler.Weight(Seconds(t)) is var juggled && juggled > 0)
+        {
+            double sec0 = Seconds(t), middle = pelvis.Y + 0.15, back = 0, total = 0;
+            for (int i = -6; i <= 6; i++)
+            {
+                double k = Math.Exp(-0.5 * (i / 3.0) * (i / 3.0));
+                double above = juggler.HighestInAir(sec0 + i * HeadBackSoften / 3) is { } y ? middle + y - head.Y : 0;
+                back += k * Smooth(Math.Clamp((above - HeadBackFrom) / (HeadBackFull - HeadBackFrom), 0, 1));
+                total += k;
+            }
+            double lift = HeadBackMost * juggled * back / total;
+            if (lift > 0)
+            {
+                var level = new Vec3(gaze.X, 0, gaze.Z);
+                if (level.Length > 1e-6)
+                {
+                    double rise = Math.Min(Math.Asin(Math.Clamp(gaze.Y, -1, 1)) + lift, 1.2);
+                    gaze = level.Normalized() * Math.Cos(rise) + Vec3.Up * Math.Sin(rise);
+                }
+            }
         }
 
         // A tilt (`tilt(left(15))`) is the line of the eyes from level, in the room: the neck bends

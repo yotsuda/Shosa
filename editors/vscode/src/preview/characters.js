@@ -248,6 +248,24 @@ export function createCharacters(scene, changed) {
    * between these: from the palm at the throw to the palm at the catch, on a parabola (the user: with the figure's arc
    * moved by the difference of the hands, a ball flew where no ball can).
    */
+  /**
+   * Where the ball highest in the air is at a time (seconds), on the parabola juggle.js flies it on (from the character's
+   * palm at the throw to its palm at the catch), or null when none is in the air.
+   */
+  function highestBall(track, flights, sec) {
+    let best = null;
+    (flights || []).forEach((fl, i) => {
+      const [, from, to, thrown, caught] = fl;
+      if (sec < thrown || sec > caught) return;
+      const tf = Math.max(1e-6, caught - thrown), s = sec - thrown;
+      const gravity = track.millsGravity?.get(i) ?? 9.81;
+      const p = track.palm(from, thrown).lerp(track.palm(to, caught), s / tf);
+      p.y += gravity / 2 * s * (tf - s);
+      if (!best || p.y > best.y) best = p;
+    });
+    return best;
+  }
+
   function trackPalms(entry, clip, data) {
     const count = data.frames.length;
     const at = { data, fps: clip.fps, palms: [[], []], forearms: [[], []], hips: [] };
@@ -390,6 +408,20 @@ export function createCharacters(scene, changed) {
         } else if (entry.sang && vrm.expressionManager) {
           MOUTH.forEach(name => vrm.expressionManager.setValue(name, 0));
           entry.sang = false;
+        }
+        // Juggling: the eyes on the ball highest in the air now (the user; the head tips back for a very high one in the
+        // figure itself). Looking ahead when none is up. vrm.update below turns the eyes.
+        if (vrm.lookAt) {
+          const target = data.juggle && entry.track ? highestBall(entry.track, data.juggle.flights, frame / clip.fps) : null;
+          if (target) {
+            vrm.humanoid.update();
+            vrm.scene.updateMatrixWorld(true);
+            vrm.lookAt.lookAt(target);
+            entry.looking = true;
+          } else if (entry.looking) {
+            vrm.lookAt.reset();
+            entry.looking = false;
+          }
         }
         if (jumped && vrm.springBoneManager) {
           vrm.update(0);

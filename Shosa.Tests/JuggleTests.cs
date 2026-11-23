@@ -312,6 +312,23 @@ public class JuggleTests
     }
 
     [Fact]
+    public void A_ball_thrown_far_above_the_head_tips_the_head_back_a_little()
+    {
+        // A 7 (some 2 m above the head) tips it back up to about 20 degrees; a cascade's balls, below the head, do not.
+        var c = Compile(Juggle("every 1/2  3:7/2 5:1/2 | 711:3 22:1 | 3:4 |"));
+        Assert.Empty(c.Diagnostics);
+        var clip = c.Clip;
+        double Up(int frame)
+        {
+            var d = clip.Figures[0].Joint(frame, Rig.Nose) - clip.Figures[0].Joint(frame, Rig.Head);
+            return Math.Asin(d.Y / d.Length) * 180 / Math.PI;
+        }
+        Assert.InRange(Up(clip.FrameOfBeat(2)), -5, 5);
+        Assert.InRange(Enumerable.Range(clip.FrameOfBeat(4), clip.FrameOfBeat(8) - clip.FrameOfBeat(4)).Max(Up), 14, 25);
+        Assert.InRange(Up(clip.FrameOfBeat(11)), -5, 5);
+    }
+
+    [Fact]
     public void The_windmill_throws_every_ball_on_one_side_with_the_first_arm_on_top()
     {
         // The same throws as the cascade, on the beat; every ball thrown on the right and caught on the left (@mirror: the

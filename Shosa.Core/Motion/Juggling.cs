@@ -1470,6 +1470,25 @@ public sealed class Juggling
         return (held, hand, hand, 0, 0);
     }
 
+    /// <summary>
+    /// How high the highest ball in the air is at a time (seconds), metres above the juggling's middle (from the hands' own
+    /// places, not the posed palms: for the head, which is posed before the arms); null when none is in the air.
+    /// </summary>
+    public double? HighestInAir(double sec)
+    {
+        double? best = null;
+        foreach (var f in Flights)
+        {
+            if (f.Thrown > sec || sec > f.Caught || f.Value < 2)
+                continue;
+            double tf = f.Caught - f.Thrown, s = sec - f.Thrown, u = tf < 1e-6 ? 1 : s / tf;
+            double y = Hand(f.From, f.Thrown).Y * (1 - u) + Hand(f.To, f.Caught).Y * u + G / 2 * s * (tf - s);
+            if (best is null || y > best)
+                best = y;
+        }
+        return best;
+    }
+
     /// <summary>The hand a ball is in at a time, or -1 in the air.</summary>
     public int HandOf(int ball, double sec)
     {
