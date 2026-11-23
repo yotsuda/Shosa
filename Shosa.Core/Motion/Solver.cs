@@ -804,8 +804,8 @@ internal sealed class FigureSolver
     private const double JuggleReach = 0.575;
     /// <summary>How far in front of the feet Mills' balls go, metres: all the same.</summary>
     private const double MillsPlane = 0.28;
-    /// <summary>How far the pelvis goes to the side with Mills' sway, per unit of the back's lean: 0.3 of lean is 4.5 cm.</summary>
-    private const double MillsLegSway = 0.15;
+    /// <summary>How far the pelvis goes to the side with Mills' sway, per unit of the back's lean: 0.3 of lean is 12 cm (4.5 cm did not show: the user).</summary>
+    private const double MillsLegSway = 0.4;
 
     // A mic in a hand (`mic right`, DESIGN.md 117). While the dancer sings, the hand is at the mouth, whatever its
     // row says; between phrases the row has the arm again, the mic in its hand. Sung by the phrase, not the
