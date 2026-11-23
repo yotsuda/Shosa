@@ -20,7 +20,9 @@ const ELBOW_CLEAR = 0.01;
 const HAND_CLEAR = 0.08;
 const TRUNK_PARTS = new Set(['spine', 'chest', 'upperChest']);
 /** The windmill's pulled elbow: how far behind the shoulder's front it is drawn, and how much it may be off that, metres (scaled). */
-const PULL_BACK = 0.02, PULL_SLACK = 0.03;
+const PULL_BACK = 0.08, PULL_SLACK = 0.03;
+/** Over how far either side of the trunk's side the pulled hand is let in from the trunk's front, metres (scaled). */
+const PULL_BESIDE = 0.10;
 
 const qa = new THREE.Quaternion(), qb = new THREE.Quaternion();
 
@@ -85,9 +87,17 @@ export function millsArms(vrm, body, size, figure, weight, angles = null, pull =
 
     // The hand: the figure's from its shoulder, scaled, and forward by that much, and at least clear of the trunk's front
     // with room for the forearm; as the character's is, the rest.
-    const target = fw.clone().sub(fs).multiplyScalar(k).add(shoulder).addScaledVector(forward, ahead);
+    // The windmill's top arm, as the other hand throws from under it, pulls its elbow back and draws the hand in (the user:
+    // the elbow's front-to-back has to move): the hand is not brought forward for the thicker trunk, and out beside the
+    // trunk (by the shoulder) it is not held in front of it either.
+    const pulled = Math.max(0, Math.min(1, pull?.[side] ?? 0));
+    const target = fw.clone().sub(fs).multiplyScalar(k).add(shoulder).addScaledVector(forward, ahead * (1 - pulled));
     if (trunkAt) {
-      const short = rz + armRadius + HAND_CLEAR * k - target.clone().sub(trunkAt).dot(forward);
+      let short = rz + armRadius + HAND_CLEAR * k - target.clone().sub(trunkAt).dot(forward);
+      if (pulled > 0) {
+        const beside = Math.abs(target.clone().sub(trunkAt).dot(left)) - (rx + armRadius);
+        short *= 1 - pulled * THREE.MathUtils.smoothstep(beside, -PULL_BESIDE * k, PULL_BESIDE * k);
+      }
       if (short > 0) target.addScaledVector(forward, short);
     }
     const wrist = wristNow.clone().lerp(target, weight);
@@ -113,8 +123,7 @@ export function millsArms(vrm, body, size, figure, weight, angles = null, pull =
     const centre = shoulder.clone().addScaledVector(axis, along), at = new THREE.Vector3();
     const sideR = rx + armRadius, frontR = rz + armRadius;
     // The windmill's top arm, as the other hand throws from under it, pulls its elbow back (the user: the front of the body
-    // cleared for the ball and the hand coming up): held side to side less, and drawn back to the shoulder's front or behind.
-    const pulled = Math.max(0, Math.min(1, pull?.[side] ?? 0));
+    // cleared for the ball and the hand coming up): held side to side less, and drawn back behind the shoulder.
     const elbowAt = new THREE.Vector3(), backTo = shoulder.dot(forward) - PULL_BACK * k;
     const cost = t => {
       const miss = (c0 + a * Math.cos(t) + b * Math.sin(t) - wanted) / (ELBOW_SLACK * k), turn = t / (globalThis.shosaElbowTurn ?? ELBOW_TURN);

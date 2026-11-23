@@ -882,7 +882,7 @@ internal sealed class FigureSolver
     private const double TrickPoleStep = 0.04;
     /// <summary>How far down, as well as back, the windmill's top elbow is pulled (back is 1), and how far the hand (and the
     /// ball it holds) is drawn in toward the body meanwhile, metres.</summary>
-    private const double WindmillPullDown = 1.5, WindmillPullIn = 0.10;
+    private const double WindmillPullDown = 1.5, WindmillPullIn = 0.14;
 
     // A mic in a hand (`mic right`, DESIGN.md 117). While the dancer sings, the hand is at the mouth, whatever its
     // row says; between phrases the row has the arm again, the mic in its hand. Sung by the phrase, not the
