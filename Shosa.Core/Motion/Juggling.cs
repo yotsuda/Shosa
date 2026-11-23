@@ -424,18 +424,16 @@ public sealed class Juggling
             // at each is from the places either side, once they are all known (Smooth).
             if (millsThrow)
             {
-                // The second of the three (the arms uncrossing): caught near the middle, the ball goes well down and round
-                // in an arc out to where it is thrown, not straight out (the user).
-                if (_mills6.ThrowK % 3 == 1)
-                    AddSmooth(hand, (thrown - 0.55 * Dwell * beat, MillsDip(_mills6.ThrowK, _mills6.ThrowMirror), Still, throwStyle));
+                // Each hand goes round a loop on the plane before the body, once a throw (the user: circles, never turning
+                // off at a sudden angle): caught high near the middle going in and down with the ball, round the bottom,
+                // out and up to the throw, and on up and in with the ball to the next catch.
+                var caughtAt = MillsPlace(_mills6.ThrowK, _mills6.ThrowMirror).Catch;
+                var bottom = new Vec3((from.X + caughtAt.X) / 2, Math.Min(from.Y, caughtAt.Y) - MillsLoopDepth, from.Z);
+                AddSmooth(hand, (thrown - MillsBottomAt * Dwell * beat, bottom, Still, throwStyle));
                 AddSmooth(hand, (thrown, from, Still, throwStyle));
-                // Up with the ball; from below the crossed arms less far, or it went on up into the arm on top.
-                _launch[(hand, thrown)] = leaves.Y * (_mills6.ThrowK % 3 == 2 ? 0.85 : 1.0);
-                _launchAcross[(hand, thrown)] = leaves.X;
-                // From below the crossed arms, the hand draws back toward the body as it follows the ball up, and so passes
-                // behind the arm on top, not into it; the balls stay in their one plane (the user).
-                if (_mills6.ThrowK % 3 == 2)
-                    AddSmooth(hand, (thrown + 0.35 * (2 - Dwell) * beat, new Vec3(from.X * 0.6, from.Y + 0.04, from.Z - 0.12), Still, throwStyle));
+                // Up and across with the ball.
+                _launch[(hand, thrown)] = leaves.Y * MillsLaunch;
+                _launchAcross[(hand, thrown)] = leaves.X * MillsLaunch;
             }
             else
             {
@@ -444,14 +442,9 @@ public sealed class Juggling
             }
             if (millsCatch)
             {
+                // Caught with the hand going the way the ball comes down, not stopping it dead (the user).
                 AddSmooth(to, (caught, into, Still, catchStyle));
-                // The first throw's ball is caught high, the hand moving with it the way it comes down, and going on down
-                // along its path (the user), not stopping it dead.
-                if (_mills6.CatchK % 3 == 0)
-                {
-                    _arrive[(to, caught)] = arrives * 0.6;
-                    AddSmooth(to, (caught + 0.3 * Dwell * beat, into + arrives * (0.6 * 0.3 * Dwell * beat * 0.6), Still, catchStyle));
-                }
+                _arrive[(to, caught)] = arrives * MillsArrive;
             }
             else
                 _keys[to].Add((caught, into, arrives * 0.3, catchStyle));
@@ -686,18 +679,21 @@ public sealed class Juggling
         // round each other and do not go through each other (the user); the third throw is from below the crossed arms.
         // All three balls in one plane a little before the body, the same distance out (the user: seen from above, the
         // three at different distances from the body). The arms keep apart up and down, and the back leans.
-        (new Vec3(0.21, 0.12, 0.03), new Vec3(0.03, 0.17, 0.03)),   // the first: thrown further out, caught high (the user), the hand going down with it
-        (new Vec3(0.24, 0.01, 0.03), new Vec3(0.06, -0.05, 0.03)),   // caught under the arm crossing on top (level with it, the forearms met), at the very middle, clear of the third coming up
-        (new Vec3(0.22, -0.08, 0.03), new Vec3(0.03, -0.07, 0.03)),   // as far out as the arm reaches across, bent: 4 cm further it went straight
+        // Each catch is higher than the hand's throw before it, so the hand goes on up and in with that ball to the catch
+        // and round a loop, not down at a sudden angle (the user: circles).
+        (new Vec3(0.21, 0.12, 0.03), new Vec3(0.03, 0.17, 0.03)),   // the first: thrown further out, caught high (the user)
+        (new Vec3(0.24, 0.01, 0.03), new Vec3(0.10, -0.02, 0.03)),   // caught low under the arm on top (higher, the forearms met) and past the middle, clear of the third coming up
+        (new Vec3(0.22, -0.08, 0.03), new Vec3(0.03, 0.12, 0.03)),   // thrown as far out as the arm reaches across, bent: 4 cm further it went straight
     ];
 
-    /// <summary>The bottom of the arc the second throw's hand goes round, from the catch near the middle out to the throw.</summary>
-    private static Vec3 MillsDip(int k, bool mirrored)
-    {
-        int at = ((k % 6) + 6) % 6;
-        var dip = new Vec3(0.14, -0.15, 0.02);
-        return ((at >= 3) ^ mirrored) ? new Vec3(-dip.X, dip.Y, dip.Z) : dip;
-    }
+    /// <summary>How far below the lower of its throw and catch each Mills loop goes round, metres.</summary>
+    private const double MillsLoopDepth = 0.04;
+    /// <summary>When the bottom of the loop is, as a part of the hold before the throw.</summary>
+    private const double MillsBottomAt = 0.4;
+    /// <summary>How fast the hand goes with the ball at a Mills throw, as a part of the ball's speed.</summary>
+    private const double MillsLaunch = 0.8;
+    /// <summary>How fast the hand goes with the ball at a Mills catch, as a part of the ball's speed.</summary>
+    private const double MillsArrive = 0.6;
 
     private static (Vec3 Throw, Vec3 Catch) MillsPlace(int k, bool mirrored)
     {
@@ -745,7 +741,7 @@ public sealed class Juggling
     }
 
     /// <summary>How long Mills' hands are softened over (the Gaussian's spread), seconds.</summary>
-    private const double MillsSoften = 0.07;
+    private const double MillsSoften = 0.08;
 
     /// <summary>Where a hand is at a time (seconds), in the juggling's frame: through its places at their speeds.</summary>
     private Vec3 RawHand(int hand, double sec)
