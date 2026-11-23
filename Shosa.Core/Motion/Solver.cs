@@ -824,6 +824,12 @@ internal sealed class FigureSolver
     /// (In 0.3 and back 0.2: the elbow went 0.16 m side to side rather than 0.25, the forearm out past it; further in, the
     /// forearms came closer than 7 cm in more frames.)
     private const double MillsElbowOut = -0.3, MillsElbowBack = 0.2;
+    /// <summary>Where Mills' elbow is kept side to side: metres out from the shoulder (in, below 0), and how firmly (0..1).</summary>
+    /// (12 cm in: the elbow went 0.08 m side to side rather than 0.16. Held exactly, without the turn below, it went far up
+    /// and forward instead, 1.8 m a round.)
+    private const double MillsElbowSide = -0.12, MillsElbowHold = 1.0;
+    /// <summary>How far off its place side to side Mills' elbow may be (metres) against how far round its circle it goes (radians).</summary>
+    private const double MillsElbowSlack = 0.03, MillsElbowTurn = 0.25;
     /// <summary>How far the pelvis goes to the side with Mills' sway, per unit of the back's lean (against it, the hips out under a leaning back: with it, the body went away from the throws).</summary>
     private const double MillsLegSway = -0.4;
 
@@ -2317,6 +2323,44 @@ internal sealed class FigureSolver
         return 0;
     }
 
+    /// <summary>
+    /// The pole that puts the elbow, on its circle round the line from the shoulder to the hand, as near `lateral` metres out
+    /// from the shoulder along `outward` as it goes without going far round from where `natural` puts it: the least of
+    /// (miss / MillsElbowSlack)² + (turn / MillsElbowTurn)². Put exactly there, the elbow went far up and forward and
+    /// jumped from one side of the circle to the other.
+    /// </summary>
+    private static Vec3 ElbowOut(Vec3 shoulder, Vec3 hand, double length1, double length2, Vec3 outward, double lateral, Vec3 natural)
+    {
+        var toTarget = hand - shoulder;
+        double distance = Math.Clamp(toTarget.Length, Math.Abs(length1 - length2) + 1e-3, length1 + length2 - 1e-4);
+        var axis = toTarget.Normalized();
+        double along = (length1 * length1 - length2 * length2 + distance * distance) / (2 * distance);
+        double height = Math.Sqrt(Math.Max(0, length1 * length1 - along * along));
+        var u = natural - axis * natural.Dot(axis);
+        if (u.Length < 1e-6 || height < 1e-6)
+            return natural;
+        u = u.Normalized();
+        var v = axis.Cross(u);
+        // The elbow's way out: (centre - shoulder)·outward + height (u·outward cos θ + v·outward sin θ), θ = 0 the natural.
+        double c0 = axis.Dot(outward) * along, a = height * u.Dot(outward), b = height * v.Dot(outward);
+        double r = Math.Sqrt(a * a + b * b);
+        if (r < 1e-6)
+            return u;
+        double best = double.MaxValue, theta = 0;
+        for (int i = -180; i <= 180; i++)
+        {
+            double t = i * Math.PI / 180;
+            double miss = (c0 + a * Math.Cos(t) + b * Math.Sin(t) - lateral) / MillsElbowSlack, turn = t / MillsElbowTurn;
+            double cost = miss * miss + turn * turn;
+            if (cost < best)
+            {
+                best = cost;
+                theta = t;
+            }
+        }
+        return u * Math.Cos(theta) + v * Math.Sin(theta);
+    }
+
     /// <summary>Two bones from root toward target; the joint between them bends toward the pole.</summary>
     private static (Vec3 Mid, Vec3 End) TwoBone(Vec3 root, Vec3 target, double length1, double length2, Vec3 pole)
     {
@@ -2949,9 +2993,14 @@ internal sealed class FigureSolver
                 }).Normalized();
                 // Mills' Mess: the elbow in toward the ribs, so the forearm swings out round the body from it rather than the
                 // whole arm going to and fro (the user).
-                if (Juggling.MillsAt(juggleSec) is var mills && mills > 0)
+                double mills = Juggling.MillsAt(juggleSec);
+                if (mills > 0)
                     jugglePole = Vec3.Slerp(jugglePole, (-Vec3.Up + juggleLeft * (MillsElbowOut * side) - juggleFwd * MillsElbowBack).Normalized(), mills);
                 bend = Vec3.Slerp(bend.Length < 1e-6 ? pole.Normalized() : bend.Normalized(), jugglePole, juggleWeight);
+                // And the elbow kept at one place side to side, under the shoulder, as far as the arm lets it: only the
+                // forearm goes round (the user: the elbow's x fixed, the arm past it swung wide).
+                if (mills > 0)
+                    bend = Vec3.Slerp(bend, ElbowOut(shoulder, hand, Rig.UpperArm, Rig.Forearm, juggleLeft * side, MillsElbowSide, bend), mills * juggleWeight * MillsElbowHold);
             }
             var (elbow, reachedHand) = TwoBone(shoulder, hand, Rig.UpperArm, Rig.Forearm, bend.Length < 1e-6 ? pole : bend);
             // Mills' Mess: the balls all the same distance in front of the body (the user: exactly). The ball lies past the
