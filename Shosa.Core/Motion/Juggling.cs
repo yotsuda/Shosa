@@ -508,11 +508,14 @@ public sealed class Juggling
             {
                 // Caught with the hand going the way the ball comes down, not stopping it dead (the user).
                 AddSmooth(to, (caught, into, Still, catchStyle));
-                _arrive[(to, caught)] = arrives * (Top(_mills6.CatchK) ? MillsArriveFirst : MillsArrive);
-                // The first throw's ball: the hand meets it high, coming down with it a little before, and goes on down with
-                // it well after, from high to low as it falls (the user).
-                if (Top(_mills6.CatchK))
+                // The first throw's ball is met high by a hand going its own way, straight on across the ball's way down,
+                // not bending round to follow it (the user; it came down with the ball before and after the catch, nearly as fast).
+                // (The windmill's top hand still meets its ball high and goes down with it: the user asked this of Mills' only.)
+                if (!Top(_mills6.CatchK))
+                    _arrive[(to, caught)] = arrives * MillsArrive;
+                else if (_mills6.Windmill)
                 {
+                    _arrive[(to, caught)] = arrives * MillsArriveFirst;
                     AddSmooth(to, (caught - MillsMeetBefore, into - arrives * (MillsMeetBefore * MillsArriveFirst), Still, catchStyle));
                     AddSmooth(to, (caught + MillsGiveAfter, into + arrives * (MillsGiveAfter * MillsArriveFirst * 0.7), Still, catchStyle));
                 }
@@ -962,7 +965,8 @@ public sealed class Juggling
     private const double MillsLaunch = 0.8;
     /// <summary>How fast the hand goes with the ball at a Mills catch, as a part of the ball's speed.</summary>
     private const double MillsArrive = 0.6;
-    /// <summary>The first throw's ball is caught high and the hand goes down with it nearly as fast (the user: from high to low as it falls).</summary>
+    /// <summary>The windmill's top hand catches high and goes down with its ball nearly as fast (Mills' first catch did, until
+    /// the user asked for the hand to cross the ball's way instead).</summary>
     private const double MillsArriveFirst = 0.9;
     /// <summary>How long before the first throw's catch the hand is already coming down with the ball, seconds.</summary>
     private const double MillsMeetBefore = 0.09;
