@@ -431,6 +431,7 @@ public sealed class Juggling
                 AddSmooth(hand, (thrown, from, Still, throwStyle));
                 // Up with the ball; from below the crossed arms less far, or it went on up into the arm on top.
                 _launch[(hand, thrown)] = leaves.Y * (_mills6.ThrowK % 3 == 2 ? 0.85 : 1.0);
+                _launchAcross[(hand, thrown)] = leaves.X;
                 // From below the crossed arms, the hand draws back toward the body as it follows the ball up, and so passes
                 // behind the arm on top, not into it; the balls stay in their one plane (the user).
                 if (_mills6.ThrowK % 3 == 2)
@@ -534,6 +535,8 @@ public sealed class Juggling
     private readonly HashSet<(int Hand, double T)> _smooth = [];
     /// <summary>A soft throw's upward speed: the ball's as it leaves the hand, which the hand has there too.</summary>
     private readonly Dictionary<(int Hand, double T), double> _launch = [];
+    /// <summary>Mills' throws: the hand goes across with the ball as well as up, on round its loop toward the middle (the user: circles).</summary>
+    private readonly Dictionary<(int Hand, double T), double> _launchAcross = [];
     /// <summary>A soft catch that goes with the ball: the hand's speed there, along the ball's way down.</summary>
     private readonly Dictionary<(int Hand, double T), Vec3> _arrive = [];
 
@@ -562,7 +565,7 @@ public sealed class Juggling
             // At a throw the hand goes up as fast as the ball leaves it (the user: the ball flew off a hand that stayed);
             // across and forward the way round goes on as before.
             if (_launch.TryGetValue((hand, keys[i].T), out double up))
-                tangent = new Vec3(tangent.X, up, tangent.Z);
+                tangent = new Vec3(_launchAcross.TryGetValue((hand, keys[i].T), out double across) ? across : tangent.X, up, tangent.Z);
             if (_arrive.TryGetValue((hand, keys[i].T), out var moving))
                 tangent = moving;
             keys[i] = keys[i] with { Velocity = tangent };
@@ -609,8 +612,8 @@ public sealed class Juggling
         return 0;
     }
 
-    /// <summary>How far Mills' back leans at the most (the torso's sideways part): some 17 degrees.</summary>
-    private const double MillsLean = 0.3;
+    /// <summary>How far Mills' back leans at the most (the torso's sideways part): some 10 degrees (17 was too much: the user).</summary>
+    private const double MillsLean = 0.18;
 
     /// <summary>
     /// How much a hand holds a ball around a time (seconds), 0..1: 1 holding (the catch and the throw included), and on the
@@ -720,8 +723,32 @@ public sealed class Juggling
         return keys[^1].Style;
     }
 
-    /// <summary>Where a hand is at a time (seconds), in the juggling's frame: through its places at their speeds.</summary>
+    /// <summary>
+    /// Where a hand is at a time (seconds), in the juggling's frame. In Mills' Mess the way through the places is softened
+    /// over a short window (a Gaussian, <see cref="MillsSoften"/> seconds), so each hand goes round in a smooth loop on
+    /// the plane before the body and never turns off at a sudden angle (the user).
+    /// </summary>
     public Vec3 Hand(int hand, double sec)
+    {
+        double w = MillsWeight(sec);
+        if (w <= 0)
+            return RawHand(hand, sec);
+        Vec3 sum = new(0, 0, 0);
+        double total = 0;
+        for (int i = -12; i <= 12; i++)
+        {
+            double tau = i * MillsSoften / 4, k = Math.Exp(-0.5 * (i / 4.0) * (i / 4.0));
+            sum += RawHand(hand, sec + tau) * k;
+            total += k;
+        }
+        return RawHand(hand, sec) * (1 - w) + sum * (w / total);
+    }
+
+    /// <summary>How long Mills' hands are softened over (the Gaussian's spread), seconds.</summary>
+    private const double MillsSoften = 0.07;
+
+    /// <summary>Where a hand is at a time (seconds), in the juggling's frame: through its places at their speeds.</summary>
+    private Vec3 RawHand(int hand, double sec)
     {
         var keys = _keys[hand];
         if (keys.Count == 0)
