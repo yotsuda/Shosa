@@ -505,9 +505,9 @@ export function createJuggle(scene) {
             track.millsGravity.set(second.i, gravityFor(second.fl, height));
           });
         }
-        const toPlane = (v, sec) => {
+        const toPlane = (v, sec, share = 1) => {
           if (track?.millsPlane == null) return;
-          v.addScaledVector(bodyFwd, track.millsPlane - v.clone().sub(feetAt(sec)).dot(bodyFwd));
+          v.addScaledVector(bodyFwd, share * (track.millsPlane - v.clone().sub(feetAt(sec)).dot(bodyFwd)));
         };
         // Each hand's forearm, elbow to wrist: the character's own where it is shown, else the figure's.
         const ownArms = forearms ? forearms(i) : null;
@@ -573,7 +573,9 @@ export function createJuggle(scene) {
               // Held, caught from Mills or to be thrown in it: in its plane too.
               const brought = juggle.flights.filter(fl => fl[0] === b && fl[4] < sec).pop();
               const next = juggle.flights.find(fl => fl[0] === b && fl[3] >= sec);
-              if ((brought && brought[5] === 1) || (next && next[5] === 1)) toPlane(p, sec);
+              // Not while the windmill's top hand draws back with it (its elbow pulled back: DESIGN.md 118.33): the ball stays on the palm.
+              const pulled = juggle.pull?.[Math.min(juggle.pull.length - 1, Math.round(frame))]?.[hand] ?? 0;
+              if ((brought && brought[5] === 1) || (next && next[5] === 1)) toPlane(p, sec, 1 - pulled);
             }
           } else {
             p.add(offsets[from].clone().lerp(offsets[to], u));

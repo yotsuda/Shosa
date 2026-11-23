@@ -19,6 +19,8 @@ const ELBOW_CLEAR = 0.01;
 /** How far in front of the trunk's front the hand is at the least, metres (scaled): room for the forearm to go round. */
 const HAND_CLEAR = 0.08;
 const TRUNK_PARTS = new Set(['spine', 'chest', 'upperChest']);
+/** The windmill's pulled elbow: how far behind the shoulder's front it is drawn, and how much it may be off that, metres (scaled). */
+const PULL_BACK = 0.02, PULL_SLACK = 0.03;
 
 const qa = new THREE.Quaternion(), qb = new THREE.Quaternion();
 
@@ -46,7 +48,7 @@ function aim(bone, child, to) {
  * there instead of finding its place in this frame alone (millsAngles smooths them over the clip). Returns the angles
  * it found or used, or null.
  */
-export function millsArms(vrm, body, size, figure, weight, angles = null) {
+export function millsArms(vrm, body, size, figure, weight, angles = null, pull = null) {
   if (!body || weight <= 0) return null;
   const found = {};
   const node = name => vrm.humanoid.getNormalizedBoneNode(name);
@@ -110,9 +112,18 @@ export function millsArms(vrm, body, size, figure, weight, angles = null) {
     // side or in front of it, whichever is less far.
     const centre = shoulder.clone().addScaledVector(axis, along), at = new THREE.Vector3();
     const sideR = rx + armRadius, frontR = rz + armRadius;
+    // The windmill's top arm, as the other hand throws from under it, pulls its elbow back (the user: the front of the body
+    // cleared for the ball and the hand coming up): held side to side less, and drawn back to the shoulder's front or behind.
+    const pulled = Math.max(0, Math.min(1, pull?.[side] ?? 0));
+    const elbowAt = new THREE.Vector3(), backTo = shoulder.dot(forward) - PULL_BACK * k;
     const cost = t => {
       const miss = (c0 + a * Math.cos(t) + b * Math.sin(t) - wanted) / (ELBOW_SLACK * k), turn = t / (globalThis.shosaElbowTurn ?? ELBOW_TURN);
-      let c = miss * miss + turn * turn;
+      let c = miss * miss * (1 - pulled) + turn * turn;
+      if (pulled > 0) {
+        elbowAt.copy(centre).addScaledVector(u, height * Math.cos(t)).addScaledVector(v, height * Math.sin(t));
+        const ahead = (elbowAt.dot(forward) - backTo) / (PULL_SLACK * k);
+        if (ahead > 0) c += pulled * ahead * ahead;
+      }
       if (trunkAt) {
         at.copy(centre).addScaledVector(u, height * Math.cos(t)).addScaledVector(v, height * Math.sin(t)).sub(trunkAt);
         const f = Math.hypot(at.dot(outward) / sideR, at.dot(forward) / frontR);

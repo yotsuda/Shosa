@@ -496,7 +496,11 @@ public sealed class Juggling
                 // arm on top all the time; going under its throw, the hands passed 8 cm apart up and down).
                 double depth = _mills6.Windmill && Top(_mills6.ThrowK) ? 0 : MillsLoopDepth;
                 var bottom = new Vec3((from.X + caughtAt.X) / 2, Math.Min(from.Y, caughtAt.Y) - depth, from.Z);
-                AddSmooth(hand, (thrown - MillsBottomAt * Dwell * beat, bottom, Still, throwStyle));
+                // The windmill's top hand waits for the ball from under its arm to go up past it (below): no bottom of its own.
+                bool waited = _mills6.Windmill && Top(_mills6.ThrowK) && _windmillWait.TryGetValue(hand, out double waitAt)
+                    && waitAt > thrown - 2 * beat && waitAt < thrown;
+                if (!waited)
+                    AddSmooth(hand, (thrown - MillsBottomAt * Dwell * beat, bottom, Still, throwStyle));
                 AddSmooth(hand, (thrown, from, Still, throwStyle));
                 // Up and across with the ball.
                 _launch[(hand, thrown)] = leaves.Y * MillsLaunch;
@@ -510,6 +514,24 @@ public sealed class Juggling
                     var way = Vec3.Lerp(from, next, MillsOverAcross);
                     var over = new Vec3(way.X, Math.Max(from.Y, next.Y) + (_mills6.Windmill ? WindmillOverRise : MillsOverRise), way.Z);
                     AddSmooth(hand, (thrown + MillsOverAt * gap, over, Still, throwStyle));
+                }
+                // The windmill's throw from under the arm on top (the user: the ball went through the top hand, which went
+                // back out across its way; the ball goes up on the right of the right hand, which at nearly the same time
+                // pulls its elbow back and clears the front of the body, and the left hand comes up from below into that
+                // room). The top hand, which catches this ball, goes back out over the ball's way before it comes up, high
+                // and drawn in, its elbow pulled back (WindmillPull; the solver draws the hand in): out and above where the
+                // ball is a moment after the throw. (Waiting in from the ball, its forearm lay across the chest of a
+                // character with a thick trunk, and the ball went up through it.)
+                if (_mills6.Windmill && !Top(_mills6.ThrowK) && to != hand)
+                {
+                    double at = thrown + WindmillWait;
+                    var ball = from + leaves * WindmillWait + new Vec3(0, -G * WindmillWait * WindmillWait / 2, 0);
+                    double outward = -Math.Sign(MillsPlace(_mills6.ThrowK + 1, _mills6.ThrowMirror, true).Catch.X);
+                    AddSmooth(to, (at, new Vec3(ball.X + outward * WindmillWaitOut, ball.Y + WindmillWaitOver, from.Z), Still, Style.Own));
+                    _windmillWait[to] = at;
+                    _windmillUnder.Add((to, thrown));
+                    // And the hand that threw it goes on up after it, into the room the top arm has made.
+                    AddSmooth(hand, (at, from + new Vec3(-outward * WindmillRiseIn, WindmillRise, 0), Still, throwStyle));
                 }
             }
             else
@@ -1067,6 +1089,34 @@ public sealed class Juggling
     private const double MillsFirstEarlier = 0.25;
     /// <summary>After Mills' first throw, how far above the higher of the throw and the next catch the hand comes round, metres.</summary>
     private const double MillsOverRise = 0.25;
+    /// <summary>The windmill's top hand getting out of the way of the ball from under its arm: how long after that throw
+    /// (seconds) it is out from where the ball then is and above it, and how far each (metres); and how far up after it the
+    /// hand that threw it goes, and in (metres).</summary>
+    private const double WindmillWait = 0.06, WindmillWaitOut = 0.18, WindmillWaitOver = 0.10, WindmillRise = 0.10, WindmillRiseIn = 0.04;
+    /// <summary>When the windmill's top hand last waited for a ball from under its arm, by hand.</summary>
+    private readonly Dictionary<int, double> _windmillWait = [];
+    /// <summary>The windmill's throws from under the top arm: the top hand and when (seconds).</summary>
+    private readonly List<(int Hand, double At)> _windmillUnder = [];
+
+    /// <summary>
+    /// How much the windmill's top arm has its elbow pulled back, 0..1: in over a little before the other hand throws from
+    /// under it, held while that ball goes up past the hand, and out before its own throw (DESIGN.md 118.33).
+    /// </summary>
+    public double WindmillPull(int hand, double sec)
+    {
+        double pull = 0;
+        foreach (var (h, at) in _windmillUnder)
+        {
+            if (h != hand)
+                continue;
+            double d = sec - at;
+            pull = Math.Max(pull, d < -PullIn ? 0 : d < 0 ? Smooth(1 + d / PullIn) : d < PullHold ? 1 : d < PullHold + PullOut ? Smooth(1 - (d - PullHold) / PullOut) : 0);
+        }
+        return pull;
+    }
+
+    /// <summary>Seconds the windmill's top elbow takes to pull back before the throw from under it, is held back after, and takes to come out again.</summary>
+    private const double PullIn = 0.15, PullHold = 0.06, PullOut = 0.18;
     /// <summary>After the windmill's top hand throws, how far above the higher of the throw and its next catch it comes round, metres.</summary>
     private const double WindmillOverRise = 0.12;
     /// <summary>When the top of that arc is, as a part of the time from the throw to the next catch.</summary>
