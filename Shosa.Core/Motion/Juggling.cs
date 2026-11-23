@@ -539,10 +539,27 @@ public sealed class Juggling
     /// </summary>
     public double ShoulderTurn(double sec)
     {
+        double w = MillsWeight(sec);
+        return w <= 0 ? 0 : w * 0.45 * (Hand(0, sec).X + Hand(1, sec).X);
+    }
+
+    /// <summary>
+    /// How far the back leans to the side (the torso's sideways part, to the dancer's left), where the torso's row says
+    /// nothing: in Mills' Mess the back sways away from the arm that crosses on top, its shoulder up, so the arm below has
+    /// room under it (the user: the back swaying left and right, for the height between the two at the throw).
+    /// </summary>
+    public double SideLean(double sec)
+    {
+        double w = MillsWeight(sec);
+        return w <= 0 ? 0 : w * 0.6 * (Hand(0, sec).Y - Hand(1, sec).Y);
+    }
+
+    private double MillsWeight(double sec)
+    {
         double w = 0;
         foreach (var (from, to) in _mills)
             w = Math.Max(w, sec >= from && sec <= to ? 1 : sec < from ? Smooth(1 - (from - sec) / 0.4) : Smooth(1 - (sec - to) / 0.4));
-        return w <= 0 ? 0 : w * 0.45 * (Hand(0, sec).X + Hand(1, sec).X);
+        return w;
     }
 
     /// <summary>The throw being planned in Mills' Mess: which of the six it is, and which the ball is caught for.</summary>
@@ -560,9 +577,11 @@ public sealed class Juggling
         // All three thrown from the same place out on the left, along one way, and caught near the middle of the body (the
         // user: the three on one path, thrown from outside, caught near the middle). The wrists differ so the balls,
         // which lie past the wrist along the forearm, leave from one place: a crossed forearm points out to the left.
-        (new Vec3(0.17, 0.05, 0.07), new Vec3(0.03, 0.09, 0.05)),
-        (new Vec3(0.24, 0.01, 0.00), new Vec3(0.03, 0.05, 0.00)),
-        (new Vec3(0.18, -0.03, -0.05), new Vec3(0.03, -0.01, -0.05)),
+        // Crossing, the arm on top goes well up and in front and the one below well down and behind, so the forearms turn
+        // round each other and do not go through each other (the user); the third throw is from below the crossed arms.
+        (new Vec3(0.17, 0.12, 0.08), new Vec3(0.03, 0.09, 0.07)),   // above, not so far forward that the arm goes straight
+        (new Vec3(0.24, 0.01, 0.02), new Vec3(0.03, 0.03, 0.02)),
+        (new Vec3(0.13, -0.09, -0.05), new Vec3(0.03, -0.07, -0.05)),   // as far out as the arm reaches across, bent: 4 cm further it went straight   // below, still in reach: lower and further across the arm went straight
     ];
 
     private static (Vec3 Throw, Vec3 Catch) MillsPlace(int k, bool mirrored)

@@ -2116,6 +2116,10 @@ internal sealed class FigureSolver
         }
 
         var torso = Direction(_torso, t, Vec3.Up, new Vec3(0, 0, 1));
+        // Mills' Mess: the back sways to the side of the arm that crosses below, the shoulder of the one above up, so the
+        // two have room (DESIGN.md 118.12). Where the torso's row says nothing.
+        if (_torso.Count == 0 && Juggling is { } swaying && swaying.SideLean(Seconds(t)) is var sway && sway != 0)
+            torso = new Vec3(torso.X + sway, torso.Y, torso.Z).Normalized();
         if (_alive && _torso.Count == 0)
         {
             // An unwritten torso breathes (a degree each way), goes a little back and up as the arms rise or
