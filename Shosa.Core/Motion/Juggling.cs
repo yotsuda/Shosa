@@ -26,7 +26,8 @@ public sealed class Juggling
 
     /// <summary>A ball leaving a hand and coming down in one. A hold (a 2 that stays) is not a throw.</summary>
     /// <param name="Trick">A throw from under the leg or behind the back ("under", "back"), and the word it is in: what the solver checks.</param>
-    public sealed record Flight(int Ball, int From, int To, double Thrown, double Caught, int Value, string? Trick = null, Seg? Seg = null);
+    /// <param name="Mills">Thrown and caught in Mills' Mess: its balls are all in one plane before the body.</param>
+    public sealed record Flight(int Ball, int From, int To, double Thrown, double Caught, int Value, string? Trick = null, Seg? Seg = null, bool Mills = false);
 
     /// <summary>What went wrong, said at the word it is about.</summary>
     public sealed record Problem(Seg Seg, string Code, bool IsError, string Message);
@@ -251,8 +252,10 @@ public sealed class Juggling
                         continue;
                     }
                     double caught = Math.Max(SlotSec(land) - Dwell * BeatSec(Math.Min(land, slots.Count - 1)), thrown + Handover * T);
+                    var landingSeg = slots[Math.Min(land, slots.Count - 1)].Seg;
                     Flights.Add(new Flight(ball, hand, to, thrown, caught, t.Value,
-                        slot.Seg.Tricks?.FirstOrDefault(x => x is "under" or "back"), slot.Seg));
+                        slot.Seg.Tricks?.FirstOrDefault(x => x is "under" or "back"), slot.Seg,
+                        slot.Seg.Tricks?.Contains("mills") == true && landingSeg?.Tricks?.Contains("mills") == true));
                     Arrive(land, ball, to, Flights.Count - 1);
                     var landing = slots[Math.Min(land, slots.Count - 1)];
                     var catcher = landing.Seg;   // none: caught for good at the end of the run, as a plain catch (not Mills' middle)
@@ -595,6 +598,31 @@ public sealed class Juggling
 
     /// <summary>How far Mills' back leans at the most (the torso's sideways part): some 17 degrees.</summary>
     private const double MillsLean = 0.3;
+
+    /// <summary>
+    /// How much a hand holds a ball around a time (seconds), 0..1: 1 holding, 0 empty, between over the 0.08 s either side
+    /// of a catch or a throw, so what is done only to a hand that holds comes and goes smoothly.
+    /// </summary>
+    public double HoldShare(int hand, double sec)
+    {
+        // All of it while it holds, the catch and the throw included; the coming and going is all on the empty side.
+        bool Holds(double at)
+        {
+            for (int b = 0; b < Balls; b++)
+                if (HandOf(b, at) == hand || HandOf(b, at - 0.012) == hand || HandOf(b, at + 0.012) == hand)
+                    return true;
+            return false;
+        }
+        if (Holds(sec))
+            return 1;
+        for (int k = 1; k <= 3; k++)
+            if (Holds(sec - k * 0.03) || Holds(sec + k * 0.03))
+                return Smooth(1 - k / 4.0);
+        return 0;
+    }
+
+    /// <summary>How much Mills' Mess has the juggling at a time (seconds), 0..1.</summary>
+    public double MillsAt(double sec) => MillsWeight(sec);
 
     private double MillsWeight(double sec)
     {

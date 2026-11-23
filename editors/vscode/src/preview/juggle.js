@@ -215,6 +215,35 @@ export function createJuggle(scene) {
         const ls = figure.points[clip.joints.indexOf('leftShoulder')], rs = figure.points[clip.joints.indexOf('rightShoulder')];
         if (ls && rs) left.subVectors(ls, rs).setY(0).normalize(); else left.set(1, 0, 0);
         fwd.crossVectors(left, Y).normalize();
+        // The way the body faces, from the feet: the shoulders turn with Mills' crossing arms, and the hips a little with a
+        // living body's sway (DESIGN.md 118.12).
+        const lh = figure.points[clip.joints.indexOf('leftAnkle')], rh = figure.points[clip.joints.indexOf('rightAnkle')];
+        const bodyFwd = lh && rh ? new THREE.Vector3().subVectors(lh, rh).setY(0).normalize().cross(Y).normalize() : fwd.clone();
+        // From the feet (the figure's: they stand still; the hips sway a little as a living body does).
+        const ankles = [clip.joints.indexOf('leftAnkle'), clip.joints.indexOf('rightAnkle')];
+        const feetAt = sec => {
+          const fr = figure.data.frames;
+          const x = Math.max(0, Math.min(fr.length - 1, sec * clip.fps)), f = Math.floor(x), g = Math.min(fr.length - 1, f + 1), r = x - f;
+          const at = m => ankles.reduce((s, i) => s + (fr[f][i * 3 + m] * (1 - r) + fr[g][i * 3 + m] * r) / 2, 0);
+          return new THREE.Vector3(at(0), at(1), at(2));
+        };
+        // Mills' balls all the same distance before the body (the user: exactly): on a character, the distance its palms
+        // are at, on the average, at Mills' throws and catches; each ball of Mills put there, front to back.
+        if (track && juggle.flights && track.millsPlane === undefined) {
+          let sum = 0, n = 0;
+          for (const fl of juggle.flights) {
+            if (fl[5] !== 1) continue;
+            for (const [hand, sec] of [[fl[1], fl[3]], [fl[2], fl[4]]]) {
+              sum += track.palm(hand, sec).sub(feetAt(sec)).dot(bodyFwd);
+              n++;
+            }
+          }
+          track.millsPlane = n > 0 ? sum / n : null;
+        }
+        const toPlane = (v, sec) => {
+          if (track?.millsPlane == null) return;
+          v.addScaledVector(bodyFwd, track.millsPlane - v.clone().sub(feetAt(sec)).dot(bodyFwd));
+        };
         // Each hand's forearm, elbow to wrist: the character's own where it is shown, else the figure's.
         const ownArms = forearms ? forearms(i) : null;
         const forearm = ['right', 'left'].map((side, hand) => {
@@ -266,6 +295,7 @@ export function createJuggle(scene) {
               const p0 = track.palm(f, thrown), p1 = track.palm(g, caught);
               p.copy(p0).lerp(p1, s / tf).addScaledVector(Y, 9.81 / 2 * s * (tf - s));
               [from, to, u] = [f, g, s / tf];
+              if (flight[5] === 1) toPlane(p, sec);
             } else {
               let hand = frames[0][j + 3] | 0, last = -Infinity;
               for (const fl of juggle.flights) if (fl[0] === b && fl[4] < sec && fl[4] > last) [hand, last] = [fl[2], fl[4]];
@@ -273,6 +303,10 @@ export function createJuggle(scene) {
               const stack = p.clone().sub(figurePalm(figure.points, clip.joints, hand === 0 ? 'right' : 'left', new THREE.Vector3(), palmAlong(juggle.prop), claw ? -0.05 : PALM_UP));
               p.copy(track.palm(hand, sec)).add(stack);
               [from, to, u] = [hand, hand, 0];
+              // Held, caught from Mills or to be thrown in it: in its plane too.
+              const brought = juggle.flights.filter(fl => fl[0] === b && fl[4] < sec).pop();
+              const next = juggle.flights.find(fl => fl[0] === b && fl[3] >= sec);
+              if ((brought && brought[5] === 1) || (next && next[5] === 1)) toPlane(p, sec);
             }
           } else {
             p.add(offsets[from].clone().lerp(offsets[to], u));

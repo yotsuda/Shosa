@@ -170,11 +170,13 @@ export function createCharacters(scene, changed) {
    */
   function trackPalms(entry, clip, data) {
     const count = data.frames.length;
-    const at = { data, fps: clip.fps, palms: [[], []], forearms: [[], []] };
+    const at = { data, fps: clip.fps, palms: [[], []], forearms: [[], []], hips: [] };
+    const hipsBone = entry.vrm.humanoid.getNormalizedBoneNode('hips');
     for (let f = 0; f < count; f++) {
       place(entry, clip, data, f);
       entry.vrm.scene.updateMatrixWorld(true);
       const { palms, forearms } = measure(entry.vrm, data.juggle.prop, data.juggle.styles?.[f]);
+      at.hips.push(hipsBone ? hipsBone.getWorldPosition(new THREE.Vector3()) : new THREE.Vector3());
       for (const hand of [0, 1]) {
         at.palms[hand].push(palms[hand] ?? new THREE.Vector3());
         at.forearms[hand].push(forearms[hand] ?? new THREE.Vector3(0, 0, 1));
@@ -187,6 +189,7 @@ export function createCharacters(scene, changed) {
     };
     at.palm = (hand, sec) => between(at.palms, hand, sec);
     at.forearm = (hand, sec) => between(at.forearms, hand, sec).normalize();
+    at.hipsAt = sec => { const x = Math.max(0, Math.min(count - 1, sec * at.fps)), f = Math.floor(x), g = Math.min(count - 1, f + 1); return at.hips[f].clone().lerp(at.hips[g], x - f); };
     return at;
   }
 

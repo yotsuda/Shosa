@@ -399,7 +399,7 @@ public static class Solver
         }
 
         var result = new ClipJuggle(juggling.Prop, juggling.Balls, [], [],
-            [.. juggling.Flights.Select(fl => new[] { fl.Ball, fl.From, fl.To, (float)Math.Round(fl.Thrown, 4), (float)Math.Round(fl.Caught, 4) })], []);
+            [.. juggling.Flights.Select(fl => new[] { fl.Ball, fl.From, fl.To, (float)Math.Round(fl.Thrown, 4), (float)Math.Round(fl.Caught, 4), fl.Mills ? 1f : 0f })], []);
         for (int f = 0; f < frames.Count; f++)
         {
             double sec = (double)f / fps;
@@ -802,6 +802,8 @@ internal sealed class FigureSolver
 
     /// <summary>The farthest a juggling hand goes from its shoulder, metres: the elbow bent some 40 degrees (0.60 is straight).</summary>
     private const double JuggleReach = 0.575;
+    /// <summary>How far in front of the feet Mills' balls go, metres: all the same.</summary>
+    private const double MillsPlane = 0.37;
 
     // A mic in a hand (`mic right`, DESIGN.md 117). While the dancer sings, the hand is at the mouth, whatever its
     // row says; between phrases the row has the arm again, the mic in its hand. Sung by the phrase, not the
@@ -2678,6 +2680,10 @@ internal sealed class FigureSolver
         double juggleSec = Seconds(t), juggleWeight = Juggling?.Weight(juggleSec) ?? 0;
         var juggleFwd = new Vec3(torsoFwd.X, 0, torsoFwd.Z);
         juggleFwd = juggleFwd.Length > 1e-6 ? juggleFwd.Normalized() : c.Fwd;
+        // Mills' Mess keeps its balls in one plane before the body: measured from the way the feet face, not the chest,
+        // which turns with the crossing arms.
+        if (Juggling?.MillsAt(juggleSec) > 0)
+            juggleFwd = c.Fwd;
         var juggleLeft = Vec3.Up.Cross(juggleFwd);
         var juggleOrigin = pelvis + Vec3.Up * 0.15 + juggleFwd * 0.30;
 
@@ -2915,6 +2921,24 @@ internal sealed class FigureSolver
                 bend = Vec3.Slerp(bend.Length < 1e-6 ? pole.Normalized() : bend.Normalized(), jugglePole, juggleWeight);
             }
             var (elbow, reachedHand) = TwoBone(shoulder, hand, Rig.UpperArm, Rig.Forearm, bend.Length < 1e-6 ? pole : bend);
+            // Mills' Mess: the balls all the same distance in front of the body (the user: exactly). The ball lies past the
+            // wrist along the forearm, and the forearm points differently crossed and uncrossed: the wrist is moved until
+            // the palm, where the ball is, is at that distance (twice, the arm solved again each time). Only while it holds a
+            // ball: empty, the hands are free to pass each other in front and behind.
+            if (juggleWeight > 0 && Juggling!.MillsAt(juggleSec) * Juggling.HoldShare(isLeft ? 1 : 0, juggleSec) is var millsShare && millsShare > 0)
+            {
+                for (int pass = 0; pass < 2; pass++)
+                {
+                    var palm = reachedHand + (reachedHand - elbow).Normalized() * 0.085 + Vec3.Up * 0.04;
+                    // From the feet, which stand still, not the pelvis, which sways a little as a living body does.
+                    double off = MillsPlane - (palm - (c.LPos + c.RPos) * 0.5).Dot(juggleFwd);
+                    hand += juggleFwd * (off * millsShare * juggleWeight);
+                    var fromShoulder = hand - shoulder;
+                    if (fromShoulder.Length > JuggleReach)
+                        hand = shoulder + fromShoulder * (JuggleReach / fromShoulder.Length);
+                    (elbow, reachedHand) = TwoBone(shoulder, hand, Rig.UpperArm, Rig.Forearm, bend.Length < 1e-6 ? pole : bend);
+                }
+            }
 
             int first = isLeft ? Rig.LShoulder : Rig.RShoulder;
             joints[first] = shoulder;
