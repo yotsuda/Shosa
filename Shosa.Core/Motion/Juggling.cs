@@ -255,13 +255,13 @@ public sealed class Juggling
                         slot.Seg.Tricks?.FirstOrDefault(x => x is "under" or "back"), slot.Seg));
                     Arrive(land, ball, to, Flights.Count - 1);
                     var landing = slots[Math.Min(land, slots.Count - 1)];
-                    var catcher = landing.Seg ?? slot.Seg;
+                    var catcher = landing.Seg;   // none: caught for good at the end of the run, as a plain catch (not Mills' middle)
                     // Which of Mills' six throws this is, and which the ball is caught for: counted in its word, mirrored
                     // when the word's first throw is the left hand's.
                     bool Mirrored(Slot x) => x.Seg is not null && Siteswap.HandAt(x.InRun - x.Index, x.Seg.LeftFirst) == 1;
                     _mills6 = (slot.Index % 6, Mirrored(slot), landing.Seg is null ? (slot.Index + t.Value) % 6 : landing.Index % 6,
                         landing.Seg is null ? Mirrored(slot) : Mirrored(landing));
-                    Swing(hand, to, t.Value, thrown, caught, T, slot.Seg.Tricks, catcher.Tricks, _throwsBy[hand]++);
+                    Swing(hand, to, t.Value, thrown, caught, T, slot.Seg.Tricks, catcher?.Tricks, _throwsBy[hand]++);
                     lastCatch = Math.Max(lastCatch, caught);
                 }
                 // Balls that came down and are not thrown: held, and thrown on the hand's next turn.
