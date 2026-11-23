@@ -1361,6 +1361,7 @@ public static class GrammarDoc
               catching hand gives with it.
             - **Tricks**, put on a pattern with `@`, change how the hands throw and catch it, never what is
               thrown: `3:4@mills` (Mills' Mess: six throws round, three from the left and three from the right, the arms crossing and uncrossing),
+              `@windmill` (the first hand's arm always on top, every ball thrown on its side and caught on the other, all one way round),
               `@penguin` (the arms straight down, caught and thrown by the hips), `@claw` (the palm down, the
               ball snatched from above), `@reverse` (thrown from outside over the top, caught inside),
               `@back` (from behind the back over the other shoulder), `@under` (from under the thigh of the
@@ -1370,7 +1371,7 @@ public static class GrammarDoc
               (`rightLeg { skip:1 fwd.bent:1 then:1 down:1 }`, and the weight on the other foot in `steps`),
               or it is SH2022; behind the back, throw high enough to clear the shoulder (0.55 m, a throw
               every 1 at tempo 120), or it is SH2022. `@penguin` goes with neither `@claw`, `@back` nor
-              `@under`, nor `@back` with `@under` (SH1010).
+              `@under`, nor `@back` with `@under`, nor `@windmill` with `@mills`, `@penguin`, `@back` or `@under` (SH1010).
             - The preview draws the balls (clubs turning end over end, rings along the forearms, edge to the front) and turns a
               character's palms up while it throws. Exported files have the arms; the balls are not in them.
 

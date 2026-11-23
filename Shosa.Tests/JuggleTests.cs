@@ -272,6 +272,36 @@ public class JuggleTests
     }
 
     [Fact]
+    public void The_windmill_throws_every_ball_on_one_side_with_the_first_arm_on_top()
+    {
+        // The same throws as the cascade, on the beat; every ball thrown on the right and caught on the left (@mirror: the
+        // other way round), the right hand always above the left once they are going.
+        var plain = Compile(Juggle("every 1/2  3:4 |"));
+        var c = Compile(Juggle("every 1/2  3:4@windmill | 3:4@windmill |"));
+        Assert.Empty(c.Diagnostics);
+        var clip = c.Clip;
+        var flights = clip.Figures[0].Juggle!.Flights;
+        Assert.Equal(plain.Clip.Figures[0].Juggle!.Flights.Select(f => f[3]), flights.Take(plain.Clip.Figures[0].Juggle!.Flights.Count).Select(f => f[3]));
+        Assert.All(flights.Where(f => f[5] == 1), f => Assert.Equal(-1f, f[6]));   // not paired as Mills' thirds
+        var balls = clip.Figures[0].Juggle!.Frames;
+        double Side(int frame, int ball) => balls[frame][ball * 7] - clip.Figures[0].Joint(frame, Rig.Pelvis).X;
+        foreach (var f in flights.Where(f => f[5] == 1 && f[3] > 1))
+        {
+            int thrown = (int)Math.Ceiling(f[3] * clip.Fps), caught = (int)Math.Floor(f[4] * clip.Fps);
+            Assert.True(Side(thrown, (int)f[0]) < 0, $"thrown on the right at {f[3]}");
+            Assert.True(Side(caught, (int)f[0]) > 0, $"caught on the left at {f[4]}");
+        }
+        for (int frame = clip.FrameOfBeat(2); frame < clip.FrameOfBeat(6); frame++)
+            Assert.True(clip.Figures[0].Joint(frame, Rig.RHand).Y > clip.Figures[0].Joint(frame, Rig.LHand).Y, $"the right hand on top at frame {frame}");
+        var mirrored = Compile(Juggle("every 1/2  3:4@windmill@mirror | 3:4@windmill@mirror |")).Clip;
+        int mid = mirrored.FrameOfBeat(4);
+        Assert.True(mirrored.Figures[0].Joint(mid, Rig.LHand).Y > mirrored.Figures[0].Joint(mid, Rig.RHand).Y, "mirrored, the left hand on top");
+        // Not with Mills' Mess, nor with what puts a hand elsewhere.
+        Assert.Contains("SH1010", Codes(Compile(Juggle("every 1/2  3:4@windmill@mills |"))));
+        Assert.Contains("SH1010", Codes(Compile(Juggle("every 1/2  3:4@penguin@windmill |"))));
+    }
+
+    [Fact]
     public void Tricks_that_need_the_body_say_so()
     {
         // Under the leg with the leg down, and lifted.

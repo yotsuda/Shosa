@@ -257,15 +257,18 @@ public sealed class Juggling
                     double thrown = slotThrown;
                     // Mills' second throw (and its mirror, the fifth) goes higher (the user): longer in the air, thrown a
                     // little before the beat.
-                    bool millsFlight = slot.Seg.Tricks?.Contains("mills") == true && landingSeg?.Tricks?.Contains("mills") == true;
-                    if (millsFlight && slot.Index % 3 == 1)
+                    // Thrown and caught round the body (Mills' Mess or the windmill, the same one at both ends): its ball in
+                    // the plane before the body, the hands soft.
+                    bool windmill = Windmill(slot.Seg.Tricks);
+                    bool millsFlight = Round(slot.Seg.Tricks) && Round(landingSeg?.Tricks) && windmill == Windmill(landingSeg?.Tricks);
+                    if (millsFlight && !windmill && slot.Index % 3 == 1)
                         thrown -= MillsSecondEarlier * T;
                     // The first (and the fourth) as high as the second (the user): a little before its beat too, but not the
                     // word's very first throw, which the hands come in to from what the arms did.
-                    if (millsFlight && slot.Index % 3 == 0 && slot.Index > 0)
+                    if (millsFlight && !windmill && slot.Index % 3 == 0 && slot.Index > 0)
                         thrown -= MillsFirstEarlier * T;
                     Flights.Add(new Flight(ball, hand, to, thrown, caught, t.Value,
-                        slot.Seg.Tricks?.FirstOrDefault(x => x is "under" or "back"), slot.Seg, millsFlight, millsFlight ? slot.Index % 3 : -1));
+                        slot.Seg.Tricks?.FirstOrDefault(x => x is "under" or "back"), slot.Seg, millsFlight, millsFlight && !windmill ? slot.Index % 3 : -1));
                     Arrive(land, ball, to, Flights.Count - 1);
                     var landing = slots[Math.Min(land, slots.Count - 1)];
                     var catcher = landing.Seg;   // none: caught for good at the end of the run, as a plain catch (not Mills' middle)
@@ -273,7 +276,7 @@ public sealed class Juggling
                     // when the word's first throw is the left hand's.
                     bool Mirrored(Slot x) => x.Seg is not null && Siteswap.HandAt(x.InRun - x.Index, x.Seg.LeftFirst) == 1;
                     _mills6 = (slot.Index % 6, Mirrored(slot), landing.Seg is null ? (slot.Index + t.Value) % 6 : landing.Index % 6,
-                        landing.Seg is null ? Mirrored(slot) : Mirrored(landing));
+                        landing.Seg is null ? Mirrored(slot) : Mirrored(landing), windmill);
                     Swing(hand, to, t.Value, thrown, caught, T, slot.Seg.Tricks, catcher?.Tricks, _throwsBy[hand]++);
                     lastCatch = Math.Max(lastCatch, caught);
                 }
@@ -294,9 +297,12 @@ public sealed class Juggling
             _keys[hand].Sort((a, b) => a.T.CompareTo(b.T));
             Soften(hand);
         }
-        foreach (var (seg, _) in run.Where(r => r.Seg.Tricks?.Contains("mills") == true))
+        foreach (var (seg, _) in run.Where(r => Round(r.Seg.Tricks)))
         {
             _mills.Add((Sec(seg.T0), Sec(seg.T1)));
+            // The back sways with Mills' six throws round; the windmill's top arm is always the same one.
+            if (Windmill(seg.Tricks))
+                continue;
             var firstSlot = slots.First(x => ReferenceEquals(x.Seg, seg));
             double beatSec = Sec(seg.T0 + (seg.Every ?? 0.5)) - Sec(seg.T0);
             _millsSway.Add((Sec(seg.T0), Sec(seg.T1), beatSec, Siteswap.HandAt(firstSlot.InRun, seg.LeftFirst) == 1));
@@ -426,7 +432,11 @@ public sealed class Juggling
         // Leaves at the speed that brings it to the catch in its time under gravity.
         var leaves = new Vec3((into.X - from.X) / flight, (into.Y - from.Y) / flight + G * flight / 2, (into.Z - from.Z) / flight);
         var arrives = new Vec3(leaves.X, leaves.Y - G * flight, leaves.Z);
-        bool millsThrow = throwTricks?.Contains("mills") == true, millsCatch = catchTricks?.Contains("mills") == true;
+        // Mills' Mess and the windmill go round the body the same soft way, each from its own table of places.
+        bool millsThrow = Round(throwTricks), millsCatch = Round(catchTricks);
+        // The throw over the top, the hand going round high after it, and its ball met high and followed down: in the windmill
+        // the top hand's (the first).
+        bool Top(int k) => _mills6.Windmill ? k % 2 == 0 : k % 3 == 0;
         if (millsThrow || millsCatch)
         {
             // Mills' Mess is soft: the hands never stop and never snap, the forearms going slowly round each other (the
@@ -437,21 +447,33 @@ public sealed class Juggling
                 // Each hand goes round a loop on the plane before the body, once a throw (the user: circles, never turning
                 // off at a sudden angle): caught high near the middle going in and down with the ball, round the bottom,
                 // out and up to the throw, and on up and in with the ball to the next catch.
-                var caughtAt = MillsPlace(_mills6.ThrowK, _mills6.ThrowMirror).Catch;
-                var bottom = new Vec3((from.X + caughtAt.X) / 2, Math.Min(from.Y, caughtAt.Y) - MillsLoopDepth, from.Z);
+                var caughtAt = MillsPlace(_mills6.ThrowK, _mills6.ThrowMirror, _mills6.Windmill).Catch;
+                // The windmill's top hand carries its ball back high, over the bottom hand; the bottom hand low, under the top arm.
+                double low = Math.Min(from.Y, caughtAt.Y) - MillsLoopDepth;
+                if (_mills6.Windmill)
+                    low = Top(_mills6.ThrowK) ? Math.Max(from.Y, caughtAt.Y) + WindmillCarryRise : Math.Min(from.Y, caughtAt.Y) - WindmillLoopDepth;
+                var bottom = new Vec3((from.X + caughtAt.X) / 2, low, from.Z);
                 AddSmooth(hand, (thrown - MillsBottomAt * Dwell * beat, bottom, Still, throwStyle));
                 AddSmooth(hand, (thrown, from, Still, throwStyle));
-                // Up and across with the ball.
-                _launch[(hand, thrown)] = leaves.Y * MillsLaunch;
-                _launchAcross[(hand, thrown)] = leaves.X * MillsLaunch;
+                // Up and across with the ball; the windmill's bottom hand hardly up, going back low under the top arm.
+                double launch = _mills6.Windmill && !Top(_mills6.ThrowK) ? WindmillUnderLaunch : MillsLaunch;
+                _launch[(hand, thrown)] = leaves.Y * launch;
+                _launchAcross[(hand, thrown)] = leaves.X * launch;
+                if (_mills6.Windmill && !Top(_mills6.ThrowK))
+                {
+                    var next = MillsPlace(_mills6.ThrowK + 2, _mills6.ThrowMirror, true).Catch;
+                    var way = Vec3.Lerp(from, next, 0.5);
+                    // Back a little higher than it carried, round a loop, still well under the top arm.
+                    AddSmooth(hand, (thrown + 0.5 * (2 - Dwell) * beat, new Vec3(way.X, Math.Max(from.Y, next.Y) + WindmillUnderReturn, way.Z), Still, throwStyle));
+                }
                 // The first throw, over the top: the hand goes on up after the ball and comes round high, in an arc, to
                 // the next catch near the middle (the user: it dropped at once).
-                if (_mills6.ThrowK % 3 == 0)
+                if (Top(_mills6.ThrowK))
                 {
-                    var next = MillsPlace(_mills6.ThrowK + 2, _mills6.ThrowMirror).Catch;
+                    var next = MillsPlace(_mills6.ThrowK + 2, _mills6.ThrowMirror, _mills6.Windmill).Catch;
                     double gap = (2 - Dwell) * beat;
                     var way = Vec3.Lerp(from, next, MillsOverAcross);
-                    var over = new Vec3(way.X, Math.Max(from.Y, next.Y) + MillsOverRise, way.Z);
+                    var over = new Vec3(way.X, Math.Max(from.Y, next.Y) + (_mills6.Windmill ? WindmillOverRise : MillsOverRise), way.Z);
                     AddSmooth(hand, (thrown + MillsOverAt * gap, over, Still, throwStyle));
                 }
             }
@@ -464,10 +486,10 @@ public sealed class Juggling
             {
                 // Caught with the hand going the way the ball comes down, not stopping it dead (the user).
                 AddSmooth(to, (caught, into, Still, catchStyle));
-                _arrive[(to, caught)] = arrives * (_mills6.CatchK % 3 == 0 ? MillsArriveFirst : MillsArrive);
+                _arrive[(to, caught)] = arrives * (Top(_mills6.CatchK) ? MillsArriveFirst : MillsArrive);
                 // The first throw's ball: the hand meets it high, coming down with it a little before, and goes on down with
                 // it well after, from high to low as it falls (the user).
-                if (_mills6.CatchK % 3 == 0)
+                if (Top(_mills6.CatchK))
                 {
                     AddSmooth(to, (caught - MillsMeetBefore, into - arrives * (MillsMeetBefore * MillsArriveFirst), Still, catchStyle));
                     AddSmooth(to, (caught + MillsGiveAfter, into + arrives * (MillsGiveAfter * MillsArriveFirst * 0.7), Still, catchStyle));
@@ -532,10 +554,10 @@ public sealed class Juggling
         // Arms crossed, the right hand over, on the left, throws from outside in; the arms uncrossing, the left hand throws;
         // the arms crossing the other way, the right hand under, low on the left, throws in. The three go up near one another
         // from left to right; then the same mirrored. Caught a little further out than thrown, and carried in to the throw.
-        if (Has(throwTricks, "mills"))
-            from = MillsPlace(_mills6.ThrowK, _mills6.ThrowMirror).Throw;
-        if (Has(catchTricks, "mills"))
-            into = MillsPlace(_mills6.CatchK, _mills6.CatchMirror).Catch;
+        if (Round(throwTricks))
+            from = MillsPlace(_mills6.ThrowK, _mills6.ThrowMirror, Windmill(throwTricks)).Throw;
+        if (Round(catchTricks))
+            into = MillsPlace(_mills6.CatchK, _mills6.CatchMirror, Windmill(catchTricks)).Catch;
         // Behind the back: from behind the waist, toward the other side, over the other shoulder.
         if (Has(throwTricks, "back"))
         {
@@ -687,8 +709,12 @@ public sealed class Juggling
         return w;
     }
 
-    /// <summary>The throw being planned in Mills' Mess: which of the six it is, and which the ball is caught for.</summary>
-    private (int ThrowK, bool ThrowMirror, int CatchK, bool CatchMirror) _mills6;
+    /// <summary>The throw being planned in Mills' Mess (or the windmill): which of the six (two) it is, and which the ball is caught for.</summary>
+    private (int ThrowK, bool ThrowMirror, int CatchK, bool CatchMirror, bool Windmill) _mills6;
+
+    /// <summary>Thrown round the body: Mills' Mess or the windmill.</summary>
+    private static bool Round(List<string>? tricks) => tricks is not null && (tricks.Contains("mills") || tricks.Contains("windmill"));
+    private static bool Windmill(List<string>? tricks) => tricks?.Contains("windmill") == true;
 
     /// <summary>
     /// Where the hand throws and catches on each of Mills' six throws (x to the dancer's left, as written for a word whose
@@ -724,6 +750,17 @@ public sealed class Juggling
     private const double MillsFirstEarlier = 0.25;
     /// <summary>After Mills' first throw, how far above the higher of the throw and the next catch the hand comes round, metres.</summary>
     private const double MillsOverRise = 0.25;
+    /// <summary>How far the windmill's circle goes above the higher of the throw and the catch, and below the lower, metres.</summary>
+    private const double WindmillOverRise = 0.16, WindmillLoopDepth = 0.14;
+    /// <summary>
+    /// How far above the higher of its catch and throw the windmill's top hand carries its ball back, metres: a little
+    /// below, so it goes round a loop (over with the ball, back lower), still well over the bottom hand.
+    /// </summary>
+    private const double WindmillCarryRise = -0.05;
+    /// <summary>How fast the windmill's bottom hand goes up with its ball at the throw, as a part of the ball's speed.</summary>
+    private const double WindmillUnderLaunch = 0.3;
+    /// <summary>How far above the higher of its throw and next catch the windmill's bottom hand comes back, metres: higher than it carried (a loop), under the top arm.</summary>
+    private const double WindmillUnderReturn = 0.0;
     /// <summary>When the top of that arc is, as a part of the time from the throw to the next catch.</summary>
     private const double MillsOverAt = 0.45;
     /// <summary>Where the top of that arc is, from the throw (0) to the next catch (1).</summary>
@@ -744,8 +781,30 @@ public sealed class Juggling
     /// <summary>How long after the first throw's catch the hand goes on down with the ball, seconds.</summary>
     private const double MillsGiveAfter = 0.14;
 
-    private static (Vec3 Throw, Vec3 Catch) MillsPlace(int k, bool mirrored)
+    /// <summary>
+    /// The windmill's two throws round (x to the dancer's left, as written for a word whose first throw is the right hand's):
+    /// every ball thrown on the right and caught on the left, all one way round, the underarm throws on the same path as
+    /// the ones over the top (libraryofjuggling.com, "Windmill"; twjc.jugglingedge.com tutorial 48, "Spiral"). Both hands go
+    /// to and fro, one always going left while the other goes right, the right arm always the one on top: the right hand
+    /// on the top half, thrown on the right, over with the ball, caught high on the left (crossed over) and carried back
+    /// high; the left hand on the bottom half, caught low on its own side, carried under the right arm, thrown from low on
+    /// the right and back low. (Both hands round one circle the same way, the arms crossed changed which was on top while
+    /// crossed, and the forearms went through each other. The left hand going up with its ball after the throw crossed the
+    /// right hand coming back.)
+    /// </summary>
+    private static readonly (Vec3 Throw, Vec3 Catch)[] WindmillRight =
+    [
+        (new Vec3(-0.28, 0.12, 0.03), new Vec3(0.16, 0.22, 0.03)),
+        (new Vec3(-0.24, -0.12, 0.03), new Vec3(0.30, 0.00, 0.03)),   // thrown low: from 8 cm down the forearms came within 6 cm
+    ];
+
+    private static (Vec3 Throw, Vec3 Catch) MillsPlace(int k, bool mirrored, bool windmill = false)
     {
+        if (windmill)
+        {
+            var (wt, wc) = WindmillRight[((k % 2) + 2) % 2];
+            return mirrored ? (new Vec3(-wt.X, wt.Y, wt.Z), new Vec3(-wc.X, wc.Y, wc.Z)) : (wt, wc);
+        }
         int at = ((k % 6) + 6) % 6;
         var (t, c) = MillsLeft[at % 3];
         bool right = (at >= 3) ^ mirrored;
