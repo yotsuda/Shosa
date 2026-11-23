@@ -6691,3 +6691,4 @@ section Show {
   - 最初は全体を 1 つの箱にし、箱全体を道具の大きさで広げた: 床の下に 0.4 m の余白ができ、箱の空の角 (右上手前) のせいで遠すぎた (5.25 → 4.7 m しか寄らない)。点ごとに測るように直して 4.1 m。
   - 試し: `out\juggle\camera.shosa` (ずん子、クラブの 531・441、頂点 2.25 m) を `out\pv\harness-camera.html` (Fit の前後、Height と Zoom を動かした後を撮る。`?panel=1` で最初にパネルを開く: chrome の `--screenshot` は WebGL を描かないのでパネルだけ見る)。サーバーは `py tools\frame_server.py` (PATH の `python` は LilyPond 付属で `_socket` がなく起動しない)。Fit は 70 ms ほど。
 - 自動では合わせない (編集のたびに視点が動くと困る)。押したときだけ。
+- パネルは最初右上に出したが、ユーザー: 「初期位置は、カメラボタンの近くに」。→ **ボタンのすぐ上、右端をボタンの右端にそろえる** (舞台からはみ出さない。Mixer も開いていればその上。`placeCameraPanel`)。
