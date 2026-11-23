@@ -1395,7 +1395,8 @@ section Show {
   thrown: `3:4@mills` (Mills' Mess: six throws round, three from the left and three from the right, the arms crossing and uncrossing),
   `@windmill` (the first hand's arm always on top, every ball thrown on its side and caught on the other, all one way round),
   `@penguin` (the arms straight down, caught and thrown by the hips), `@claw` (the palm down, the
-  ball snatched from above), `@reverse` (thrown from outside over the top, caught inside),
+  ball thrown up to the face and snatched from above there near its top; at `every 1/2` it suits a tempo
+  of about 113 to 197, else SH2023 says the tempo it suits), `@reverse` (thrown from outside over the top, caught inside),
   `@back` (from behind the back over the other shoulder), `@under` (from under the thigh of the
   throwing hand's side). Every throw of the word: one throw is a word of one throw, which a
   cascade allows anywhere (`3:2 3:1/2@under 3:3/2`; at `every 1/2` a word on a whole beat of a

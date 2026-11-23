@@ -283,6 +283,9 @@ public static class Solver
     }
 
     /// <summary>What the juggle row asks that cannot be done or can hardly be, and the arm words it hides.</summary>
+    /// <summary>Juggling.ClawCarry, as the warning says it.</summary>
+    private const string ClawCarryText = "0.12";
+
     private static void JuggleProblems(DancerIr dancer, Juggling juggling, MotionClip clip, List<Diagnostic> diagnostics, FigureSolver solver)
     {
         var said = new HashSet<(int, string)>();
@@ -339,6 +342,20 @@ public static class Solver
                     Say(flight.Seg!, "SH2022", DiagnosticSeverity.Warning, FormattableString.Invariant(
                         $"Thrown from behind the back, it rises {rise:0.00} m: it has to clear the other shoulder, some 0.55 m above the hand there. Throw a higher number (a 5), or less often."));
             }
+        }
+
+        // A claw catch too slow to be on the ball's way up (the user: snatched at the face before its top; at a quicker tempo).
+        foreach (var (seg, air, most, reach, slowest, quickest, tooQuick) in juggling.ClawTiming)
+        {
+            double bpm = 60 / Math.Max(1e-6, clip.SecondsAt(seg.T0 + 1) - clip.SecondsAt(seg.T0));
+            double low = Math.Ceiling(bpm * slowest), high = Math.Floor(bpm * quickest);
+            string range = low <= high
+                ? FormattableString.Invariant($"It suits a tempo of about {low:0} to {high:0} (it is {bpm:0}).")
+                : "No tempo suits it with these throws.";
+            string what = tooQuick
+                ? FormattableString.Invariant($"Clawed at the face, the catching hand has not the time to come up there ({reach:0.00} s after its own throw) and bring the ball down again ({ClawCarryText} s) before it throws it: it is hurried.")
+                : FormattableString.Invariant($"Clawed at the face near its top, a ball has to get there within {most:0.00} s of the throw; here the catching hand is up at the face only {air:0.00} s after it (its own throw comes first, then {reach:0.00} s to come up), so the ball has fallen well past its top.");
+            Say(seg, "SH2023", DiagnosticSeverity.Warning, what + " " + range);
         }
 
         // An arm's word that arrives while the juggling has the arms is not seen.

@@ -254,6 +254,30 @@ public sealed class Juggling
                     }
                     double caught = Math.Max(SlotSec(land) - Dwell * BeatSec(Math.Min(land, slots.Count - 1)), slotThrown + Handover * T);
                     var landingSeg = slots[Math.Min(land, slots.Count - 1)].Seg;
+                    // A claw catch (the user): thrown up to the face and snatched from above there at its top. Asked for before
+                    // its top: the catching hand can be at the face no sooner than it has thrown its own ball (two throws before
+                    // this one lands) and come up (0.18 s), and has to bring the ball down again for its next throw, and for
+                    // the hands of a quick juggler that leaves no tempo at which the ball is still rising at the face (DESIGN.md
+                    // 118.14). So it is caught when the hand gets there, at the face, near its top, and a tempo at which it
+                    // falls further first, or the hand is hurried, is said (SH2023).
+                    if (landingSeg?.Tricks?.Contains("claw") == true && t.Value >= 3 && land - 2 > s)
+                    {
+                        double reach = (ClawFace - Throws(to, 3, true).Y) / ClawHandSpeed;
+                        double free = SlotSec(land - 2) + reach;
+                        // And it has to bring the ball down from the face to throw it again on its turn.
+                        double latest = SlotSec(land) - ClawCarry;
+                        caught = Math.Max(Math.Min(free, latest), slotThrown + Handover * T);
+                        double rise = ClawFace - Throws(hand, t.Value, to != hand).Y, air = free - slotThrown;
+                        // The longest it can be in the air to fall no more than ClawDrop from its top to the face.
+                        double longest = Math.Sqrt(2 * (rise + ClawDrop) / G) + Math.Sqrt(2 * ClawDrop / G);
+                        double between = SlotSec(land - 2) - slotThrown, round = SlotSec(land) - SlotSec(land - 2);
+                        // The tempo it suits, as parts of this one: quicker for the ball not to fall far, slower for the hand to
+                        // get up and back down between its own two throws.
+                        double quickest = round / (reach + ClawCarry), slowest = between / Math.Max(1e-3, longest - reach);
+                        bool hurried = free > latest + 0.02;
+                        if (air > longest || hurried)
+                            ClawTiming.Add((landingSeg, air, longest, reach, slowest, quickest, hurried));
+                    }
                     double thrown = slotThrown;
                     // Mills' second throw (and its mirror, the fifth) goes higher (the user): longer in the air, thrown a
                     // little before the beat.
@@ -291,6 +315,10 @@ public sealed class Juggling
         foreach (var (slot, list) in arriving.Where(a => a.Key > lastThrow))
             foreach (var a in list)
                 held[a.Hand].Add(a.Ball);
+        // Before a claw catch, no stop on the hand's way up (the top of its own throw's follow-through: see Swing).
+        foreach (var (clawHand, clawAt) in _clawCatches)
+            _keys[clawHand].RemoveAll(key => key.T > clawAt - ClawWindow && key.T < clawAt - ClawOverBefore - 1e-6 && key.Velocity.Length < 1e-9 && !_smooth.Contains((clawHand, key.T)));
+        _clawCatches.Clear();
         foreach (var hand in new[] { 0, 1 })
         {
             _keys[hand].Add((lastCatch + 0.2, Ready(hand), Still, Style.Own));
@@ -496,6 +524,17 @@ public sealed class Juggling
         _keys[hand].Add((thrown - swing, from - leaves * (swing / 2), Still, throwStyle));
         _keys[hand].Add((thrown, from, leaves, throwStyle));
         _keys[hand].Add((thrown + follow, from + leaves * (follow / 2), Still, throwStyle));
+        if (catchStyle == Style.Claw)
+        {
+            // A claw comes down on the ball from above (the user): up a little over where it meets it, then down onto it
+            // as it comes up, and on down with it. (Coming up to it and going down with it, the hand turned right round at
+            // the catch.) The hand goes on up from its own throw without stopping at the top of its follow-through: it
+            // has only a moment to get up to the face (stopped there first, it jumped up 0.5 m in a frame).
+            _clawCatches.Add((to, caught));
+            AddSmooth(to, (caught - ClawOverBefore, into + new Vec3(0, ClawOver, 0), Still, catchStyle));
+            _keys[to].Add((caught, into, new Vec3(arrives.X * 0.3, -ClawSnatch, arrives.Z * 0.3), catchStyle));
+            return;
+        }
         // The catch gives with the ball, a third of its speed, and the hand stops at the bottom before the next swing.
         _keys[to].Add((caught, into, arrives * 0.3, catchStyle));
     }
@@ -516,10 +555,10 @@ public sealed class Juggling
             from = new Vec3(s * Math.Abs(Catches(hand, value, to != hand).X), from.Y + 0.04, from.Z);
         if (Has(catchTricks, "reverse"))
             into = new Vec3(c * Math.Abs(Throws(to, value, to != hand).X), into.Y, into.Z);
-        // Claw: the palm down, the ball snatched from above, high at the top of the loop; thrown with the palm down too.
+        // Claw: the palm down, the ball snatched from above at the face on its way up (the user); thrown with the palm down too.
         if (Has(catchTricks, "claw"))
         {
-            into = new Vec3(into.X, into.Y + 0.12, into.Z + 0.04);
+            into = new Vec3(into.X, ClawFace, into.Z + 0.04);
             catchStyle = Style.Claw;
         }
         if (Has(throwTricks, "claw"))
@@ -780,6 +819,30 @@ public sealed class Juggling
         (new Vec3(-0.40, 0.12, 0.03), new Vec3(0.03, 0.38, 0.03)),
         (new Vec3(-0.30, -0.08, 0.03), new Vec3(0.40, 0.12, 0.03)),
     ];
+
+    /// <summary>Where a claw catches, metres above the juggling's middle (before the belly): about the face.</summary>
+    private const double ClawFace = 0.55;
+    /// <summary>
+    /// How fast a hand comes up from its own throw to the face to claw the next ball, on the average, m/s (a quick juggler's):
+    /// some 0.2 s for the 0.6 m. (At 0.12 s it went up 0.7 m in 0.1 s, 7 m/s: it seemed to jump there.)
+    /// </summary>
+    private const double ClawHandSpeed = 3.0;
+    /// <summary>How far over the catch a claw comes up before it comes down on the ball (metres), how long before (seconds), and how fast it comes down at the catch (m/s).</summary>
+    private const double ClawOver = 0.04, ClawOverBefore = 0.04, ClawSnatch = 0.6;
+    /// <summary>Seconds before a claw catch within which the hand's stops are taken out (the top of its own throw's follow-through).</summary>
+    private const double ClawWindow = 0.25;
+    /// <summary>The claw catches of the run being planned: the hand, seconds.</summary>
+    private readonly List<(int Hand, double At)> _clawCatches = [];
+    /// <summary>Seconds a hand takes to bring a clawed ball down from the face to throw it again.</summary>
+    private const double ClawCarry = 0.12;
+    /// <summary>How far a clawed ball may fall from its top before it is caught at the face, metres: further is SH2023.</summary>
+    private const double ClawDrop = 0.05;
+    /// <summary>
+    /// Claw catches the tempo does not suit (SH2023): the word; seconds from the throw until the catching hand can be up at
+    /// the face, and the most that can be for the ball to fall no more than ClawDrop from its top; seconds the hand takes to
+    /// come up; the tempo it suits, as parts of this one (at least, at most); and whether the hand cannot get up and back in time.
+    /// </summary>
+    public List<(Seg Seg, double Air, double Most, double Reach, double Slowest, double Quickest, bool TooQuick)> ClawTiming { get; } = [];
 
     private static (Vec3 Throw, Vec3 Catch) MillsPlace(int k, bool mirrored, bool windmill = false)
     {

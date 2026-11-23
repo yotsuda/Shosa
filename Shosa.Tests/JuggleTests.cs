@@ -272,6 +272,32 @@ public class JuggleTests
     }
 
     [Fact]
+    public void A_claw_is_thrown_up_to_the_face_and_caught_there_near_its_top()
+    {
+        // At tempo 120 every 1/2: caught at the face, no more than 5 cm down from its top, from above (the palm down).
+        var c = Compile(Juggle("every 1/2  3:4 | 3:4@claw | 3:4@claw |"));
+        Assert.DoesNotContain("SH2023", Codes(c));
+        var clip = c.Clip;
+        var juggle = clip.Figures[0].Juggle!;
+        int nose = Array.IndexOf(clip.Joints, "nose");
+        foreach (var f in juggle.Flights.Where(f => f[4] > 2.6 && f[4] < 5.5))
+        {
+            int caught = (int)Math.Floor(f[4] * clip.Fps), b = (int)f[0];
+            var ys = Enumerable.Range((int)Math.Ceiling(f[3] * clip.Fps), caught - (int)Math.Ceiling(f[3] * clip.Fps) + 1).Select(k => juggle.Frames[k][b * 7 + 1]).ToList();
+            double face = clip.Figures[0].Frames[caught][nose * 3 + 1];
+            Assert.InRange(ys[^1], face - 0.12, face + 0.06);
+            Assert.InRange(ys.Max() - ys[^1], 0, 0.06);
+            Assert.Equal((int)Juggling.Style.Claw, juggle.Styles[caught][(int)f[2]]);
+        }
+        // Too slow a tempo, the ball falls well past its top first; too quick, the hand is hurried. Both say the tempo it suits.
+        string Slower(string text, int tempo) => text.Replace("tempo 120", $"tempo {tempo}");
+        var slow = Compile(Slower(Juggle("every 1/2  3:4 | 3:4@claw |"), 90));
+        Assert.Contains("past its top", Assert.Single(slow.Diagnostics, d => d.Code == "SH2023").Message);
+        var quick = Compile(Slower(Juggle("every 1/2  3:4 | 3:4@claw |"), 225));
+        Assert.Contains("hurried", Assert.Single(quick.Diagnostics, d => d.Code == "SH2023").Message);
+    }
+
+    [Fact]
     public void The_windmill_throws_every_ball_on_one_side_with_the_first_arm_on_top()
     {
         // The same throws as the cascade, on the beat; every ball thrown on the right and caught on the left (@mirror: the
