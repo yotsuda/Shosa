@@ -444,7 +444,14 @@ public sealed class Juggling
             {
                 // Caught with the hand going the way the ball comes down, not stopping it dead (the user).
                 AddSmooth(to, (caught, into, Still, catchStyle));
-                _arrive[(to, caught)] = arrives * MillsArrive;
+                _arrive[(to, caught)] = arrives * (_mills6.CatchK % 3 == 0 ? MillsArriveFirst : MillsArrive);
+                // The first throw's ball: the hand meets it high, coming down with it a little before, and goes on down with
+                // it well after, from high to low as it falls (the user).
+                if (_mills6.CatchK % 3 == 0)
+                {
+                    AddSmooth(to, (caught - MillsMeetBefore, into - arrives * (MillsMeetBefore * MillsArriveFirst), Still, catchStyle));
+                    AddSmooth(to, (caught + MillsGiveAfter, into + arrives * (MillsGiveAfter * MillsArriveFirst * 0.7), Still, catchStyle));
+                }
             }
             else
                 _keys[to].Add((caught, into, arrives * 0.3, catchStyle));
@@ -681,19 +688,25 @@ public sealed class Juggling
         // three at different distances from the body). The arms keep apart up and down, and the back leans.
         // Each catch is higher than the hand's throw before it, so the hand goes on up and in with that ball to the catch
         // and round a loop, not down at a sudden angle (the user: circles).
-        (new Vec3(0.21, 0.12, 0.03), new Vec3(0.03, 0.17, 0.03)),   // the first: thrown further out, caught high (the user)
-        (new Vec3(0.24, 0.01, 0.03), new Vec3(0.10, -0.02, 0.03)),   // caught low under the arm on top (higher, the forearms met) and past the middle, clear of the third coming up
-        (new Vec3(0.22, -0.08, 0.03), new Vec3(0.03, 0.12, 0.03)),   // thrown as far out as the arm reaches across, bent: 4 cm further it went straight
+        (new Vec3(0.29, 0.12, 0.03), new Vec3(0.03, 0.25, 0.03)),   // the first: thrown further out, caught high (the user)
+        (new Vec3(0.32, 0.01, 0.03), new Vec3(0.10, -0.02, 0.03)),   // caught low under the arm on top (higher, the forearms met) and past the middle, clear of the third coming up
+        (new Vec3(0.30, -0.08, 0.03), new Vec3(0.03, 0.12, 0.03)),   // thrown as far out as the arm reaches across, bent: 4 cm further it went straight
     ];
 
     /// <summary>How far below the lower of its throw and catch each Mills loop goes round, metres.</summary>
-    private const double MillsLoopDepth = 0.04;
+    private const double MillsLoopDepth = 0.08;
     /// <summary>When the bottom of the loop is, as a part of the hold before the throw.</summary>
     private const double MillsBottomAt = 0.4;
     /// <summary>How fast the hand goes with the ball at a Mills throw, as a part of the ball's speed.</summary>
     private const double MillsLaunch = 0.8;
     /// <summary>How fast the hand goes with the ball at a Mills catch, as a part of the ball's speed.</summary>
     private const double MillsArrive = 0.6;
+    /// <summary>The first throw's ball is caught high and the hand goes down with it nearly as fast (the user: from high to low as it falls).</summary>
+    private const double MillsArriveFirst = 0.9;
+    /// <summary>How long before the first throw's catch the hand is already coming down with the ball, seconds.</summary>
+    private const double MillsMeetBefore = 0.09;
+    /// <summary>How long after the first throw's catch the hand goes on down with the ball, seconds.</summary>
+    private const double MillsGiveAfter = 0.14;
 
     private static (Vec3 Throw, Vec3 Catch) MillsPlace(int k, bool mirrored)
     {
@@ -741,7 +754,7 @@ public sealed class Juggling
     }
 
     /// <summary>How long Mills' hands are softened over (the Gaussian's spread), seconds.</summary>
-    private const double MillsSoften = 0.08;
+    private const double MillsSoften = 0.065;
 
     /// <summary>Where a hand is at a time (seconds), in the juggling's frame: through its places at their speeds.</summary>
     private Vec3 RawHand(int hand, double sec)

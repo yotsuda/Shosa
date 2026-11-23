@@ -802,10 +802,26 @@ internal sealed class FigureSolver
 
     /// <summary>The farthest a juggling hand goes from its shoulder, metres: the elbow bent some 40 degrees (0.60 is straight).</summary>
     private const double JuggleReach = 0.575;
+    /// <summary>Where a juggling hand's reach starts to be held in, metres: beyond, it comes ever more slowly up to <see cref="JuggleReach"/>.</summary>
+    private const double JuggleReachSoft = 0.50;
+
+    /// <summary>
+    /// A juggling hand's way out from the shoulder, held in softly: as far as <see cref="JuggleReachSoft"/> as it is, and beyond
+    /// ever less, never past <see cref="JuggleReach"/>. (Stopped hard there, the hand stood still where it went beyond and
+    /// turned off at a sudden angle as it came back: the user, Mills' crossed throws.)
+    /// </summary>
+    private static Vec3 SoftReach(Vec3 out_)
+    {
+        double r = out_.Length;
+        if (r <= JuggleReachSoft)
+            return out_;
+        double room = JuggleReach - JuggleReachSoft;
+        return out_ * ((JuggleReachSoft + room * Math.Tanh((r - JuggleReachSoft) / room)) / r);
+    }
     /// <summary>How far in front of the feet Mills' balls go, metres: all the same.</summary>
     private const double MillsPlane = 0.28;
-    /// <summary>How far the pelvis goes to the side with Mills' sway, per unit of the back's lean: 0.3 of lean is 12 cm (4.5 cm did not show: the user).</summary>
-    private const double MillsLegSway = 0.4;
+    /// <summary>How far the pelvis goes to the side with Mills' sway, per unit of the back's lean (against it, the hips out under a leaning back: with it, the body went away from the throws).</summary>
+    private const double MillsLegSway = -0.4;
 
     // A mic in a hand (`mic right`, DESIGN.md 117). While the dancer sings, the hand is at the mouth, whatever its
     // row says; between phrases the row has the arm again, the mic in its hand. Sung by the phrase, not the
@@ -2692,6 +2708,10 @@ internal sealed class FigureSolver
             juggleFwd = c.Fwd;
         var juggleLeft = Vec3.Up.Cross(juggleFwd);
         var juggleOrigin = pelvis + Vec3.Up * 0.15 + juggleFwd * 0.30;
+        // Mills' Mess: the hands' places are measured across from between the feet, not from the pelvis, which sways
+        // from side to side (it took the throws in with it: the user, throw from further out).
+        if (Juggling?.MillsAt(juggleSec) is { } millsOrigin && millsOrigin > 0)
+            juggleOrigin += juggleLeft * (((c.LPos + c.RPos) * 0.5 - pelvis).Dot(juggleLeft) * millsOrigin);
 
         // Arms.
         for (int side = 1; side >= -1; side -= 2)
@@ -2901,8 +2921,7 @@ internal sealed class FigureSolver
                 // Never so far from the shoulder that the arm goes straight: the elbow stays bent some 40 degrees (the
                 // user: going up with the ball, the arm turning about the elbow). A juggler's elbow is never locked.
                 var reachOut = wrist - shoulder;
-                if (reachOut.Length > JuggleReach)
-                    wrist = shoulder + reachOut * (JuggleReach / reachOut.Length);
+                wrist = shoulder + SoftReach(reachOut);
                 hand = Vec3.Lerp(hand, wrist, juggleWeight);
                 // The elbows down by the ribs and a little back, so the forearms point forward: out to the side they
                 // turned the forearms in, and on a character with narrow shoulders the hands crossed the middle.
@@ -2940,8 +2959,7 @@ internal sealed class FigureSolver
                     double off = MillsPlane - (palm - (c.LPos + c.RPos) * 0.5).Dot(juggleFwd);
                     hand += juggleFwd * (off * millsShare * juggleWeight);
                     var fromShoulder = hand - shoulder;
-                    if (fromShoulder.Length > JuggleReach)
-                        hand = shoulder + fromShoulder * (JuggleReach / fromShoulder.Length);
+                    hand = shoulder + SoftReach(fromShoulder);
                     (elbow, reachedHand) = TwoBone(shoulder, hand, Rig.UpperArm, Rig.Forearm, bend.Length < 1e-6 ? pole : bend);
                 }
             }
