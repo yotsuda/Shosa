@@ -33,6 +33,9 @@ score { dancer solo  loop }
   **MP4** writes a video of the preview as you have turned it, with the song (or the clicks and claps of a score without one). Nothing else has to be installed (no ffmpeg):
   the video is encoded by the editor itself. The box beside it picks the shape: **View** (the preview as it is), **16:9** (1920×1080) or
   **9:16** (1080×1920, for YouTube Shorts); a fixed shape is framed in the preview, so what you see is what is filmed.
+- **Camera** (the button at the bottom of the preview): **Fit** (or the F key) brings the view as close as the whole score fits —
+  every dancer and everything they juggle, from start to end, with no more floor than that. **Zoom**, **Height** and **Angle**
+  move it by hand (so do a drag, the wheel and a right drag), **Reset** puts it back. The view is kept, and the MP4 is filmed from it.
 - **An AI assistant can write it**: in Copilot Chat's agent mode, ask for a movement in Shosa. The extension gives the assistant
   the language (`#shosaGrammar`), the compiler's verdict (`#shosaCheck`) and a picture of the movement to look at (`#shosaSheet`).
 

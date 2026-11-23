@@ -22,7 +22,7 @@ export function createCharacters(scene, changed) {
   const files = new Map();   // file -> { data } or { error }
   let dressed = [];          // per figure of the clip shown: { file, vrm, hips, flip, loading, error } or null
   let lastFrame = null;
-  const q0 = new THREE.Quaternion(), q1 = new THREE.Quaternion();
+  const q0 = new THREE.Quaternion(), q1 = new THREE.Quaternion(), v = new THREE.Vector3();
   const mics = createMicHands(scene);
 
   function undress(entry) {
@@ -66,6 +66,9 @@ export function createCharacters(scene, changed) {
       vrm.scene.updateMatrixWorld(true);
       const top = new THREE.Box3().setFromObject(vrm.scene).max.y;
       entry.ownHeight = top > 0.05 ? top : 0;
+      // From the head bone to the top of the hair, at rest: where the top of the character is, wherever its head goes (bounds).
+      const headBone = vrm.humanoid.getRawBoneNode('head');
+      entry.headRoom = headBone && top > 0.05 ? Math.max(0, top - headBone.getWorldPosition(new THREE.Vector3()).y) : 0.15;
       // Its trunk and head, to keep its arms out of them (clearance.js). A model it cannot measure is shown as posed.
       try {
         entry.body = measureBody(vrm);      } catch {
@@ -328,6 +331,28 @@ export function createCharacters(scene, changed) {
     forearms(i) {
       const entry = dressed[i];
       return entry && entry.vrm && entry.vrm.scene.visible && entry.forearms ? entry.forearms : null;
+    },
+
+    /**
+     * Every character shown, as last posed, as balls `add(point, radius)` (the camera's Fit): its bones, with room for
+     * the body round them, and the top of its hair above its head.
+     */
+    points(add) {
+      for (const entry of dressed) {
+        if (!entry || !entry.vrm || !entry.vrm.scene.visible) continue;
+        const vrm = entry.vrm, size = vrm.scene.scale.y;
+        vrm.scene.updateMatrixWorld(true);
+        for (const name of Object.keys(vrm.humanoid.humanBones)) {
+          const node = vrm.humanoid.getRawBoneNode(name);
+          if (node) add(node.getWorldPosition(v), 0.06 * size);
+        }
+        const head = vrm.humanoid.getRawBoneNode('head');
+        if (head) {
+          head.getWorldPosition(v);
+          v.y += (entry.headRoom ?? 0.15) * size;
+          add(v, 0.04 * size);
+        }
+      }
     },
 
     /** The palms [right, left] of figure i's character as last posed, or null when it is shown as sticks. */

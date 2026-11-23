@@ -12,6 +12,7 @@ import * as THREE from 'three';
  * band 3.4 cm wide and 3.5 mm thick (about 100 g). It is held by the middle of its band.
  */
 const BALL = 0.034, CLUB = 0.5;
+const propBox = new THREE.Box3(), propMiddle = new THREE.Vector3(), propSize = new THREE.Vector3();
 /** From the fist to a club's middle: it is held by the handle, a little above the knob. */
 const CLUB_GRIP = CLUB * 0.36;
 const RING_OUTER = 0.162, RING_INNER = 0.162 - 0.034, RING_THICK = 0.0035, RING = (RING_OUTER + RING_INNER) / 2;
@@ -375,6 +376,17 @@ export function createJuggle(scene) {
 
     clear() {
       for (const i of [...shown.keys()]) drop(i);
+    },
+
+    /** Every prop shown, as last posed, as balls `add(point, radius)` round it (the camera's Fit). */
+    points(add) {
+      for (const entry of shown.values()) {
+        for (const mesh of entry.meshes) {
+          if (!mesh.visible) continue;
+          propBox.setFromObject(mesh);
+          if (!propBox.isEmpty()) add(propBox.getCenter(propMiddle), propBox.getSize(propSize).length() / 2);
+        }
+      }
     },
   };
 }

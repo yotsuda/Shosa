@@ -81,13 +81,18 @@ style.textContent = `
   label { display: flex; gap: 4px; align-items: center; white-space: nowrap; }
   select { font: inherit; color: var(--vscode-dropdown-foreground, inherit); background: var(--vscode-dropdown-background, transparent);
            border: 1px solid var(--vscode-dropdown-border, #999); border-radius: 3px; }
-  footer #mixerButton { min-width: 0; padding: 1px 10px; color: var(--vscode-button-secondaryForeground, #fff);
+  footer #mixerButton, footer #cameraButton { min-width: 0; padding: 1px 10px; color: var(--vscode-button-secondaryForeground, #fff);
                         background: var(--vscode-button-secondaryBackground, #5f6a79); }
-  footer #mixerButton[aria-pressed=true] { background: var(--vscode-button-secondaryHoverBackground, #4c5561); }
-  #mixer { position: absolute; right: 8px; bottom: 8px; max-height: calc(100% - 16px); overflow-y: auto; min-width: 260px; max-width: calc(100% - 16px);
+  footer #mixerButton[aria-pressed=true], footer #cameraButton[aria-pressed=true] { background: var(--vscode-button-secondaryHoverBackground, #4c5561); }
+  #mixer, #camera { position: absolute; right: 8px; bottom: 8px; max-height: calc(100% - 16px); overflow-y: auto; min-width: 260px; max-width: calc(100% - 16px);
            padding: 8px 10px; border-radius: 4px; border: 1px solid var(--vscode-panel-border, #ccc);
            background: var(--vscode-editorWidget-background, #f3f3f3); color: var(--vscode-editorWidget-foreground, inherit); }
-  #mixer[hidden] { display: none; }
+  #mixer[hidden], #camera[hidden] { display: none; }
+  #camera { top: 8px; bottom: auto; min-width: 220px; }
+  #cameraRows { display: grid; grid-template-columns: auto 1fr; gap: 6px 8px; align-items: center; }
+  #cameraButtons { display: flex; gap: 6px; grid-column: 1 / -1; }
+  #cameraButtons button { min-width: 0; padding: 1px 10px; }
+  #cameraButtons #cameraReset { color: var(--vscode-button-secondaryForeground, #fff); background: var(--vscode-button-secondaryBackground, #5f6a79); }
   #mixerRows { display: grid; grid-template-columns: auto 1fr 4ch; gap: 4px 8px; align-items: center; }
   #mixerRows small { color: var(--vscode-descriptionForeground, #777); }
   #mixerRows output { text-align: right; font-variant-numeric: tabular-nums; }
@@ -110,13 +115,23 @@ document.body.innerHTML = `
     <button id="exportModel" title="Write the score shown as a model file for an engine: glTF (.glb), VRM Animation (.vrma) or BVH (.bvh).">Model</button>
   </header>
   <div id="stage"><div id="empty">Nothing to perform yet: the file needs a section.</div><div id="marks"></div>
-    <div id="mixer" hidden><div id="mixerRows"></div><div id="mixerNotes"></div></div></div>
+    <div id="mixer" hidden><div id="mixerRows"></div><div id="mixerNotes"></div></div>
+    <div id="camera" hidden><div id="cameraRows">
+      <div id="cameraButtons">
+        <button id="fit" title="Frame the whole score: every dancer and everything they throw, from start to end, as close as it fits (F).">Fit</button>
+        <button id="cameraReset" title="Back to where the camera starts.">Reset</button>
+      </div>
+      <span>Zoom</span><input id="zoom" type="range" min="0" max="1000" aria-label="Zoom" title="Nearer (right) or further (left).">
+      <span>Height</span><input id="lift" type="range" min="-100" max="400" aria-label="Height" title="The view up (right) or down (left): less floor, more sky.">
+      <span>Angle</span><input id="tilt" type="range" min="-20" max="80" aria-label="Angle" title="From level with the dancers (left) to from above (right).">
+    </div></div></div>
   <footer>
     <button id="play">Play</button>
     <div id="track"><input id="seek" type="range" min="0" max="1000" value="0" aria-label="Position"><div id="ticks"></div></div>
     <span id="beat"></span>
     <label><input id="loop" type="checkbox" checked> Loop</label>
     <label id="soundLabel" hidden><input id="sound" type="checkbox" checked> Sound</label>
+    <button id="cameraButton" aria-pressed="false" title="Where the view is from: Fit frames the whole score; Zoom, Height and Angle move it. A drag turns the view, the wheel zooms, a right drag moves it. The MP4 is filmed from here.">Camera</button>
     <button id="mixerButton" hidden aria-pressed="false" title="The level of each part of the song, as Lily# made them.">Mixer</button>
     <label>Speed <select id="speed"><option>0.25</option><option>0.5</option><option selected>1</option></select></label>
   </footer>`;
@@ -919,6 +934,153 @@ shapeSelect.addEventListener('change', () => {
   resize();
 });
 resize();
+
+// ---- The camera panel. A high throw or a tall character went out of the top of the view while the floor filled
+// the bottom (the user): Fit frames everything the score shows, start to end; the sliders move the view by hand. The
+// drag, the wheel and the right drag still work, and move the sliders. Kept with the page's state; the MP4 is filmed
+// from here.
+const cameraButton = document.getElementById('cameraButton'), cameraPanel = document.getElementById('camera');
+const zoomSlider = document.getElementById('zoom'), liftSlider = document.getElementById('lift'), tiltSlider = document.getElementById('tilt');
+const START_VIEW = { position: [2.4, 1.7, 4.6], target: [0, 0.9, 0] };
+/** The camera's distance from what it looks at, metres, at either end of the Zoom slider (a log scale between). */
+const NEAREST = 0.6, FURTHEST = 25;
+const spherical = new THREE.Spherical(), fromTarget = new THREE.Vector3();
+
+function keepCamera() {
+  vscode.setState({ ...(vscode.getState() || {}), camera: { position: camera.position.toArray(), target: controls.target.toArray() } });
+}
+function placeCamera(view) {
+  camera.position.fromArray(view.position);
+  controls.target.fromArray(view.target);
+  camera.lookAt(controls.target);
+  controls.update();
+  syncCamera();
+}
+/** The sliders, from where the camera is. */
+function syncCamera() {
+  spherical.setFromVector3(fromTarget.subVectors(camera.position, controls.target));
+  zoomSlider.value = String(Math.round(1000 * Math.log(spherical.radius / NEAREST) / Math.log(FURTHEST / NEAREST)));
+  liftSlider.value = String(Math.round(controls.target.y * 100));
+  tiltSlider.value = String(Math.round(90 - THREE.MathUtils.radToDeg(spherical.phi)));
+}
+/** The camera, from the sliders: the way round it looks from is kept. */
+function slideCamera() {
+  spherical.setFromVector3(fromTarget.subVectors(camera.position, controls.target));
+  spherical.radius = NEAREST * Math.pow(FURTHEST / NEAREST, Number(zoomSlider.value) / 1000);
+  spherical.phi = THREE.MathUtils.clamp(THREE.MathUtils.degToRad(90 - Number(tiltSlider.value)), 0.01, Math.PI - 0.01);
+  controls.target.y = Number(liftSlider.value) / 100;
+  camera.position.copy(controls.target).add(fromTarget.setFromSpherical(spherical));
+  camera.lookAt(controls.target);
+  controls.update();
+}
+for (const slider of [zoomSlider, liftSlider, tiltSlider]) {
+  slider.addEventListener('input', slideCamera);
+  slider.addEventListener('change', () => { keepCamera(); slider.blur(); });   // Space plays again
+}
+controls.addEventListener('change', () => { if (!cameraPanel.hidden) syncCamera(); });
+controls.addEventListener('end', keepCamera);
+cameraButton.addEventListener('click', () => {
+  cameraPanel.hidden = !cameraPanel.hidden;
+  cameraButton.setAttribute('aria-pressed', String(!cameraPanel.hidden));
+  if (!cameraPanel.hidden) syncCamera();
+  cameraButton.blur();
+});
+document.getElementById('cameraReset').addEventListener('click', event => {
+  placeCamera(START_VIEW);
+  keepCamera();
+  event.currentTarget.blur();
+});
+document.getElementById('fit').addEventListener('click', event => {
+  fitView();
+  event.currentTarget.blur();
+});
+window.addEventListener('keydown', event => {
+  if (event.code === 'KeyF' && !event.ctrlKey && !event.metaKey && !event.altKey && !(event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement)) fitView();
+});
+
+/** How many moments of the score Fit poses the characters at (the sticks and the props are read at every frame). */
+const FIT_SAMPLES = 120;
+/** A little room round everything framed. */
+const FIT_ROOM = 0.06;
+const fitBox = new THREE.Box3();
+globalThis.shosaPreviewCamera.fitBox = fitBox;   // what the last Fit framed, for test pages (out\pv\harness-camera.html)
+
+/**
+ * Everything the score shows, start to end, as balls (x, y, z, radius, flat): the figures, the characters as posed,
+ * the props. Measured point by point, not as one box: a box's empty corners pushed the camera back.
+ */
+function shownPoints() {
+  const points = [];
+  fitBox.makeEmpty();
+  if (!clip) return points;
+  const add = (x, y, z, r) => {
+    // Nothing under the floor: it was most of the view (the user).
+    const low = Math.min(r, Math.max(0, y + 0.02));
+    points.push(x, y, z, r);
+    fitBox.expandByPoint(new THREE.Vector3(x - r, y - low, z - r));
+    fitBox.expandByPoint(new THREE.Vector3(x + r, y + r, z + r));
+  };
+  const dressed = i => modelBox.checked && characters.isDressed(i);
+  // A prop's size: a club's end and a ring's edge reach past the middle the movement gives.
+  const reachOf = prop => prop === 'clubs' ? 0.25 : prop === 'rings' ? 0.17 : 0.04;
+  // The sticks and the props, at every frame, from the movement itself (a throw's top is at one frame only).
+  clip.figures.forEach((data, i) => {
+    if (!dressed(i)) {
+      const head = clip.joints.indexOf('head');
+      for (const frame of data.frames) {
+        for (let j = 0; j * 3 + 2 < frame.length; j++) add(frame[j * 3], frame[j * 3 + 1], frame[j * 3 + 2], j === head ? 0.105 : 0.036);
+      }
+    }
+    const juggled = data.juggle;
+    if (juggled && juggled.frames) {
+      const reach = reachOf(juggled.prop);
+      for (const frame of juggled.frames) {
+        for (let b = 0; b * 7 + 2 < frame.length; b++) add(frame[b * 7], frame[b * 7 + 1], frame[b * 7 + 2], reach);
+      }
+    }
+  });
+  // The characters, posed at moments through the score, and the props in their hands as drawn.
+  if (clip.figures.some((_, i) => dressed(i))) {
+    const count = Math.max(1, ...clip.figures.map(f => f.frames.length));
+    const samples = Math.min(count, FIT_SAMPLES);
+    const put = (v, r) => add(v.x, v.y, v.z, r);
+    for (let s = 0; s < samples; s++) {
+      pose(samples === 1 ? 0 : s * (count - 1) / (samples - 1));
+      characters.points(put);
+      juggle.points(put);
+    }
+    show();   // back to the moment shown
+  }
+  return points;
+}
+
+/** Brings the camera as near as everything shown fits in the view, looking at its middle, from the way round it looks now. */
+function fitView() {
+  const points = shownPoints();
+  if (!points.length) return;
+  const center = fitBox.getCenter(new THREE.Vector3());
+  const back = fromTarget.subVectors(camera.position, controls.target).normalize();   // toward the camera
+  const ahead = back.clone().negate();
+  const right = new THREE.Vector3().crossVectors(ahead, camera.up).normalize();
+  const up = new THREE.Vector3().crossVectors(right, ahead);
+  const tanUp = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)), tanSide = tanUp * camera.aspect;
+  let distance = NEAREST;
+  const p = new THREE.Vector3();
+  for (let i = 0; i < points.length; i += 4) {
+    p.set(points[i], points[i + 1], points[i + 2]).sub(center);
+    const r = points[i + 3] + FIT_ROOM;
+    const toward = p.dot(back) + r;
+    distance = Math.max(distance, toward + (Math.abs(p.dot(up)) + r) / tanUp, toward + (Math.abs(p.dot(right)) + r) / tanSide);
+  }
+  controls.target.copy(center);
+  camera.position.copy(center).addScaledVector(back, Math.min(distance, FURTHEST));
+  camera.lookAt(center);
+  controls.update();
+  syncCamera();
+  keepCamera();
+}
+
+placeCamera((vscode.getState() || {}).camera || START_VIEW);
 
 function tick(now) {
   if (recording) {
