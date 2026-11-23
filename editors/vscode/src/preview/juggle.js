@@ -139,42 +139,48 @@ export function palmsUp(vrm, weight, edge = false, styles = [0, 0], club = false
     hand.quaternion.copy(worldQuat(hand.parent).invert().multiply(turned));
     hand.updateMatrixWorld(true);
     // A test page reads how each hand is turned (out\pv\harness-hands.html); nothing in the extension sets it.
-    if (globalThis.shosaPalmsDebug) globalThis.shosaPalmsDebug(side, forearm.toArray(), along.toArray(), thumb.toArray(), weight);
+    if (globalThis.shosaPalmsDebug) globalThis.shosaPalmsDebug(side, forearm.toArray(), along.toArray(), thumb.toArray(), weight, turned.toArray(), share);
   }
 }
 
-/** Seconds a hand takes at the most to turn its palm up after it throws a club, and to turn to the grip after a catch. */
-const CLUB_PALM_UP = 0.2, CLUB_TO_GRIP = 0.25;
-/** Seconds after a club's catch the palm stays up before the hand turns to the grip. */
-const CLUB_CATCH_HOLD = 0.05;
+/** How far a hand holding a club turns from the palm up toward the grip at the most, halfway through its hold (0..1). */
+const CLUB_HOLD_TURN = 0.3;
+/** Seconds before its first throw a hand that held a club from the start turns its palm up; after its last catch, to turn that little. */
+const CLUB_FIRST_UP = 0.3, CLUB_LAST_TURN = 0.3;
 
 /**
- * How much each hand is turned palm up to catch a club at a time (seconds), [right, left], 0..1: after its throw the empty
- * hand turns up, 1 at the catch, and then it turns to the grip before its next throw (the user: caught palm up).
+ * How much each hand is turned palm up with a club at a time (seconds), [right, left], 0..1 (1 palm up, 0 the grip, the thumb
+ * on top). A club is caught and thrown on the palm turned up, and the hand turns only a little toward the grip while it
+ * holds it, most halfway between the catch and the throw (the user: caught palm up; then the wrist turned too far after
+ * the catch, and the throw too wants the palm up). Empty, the palm stays up. Held before the hand's first throw, it is
+ * turned that little and comes up to the throw; held after its last catch, it turns that little and stays.
  * `flights` are the clip's (ball, from, to, thrown, caught, ...).
  */
 export function clubCatching(flights, sec) {
   const smooth = x => { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); };
   return [0, 1].map(hand => {
-    let share = 0;
-    for (const fl of flights) {
-      if (fl[2] !== hand) continue;
-      const caught = fl[4];
-      let before = caught - 0.3, after = Infinity;
-      for (const t of flights) {
-        if (t[1] !== hand) continue;
-        if (t[3] <= caught && t[3] > before) before = t[3];
-        if (t[3] >= caught && t[3] < after) after = t[3];
-      }
-      if (sec >= before && sec <= caught) {
-        const rise = Math.max(1e-3, Math.min(CLUB_PALM_UP, 0.7 * (caught - before)));
-        share = Math.max(share, smooth((sec - before) / rise));
-      } else if (sec > caught && sec <= after) {
-        const turn = Math.max(1e-3, Math.min(CLUB_TO_GRIP, 0.6 * (after - caught) - CLUB_CATCH_HOLD));
-        share = Math.max(share, 1 - smooth((sec - caught - CLUB_CATCH_HOLD) / turn));
-      }
+    // The hand's holds: from a catch (or from the start) to its next throw (or on).
+    const catches = flights.filter(fl => fl[2] === hand).map(fl => fl[4]).sort((a, b) => a - b);
+    const throws = flights.filter(fl => fl[1] === hand).map(fl => fl[3]).sort((a, b) => a - b);
+    for (let i = 0; i < throws.length; i++) {
+      const thrown = throws[i];
+      if (sec > thrown) continue;
+      // The hold starts at the first catch after the hand's throw before (a second catch, at the end of a run, does not
+      // start it again), or with none at that throw: a hand with two (the box starts with two in one hand) throws one and
+      // goes on holding the other, from the palm up at that throw.
+      const before = i > 0 ? throws[i - 1] : -Infinity;
+      const caught = catches.find(x => x > before && x <= thrown + 1e-9);
+      const since = caught ?? before;
+      if (sec < since) break;   // empty: between the throw before and this catch
+      if (since === -Infinity)
+        return 1 - CLUB_HOLD_TURN * (1 - smooth((sec - (thrown - CLUB_FIRST_UP)) / CLUB_FIRST_UP));
+      return 1 - CLUB_HOLD_TURN * Math.sin(Math.PI * Math.max(0, Math.min(1, (sec - since) / Math.max(1e-3, thrown - since))));
     }
-    return share;
+    // After the hand's last throw: from its first catch after it on (a second catch after that does not start it again).
+    const lastThrow = throws.length ? throws[throws.length - 1] : -Infinity;
+    const first = catches.find(x => x > lastThrow && x <= sec + 1e-9);
+    if (first !== undefined) return 1 - CLUB_HOLD_TURN * smooth((sec - first) / CLUB_LAST_TURN);
+    return 1;
   });
 }
 
