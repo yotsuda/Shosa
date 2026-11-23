@@ -845,6 +845,8 @@ internal sealed class FigureSolver
     /// </summary>
     /// <summary>How far a penguin's hand goes from the shoulder at the most, metres: the arm 0.998 of its length, the elbow bent some 7 degrees.</summary>
     private const double PenguinReach = 0.998 * (Rig.UpperArm + Rig.Forearm);
+    /// <summary>How far out from the pelvis a penguin's hand is kept by the hips round its catch, metres (it catches 0.34 out).</summary>
+    private const double PenguinHipClear = 0.40;
     /// <summary>Where a penguin's reach starts to be held in, metres.</summary>
     private const double PenguinReachSoft = 0.50;
 
@@ -3027,6 +3029,30 @@ internal sealed class FigureSolver
                 // wrist cannot turn on a bent elbow, and before the catch the elbow was still straightening as it turned).
                 if (held > 0 && (wrist - shoulder).Length > 1e-6)
                     wrist = Vec3.Lerp(wrist, shoulder + (wrist - shoulder).Normalized() * PenguinReach, held);
+                // Clear of the hip round a penguin's catch (the user: swinging on from the catch, the hand went into the
+                // hip): down by the hips and not out in front, the hand is kept PenguinHipClear out from the pelvis, the
+                // arm swung out about the shoulder, as long as it was.
+                double clear = Juggling!.PenguinClear(isLeft ? 1 : 0, juggleSec);
+                if (clear > 0)
+                {
+                    var hipOut = trunk.C.HipLeft * side;
+                    var hipFwd = Vec3.Up.Cross(trunk.C.HipLeft).Normalized() * -1;
+                    if (hipFwd.Dot(trunk.Fwd) < 0)
+                        hipFwd = hipFwd * -1;
+                    var d = wrist - pelvis;
+                    double outNow = d.Dot(hipOut), ahead = d.Dot(hipFwd), above = d.Y;
+                    // As much as it is down by the hips (below the waist) and not in front of them (eased over 0.3 m each
+                    // way, so it does not jump out in a frame as the hand comes down to the catch).
+                    double where = Smooth(Math.Clamp((0.25 - above) / 0.3, 0, 1)) * Smooth(Math.Clamp((0.35 - ahead) / 0.3, 0, 1));
+                    double push = (PenguinHipClear - outNow) * clear * where;
+                    if (push > 0)
+                    {
+                        double length = (wrist - shoulder).Length;
+                        var moved = wrist + hipOut * push - shoulder;
+                        if (moved.Length > 1e-6)
+                            wrist = shoulder + moved.Normalized() * length;
+                    }
+                }
                 hand = Vec3.Lerp(hand, wrist, juggleWeight);
                 // The elbows down by the ribs and a little back, so the forearms point forward: out to the side they
                 // turned the forearms in, and on a character with narrow shoulders the hands crossed the middle.

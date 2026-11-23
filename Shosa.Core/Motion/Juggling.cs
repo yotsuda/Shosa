@@ -732,6 +732,29 @@ public sealed class Juggling
     }
 
     /// <summary>
+    /// How much a penguin's hand is kept clear of the hip, 0..1: from a little before its catch until the hand is on its
+    /// way to the throw, in front of the body (the solver keeps it out from the pelvis there; DESIGN.md 118.21).
+    /// </summary>
+    public double PenguinClear(int hand, double sec)
+    {
+        double clear = 0;
+        foreach (var (h, at) in _penguinCatches)
+        {
+            double d = sec - at;
+            if (h != hand || d < -PenguinStraightBefore - PenguinStraighten || d > PenguinClearAfter + PenguinClearOff)
+                continue;
+            clear = Math.Max(clear,
+                d < -PenguinStraightBefore ? Smooth(1 + (d + PenguinStraightBefore) / PenguinStraighten)
+                : d <= PenguinClearAfter ? 1
+                : Smooth(1 - (d - PenguinClearAfter) / PenguinClearOff));
+        }
+        return clear;
+    }
+
+    /// <summary>Seconds after a penguin's catch its hand is kept clear of the hip, and then let go over.</summary>
+    private const double PenguinClearAfter = 0.5, PenguinClearOff = 0.15;
+
+    /// <summary>
     /// Seconds before a penguin's catch its arm is straight, and it takes to straighten before that; after the catch the
     /// wrist takes to turn back, and the arm to be let bend after. The preview turns the wrist in over a little less than
     /// the first (PENGUIN_TWIST_IN) and back over the third (PENGUIN_UNWIND), juggle.js: keep them so.
