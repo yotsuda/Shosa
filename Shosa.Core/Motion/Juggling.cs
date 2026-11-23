@@ -1202,7 +1202,7 @@ public sealed class Juggling
             if (((k % 2) + 2) % 2 == 1)
                 (wt, wc) = (WheelPoint(WheelThrowAt), WheelPoint(WheelThrowAt + Math.PI * Dwell));
             else if (TopArcOn)
-                (wt, wc) = (TopArcPoint(Math.PI - TopArcPast), TopArcPoint(TopArcPast));
+                (wt, wc) = (TopArcPoint(Math.PI - TopArcPast), TopArcPoint(TopArcPast) - new Vec3(0, 0, TopArcCatchIn));
             return mirrored ? (new Vec3(-wt.X, wt.Y, wt.Z), new Vec3(-wc.X, wc.Y, wc.Z)) : (wt, wc);
         }
         int at = ((k % 6) + 6) % 6;
@@ -1313,6 +1313,10 @@ public sealed class Juggling
     }
 
     private const bool TopArcOn = true;
+    /// <summary>How much nearer the body the ball from under the arm is thrown to than the top hand's half circle, metres
+    /// (the user: the hand and the ball did not meet; the hand is half drawn in against the body then, WindmillPull, so the
+    /// ball came down 9 cm in front of the palm).</summary>
+    private const double TopArcCatchIn = 0.09;
     private static readonly Vec3 TopArcCentre = new(-0.13, 0.14, 0.03);
     private const double TopArcRadius = 0.27, TopArcRound = 0.15, TopArcPast = 15 * Math.PI / 180, TopArcEase = 2.0, TopArcTilt = 25 * Math.PI / 180, TopArcSoften = 0.04;
     private readonly List<(int Hand, double Thrown, double Period, bool Mirrored)> _topArc = [];

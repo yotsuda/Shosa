@@ -562,7 +562,12 @@ export function createJuggle(scene) {
               const gravity = track.millsGravity?.get(index) ?? G;
               p.copy(p0).lerp(p1, s / tf).addScaledVector(Y, gravity / 2 * s * (tf - s));
               [from, to, u] = [f, g, s / tf];
-              if (flight[5] === 1) toPlane(p, sec);
+              // Thrown toward the catching hand where it is drawn in against the body (the windmill's top hand, juggle.pull:
+              // the user, the ball and the hand did not meet; kept in the plane, it came down 9 cm in front of the palm).
+              const pulledAt = juggle.pull?.[Math.min(juggle.pull.length - 1, Math.round(caught * clip.fps))]?.[g] ?? 0;
+              // (By the pull's share only, it still came down 5 cm in front: a character's hand is drawn in further than the
+              // figure's. So all the way to the palm, as soon as the hand is being drawn in at all.)
+              if (flight[5] === 1) toPlane(p, sec, 1 - Math.min(1, pulledAt / 0.2) * s / tf);
             } else {
               let hand = frames[0][j + 3] | 0, last = -Infinity;
               for (const fl of juggle.flights) if (fl[0] === b && fl[4] < sec && fl[4] > last) [hand, last] = [fl[2], fl[4]];
