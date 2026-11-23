@@ -641,7 +641,17 @@ public sealed class Juggling
             // Under the leg and behind the back, the hand swings through softly (DESIGN.md 118.31): down to the place
             // without stopping there, up with the ball at a part of its speed, and on a little after it. (With a cascade's
             // stop it waited under the thigh, 0.3 m/s, and was flung up to the ball's speed.)
-            AddSmooth(hand, (thrown - Math.Min(1.5 * swing, most), from - leaves.Normalized() * TrickDip, Still, throwStyle));
+            double dipAt = thrown - Math.Min(1.5 * swing, most);
+            // Behind the back, the hand goes round by the side of its own hip from where it was (the user: just before
+            // the throw the arm went into the body; from the catch before the chest it went straight back through the
+            // spine): out at the hip's side, level with the pelvis, halfway in time.
+            if (throwStyle == Style.Back)
+            {
+                int before = _keys[hand].FindLastIndex(key => key.T < dipAt - 1e-9);
+                if (before >= 0 && dipAt - _keys[hand][before].T > 0.1)
+                    AddSmooth(hand, ((_keys[hand][before].T + dipAt) / 2, new Vec3(Side(hand) * BackBySide, BackBySideHigh, BackBySideAhead), Still, Style.Own));
+            }
+            AddSmooth(hand, (dipAt, from - leaves.Normalized() * TrickDip, Still, throwStyle));
             AddSmooth(hand, (thrown, from, Still, throwStyle));
             _launch[(hand, thrown)] = leaves.Y * TrickLaunch;
             _launchAcross[(hand, thrown)] = leaves.X * TrickLaunch;
@@ -860,6 +870,8 @@ public sealed class Juggling
         return turn;
     }
 
+    /// <summary>On its way behind the back, where the hand goes by its own hip (in the juggling's frame: out, up, ahead).</summary>
+    private const double BackBySide = 0.30, BackBySideHigh = -0.10, BackBySideAhead = -0.28;
     /// <summary>The throws behind the back: the hand and when (seconds).</summary>
     private readonly List<(int Hand, double At)> _backThrows = [];
     /// <summary>Behind the back, how far the shoulders and the hips turn at the throw (radians), and over how long either side of it (seconds).</summary>
