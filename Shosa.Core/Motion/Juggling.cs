@@ -292,7 +292,10 @@ public sealed class Juggling
                     if (millsFlight && !windmill && slot.Index % 3 == 0 && slot.Index > 0)
                         thrown -= MillsFirstEarlier * T;
                     Flights.Add(new Flight(ball, hand, to, thrown, caught, t.Value,
-                        slot.Seg.Tricks?.FirstOrDefault(x => x is "under" or "back"), slot.Seg, millsFlight, millsFlight && !windmill ? slot.Index % 3 : -1));
+                        slot.Seg.Tricks?.FirstOrDefault(x => x is "under" or "back"), slot.Seg, millsFlight,
+                        // The windmill's two, as Mills' first and second: the top hand's and the one from under the arm on top,
+                        // each pair as high as each other in the preview (DESIGN.md 118.28).
+                        !millsFlight ? -1 : windmill ? slot.Index % 2 : slot.Index % 3));
                     Arrive(land, ball, to, Flights.Count - 1);
                     var landing = slots[Math.Min(land, slots.Count - 1)];
                     var catcher = landing.Seg;   // none: caught for good at the end of the run, as a plain catch (not Mills' middle)
@@ -301,7 +304,9 @@ public sealed class Juggling
                     bool Mirrored(Slot x) => x.Seg is not null && Siteswap.HandAt(x.InRun - x.Index, x.Seg.LeftFirst) == 1;
                     _mills6 = (slot.Index % 6, Mirrored(slot), landing.Seg is null ? (slot.Index + t.Value) % 6 : landing.Index % 6,
                         landing.Seg is null ? Mirrored(slot) : Mirrored(landing), windmill);
-                    Swing(hand, to, t.Value, thrown, caught, T, slot.Seg.Tricks, catcher?.Tricks, _throwsBy[hand]++);
+                    // The catching hand's own throw two beats before the catch, when it is still to be planned.
+                    double ownThrown = land - 2 > s && land - 2 < slots.Count && slots[land - 2].Seg is not null ? SlotSec(land - 2) : double.NegativeInfinity;
+                    Swing(hand, to, t.Value, thrown, caught, T, slot.Seg.Tricks, catcher?.Tricks, _throwsBy[hand]++, ownThrown);
                     lastCatch = Math.Max(lastCatch, caught);
                 }
                 // Balls that came down and are not thrown: held, and thrown on the hand's next turn.
@@ -328,12 +333,11 @@ public sealed class Juggling
         foreach (var (seg, _) in run.Where(r => Round(r.Seg.Tricks)))
         {
             _mills.Add((Sec(seg.T0), Sec(seg.T1)));
-            // The back sways with Mills' six throws round; the windmill's top arm is always the same one.
-            if (Windmill(seg.Tricks))
-                continue;
+            // The back sways with Mills' six throws round; the windmill's top arm is always the same one, so it leans
+            // one way all through (SideLean).
             var firstSlot = slots.First(x => ReferenceEquals(x.Seg, seg));
             double beatSec = Sec(seg.T0 + (seg.Every ?? 0.5)) - Sec(seg.T0);
-            _millsSway.Add((Sec(seg.T0), Sec(seg.T1), beatSec, Siteswap.HandAt(firstSlot.InRun, seg.LeftFirst) == 1));
+            _millsSway.Add((Sec(seg.T0), Sec(seg.T1), beatSec, Siteswap.HandAt(firstSlot.InRun, seg.LeftFirst) == 1, Windmill(seg.Tricks)));
         }
         heldSince = lastCatch + 0.2;
         Runs.Add((start, lastCatch));
@@ -446,9 +450,14 @@ public sealed class Juggling
     /// (a 1) only passes it.
     /// </summary>
     private void Swing(int hand, int to, int value, double thrown, double caught, double beat,
-        List<string>? throwTricks = null, List<string>? catchTricks = null, int nth = 0)
+        List<string>? throwTricks = null, List<string>? catchTricks = null, int nth = 0, double ownThrown = double.NegativeInfinity)
     {
         bool across = to != hand;
+        // A penguin catch needs the time to straighten the arm down by the hip and turn the hand: too soon after the hand's
+        // own throw (coming into a penguin from a quick claw, 0.1 s), it is caught as a plain one (the hand flew 0.4 m in a
+        // frame, at 11 m/s; DESIGN.md 118.30). The ball is still thrown again as the penguin's.
+        if (catchTricks?.Contains("penguin") == true && Math.Min(SinceOwnThrow(to, caught), caught - ownThrown) < PenguinLeast)
+            catchTricks = [.. catchTricks.Where(x => x != "penguin")];
         var from = Throws(hand, value, across);
         var into = Catches(to, value, across);
         Style throwStyle = Style.Own, catchStyle = Style.Own;
@@ -482,7 +491,11 @@ public sealed class Juggling
                 // off at a sudden angle): caught high near the middle going in and down with the ball, round the bottom,
                 // out and up to the throw, and on up and in with the ball to the next catch.
                 var caughtAt = MillsPlace(_mills6.ThrowK, _mills6.ThrowMirror, _mills6.Windmill).Catch;
-                var bottom = new Vec3((from.X + caughtAt.X) / 2, Math.Min(from.Y, caughtAt.Y) - MillsLoopDepth, from.Z);
+                // The windmill's top hand goes round no lower than its throw: the two hands go round the same way, so on
+                // the way back the top hand's bottom passes the other hand's top, and it has to stay above it (the right
+                // arm on top all the time; going under its throw, the hands passed 8 cm apart up and down).
+                double depth = _mills6.Windmill && Top(_mills6.ThrowK) ? 0 : MillsLoopDepth;
+                var bottom = new Vec3((from.X + caughtAt.X) / 2, Math.Min(from.Y, caughtAt.Y) - depth, from.Z);
                 AddSmooth(hand, (thrown - MillsBottomAt * Dwell * beat, bottom, Still, throwStyle));
                 AddSmooth(hand, (thrown, from, Still, throwStyle));
                 // Up and across with the ball.
@@ -510,15 +523,42 @@ public sealed class Juggling
                 AddSmooth(to, (caught, into, Still, catchStyle));
                 // The first throw's ball is met high by a hand going its own way, straight on across the ball's way down,
                 // not bending round to follow it (the user; it came down with the ball before and after the catch, nearly as fast).
-                // (The windmill's top hand still meets its ball high and goes down with it: the user asked this of Mills' only.)
+                // The windmill's top hand too, as Mills' (DESIGN.md 118.28: following the ball down, it turned back sharply
+                // after the catch).
                 if (!Top(_mills6.CatchK))
                     _arrive[(to, caught)] = arrives * MillsArrive;
-                else if (_mills6.Windmill)
-                {
-                    _arrive[(to, caught)] = arrives * MillsArriveFirst;
-                    AddSmooth(to, (caught - MillsMeetBefore, into - arrives * (MillsMeetBefore * MillsArriveFirst), Still, catchStyle));
-                    AddSmooth(to, (caught + MillsGiveAfter, into + arrives * (MillsGiveAfter * MillsArriveFirst * 0.7), Still, catchStyle));
-                }
+            }
+            else
+                _keys[to].Add((caught, into, arrives * 0.3, catchStyle));
+            return;
+        }
+        // The reverse cascade goes round softly too, as Mills' Mess does (DESIGN.md 118.29): each hand round a loop the other
+        // way from a cascade's, caught inside going down with the ball, carried down and out round the bottom, and thrown
+        // from outside going up and in with it, then on in over the top to the next catch. (With a cascade's stop, swing up
+        // and stop after, the hand turned right back on itself in a frame at the throw and the catch, at up to 120 m/s².)
+        bool reverseThrow = throwTricks?.Contains("reverse") == true && throwStyle == Style.Own;
+        bool reverseCatch = catchTricks?.Contains("reverse") == true && catchStyle == Style.Own;
+        if (reverseThrow || reverseCatch)
+        {
+            if (reverseThrow)
+            {
+                // The bottom of the loop: under the way from the hand's catch inside to its throw outside.
+                double inside = Side(hand) * Math.Abs(Throws(hand, value, across).X);
+                var bottom = new Vec3((from.X + inside) / 2, from.Y - ReverseLoopDepth, from.Z);
+                AddSmooth(hand, (thrown - MillsBottomAt * Dwell * beat, bottom, Still, throwStyle));
+                AddSmooth(hand, (thrown, from, Still, throwStyle));
+                _launch[(hand, thrown)] = leaves.Y * ReverseLaunch;
+                _launchAcross[(hand, thrown)] = leaves.X * ReverseLaunch;
+            }
+            else
+            {
+                _keys[hand].Add((thrown - Math.Min(0.05, 0.45 * Dwell * beat), from - leaves * Math.Min(0.025, 0.2 * Dwell * beat), Still, throwStyle));
+                _keys[hand].Add((thrown, from, leaves, throwStyle));
+            }
+            if (reverseCatch)
+            {
+                AddSmooth(to, (caught, into, Still, catchStyle));
+                _arrive[(to, caught)] = arrives * ReverseArrive;
             }
             else
                 _keys[to].Add((caught, into, arrives * 0.3, catchStyle));
@@ -693,7 +733,7 @@ public sealed class Juggling
     /// <summary>The juggling's Mills' Mess at a time (seconds), 0..1: how much the body goes with the crossing arms.</summary>
     private readonly List<(double From, double To)> _mills = [];
     /// <summary>Each Mills word for the back's sway: when, seconds from one throw to the next, and whether its first throw is the left hand's.</summary>
-    private readonly List<(double From, double To, double Beat, bool Mirrored)> _millsSway = [];
+    private readonly List<(double From, double To, double Beat, bool Mirrored, bool Windmill)> _millsSway = [];
 
     /// <summary>
     /// How far the shoulders turn with the arms (radians, to the dancer's left), where the shoulders' row says nothing: in
@@ -796,6 +836,24 @@ public sealed class Juggling
     /// <summary>A penguin's throw: seconds after it the hand is at the top of its follow-through, and how far it has gone on with the ball by then (metres).</summary>
     private const double PenguinFollowAt = 0.12, PenguinFollow = 0.16;
 
+    /// <summary>The reverse cascade's loop: how far below its throw it goes round (metres), and how fast the hand goes with
+    /// the ball at the throw and at the catch, as parts of the ball's speed.</summary>
+    private const double ReverseLoopDepth = 0.10, ReverseLaunch = 0.8, ReverseArrive = 0.6;
+
+    /// <summary>The least time from a hand's own throw to a penguin catch, seconds (at 120 it is 0.35 s every 1, 0.175 s every
+    /// 1/2, which is quick and said, SH2020, but still a penguin's; from a claw at 120 it was 0.1 s).</summary>
+    private const double PenguinLeast = 0.15;
+
+    /// <summary>Seconds from a hand's last throw before a time to that time (infinite when it has not thrown).</summary>
+    private double SinceOwnThrow(int hand, double sec)
+    {
+        double last = double.NegativeInfinity;
+        foreach (var f in Flights)
+            if (f.From == hand && f.Thrown < sec - 1e-9 && f.Thrown > last)
+                last = f.Thrown;
+        return sec - last;
+    }
+
     /// <summary>The penguin catches: the catching hand and when (seconds).</summary>
     private readonly List<(int Hand, double At)> _penguinCatches = [];
     /// <summary>The flights caught in a penguin's way, behind the hip.</summary>
@@ -816,10 +874,14 @@ public sealed class Juggling
         double w = MillsWeight(sec);
         if (w <= 0)
             return 0;
-        foreach (var (from, to, beat, mirrored) in _millsSway)
+        foreach (var (from, to, beat, mirrored, windmill) in _millsSway)
         {
             if (sec < from - 0.4 || sec > to + 0.4)
                 continue;
+            // The windmill throws from under the same arm every other throw: the back stays leant as Mills' is at its
+            // throw from under, the top arm's shoulder up (a sway once in two throws would rattle).
+            if (windmill)
+                return w * (mirrored ? -WindmillLean : WindmillLean);
             double phase = (sec - from) / (6 * beat);
             double lean = -MillsLean * Math.Cos(2 * Math.PI * (phase - 2.0 / 6));
             return w * (mirrored ? -lean : lean);
@@ -829,6 +891,8 @@ public sealed class Juggling
 
     /// <summary>How far Mills' back leans at the most (the torso's sideways part): some 10 degrees (17 was too much: the user).</summary>
     private const double MillsLean = 0.18;
+    /// <summary>How far the windmill's back leans all through, the top arm's shoulder up.</summary>
+    private const double WindmillLean = 0.12;
 
     /// <summary>
     /// How much a hand holds a ball around a time (seconds), 0..1: 1 holding (the catch and the throw included), and on the
@@ -883,7 +947,7 @@ public sealed class Juggling
     private double MillsAcross(double sec)
     {
         double beat = 0.25;
-        foreach (var (from, to, b, _) in _millsSway)
+        foreach (var (from, to, b, _, _) in _millsSway)
             if (sec >= from - 0.5 && sec <= to + 0.5)
             {
                 beat = b;
@@ -965,13 +1029,6 @@ public sealed class Juggling
     private const double MillsLaunch = 0.8;
     /// <summary>How fast the hand goes with the ball at a Mills catch, as a part of the ball's speed.</summary>
     private const double MillsArrive = 0.6;
-    /// <summary>The windmill's top hand catches high and goes down with its ball nearly as fast (Mills' first catch did, until
-    /// the user asked for the hand to cross the ball's way instead).</summary>
-    private const double MillsArriveFirst = 0.9;
-    /// <summary>How long before the first throw's catch the hand is already coming down with the ball, seconds.</summary>
-    private const double MillsMeetBefore = 0.09;
-    /// <summary>How long after the first throw's catch the hand goes on down with the ball, seconds.</summary>
-    private const double MillsGiveAfter = 0.14;
 
     /// <summary>
     /// The windmill's two throws round (x to the dancer's left, as written for a word whose first throw is the right hand's):
@@ -980,18 +1037,21 @@ public sealed class Juggling
     /// to and fro, the right arm always the one on top. It is Mills' Mess one way round only (the user): of Mills' six
     /// throws, the hand on its own side and the other hand from under the arm on top, again and again, never mirrored —
     /// here Mills' second and third mirrored, so the right arm is the one on top. The right hand throws from its own side and
-    /// catches high near the middle, crossed over (as Mills' first ball is caught); the left hand reaches under the right
-    /// arm, throws from low on the right, and catches out on its own side (as Mills' third ball is caught), its forearm
-    /// swinging round. The hands go round Mills' soft loops. (Each hand on its own half, the top hand to and fro over the top
+    /// catches high on the left, crossed over, its hand going on across the ball's way as Mills' first catch does; the left
+    /// hand reaches under the right arm, throws from low on the right, and catches on its own side, its forearm swinging
+    /// round. The back leans the right shoulder up all through (SideLean). The hands go round Mills' soft loops. (Each hand on its own half, the top hand to and fro over the top
     /// and the bottom one under, turned sharply at the ends; both round one circle, the forearms went through each other.)
-    /// The top hand catches higher than Mills' 25 cm: every ball goes one way on one path, and the top hand's own ball was
-    /// coming up through the middle just as the one from under the arm came down there into the hand (7.7 cm apart); lower,
-    /// to the left or a little earlier the forearms met or the balls still did.
+    /// Every ball goes one way on one path, so the top hand catches past the middle on the left, clear of its own ball
+    /// coming up through the middle (caught at the middle, 7 cm apart), and a little above the shoulders, not at the face.
+    /// The left hand throws from under the right arm only as far over as it reaches (placed further, it stopped against the
+    /// end of its reach and turned back sharply there), and catches a little in from its side and low, so the two balls
+    /// go nearly one way (from the right, caught 20 and 8 cm left of the middle) and the hand on top always passes over the
+    /// other with room between (DESIGN.md 118.28).
     /// </summary>
     private static readonly (Vec3 Throw, Vec3 Catch)[] WindmillRight =
     [
-        (new Vec3(-0.40, 0.12, 0.03), new Vec3(0.03, 0.38, 0.03)),
-        (new Vec3(-0.30, -0.08, 0.03), new Vec3(0.40, 0.12, 0.03)),
+        (new Vec3(-0.40, 0.12, 0.03), new Vec3(0.14, 0.30, 0.03)),
+        (new Vec3(-0.22, -0.08, 0.03), new Vec3(0.30, 0.04, 0.03)),
     ];
 
     /// <summary>Where a claw catches, metres above the juggling's middle (before the belly): about the face.</summary>

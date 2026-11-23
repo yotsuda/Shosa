@@ -322,7 +322,11 @@ public class JuggleTests
         var clip = c.Clip;
         var flights = clip.Figures[0].Juggle!.Flights;
         Assert.Equal(plain.Clip.Figures[0].Juggle!.Flights.Select(f => f[3]), flights.Take(plain.Clip.Figures[0].Juggle!.Flights.Count).Select(f => f[3]));
-        Assert.All(flights.Where(f => f[5] == 1), f => Assert.Equal(-1f, f[6]));   // not paired as Mills' thirds
+        // Paired as Mills' first and second for the preview's heights: the top hand's throw, then the one from under the arm.
+        Assert.All(flights.Where(f => f[5] == 1), f => Assert.Equal(f[1] == 0 ? 0f : 1f, f[6]));
+        // The back leans the top arm's shoulder up all through (DESIGN.md 118.28).
+        for (int frame = clip.FrameOfBeat(2); frame < clip.FrameOfBeat(6); frame += 3)
+            Assert.True(clip.Figures[0].Joint(frame, Rig.RShoulder).Y > clip.Figures[0].Joint(frame, Rig.LShoulder).Y + 0.01, $"the right shoulder up at frame {frame}");
         var balls = clip.Figures[0].Juggle!.Frames;
         double Side(int frame, int ball) => balls[frame][ball * 7] - clip.Figures[0].Joint(frame, Rig.Pelvis).X;
         foreach (var f in flights.Where(f => f[5] == 1 && f[3] > 1))
