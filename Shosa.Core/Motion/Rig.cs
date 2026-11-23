@@ -277,8 +277,10 @@ public sealed record ClipMic(string Hand, List<float> Up);
 /// plane before the body)], for the preview to draw it between a character's own hands.
 /// <paramref name="Styles"/>: at each frame how each hand is held, [right, left] (<see cref="Juggling.Style"/>: 0 the prop's own
 /// way, 1 a claw's palm down, 2 a penguin's fingers down, 3 behind the back, 4 under the leg), for the preview to turn the hands.
+/// <paramref name="Mills"/>: how much Mills' Mess has the arms at each frame (0..1), for the preview to solve a character's
+/// arms again on its own body while it does (its elbows held side to side as the figure's are).
 /// </summary>
-public sealed record ClipJuggle(string Prop, int Count, List<float[]> Frames, List<float> Weight, List<float[]> Flights, List<int[]> Styles);
+public sealed record ClipJuggle(string Prop, int Count, List<float[]> Frames, List<float> Weight, List<float[]> Flights, List<int[]> Styles, List<float> Mills);
 
 /// <summary>
 /// Degrees, more to the figure's left. <paramref name="Feet"/> is from the front of the room; the

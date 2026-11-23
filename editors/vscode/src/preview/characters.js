@@ -8,6 +8,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
+import { millsArms } from './arms.js';
 import { elbowSwings, keepArmsOut, measureBody } from './clearance.js';
 import { createMicHands } from './mic.js';
 import { gripHands, heldBy, palmAlong, palmsUp } from './juggle.js';
@@ -121,8 +122,22 @@ export function createCharacters(scene, changed) {
     }
     // The arms out of the character's own body, which is not the figure's the turns were solved on (DESIGN.md 116).
     // (A test page turns it off with globalThis.shosaArmsAsSolved, to compare.)
+    // In Mills' Mess the arms are solved again on the character's own body, its elbows held as the figure's (arms.js).
+    // (Test pages: globalThis.shosaNoMillsArms leaves them as the turns put them, shosaNoClearance keeps nothing out after.)
+    const mills = data.juggle && data.juggle.mills;
+    if (mills && mills.length && entry.body && !globalThis.shosaArmsAsSolved && !globalThis.shosaNoMillsArms) {
+      const m0 = mills[Math.min(mills.length - 1, f0)], m1 = mills[Math.min(mills.length - 1, f0 + 1)];
+      const weight = m0 + (m1 - m0) * k;
+      if (weight > 0) {
+        const p = frames[f0], q = frames[Math.min(frames.length - 1, f0 + 1)];
+        millsArms(vrm, entry.body, size, name => {
+          const j = clip.joints.indexOf(name);
+          return new THREE.Vector3(p[j * 3] + (q[j * 3] - p[j * 3]) * k, p[j * 3 + 1] + (q[j * 3 + 1] - p[j * 3 + 1]) * k, p[j * 3 + 2] + (q[j * 3 + 2] - p[j * 3 + 2]) * k);
+        }, weight);
+      }
+    }
     // The elbows' swings are worked out for the whole clip beforehand (swingsOf): found afresh in each frame they flapped.
-    if (entry.body && clear && !globalThis.shosaArmsAsSolved) keepArmsOut(vrm, entry.body, size, swingsAt(entry, data, frame));
+    if (entry.body && clear && !globalThis.shosaArmsAsSolved && !globalThis.shosaNoClearance) keepArmsOut(vrm, entry.body, size, swingsAt(entry, data, frame));
     // Juggling (DESIGN.md 118): the palms up while it throws, so the balls lie on them; for rings an edge, the thumb up.
     const juggled = data.juggle && data.juggle.weight;
     if (juggled && juggled.length) {
