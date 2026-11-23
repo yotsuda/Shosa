@@ -312,6 +312,20 @@ public class JuggleTests
     }
 
     [Fact]
+    public void Mills_written_on_in_a_second_word_goes_on_round_as_one_word_does()
+    {
+        // Eight throws a word, the six throws round go on over the bar line: the hands move as in one word of sixteen in a
+        // bar of 8/4 (DESIGN.md 118.40; counted again from the first of six at the second word, they jumped there).
+        var two = Compile(Juggle("every 1/2  3:4@mills | 3:4@mills |"));
+        var one = Compile(Juggle("every 1/2  3:8@mills |").Replace("tempo 120\n", "tempo 120\ntime 8/4\n"));
+        Assert.Empty(two.Diagnostics);
+        Assert.Empty(one.Diagnostics);
+        for (int frame = 0; frame < Math.Min(two.Clip.Figures[0].Frames.Count, one.Clip.Figures[0].Frames.Count); frame++)
+            foreach (var joint in new[] { Rig.RHand, Rig.LHand, Rig.Chest })
+                Assert.True((two.Clip.Figures[0].Joint(frame, joint) - one.Clip.Figures[0].Joint(frame, joint)).Length < 1e-3, $"frame {frame}");
+    }
+
+    [Fact]
     public void A_ball_caught_behind_the_back_is_met_behind_the_waist_the_shoulders_turned()
     {
         // The ball caught in the @backcatch word (the left hand's, thrown again on beat 5 of every 1): at its catch the left

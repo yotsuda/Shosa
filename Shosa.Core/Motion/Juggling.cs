@@ -77,7 +77,8 @@ public sealed class Juggling
 
     // ------------------------------------------------------------------ the throws
 
-    private sealed record Slot(double Beat, Seg? Seg, Siteswap.Pattern? Pattern, int Index, int InRun);
+    /// <param name="Round">Which throw of Mills' Mess (or the windmill) it is, counted on through the words of it that follow one another unchanged.</param>
+    private sealed record Slot(double Beat, Seg? Seg, Siteswap.Pattern? Pattern, int Index, int InRun, int Round);
 
     private void Plan(List<Seg> segs)
     {
@@ -152,23 +153,32 @@ public sealed class Juggling
         var slots = new List<Slot>();
         int index = 0;
         double every = run[0].Seg.Every ?? 0.5;
+        Seg? before = null;
+        int roundCount = 0;
         foreach (var (seg, pattern) in run)
         {
             every = seg.Every ?? 0.5;
+            // Mills' Mess (or the windmill) written on in a second word goes on counting its throws round from the first
+            // (the user: `3:4@mills | 3:4@mills` jolted at the bar line, eight throws a word, the count starting over at six
+            // throws' second).
+            if (!(before is not null && Round(before.Tricks) && Round(seg.Tricks) && Windmill(before.Tricks) == Windmill(seg.Tricks)
+                  && before.LeftFirst == seg.LeftFirst && before.Every == seg.Every && Math.Abs(before.T1 - seg.T0) < 1e-6))
+                roundCount = 0;
             for (int k = 0; ; k++)
             {
                 double beat = seg.T0 + k * every;
                 if (beat >= seg.T1 - 1e-6)
                     break;
-                slots.Add(new Slot(beat, seg, pattern, k, index++));
+                slots.Add(new Slot(beat, seg, pattern, k, index++, roundCount++));
             }
+            before = seg;
         }
         if (slots.Count == 0)
             return;
         int highest = run.Max(r => r.Pattern.Highest);
         double after = slots[^1].Beat;
         for (int k = 1; k <= highest + 2; k++)
-            slots.Add(new Slot(after + k * every, null, null, -1, index++));
+            slots.Add(new Slot(after + k * every, null, null, -1, index++, -1));
 
         double SlotSec(int s) => Sec(slots[Math.Min(s, slots.Count - 1)].Beat);
         double BeatSec(int s) => s + 1 < slots.Count ? SlotSec(s + 1) - SlotSec(s) : Sec(slots[s].Beat + every) - SlotSec(s);
@@ -286,25 +296,25 @@ public sealed class Juggling
                     // the plane before the body, the hands soft.
                     bool windmill = Windmill(slot.Seg.Tricks);
                     bool millsFlight = Round(slot.Seg.Tricks) && Round(landingSeg?.Tricks) && windmill == Windmill(landingSeg?.Tricks);
-                    if (millsFlight && !windmill && slot.Index % 3 == 1)
+                    if (millsFlight && !windmill && slot.Round % 3 == 1)
                         thrown -= MillsSecondEarlier * T;
                     // The first (and the fourth) as high as the second (the user): a little before its beat too, but not the
                     // word's very first throw, which the hands come in to from what the arms did.
-                    if (millsFlight && !windmill && slot.Index % 3 == 0 && slot.Index > 0)
+                    if (millsFlight && !windmill && slot.Round % 3 == 0 && slot.Round > 0)
                         thrown -= MillsFirstEarlier * T;
                     Flights.Add(new Flight(ball, hand, to, thrown, caught, t.Value,
                         slot.Seg.Tricks?.FirstOrDefault(x => x is "under" or "backthrow"), slot.Seg, millsFlight,
                         // The windmill's two, as Mills' first and second: the top hand's and the one from under the arm on top,
                         // each pair as high as each other in the preview (DESIGN.md 118.28).
-                        !millsFlight ? -1 : windmill ? slot.Index % 2 : slot.Index % 3,
+                        !millsFlight ? -1 : windmill ? slot.Round % 2 : slot.Round % 3,
                         landingSeg?.Tricks?.Contains("backcatch") == true ? landingSeg : null));
                     Arrive(land, ball, to, Flights.Count - 1);
                     var landing = slots[Math.Min(land, slots.Count - 1)];
                     var catcher = landing.Seg;   // none: caught for good at the end of the run, as a plain catch (not Mills' middle)
-                    // Which of Mills' six throws this is, and which the ball is caught for: counted in its word, mirrored
-                    // when the word's first throw is the left hand's.
-                    bool Mirrored(Slot x) => x.Seg is not null && Siteswap.HandAt(x.InRun - x.Index, x.Seg.LeftFirst) == 1;
-                    _mills6 = (slot.Index % 6, Mirrored(slot), landing.Seg is null ? (slot.Index + t.Value) % 6 : landing.Index % 6,
+                    // Which of Mills' six throws this is, and which the ball is caught for: counted from the first of its words
+                    // that follow one another, mirrored when that one's first throw is the left hand's.
+                    bool Mirrored(Slot x) => x.Seg is not null && Siteswap.HandAt(x.InRun - x.Round, x.Seg.LeftFirst) == 1;
+                    _mills6 = (slot.Round % 6, Mirrored(slot), landing.Seg is null ? (slot.Round + t.Value) % 6 : landing.Round % 6,
                         landing.Seg is null ? Mirrored(slot) : Mirrored(landing), windmill);
                     // The catching hand's own throw two beats before the catch, when it is still to be planned.
                     double ownThrown = land - 2 > s && land - 2 < slots.Count && slots[land - 2].Seg is not null ? SlotSec(land - 2) : double.NegativeInfinity;
@@ -337,9 +347,11 @@ public sealed class Juggling
             _mills.Add((Sec(seg.T0), Sec(seg.T1)));
             // The back sways with Mills' six throws round; the windmill's top arm is always the same one, so it leans
             // one way all through (SideLean).
+            // Counted from the first of the words of it that follow one another (Slot.Round), as the throws are.
             var firstSlot = slots.First(x => ReferenceEquals(x.Seg, seg));
+            var chainStart = slots.First(x => x.InRun == firstSlot.InRun - firstSlot.Round);
             double beatSec = Sec(seg.T0 + (seg.Every ?? 0.5)) - Sec(seg.T0);
-            _millsSway.Add((Sec(seg.T0), Sec(seg.T1), beatSec, Siteswap.HandAt(firstSlot.InRun, seg.LeftFirst) == 1, Windmill(seg.Tricks)));
+            _millsSway.Add((Sec(seg.T0), Sec(seg.T1), beatSec, Siteswap.HandAt(chainStart.InRun, chainStart.Seg!.LeftFirst) == 1, Windmill(seg.Tricks), Sec(chainStart.Beat)));
         }
         heldSince = lastCatch + 0.2;
         Runs.Add((start, lastCatch));
@@ -849,7 +861,7 @@ public sealed class Juggling
     /// <summary>The juggling's Mills' Mess at a time (seconds), 0..1: how much the body goes with the crossing arms.</summary>
     private readonly List<(double From, double To)> _mills = [];
     /// <summary>Each Mills word for the back's sway: when, seconds from one throw to the next, and whether its first throw is the left hand's.</summary>
-    private readonly List<(double From, double To, double Beat, bool Mirrored, bool Windmill)> _millsSway = [];
+    private readonly List<(double From, double To, double Beat, bool Mirrored, bool Windmill, double Origin)> _millsSway = [];
 
     /// <summary>
     /// How far the shoulders turn with the arms (radians, to the dancer's left), where the shoulders' row says nothing: in
@@ -1023,7 +1035,7 @@ public sealed class Juggling
         double w = MillsWeight(sec);
         if (w <= 0)
             return 0;
-        foreach (var (from, to, beat, mirrored, windmill) in _millsSway)
+        foreach (var (from, to, beat, mirrored, windmill, origin) in _millsSway)
         {
             if (sec < from - 0.4 || sec > to + 0.4)
                 continue;
@@ -1031,7 +1043,7 @@ public sealed class Juggling
             // throw from under, the top arm's shoulder up (a sway once in two throws would rattle).
             if (windmill)
                 return w * (mirrored ? -WindmillLean : WindmillLean);
-            double phase = (sec - from) / (6 * beat);
+            double phase = (sec - origin) / (6 * beat);
             double lean = -MillsLean * Math.Cos(2 * Math.PI * (phase - 2.0 / 6));
             return w * (mirrored ? -lean : lean);
         }
@@ -1096,7 +1108,7 @@ public sealed class Juggling
     private double MillsAcross(double sec)
     {
         double beat = 0.25;
-        foreach (var (from, to, b, _, _) in _millsSway)
+        foreach (var (from, to, b, _, _, _) in _millsSway)
             if (sec >= from - 0.5 && sec <= to + 0.5)
             {
                 beat = b;
