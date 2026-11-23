@@ -17,6 +17,8 @@ import { clubCatching, gripHands, heldBy, palmAlong, palmsUp, penguinShares } fr
 const MOUTH = ['aa', 'ih', 'ou', 'ee', 'oh'];
 /** How long the eyes' resting place is eased over while juggling, seconds (the Gaussian's spread). */
 const EYES_SOFTEN = 0.3;
+/** Over how far above the eyes a place comes to be looked at fully, metres (below the eyes, not at all). */
+const EYES_ABOVE = 0.3;
 /** How far a club's handle lies from the middle of the hand toward the thumb, metres (on the figure's 0.31 m forearm). */
 const CLUB_TOWARD_THUMB = 0.025;
 
@@ -258,37 +260,87 @@ export function createCharacters(scene, changed) {
    * side either, the eyes kept ahead (the user: a penguin's low throws looked wrong). Null when no such top is up.
    */
   function highestTop(track, flights, sec, eyeY) {
+    flights = flights || [];
+    const gravityOf = i => track.millsGravity?.get(i) ?? 9.81;
+    // A flight's ball at a time, and the top of its way and when.
+    const ballAt = (i, at) => {
+      const [, from, to, thrown, caught] = flights[i];
+      const tf = Math.max(1e-6, caught - thrown), s = Math.max(0, Math.min(tf, at - thrown));
+      const p = track.palm(from, thrown).lerp(track.palm(to, caught), s / tf);
+      p.y += gravityOf(i) / 2 * s * (tf - s);
+      return p;
+    };
+    const topTime = i => {
+      const [, from, to, thrown, caught] = flights[i];
+      const tf = Math.max(1e-6, caught - thrown);
+      const rise = track.palm(to, caught).y - track.palm(from, thrown).y;
+      return thrown + Math.max(0, Math.min(tf, tf / 2 + rise / (gravityOf(i) * tf)));
+    };
     const topAt = at => {
       let best = null;
-      (flights || []).forEach((fl, i) => {
-        const [, from, to, thrown, caught] = fl;
-        if (at < thrown || at > caught) return;
-        const tf = Math.max(1e-6, caught - thrown);
-        const gravity = track.millsGravity?.get(i) ?? 9.81;
-        const p0 = track.palm(from, thrown), p1 = track.palm(to, caught);
-        const s = Math.max(0, Math.min(tf, tf / 2 + (p1.y - p0.y) / (gravity * tf)));
-        const p = p0.lerp(p1, s / tf);
-        p.y += gravity / 2 * s * (tf - s);
+      flights.forEach((fl, i) => {
+        if (at < fl[3] || at > fl[4]) return;
+        const p = ballAt(i, topTime(i));
         if (!best || p.y > best.y) best = p;
       });
       return best;
     };
+    // The run of throws round now (while some ball is up): its first and its last flight.
+    const run = runsOf(flights).find(r => sec >= r.start && sec <= r.end);
+    if (!run) return null;
+    const firstTop = topTime(run.first), lastTop = topTime(run.last);
+    // Where the eyes would be at a time: the first ball itself as it goes up to its top (the user: the eyes went up at
+    // another time, not with the ball), the last ball itself from its top down to the catch (followed down), and between,
+    // the top of the highest way.
+    const rawAt = at => {
+      if (at < run.start || at > run.end) return null;
+      if (at < firstTop) return ballAt(run.first, at);
+      if (at > lastTop) return ballAt(run.last, at);
+      return topAt(at);
+    };
+    // Eased over less time toward the run's ends, none at them: so the first ball is seen as it is, and nothing after the
+    // last catch or before the first throw is looked at ahead of time.
+    const soften = Math.min(EYES_SOFTEN, (sec - run.start) / 2.5, (run.end - sec) / 2.5);
+    // A place below the eyes is not looked at (left and right neither): its share of the eyes eases in over EYES_ABOVE.
+    const up = p => { const x = Math.max(0, Math.min(1, (p.y - eyeY) / EYES_ABOVE)); return x * x * (3 - 2 * x); };
     const sum = new THREE.Vector3();
     let total = 0, all = 0;
+    const add = (at, k) => {
+      all += k;
+      const p = rawAt(at);
+      if (!p) return;
+      const w = k * up(p);
+      sum.addScaledVector(p, w);
+      total += w;
+    };
     // On a fixed grid of times, weighted by how far each is from now (sampled round now instead, the highest top changing
     // between samples, the place hopped to and fro 1.5 cm from frame to frame).
     const step = 1 / 60;
-    for (let n = Math.ceil((sec - 2.5 * EYES_SOFTEN) / step); n * step <= sec + 2.5 * EYES_SOFTEN; n++) {
-      const k = Math.exp(-0.5 * ((n * step - sec) / EYES_SOFTEN) ** 2);
-      all += k;
-      const p = topAt(n * step);
-      if (!p || p.y < eyeY) continue;
-      sum.addScaledVector(p, k);
-      total += k;
-    }
-    // How much the eyes are on the balls: the share of that time a ball is up, so they turn to it before the first throw
-    // and back ahead after the last catch smoothly (the user: at the last catch they snapped ahead).
+    if (soften < 2 * step) add(sec, 1);
+    else
+      for (let n = Math.ceil((sec - 2.5 * soften) / step); n * step <= sec + 2.5 * soften; n++)
+        add(n * step, Math.exp(-0.5 * ((n * step - sec) / soften) ** 2));
+    // How much the eyes are on the balls rather than ahead.
     return total > 0 ? { at: sum.multiplyScalar(1 / total), share: total / all } : null;
+  }
+
+  /** The runs of throws in a juggle's flights: the times some ball is up, each with its first and its last flight (indices). */
+  const runsCache = new WeakMap();
+  function runsOf(flights) {
+    if (runsCache.has(flights)) return runsCache.get(flights);
+    const order = flights.map((fl, i) => i).sort((a, b) => flights[a][3] - flights[b][3]);
+    const runs = [];
+    for (const i of order) {
+      const [, , , thrown, caught] = flights[i];
+      const last = runs[runs.length - 1];
+      if (last && thrown <= last.end + 0.02) {
+        if (caught > last.end) { last.end = caught; last.last = i; }
+      } else {
+        runs.push({ start: thrown, end: caught, first: i, last: i });
+      }
+    }
+    runsCache.set(flights, runs);
+    return runs;
   }
 
   function trackPalms(entry, clip, data) {
