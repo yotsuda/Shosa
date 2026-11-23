@@ -820,6 +820,10 @@ internal sealed class FigureSolver
     }
     /// <summary>How far in front of the feet Mills' balls go, metres: all the same.</summary>
     private const double MillsPlane = 0.33;
+    /// <summary>Where Mills' elbows point, besides down: out to their side (in, below 0) and back, per unit down.</summary>
+    /// (In 0.3 and back 0.2: the elbow went 0.16 m side to side rather than 0.25, the forearm out past it; further in, the
+    /// forearms came closer than 7 cm in more frames.)
+    private const double MillsElbowOut = -0.3, MillsElbowBack = 0.2;
     /// <summary>How far the pelvis goes to the side with Mills' sway, per unit of the back's lean (against it, the hips out under a leaning back: with it, the body went away from the throws).</summary>
     private const double MillsLegSway = -0.4;
 
@@ -2943,6 +2947,10 @@ internal sealed class FigureSolver
                         _ => -Vec3.Up + juggleLeft * (0.08 * side) - juggleFwd * 0.45,
                     },
                 }).Normalized();
+                // Mills' Mess: the elbow in toward the ribs, so the forearm swings out round the body from it rather than the
+                // whole arm going to and fro (the user).
+                if (Juggling.MillsAt(juggleSec) is var mills && mills > 0)
+                    jugglePole = Vec3.Slerp(jugglePole, (-Vec3.Up + juggleLeft * (MillsElbowOut * side) - juggleFwd * MillsElbowBack).Normalized(), mills);
                 bend = Vec3.Slerp(bend.Length < 1e-6 ? pole.Normalized() : bend.Normalized(), jugglePole, juggleWeight);
             }
             var (elbow, reachedHand) = TwoBone(shoulder, hand, Rig.UpperArm, Rig.Forearm, bend.Length < 1e-6 ? pole : bend);
