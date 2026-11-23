@@ -614,7 +614,9 @@ public sealed class Juggling
             // little past the straight arm from there, down and a little out and back. (Well past its reach, the hand ran into
             // the end of the arm and stopped there at 84 m/s²: the solver now holds a penguin's reach in softly, so the place is
             // well past it again, for the arm to come out nearly straight.)
-            into = new Vec3(c * 0.30, -0.52, -0.38);
+            // The catching shoulder comes forward at the catch (DESIGN.md 118.20), and this place, in the frame of the chest,
+            // with it: further back in it, for the hand to be by the side of the hips, not in front of them.
+            into = new Vec3(c * 0.30, -0.52, -0.62);
             catchStyle = Style.Penguin;
         }
         // Mills' Mess, as the user laid it out: six throws round, three from the left and three, mirrored, from the right.
@@ -695,21 +697,23 @@ public sealed class Juggling
     {
         double w = MillsWeight(sec);
         double turn = w <= 0 ? 0 : w * 0.45 * (Hand(0, sec).X + Hand(1, sec).X);
-        // A penguin catch behind the hip: the shoulders turn a little, level, the catching one back (the user), most at the
-        // catch and coming and going smoothly round it.
+        // A penguin catch by the hip: the shoulders turn, level, the catching one forward (the user; it was back, which is
+        // the wrong way), most at the catch and coming and going smoothly round it.
         foreach (var (hand, at) in _penguinCatches)
         {
             double d = Math.Abs(sec - at);
             if (d < PenguinTurnSpan)
-                turn += Side(hand) * PenguinTurn * Smooth(1 - d / PenguinTurnSpan);
+                turn -= Side(hand) * PenguinTurn * Smooth(1 - d / PenguinTurnSpan);
         }
         return turn;
     }
 
     /// <summary>
-    /// How much a penguin's arm is held straight after its catch, 0..1: whole while the preview turns the wrist back
-    /// (<see cref="PenguinUnwind"/>; the user: the wrist turns back before the elbow bends, which it cannot turned), then
-    /// let go over <see cref="PenguinLetGo"/>.
+    /// How much a penguin's arm is held fully straight round its catch, 0..1 (the solver stretches it to its reach): the
+    /// wrist turns only on a straight arm (the user), so it is straightened over <see cref="PenguinStraighten"/> and is
+    /// straight from <see cref="PenguinStraightBefore"/> before the catch, while the preview turns the wrist in; whole
+    /// after it while the wrist turns back (<see cref="PenguinUnwind"/>; the wrist turns back before the elbow bends),
+    /// then let go over <see cref="PenguinLetGo"/>.
     /// </summary>
     public double PenguinHeld(int hand, double sec)
     {
@@ -717,15 +721,22 @@ public sealed class Juggling
         foreach (var (h, at) in _penguinCatches)
         {
             double d = sec - at;
-            if (h != hand || d < 0 || d > PenguinUnwind + PenguinLetGo)
+            if (h != hand || d < -PenguinStraightBefore - PenguinStraighten || d > PenguinUnwind + PenguinLetGo)
                 continue;
-            held = Math.Max(held, d <= PenguinUnwind ? 1 : Smooth(1 - (d - PenguinUnwind) / PenguinLetGo));
+            held = Math.Max(held,
+                d < -PenguinStraightBefore ? Smooth(1 + (d + PenguinStraightBefore) / PenguinStraighten)
+                : d <= PenguinUnwind ? 1
+                : Smooth(1 - (d - PenguinUnwind) / PenguinLetGo));
         }
         return held;
     }
 
-    /// <summary>Seconds a penguin's wrist takes to turn back after its catch (the preview's PENGUIN_UNWIND, juggle.js: keep the two the same), and the arm to be let bend after.</summary>
-    private const double PenguinUnwind = 0.15, PenguinLetGo = 0.1;
+    /// <summary>
+    /// Seconds before a penguin's catch its arm is straight, and it takes to straighten before that; after the catch the
+    /// wrist takes to turn back, and the arm to be let bend after. The preview turns the wrist in over a little less than
+    /// the first (PENGUIN_TWIST_IN) and back over the third (PENGUIN_UNWIND), juggle.js: keep them so.
+    /// </summary>
+    private const double PenguinStraightBefore = 0.2, PenguinStraighten = 0.15, PenguinUnwind = 0.15, PenguinLetGo = 0.1;
 
     /// <summary>How fast a penguin's hand goes with the ball at its throw, and at its catch, as parts of the ball's speed.</summary>
     private const double PenguinLaunch = 0.4, PenguinArrive = 0.15;

@@ -3016,11 +3016,17 @@ internal sealed class FigureSolver
                 double penguin = 0;
                 for (int k = -4; k <= 4; k++)
                     penguin += Juggling!.StyleAt(isLeft ? 1 : 0, juggleSec + k * 0.03) == Juggling.Style.Penguin ? 1.0 / 9 : 0;
-                // Straight after the catch until the wrist has turned back (DESIGN.md 118.19).
-                penguin = Math.Max(penguin, Juggling!.PenguinHeld(isLeft ? 1 : 0, juggleSec));
+                // Fully straight round the catch: from a little before it, for the wrist to turn in, until the wrist has
+                // turned back after it (DESIGN.md 118.19, 118.20).
+                double held = Juggling!.PenguinHeld(isLeft ? 1 : 0, juggleSec);
+                penguin = Math.Max(penguin, held);
                 // Held in softly as it comes to the straight arm, not stopped there (the user: it jerked at the catch).
                 var straight = SoftReach(reachOut, PenguinReachSoft, PenguinReach);
                 wrist = shoulder + Vec3.Lerp(SoftReach(reachOut), straight, penguin);
+                // Held straight, the arm goes out to its reach the way it points, wherever the hand's way is (the user: the
+                // wrist cannot turn on a bent elbow, and before the catch the elbow was still straightening as it turned).
+                if (held > 0 && (wrist - shoulder).Length > 1e-6)
+                    wrist = Vec3.Lerp(wrist, shoulder + (wrist - shoulder).Normalized() * PenguinReach, held);
                 hand = Vec3.Lerp(hand, wrist, juggleWeight);
                 // The elbows down by the ribs and a little back, so the forearms point forward: out to the side they
                 // turned the forearms in, and on a character with narrow shoulders the hands crossed the middle.

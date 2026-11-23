@@ -180,28 +180,42 @@ export function palmsUp(vrm, weight, edge = false, styles = [0, 0], club = false
     // The hand turns from the palm up to that about the fingers, always the way the arm turns in, by as much as the catch is
     // a penguin's. (Blended as two turns of the hand, which are nearly opposite, the shorter way between them changed sides
     // as the arm moved and the hand jumped some 100 degrees in a frame.) The wrist bends after, by the same share.
-    if (penguin && penguinShare > 0 && !clubThumb && style === 0) {
-      const fingers = forearm.clone();
-      // Out and back from the hips, by which the hand is: the shoulders are turned some 40 degrees at the catch, and from
-      // the chest the thumb went back and in.
-      const hips = node('hips') || trunk;
-      const hipsFwd = Z.clone().applyQuaternion(restInverse).applyQuaternion(worldQuat(hips));
-      const hipsOut = X.clone().applyQuaternion(restInverse).applyQuaternion(worldQuat(hips)).multiplyScalar(isLeft ? 1 : -1);
-      const penguinThumb = hipsFwd.negate().addScaledVector(hipsOut, PENGUIN_THUMB_OUT);
-      penguinThumb.addScaledVector(fingers, -penguinThumb.dot(fingers));
-      if (penguinThumb.lengthSq() > 1e-8) {
-        penguinThumb.normalize();
-        // Turned in about the arm from the shoulder to the hand: the left one positive about it, the right one negative.
-        const inward = isLeft ? 1 : -1;
-        let angle = inward * Math.atan2(thumb.clone().cross(penguinThumb).dot(fingers), thumb.dot(penguinThumb));
-        if (angle < 0) angle += 2 * Math.PI;
-        const turnedThumb = thumb.clone().applyAxisAngle(fingers, inward * angle * penguinShare);
-        // The wrist bent toward the palm, about the thumb (which stays where it is).
-        const palm = fingers.clone().cross(turnedThumb).multiplyScalar(isLeft ? 1 : -1).normalize();
-        const flexShare = penguin.flex ? Math.max(0, Math.min(1, penguin.flex[isLeft ? 1 : 0] || 0)) : penguinShare;
-        const flex = PENGUIN_WRIST_FLEX * Math.PI / 180 * flexShare;
-        const bent = fingers.clone().multiplyScalar(Math.cos(flex)).addScaledVector(palm, Math.sin(flex));
-        target.copy(turnTo(bent, turnedThumb));
+    // Round a penguin's catch the arm is straight, and a straight arm's hand is not turned palm up on it (the user: the
+    // wrist turns only on a straight arm): the hand first lets go of its turn on the forearm (`penguin.relax`), so it
+    // hangs in line with it, then turns to the catch from there, and back after it, before the elbow bends and the palm
+    // comes up again. (Turned palm up, the hanging arm's hand was twisted 175 degrees on the forearm.)
+    const relax = penguin?.relax ? Math.max(0, Math.min(1, penguin.relax[isLeft ? 1 : 0] || 0)) : 0;
+    if (penguin && (relax > 0 || penguinShare > 0) && !clubThumb && style === 0) {
+      const lowerQuat = worldQuat(lower);
+      if (relax > 0) {
+        // The hand's turn on the forearm about its length, let go by `relax` (its swing kept).
+        const local = lowerQuat.clone().invert().multiply(target);
+        let twist = 2 * Math.atan2(local.x, local.w);
+        if (twist > Math.PI) twist -= 2 * Math.PI; else if (twist <= -Math.PI) twist += 2 * Math.PI;
+        // The palm-up turn of a hand on its hanging forearm is near a half turn, negative about +x on either hand (a
+        // juggler's is some 100 degrees): taken the other way past it, the hand went 240 degrees round, the long way, as
+        // it came back to the palm up.
+        if (twist > Math.PI / 2) twist -= 2 * Math.PI;
+        const keep = new THREE.Quaternion().setFromAxisAngle(X, twist * (1 - relax));
+        const swing = local.clone().multiply(new THREE.Quaternion().setFromAxisAngle(X, -twist));
+        target.copy(lowerQuat.clone().multiply(swing).multiply(keep));
+      }
+      // A penguin's catch (the user): the arm turned in until the palm faces out from the body's side, the thumb back, the
+      // little finger forward; and the wrist bent in, toward the palm, so the fingers go out and the palm comes up under
+      // the ball falling by the hip. Back and out from the chest, which is turned with the catching shoulder forward.
+      if (penguinShare > 0) {
+        const fingers = forearm.clone();
+        const bodyOut = bodyLeft.clone().multiplyScalar(isLeft ? 1 : -1);   // (`out` has become the thumb above)
+        const penguinThumb = bodyFwd.clone().negate().addScaledVector(bodyOut, PENGUIN_THUMB_OUT);
+        penguinThumb.addScaledVector(fingers, -penguinThumb.dot(fingers));
+        if (penguinThumb.lengthSq() > 1e-8) {
+          penguinThumb.normalize();
+          // The wrist bent toward the palm, about the thumb.
+          const palm = fingers.clone().cross(penguinThumb).multiplyScalar(isLeft ? 1 : -1).normalize();
+          const flex = PENGUIN_WRIST_FLEX * Math.PI / 180;
+          const bent = fingers.clone().multiplyScalar(Math.cos(flex)).addScaledVector(palm, Math.sin(flex));
+          target.slerp(turnTo(bent, penguinThumb), penguinShare);
+        }
       }
     }
     const turned = worldQuat(hand).slerp(target, Math.min(1, weight));
@@ -220,46 +234,50 @@ const PENGUIN_UPPER_TWIST = 70, PENGUIN_FORE_TWIST = 65, PENGUIN_THUMB_OUT = 0, 
 /** The share of a penguin's frames round a frame taken as the whole of it (penguinShares without the flights). */
 const PENGUIN_FULL = 0.8;
 /**
- * Seconds a penguin's arm turns in before its catch, and turns back after it (the user: the wrist is turned back
- * before the elbow bends, which it cannot do turned). The server holds the arm straight that long after the catch
- * (Juggling.PenguinUnwind: keep the two the same).
+ * Seconds round a penguin's catch (DESIGN.md 118.20; the user: the wrist turns only on a straight arm, and turns back
+ * before the elbow bends). The server holds the arm fully straight from PENGUIN_STRAIGHT before the catch, having
+ * straightened it over the PENGUIN_STRAIGHTEN before that, until PENGUIN_UNWIND + PENGUIN_LET_GO after it
+ * (Juggling.PenguinHeld: keep them the same). Meanwhile the hand lets go of its palm-up turn on the forearm while the
+ * arm straightens (`relax`), turns to the catch over PENGUIN_TWIST_IN (a little less than PENGUIN_STRAIGHT) and back
+ * over PENGUIN_UNWIND, and takes up the palm-up turn again from when the arm may bend until the hand throws again.
  */
-const PENGUIN_TWIST_IN = 0.35, PENGUIN_UNWIND = 0.15;
-/**
- * Seconds the arm's turn about its length takes to come back after the catch, as the elbow bends and the hand comes
- * forward: let go with the wrist, the hanging straight arm's hand turned palm up (forward) twisted 175 degrees on the
- * forearm.
- */
+const PENGUIN_STRAIGHT = 0.2, PENGUIN_STRAIGHTEN = 0.15, PENGUIN_TWIST_IN = 0.18, PENGUIN_UNWIND = 0.15, PENGUIN_LET_GO = 0.1;
+/** Seconds after the catch the hand takes up its palm-up turn by, when the hand does not throw again. */
 const PENGUIN_UNTWIST = 0.4;
 
 /**
- * How much each hand is in a penguin's catch at a frame, [right, left], 0..1. From the catches (`flights`, the clip's
- * fps): turning in over PENGUIN_TWIST_IN before each penguin catch, whole at it, and back over PENGUIN_UNWIND after.
+ * How much each hand is in a penguin's catch at a frame, [right, left], 0..1: from the catches (`flights`, the clip's
+ * fps), the turn to the catch, and (`.relax`) how much the hand has let go of its palm-up turn on the forearm.
  * Without the flights, the share of the frames round it (some 0.3 s either side) whose style is the penguin's.
  */
 export function penguinShares(styles, frame, flights = null, fps = 30) {
   if (!styles || !styles.length) return [0, 0];
   if (flights) {
-    // The turn about the arm, and (`.flex`) the wrist bent in, which goes back first.
     const sec = frame / fps, smooth = x => x * x * (3 - 2 * x);
-    const flex = [0, 0];
+    const relax = [0, 0];
     const shares = [0, 1].map(hand => {
       let share = 0;
       for (const fl of flights) {
         if ((fl[2] | 0) !== hand) continue;
         const caught = fl[4], d = sec - caught;
-        // Turned back by the time the hand throws again (the elbow bent and the hand forward), or PENGUIN_UNTWIST.
+        if (d < -PENGUIN_STRAIGHT - PENGUIN_STRAIGHTEN || d > 3) continue;
+        if ((styles[Math.max(0, Math.min(styles.length - 1, Math.round(caught * fps)))]?.[hand] | 0) !== 2) continue;
+        // The palm up again by the time the hand throws again (the elbow bent and the hand forward).
         let next = Infinity;
         for (const g of flights) if ((g[1] | 0) === hand && g[3] > caught && g[3] < next) next = g[3];
-        const untwist = Math.max(PENGUIN_UNWIND, Number.isFinite(next) ? (next - caught) * 0.9 : PENGUIN_UNTWIST);
-        if (d < -PENGUIN_TWIST_IN || d > untwist) continue;
-        if ((styles[Math.max(0, Math.min(styles.length - 1, Math.round(caught * fps)))]?.[hand] | 0) !== 2) continue;
-        share = Math.max(share, smooth(d < 0 ? 1 + d / PENGUIN_TWIST_IN : 1 - d / untwist));
-        if (d < PENGUIN_UNWIND) flex[hand] = Math.max(flex[hand], smooth(d < 0 ? 1 + d / PENGUIN_TWIST_IN : 1 - d / PENGUIN_UNWIND));
+        const held = PENGUIN_UNWIND + PENGUIN_LET_GO;
+        const back = Math.max(0.1, (Number.isFinite(next) ? (next - caught) * 0.9 : PENGUIN_UNTWIST) - held);
+        if (d > held + back) continue;
+        relax[hand] = Math.max(relax[hand], smooth(
+          d < -PENGUIN_STRAIGHT ? 1 + (d + PENGUIN_STRAIGHT) / PENGUIN_STRAIGHTEN
+          : d <= held ? 1
+          : 1 - (d - held) / back));
+        if (d >= -PENGUIN_TWIST_IN && d <= PENGUIN_UNWIND)
+          share = Math.max(share, smooth(d < 0 ? 1 + d / PENGUIN_TWIST_IN : 1 - d / PENGUIN_UNWIND));
       }
       return share;
     });
-    shares.flex = flex;
+    shares.relax = relax;
     return shares;
   }
   const at = Math.round(frame);

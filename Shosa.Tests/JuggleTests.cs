@@ -269,7 +269,9 @@ public class JuggleTests
         int mid = (int)Math.Round(caughtRight[4] * penguin.Fps);
         var fig = penguin.Figures[0];
         Assert.True(fig.Joint(mid, Rig.RHand).Y < fig.Joint(mid, Rig.Pelvis).Y + 0.05, "caught down by the hip");
-        Assert.True(fig.Joint(mid, Rig.RHand).Z < fig.Joint(mid, Rig.Pelvis).Z, "caught behind the hip");
+        // By the side of the hip, not in front of it, the catching shoulder forward (DESIGN.md 118.20).
+        Assert.True(fig.Joint(mid, Rig.RHand).Z < fig.Joint(mid, Rig.Pelvis).Z + 0.05, "caught by the side of the hip");
+        Assert.True(fig.Joint(mid, Rig.RShoulder).Z > fig.Joint(mid, Rig.LShoulder).Z + 0.1, "the right shoulder forward");
         Assert.True((fig.Joint(mid, Rig.RHand) - fig.Joint(mid, Rig.RShoulder)).Length > 0.97 * (Rig.UpperArm + Rig.Forearm), "the arm straight");
         Assert.Contains(penguin.Figures[0].Juggle!.Styles, s => s[0] == (int)Juggling.Style.Penguin);
         // Thrown less often, its balls go above the shoulders, thrown in front of the body with the palm up (DESIGN.md 118.17).
