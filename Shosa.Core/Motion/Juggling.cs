@@ -521,6 +521,8 @@ public sealed class Juggling
                     var way = Vec3.Lerp(from, next, MillsOverAcross);
                     var over = new Vec3(way.X, Math.Max(from.Y, next.Y) + (_mills6.Windmill ? WindmillOverRise : MillsOverRise), way.Z);
                     AddSmooth(hand, (thrown + MillsOverAt * gap, over, Still, throwStyle));
+                    if (_mills6.Windmill && TopArcOn)
+                        _topArc.Add((hand, thrown, 2 * beat, _mills6.ThrowMirror));
                 }
                 // The windmill's throw from under the arm on top (the user: the ball went through the top hand, which went
                 // back out across its way; the ball has to go up on the right of the right hand, which at nearly the same
@@ -1199,6 +1201,8 @@ public sealed class Juggling
             // hold is long (a turn in two beats).
             if (((k % 2) + 2) % 2 == 1)
                 (wt, wc) = (WheelPoint(WheelThrowAt), WheelPoint(WheelThrowAt + Math.PI * Dwell));
+            else if (TopArcOn)
+                (wt, wc) = (TopArcPoint(Math.PI - TopArcPast), TopArcPoint(TopArcPast));
             return mirrored ? (new Vec3(-wt.X, wt.Y, wt.Z), new Vec3(-wc.X, wc.Y, wc.Z)) : (wt, wc);
         }
         int at = ((k % 6) + 6) % 6;
@@ -1243,8 +1247,75 @@ public sealed class Juggling
         }
         var soft = RawHand(hand, sec) * (1 - w) + sum * (w / total);
         // The windmill's hand from under the arm goes round its wheel (WheelAt), as it is, not softened.
+        if (TopArc(hand, sec) is { } arc)
+            soft = Vec3.Lerp(soft, arc.Wrist, arc.Weight);
         return Wheel(hand, sec) is { } wheel ? Vec3.Lerp(soft, wheel.Wrist, wheel.Weight) : soft;
     }
+
+    /// <summary>
+    /// The windmill's top hand on the upper half of a circle only (the user's trial, 2026-11-24): thrown just past the
+    /// circle's end on its own side going up, over the top to just before the other end, caught there going down, and
+    /// back over the top with the ball, turning softly below each end. Null where it does not.
+    /// </summary>
+    public (Vec3 Wrist, double Weight)? TopArc(int hand, double sec)
+    {
+        (double Thrown, double Period, bool Mirrored)? near = null;
+        double nearest = double.PositiveInfinity, first = double.PositiveInfinity, last = double.NegativeInfinity;
+        foreach (var (h, thrown, period, mirrored) in _topArc)
+        {
+            if (h != hand)
+                continue;
+            first = Math.Min(first, thrown - period);
+            last = Math.Max(last, thrown + period);
+            if (Math.Abs(sec - thrown) < nearest)
+                (nearest, near) = (Math.Abs(sec - thrown), (thrown, period, mirrored));
+        }
+        if (near is not { } n)
+            return null;
+        double weight = MillsWeight(sec) * Smooth(Math.Clamp(1 - Math.Max(first - sec, sec - last) / 0.2, 0, 1));
+        if (weight <= 0)
+            return null;
+        // Softened over a short window, so the corners where the arc and the straight way back meet are round.
+        Vec3 sum = new(0, 0, 0);
+        double total = 0;
+        for (int i = -8; i <= 8; i++)
+        {
+            double k = Math.Exp(-0.5 * (i / 4.0) * (i / 4.0));
+            sum += TopArcRaw((sec + i * TopArcSoften / 4 - n.Thrown) / n.Period) * k;
+            total += k;
+        }
+        var wrist = sum * (1 / total);
+        if (n.Mirrored)
+            wrist = new Vec3(-wrist.X, wrist.Y, wrist.Z);
+        return (wrist, weight);
+    }
+
+    /// <summary>The top hand's way at a part of its turn from its throw (0): over the half circle to the catch, then
+    /// straight back to the throw (the user: round going over, pulled straight coming back), slow at first so it stays
+    /// in while the ball from under its arm goes up past it.</summary>
+    private static Vec3 TopArcRaw(double u)
+    {
+        u -= Math.Floor(u);
+        double uc = (2 - Dwell) / 2, tT = Math.PI - TopArcPast, tC = TopArcPast;
+        if (u < uc)
+            return TopArcPoint(tT + (tC - tT) * u / uc);
+        return Vec3.Lerp(TopArcPoint(tC), TopArcPoint(tT), Math.Pow((u - uc) / (1 - uc), TopArcEase));
+    }
+
+    /// <summary>A point of the top hand's half circle (x to the dancer's left, as for a right hand on top), the ends
+    /// rounded (TopArcRound).</summary>
+    private static Vec3 TopArcPoint(double theta)
+    {
+        double s = Math.Sin(theta);
+        double x = TopArcRadius * Math.Cos(theta), y = TopArcRadius * (Math.Sqrt(s * s + TopArcRound * TopArcRound) - TopArcRound);
+        double c = Math.Cos(TopArcTilt), sn = Math.Sin(TopArcTilt);
+        return TopArcCentre + new Vec3(x * c - y * sn, x * sn + y * c, 0);
+    }
+
+    private const bool TopArcOn = true;
+    private static readonly Vec3 TopArcCentre = new(-0.13, 0.14, 0.03);
+    private const double TopArcRadius = 0.27, TopArcRound = 0.15, TopArcPast = 15 * Math.PI / 180, TopArcEase = 2.0, TopArcTilt = 25 * Math.PI / 180, TopArcSoften = 0.04;
+    private readonly List<(int Hand, double Thrown, double Period, bool Mirrored)> _topArc = [];
 
     /// <summary>
     /// The windmill's hand that throws from under the arm on top (the user: its elbow held still, the forearm going round

@@ -344,8 +344,17 @@ public class JuggleTests
                 Assert.True(r.Y > l.Y, $"the right hand on top at frame {frame}");
         }
         var mirrored = Compile(Juggle("every 1/2  3:4@windmill@mirror | 3:4@windmill@mirror |")).Clip;
-        int mid = mirrored.FrameOfBeat(4);
-        Assert.True(mirrored.Figures[0].Joint(mid, Rig.LHand).Y > mirrored.Figures[0].Joint(mid, Rig.RHand).Y, "mirrored, the left hand on top");
+        int passing = 0;
+        for (int frame = mirrored.FrameOfBeat(2); frame < mirrored.FrameOfBeat(6); frame++)
+        {
+            var (r, l) = (mirrored.Figures[0].Joint(frame, Rig.RHand), mirrored.Figures[0].Joint(frame, Rig.LHand));
+            if (Math.Abs(r.X - l.X) < 0.15)
+            {
+                passing++;
+                Assert.True(l.Y > r.Y, $"mirrored, the left hand on top at frame {frame}");
+            }
+        }
+        Assert.True(passing > 0, "mirrored, the hands pass each other");
         // Not with Mills' Mess, nor with what puts a hand elsewhere.
         Assert.Contains("SH1010", Codes(Compile(Juggle("every 1/2  3:4@windmill@mills |"))));
         Assert.Contains("SH1010", Codes(Compile(Juggle("every 1/2  3:4@penguin@windmill |"))));
