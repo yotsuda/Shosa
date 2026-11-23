@@ -68,7 +68,7 @@ const worldQuat = node => node.getWorldQuaternion(new THREE.Quaternion());
  * as posed, 1 all the way): a juggler's hands carry the balls on the palm. Shosa's figure has no turn of the hand,
  * and the character's hands, posed from its forearms, faced each other edge up. Call after the bones are posed.
  */
-export function palmsUp(vrm, weight, edge = false, styles = [0, 0], club = false) {
+export function palmsUp(vrm, weight, edge = false, styles = [0, 0], club = false, catching = [0, 0]) {
   if (!(weight > 0)) return;
   const node = name => vrm.humanoid.getNormalizedBoneNode(name);
   vrm.scene.updateMatrixWorld(true);
@@ -125,14 +125,57 @@ export function palmsUp(vrm, weight, edge = false, styles = [0, 0], club = false
     // At rest (the T-pose, facing +z) a left hand points +x, a right one -x, and the thumbs point forward (+z) (as mic.js).
     const restAlong = isLeft ? X.clone() : X.clone().negate();
     const from = new THREE.Matrix4().makeBasis(restAlong, Z, restAlong.clone().cross(Z));
-    const to = new THREE.Matrix4().makeBasis(along, thumb, along.clone().cross(thumb));
-    const target = new THREE.Quaternion().setFromRotationMatrix(to.multiply(from.transpose())).multiply(rest);
+    const turnTo = (fingers, up) => new THREE.Quaternion()
+      .setFromRotationMatrix(new THREE.Matrix4().makeBasis(fingers, up, fingers.clone().cross(up)).multiply(from.clone().transpose())).multiply(rest);
+    const target = turnTo(along, thumb);
+    // A club is caught on the open palm, turned up as a ball's (the user), and the hand turns to the grip after: `catching`
+    // says how much, [right, left] (clubCatching).
+    const share = clubThumb ? Math.max(0, Math.min(1, catching[isLeft ? 1 : 0] || 0)) : 0;
+    if (share > 0) {
+      const palmThumb = out.clone().addScaledVector(forearm, -out.dot(forearm));
+      if (palmThumb.lengthSq() > 1e-8) target.slerp(turnTo(forearm, palmThumb.normalize()), share);
+    }
     const turned = worldQuat(hand).slerp(target, Math.min(1, weight));
     hand.quaternion.copy(worldQuat(hand.parent).invert().multiply(turned));
     hand.updateMatrixWorld(true);
     // A test page reads how each hand is turned (out\pv\harness-hands.html); nothing in the extension sets it.
     if (globalThis.shosaPalmsDebug) globalThis.shosaPalmsDebug(side, forearm.toArray(), along.toArray(), thumb.toArray(), weight);
   }
+}
+
+/** Seconds a hand takes at the most to turn its palm up after it throws a club, and to turn to the grip after a catch. */
+const CLUB_PALM_UP = 0.2, CLUB_TO_GRIP = 0.25;
+/** Seconds after a club's catch the palm stays up before the hand turns to the grip. */
+const CLUB_CATCH_HOLD = 0.05;
+
+/**
+ * How much each hand is turned palm up to catch a club at a time (seconds), [right, left], 0..1: after its throw the empty
+ * hand turns up, 1 at the catch, and then it turns to the grip before its next throw (the user: caught palm up).
+ * `flights` are the clip's (ball, from, to, thrown, caught, ...).
+ */
+export function clubCatching(flights, sec) {
+  const smooth = x => { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); };
+  return [0, 1].map(hand => {
+    let share = 0;
+    for (const fl of flights) {
+      if (fl[2] !== hand) continue;
+      const caught = fl[4];
+      let before = caught - 0.3, after = Infinity;
+      for (const t of flights) {
+        if (t[1] !== hand) continue;
+        if (t[3] <= caught && t[3] > before) before = t[3];
+        if (t[3] >= caught && t[3] < after) after = t[3];
+      }
+      if (sec >= before && sec <= caught) {
+        const rise = Math.max(1e-3, Math.min(CLUB_PALM_UP, 0.7 * (caught - before)));
+        share = Math.max(share, smooth((sec - before) / rise));
+      } else if (sec > caught && sec <= after) {
+        const turn = Math.max(1e-3, Math.min(CLUB_TO_GRIP, 0.6 * (after - caught) - CLUB_CATCH_HOLD));
+        share = Math.max(share, 1 - smooth((sec - caught - CLUB_CATCH_HOLD) / turn));
+      }
+    }
+    return share;
+  });
 }
 
 const FINGERS = ['Index', 'Middle', 'Ring', 'Little'];

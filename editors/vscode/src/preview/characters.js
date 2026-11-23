@@ -11,7 +11,7 @@ import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
 import { millsArms } from './arms.js';
 import { elbowSwings, keepArmsOut, measureBody } from './clearance.js';
 import { createMicHands } from './mic.js';
-import { gripHands, heldBy, palmAlong, palmsUp } from './juggle.js';
+import { clubCatching, gripHands, heldBy, palmAlong, palmsUp } from './juggle.js';
 
 // VRM's mouth expressions, in the order the server sends their weights (`mouth`, Mouth.Shapes).
 const MOUTH = ['aa', 'ih', 'ou', 'ee', 'oh'];
@@ -142,7 +142,9 @@ export function createCharacters(scene, changed) {
     const juggled = data.juggle && data.juggle.weight;
     if (juggled && juggled.length) {
       const w0 = juggled[Math.min(juggled.length - 1, f0)], w1 = juggled[Math.min(juggled.length - 1, f0 + 1)];
-      palmsUp(vrm, w0 + (w1 - w0) * k, data.juggle.prop === 'rings', data.juggle.styles ? data.juggle.styles[Math.min(data.juggle.styles.length - 1, Math.round(frame))] : [0, 0], data.juggle.prop === 'clubs');
+      const clubs = data.juggle.prop === 'clubs';
+      palmsUp(vrm, w0 + (w1 - w0) * k, data.juggle.prop === 'rings', data.juggle.styles ? data.juggle.styles[Math.min(data.juggle.styles.length - 1, Math.round(frame))] : [0, 0], clubs,
+        clubs && data.juggle.flights ? clubCatching(data.juggle.flights, frame / clip.fps) : [0, 0]);
     }
     return size;
   }
