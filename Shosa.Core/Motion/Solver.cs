@@ -864,14 +864,15 @@ internal sealed class FigureSolver
     private const double MillsPlane = 0.33;
     /// <summary>Where Mills' elbows point, besides down: out to their side (in, below 0) and back, per unit down.</summary>
     /// (In 0.3 and back 0.2: the elbow went 0.16 m side to side rather than 0.25, the forearm out past it; further in, the
-    /// forearms came closer than 7 cm in more frames.)
-    private const double MillsElbowOut = -0.3, MillsElbowBack = 0.2;
+    /// forearms came closer than 7 cm in more frames.) Then in only 0.1 (the user: the upper arms turned in at the shoulder).
+    private const double MillsElbowOut = -0.1, MillsElbowBack = 0.2;
     /// <summary>Where Mills' elbow is kept side to side: metres out from the shoulder (in, below 0), and how firmly (0..1).</summary>
     /// (12 cm in: the elbow went 0.08 m side to side rather than 0.16. Held exactly, without the turn below, it went far up
-    /// and forward instead, 1.8 m a round.)
-    private const double MillsElbowSide = -0.12, MillsElbowHold = 1.0;
+    /// and forward instead, 1.8 m a round. Then 5 cm in, held a little more loosely (MillsElbowSlack 0.045): the upper arm
+    /// 15 degrees in from straight down on the whole rather than 25, the user asking for it less turned in, DESIGN.md 118.26.)
+    private const double MillsElbowSide = -0.05, MillsElbowHold = 1.0;
     /// <summary>How far off its place side to side Mills' elbow may be (metres) against how far round its circle it goes (radians).</summary>
-    private const double MillsElbowSlack = 0.03, MillsElbowTurn = 0.25;
+    private const double MillsElbowSlack = 0.045, MillsElbowTurn = 0.25;
     /// <summary>How far the pelvis goes to the side with Mills' sway, per unit of the back's lean (against it, the hips out under a leaning back: with it, the body went away from the throws).</summary>
     private const double MillsLegSway = -0.4;
 
@@ -2388,19 +2389,32 @@ internal sealed class FigureSolver
         double r = Math.Sqrt(a * a + b * b);
         if (r < 1e-6)
             return u;
+        double Cost(double t)
+        {
+            double miss = (c0 + a * Math.Cos(t) + b * Math.Sin(t) - lateral) / MillsElbowSlack, turn = t / MillsElbowTurn;
+            return miss * miss + turn * turn;
+        }
         double best = double.MaxValue, theta = 0;
         for (int i = -180; i <= 180; i++)
         {
-            double t = i * Math.PI / 180;
-            double miss = (c0 + a * Math.Cos(t) + b * Math.Sin(t) - lateral) / MillsElbowSlack, turn = t / MillsElbowTurn;
-            double cost = miss * miss + turn * turn;
+            double t = i * Math.PI / 180, cost = Cost(t);
             if (cost < best)
             {
                 best = cost;
                 theta = t;
             }
         }
+        // Between the degrees, the bottom of the parabola through the best and its neighbours: on whole degrees the elbow
+        // stepped a few millimetres from frame to frame (the user: it shook).
+        theta = Refine(Cost, theta, Math.PI / 180);
         return u * Math.Cos(theta) + v * Math.Sin(theta);
+    }
+
+    /// <summary>The least of `cost` near `at`, found on a grid `step` wide: the bottom of the parabola through it and its neighbours.</summary>
+    private static double Refine(Func<double, double> cost, double at, double step)
+    {
+        double l = cost(at - step), m = cost(at), r = cost(at + step), curve = l - 2 * m + r;
+        return curve > 1e-12 ? at + step * Math.Clamp((l - r) / (2 * curve), -1, 1) : at;
     }
 
     /// <summary>Two bones from root toward target; the joint between them bends toward the pole.</summary>

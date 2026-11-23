@@ -11,8 +11,9 @@ import * as THREE from 'three';
 const FIGURE_TRUNK = 0.11, FIGURE_ARM = 0.04;
 /** As the solver (Solver.MillsElbowSide, MillsElbowSlack, MillsElbowTurn): metres in from the shoulder, scaled to the arm. */
 // The turn is freer than the solver's (0.25): the way the figure's elbow points is not the character's, and held to it
-// the elbow stayed in the trunk more often.
-const ELBOW_SIDE = -0.12, ELBOW_SLACK = 0.03, ELBOW_TURN = 0.6;
+// the elbow stayed in the trunk more often. (With a thick trunk, as Zunko's, the elbow is held at the trunk's side instead,
+// further out than this: the place matters only for a slim character.)
+const ELBOW_SIDE = -0.05, ELBOW_SLACK = 0.045, ELBOW_TURN = 0.6;
 /** Air left between the elbow and the trunk's side, metres (scaled). */
 const ELBOW_CLEAR = 0.01;
 /** How far in front of the trunk's front the hand is at the least, metres (scaled): room for the forearm to go round. */
@@ -41,9 +42,13 @@ function aim(bone, child, to) {
 /**
  * Solves the character's arms again on its body (see above), as much as `weight` (0..1). `figure(name)` is where the
  * figure's joint is (world) at this frame; `body` is clearance.js's measure of the character; `size` its scale.
+ * `angles` ({ left, right }, radians round the shoulder–wrist line from where the figure's elbow points) puts each elbow
+ * there instead of finding its place in this frame alone (millsAngles smooths them over the clip). Returns the angles
+ * it found or used, or null.
  */
-export function millsArms(vrm, body, size, figure, weight) {
-  if (!body || weight <= 0) return;
+export function millsArms(vrm, body, size, figure, weight, angles = null) {
+  if (!body || weight <= 0) return null;
+  const found = {};
   const node = name => vrm.humanoid.getNormalizedBoneNode(name);
   vrm.scene.updateMatrixWorld(true);
   // The character's trunk, side to side and front to back, at its widest about the chest.
@@ -99,24 +104,35 @@ export function millsArms(vrm, body, size, figure, weight) {
     const outward = left.clone().multiplyScalar(sign);
     // Side to side from the trunk's middle: the solver's place, but out of the trunk.
     const middleOut = trunkAt ? trunkAt.dot(outward) : 0;
-    const wanted = Math.max(shoulder.dot(outward) + ELBOW_SIDE * k, middleOut + rx + armRadius + ELBOW_CLEAR * k);
+    const wanted = Math.max(shoulder.dot(outward) + (globalThis.shosaElbowSide ?? ELBOW_SIDE) * k, middleOut + rx + armRadius + ELBOW_CLEAR * k);
     const c0 = shoulder.dot(outward) + axis.dot(outward) * along, a = height * u.dot(outward), b = height * v.dot(outward);
     // Inside the trunk (its cross-section an ellipse, the arm's thickness added) costs a great deal: the elbow goes to its
     // side or in front of it, whichever is less far.
     const centre = shoulder.clone().addScaledVector(axis, along), at = new THREE.Vector3();
     const sideR = rx + armRadius, frontR = rz + armRadius;
-    let best = Infinity, theta = 0;
-    for (let i = -180; i <= 180; i++) {
-      const t = i * Math.PI / 180;
-      const miss = (c0 + a * Math.cos(t) + b * Math.sin(t) - wanted) / (ELBOW_SLACK * k), turn = t / ELBOW_TURN;
-      let cost = miss * miss + turn * turn;
+    const cost = t => {
+      const miss = (c0 + a * Math.cos(t) + b * Math.sin(t) - wanted) / (ELBOW_SLACK * k), turn = t / (globalThis.shosaElbowTurn ?? ELBOW_TURN);
+      let c = miss * miss + turn * turn;
       if (trunkAt) {
         at.copy(centre).addScaledVector(u, height * Math.cos(t)).addScaledVector(v, height * Math.sin(t)).sub(trunkAt);
         const f = Math.hypot(at.dot(outward) / sideR, at.dot(forward) / frontR);
-        if (f < 1) cost += ((1 - f) * frontR / (0.005 * k)) ** 2;
+        if (f < 1) c += ((1 - f) * frontR / (0.005 * k)) ** 2;
       }
-      if (cost < best) { best = cost; theta = t; }
+      return c;
+    };
+    let theta = 0;
+    if (angles && Number.isFinite(angles[side])) theta = angles[side];
+    else {
+      let best = Infinity;
+      for (let i = -180; i <= 180; i++) {
+        const t = i * Math.PI / 180, c = cost(t);
+        if (c < best) { best = c; theta = t; }
+      }
+      // Between the degrees, the bottom of the parabola through the best and its neighbours.
+      const step = Math.PI / 180, l = cost(theta - step), m = cost(theta), r = cost(theta + step), curve = l - 2 * m + r;
+      if (curve > 1e-12) theta += step * Math.max(-1, Math.min(1, (l - r) / (2 * curve)));
     }
+    found[side] = theta;
     const elbow = centre.clone().addScaledVector(u, height * Math.cos(theta)).addScaledVector(v, height * Math.sin(theta));
     elbow.lerp(elbowNow, 1 - weight);
 
@@ -128,4 +144,45 @@ export function millsArms(vrm, body, size, figure, weight) {
     hand.quaternion.copy(qb.invert().multiply(handWorld));
     hand.updateWorldMatrix(false, true);
   }
+  return found;
+}
+
+/** Over how many frames (a Gaussian's width) Mills' elbow angles are smoothed (millsAngles). */
+const ANGLE_EASE = 2;
+
+/**
+ * Mills' elbow angles at every frame of a clip, worked out once: found frame by frame (`found(f)`, millsArms's return, or
+ * null where Mills' Mess does not have the arms), then smoothed over a few frames. Found afresh in each frame, the elbow
+ * went from beside the trunk to before it and back from one frame to the next (the user: the elbows shook).
+ * { left, right } per frame, NaN where there is none.
+ */
+export function millsAngles(count, found) {
+  const raw = { left: new Float64Array(count).fill(NaN), right: new Float64Array(count).fill(NaN) };
+  for (let f = 0; f < count; f++) {
+    const got = found(f);
+    if (!got) continue;
+    for (const side of ['left', 'right']) {
+      if (!Number.isFinite(got[side])) continue;
+      // Kept on the same turn as the frame before, so the smoothing does not go the long way round.
+      let t = got[side];
+      const before = f > 0 ? raw[side][f - 1] : NaN;
+      if (Number.isFinite(before)) t = before + Math.atan2(Math.sin(t - before), Math.cos(t - before));
+      raw[side][f] = t;
+    }
+  }
+  const eased = { left: new Float64Array(count).fill(NaN), right: new Float64Array(count).fill(NaN) };
+  for (const side of ['left', 'right']) {
+    for (let f = 0; f < count; f++) {
+      if (!Number.isFinite(raw[side][f])) continue;
+      let sum = 0, weight = 0;
+      for (let g = Math.max(0, f - 3 * ANGLE_EASE); g <= Math.min(count - 1, f + 3 * ANGLE_EASE); g++) {
+        if (!Number.isFinite(raw[side][g])) continue;
+        const w = Math.exp(-0.5 * ((g - f) / ANGLE_EASE) ** 2);
+        sum += raw[side][g] * w;
+        weight += w;
+      }
+      eased[side][f] = sum / weight;
+    }
+  }
+  return eased;
 }

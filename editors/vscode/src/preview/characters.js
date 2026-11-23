@@ -8,7 +8,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
-import { millsArms } from './arms.js';
+import { millsAngles, millsArms } from './arms.js';
 import { elbowSwings, keepArmsOut, measureBody } from './clearance.js';
 import { createMicHands } from './mic.js';
 import { clubCatching, gripHands, heldBy, palmAlong, palmsUp, penguinShares } from './juggle.js';
@@ -94,7 +94,7 @@ export function createCharacters(scene, changed) {
    * Poses a character's bones for a frame, as far as nothing but the frame decides it (the turns, the hips, the arms kept
    * out of its body, a juggler's palms): what its springs and expressions do is left to the caller. Returns its scale.
    */
-  function place(entry, clip, data, frame, clear = true) {
+  function place(entry, clip, data, frame, clear = true, millsFound = null) {
     const vrm = entry.vrm, turns = data.turns, frames = data.frames;
     const names = clip.skeletonBones ?? [];
     const pelvis = clip.joints.indexOf('pelvis');
@@ -126,18 +126,22 @@ export function createCharacters(scene, changed) {
     // (A test page turns it off with globalThis.shosaArmsAsSolved, to compare.)
     // In Mills' Mess the arms are solved again on the character's own body, its elbows held as the figure's (arms.js).
     // (Test pages: globalThis.shosaNoMillsArms leaves them as the turns put them, shosaNoClearance keeps nothing out after.)
+    // The elbows' angles are worked out for the whole clip beforehand (millsOf); `millsFound` is that working out, which
+    // takes what each frame finds alone.
     const mills = data.juggle && data.juggle.mills;
+    let millsGot = null;
     if (mills && mills.length && entry.body && !globalThis.shosaArmsAsSolved && !globalThis.shosaNoMillsArms) {
       const m0 = mills[Math.min(mills.length - 1, f0)], m1 = mills[Math.min(mills.length - 1, f0 + 1)];
       const weight = m0 + (m1 - m0) * k;
       if (weight > 0) {
         const p = frames[f0], q = frames[Math.min(frames.length - 1, f0 + 1)];
-        millsArms(vrm, entry.body, size, name => {
+        millsGot = millsArms(vrm, entry.body, size, name => {
           const j = clip.joints.indexOf(name);
           return new THREE.Vector3(p[j * 3] + (q[j * 3] - p[j * 3]) * k, p[j * 3 + 1] + (q[j * 3 + 1] - p[j * 3 + 1]) * k, p[j * 3 + 2] + (q[j * 3 + 2] - p[j * 3 + 2]) * k);
-        }, weight);
+        }, weight, millsFound ? null : millsAt(entry, data, frame));
       }
     }
+    if (millsFound) millsFound.push(millsGot);
     // The elbows' swings are worked out for the whole clip beforehand (swingsOf): found afresh in each frame they flapped.
     if (entry.body && clear && !globalThis.shosaArmsAsSolved && !globalThis.shosaNoClearance) keepArmsOut(vrm, entry.body, size, swingsAt(entry, data, frame));
     // Juggling (DESIGN.md 118): the palms up while it throws, so the balls lie on them; for rings an edge, the thumb up.
@@ -156,8 +160,28 @@ export function createCharacters(scene, changed) {
     const size = entry.height && entry.ownHeight ? entry.height / entry.ownHeight : 1;
     if (entry.swings?.data === data && entry.swings.size === size) return entry.swings;
     const count = data.turns.length;
+    millsOf(entry, clip, data, size);
     entry.swings = { data, size, ...elbowSwings(entry.vrm, entry.body, size, count, f => place(entry, clip, data, f, false)) };
     return entry.swings;
+  }
+
+  /** Mills' elbow angles for a clip's figure at every frame, worked out once per movement (arms.js millsAngles). */
+  function millsOf(entry, clip, data, size) {
+    if (entry.mills?.data === data && entry.mills.size === size) return;
+    entry.mills = null;
+    if (!(data.juggle && data.juggle.mills && data.juggle.mills.some(w => w > 0))) return;
+    const found = [];
+    for (let f = 0; f < data.turns.length; f++) place(entry, clip, data, f, false, found);
+    entry.mills = { data, size, ...millsAngles(data.turns.length, f => found[f]) };
+  }
+
+  /** Mills' elbow angles at a frame (between two frames, blended), or null to find them in the frame itself. */
+  function millsAt(entry, data, frame) {
+    const mills = entry.mills?.data === data ? entry.mills : null;
+    if (!mills || globalThis.shosaMillsEachFrame) return null;   // a test page compares with the angles found frame by frame
+    const count = mills.left.length, x = Math.max(0, Math.min(count - 1, frame)), f = Math.floor(x), g = Math.min(count - 1, f + 1), k = x - f;
+    const at = list => Number.isFinite(list[f]) && Number.isFinite(list[g]) ? list[f] + (list[g] - list[f]) * k : Number.isFinite(list[f]) ? list[f] : list[g];
+    return { left: at(mills.left), right: at(mills.right) };
   }
 
   /** The elbows' swings at a frame (between two frames, blended), or null to find them in the frame itself. */
@@ -165,7 +189,11 @@ export function createCharacters(scene, changed) {
     const swings = entry.swings?.data === data ? entry.swings : null;
     if (!swings || globalThis.shosaSwingsEachFrame) return null;   // a test page compares with the swings found frame by frame
     const count = swings.left.length, x = Math.max(0, Math.min(count - 1, frame)), f = Math.floor(x), g = Math.min(count - 1, f + 1), k = x - f;
-    return { left: swings.left[f] + (swings.left[g] - swings.left[f]) * k, right: swings.right[f] + (swings.right[g] - swings.right[f]) * k };
+    const out = swings.out ? {
+      left: swings.out.left[f].clone().slerp(swings.out.left[g], k),
+      right: swings.out.right[f].clone().slerp(swings.out.right[g], k),
+    } : null;
+    return { left: swings.left[f] + (swings.left[g] - swings.left[f]) * k, right: swings.right[f] + (swings.right[g] - swings.right[f]) * k, out };
   }
 
   /** A posed character's palms (past the wrist along the hand toward the fingers, and up) and forearms, [right, left]. */

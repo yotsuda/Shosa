@@ -192,7 +192,29 @@ export function keepArmsOut(vrm, body, size, swings = null) {
     // By the angle worked out for the whole clip beforehand when there is one (elbowSwings), else found now.
     const swing = swings ? swings[side] : elbowSwing(vrm, body, size, side, 0);
     if (swing) turnElbow(vrm, side, swing);
-    // What that cannot clear (an arm hanging straight down has no elbow to swing), the arm turned out at the shoulder.
+    // What that cannot clear (an arm hanging straight down has no elbow to swing), the arm turned out at the shoulder:
+    // by the turn worked out for the whole clip and smoothed when there is one (found frame by frame, the deepest point
+    // of the arm went from one place to another and the hand jumped 10 cm in a frame), else found now.
+    const out = swings && swings.out ? swings.out[side] : null;
+    if (out) {
+      upperArm.quaternion.premultiply(out);
+      continue;
+    }
+    if (!globalThis.shosaNoTurnOut) turnOut(vrm, body, size, side);
+  }
+}
+
+/**
+ * Turns an arm (its elbow already swung) out at the shoulder until it is clear of the trunk and head, by as little as does
+ * it and no more than MOST. Returns the turn as put on the upper arm's own turn (premultiplied), or null for none.
+ */
+function turnOut(vrm, body, size, side) {
+  const node = name => vrm.humanoid.getNormalizedBoneNode(name);
+  const thickness = body.arms[side];
+  const upperArm = node(side + 'UpperArm'), lowerArm = node(side + 'LowerArm'), hand = node(side + 'Hand');
+  if (!thickness || !upperArm || !lowerArm || !hand) return null;
+  const before = upperArm.quaternion.clone();
+  {
     let turnedBy = 0;
     for (let pass = 0; pass < PASSES && turnedBy < MOST; pass++) {
       vrm.scene.updateMatrixWorld(true);
@@ -216,6 +238,7 @@ export function keepArmsOut(vrm, body, size, swings = null) {
       upperArm.quaternion.copy(parent.invert().multiply(qa).multiply(world));
     }
   }
+  return upperArm.quaternion.clone().multiply(before.invert());
 }
 
 /** How far the elbow may be swung each way, and in what steps. */
@@ -304,7 +327,39 @@ export function elbowSwings(vrm, body, size, count, pose) {
       eased[side][f] = sum / weight;
     }
   }
-  return eased;
+  // Then the turns out at the shoulder, each frame posed and its elbows swung as eased, smoothed the same way.
+  const turns = { left: [], right: [] };
+  for (let f = 0; f < count; f++) {
+    pose(f);
+    for (const side of ['left', 'right']) {
+      if (eased[side][f]) turnElbow(vrm, side, eased[side][f]);
+      turns[side].push(globalThis.shosaNoTurnOut ? new THREE.Quaternion() : turnOut(vrm, body, size, side) ?? new THREE.Quaternion());
+    }
+  }
+  // A test page sees how far each arm was turned out, degrees per frame, before and after smoothing.
+  const degrees = q => 2 * Math.acos(Math.min(1, Math.abs(q.w))) * 180 / Math.PI;
+  const out = { left: [], right: [] };
+  for (const side of ['left', 'right']) {
+    // Held as the swings are: the largest turn within a few frames (a turn needed for one frame, smoothed, was too small
+    // to keep the arm out there).
+    const held = [];
+    for (let f = 0; f < count; f++) {
+      let most = turns[side][f];
+      for (let g = Math.max(0, f - SWING_HOLD); g <= Math.min(count - 1, f + SWING_HOLD); g++) if (degrees(turns[side][g]) > degrees(most)) most = turns[side][g];
+      held.push(most);
+    }
+    for (let f = 0; f < count; f++) {
+      // A Gaussian of the quaternions, each on the same side of the sphere as this frame's.
+      const sum = new THREE.Vector4(), mine = held[f];
+      for (let g = Math.max(0, f - 2 * SWING_EASE); g <= Math.min(count - 1, f + 2 * SWING_EASE); g++) {
+        const q = held[g], w = Math.exp(-0.5 * ((g - f) / SWING_EASE) ** 2) * (q.dot(mine) < 0 ? -1 : 1);
+        sum.x += q.x * w; sum.y += q.y * w; sum.z += q.z * w; sum.w += q.w * w;
+      }
+      out[side].push(new THREE.Quaternion(sum.x, sum.y, sum.z, sum.w).normalize());
+    }
+  }
+  if (globalThis.shosaTurnOutLog) globalThis.shosaTurnOutLog.push({ raw: { left: turns.left.map(degrees), right: turns.right.map(degrees) }, out: { left: out.left.map(degrees), right: out.right.map(degrees) } });
+  return { ...eased, out };
 }
 
 /** Swings the elbow round the shoulder–wrist line by `angle`, keeping the hand where it was and turned as it was. */
