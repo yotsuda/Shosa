@@ -85,9 +85,18 @@ export function palmsUp(vrm, weight, edge = false, styles = [0, 0], club = false
     // with the forearm. A ball is carried on the open palm, the fingers along the forearm.
     const gripsClub = club && (styles[side === 'left' ? 1 : 0] | 0) === 0;
     const along = forearm.clone();
+    // The thumb of a club's grip: square to the fingers in the upright plane of the forearm, on its top, which is the
+    // forearm turned 30 degrees up. (Taken as the up square to the fingers, it turned right round as the forearm went
+    // more than 30 degrees below level, the fingers then past straight down: the wrist turned half round after a catch,
+    // the hand going down with the club. DESIGN.md 118.16.)
+    let clubThumb = null;
     if (gripsClub) {
       const down = new THREE.Vector3().crossVectors(forearm, new THREE.Vector3(0, 1, 0));
-      if (down.lengthSq() > 1e-8) along.applyAxisAngle(down.normalize(), -Math.PI / 3);
+      if (down.lengthSq() > 1e-8) {
+        down.normalize();
+        along.applyAxisAngle(down, -Math.PI / 3);
+        clubThumb = forearm.clone().applyAxisAngle(down, Math.PI / 6);
+      }
     }
     // The thumb out to its own side, square to the hand: with the fingers forward that is the palm up, on both hands.
     // `edge` (rings): the thumb up and the little finger down, the hand an edge, as a karate chop (the user).
@@ -97,6 +106,7 @@ export function palmsUp(vrm, weight, edge = false, styles = [0, 0], club = false
     const out = bodyLeft.clone().multiplyScalar(isLeft ? 1 : -1);
     const thumb = style === 1 ? out.negate()
       : style === 2 ? out.clone().negate()
+      : clubThumb ? clubThumb
       : edge || gripsClub ? new THREE.Vector3(0, 1, 0).applyQuaternion(restInverse).applyQuaternion(worldQuat(trunk))
       : out;
     thumb.addScaledVector(along, -thumb.dot(along));
@@ -110,6 +120,8 @@ export function palmsUp(vrm, weight, edge = false, styles = [0, 0], club = false
     const turned = worldQuat(hand).slerp(target, Math.min(1, weight));
     hand.quaternion.copy(worldQuat(hand.parent).invert().multiply(turned));
     hand.updateMatrixWorld(true);
+    // A test page reads how each hand is turned (out\pv\harness-hands.html); nothing in the extension sets it.
+    if (globalThis.shosaPalmsDebug) globalThis.shosaPalmsDebug(side, forearm.toArray(), along.toArray(), thumb.toArray(), weight);
   }
 }
 
