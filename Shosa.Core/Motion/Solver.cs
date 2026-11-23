@@ -875,6 +875,8 @@ internal sealed class FigureSolver
     private const double MillsElbowSlack = 0.045, MillsElbowTurn = 0.25;
     /// <summary>How far the pelvis goes to the side with Mills' sway, per unit of the back's lean (against it, the hips out under a leaning back: with it, the body went away from the throws).</summary>
     private const double MillsLegSway = -0.4;
+    /// <summary>Seconds between the nine looks either side at how a hand is held behind the back or under the leg (some 0.16 s each way).</summary>
+    private const double TrickPoleStep = 0.04;
 
     // A mic in a hand (`mic right`, DESIGN.md 117). While the dancer sings, the hand is at the mouth, whatever its
     // row says; between phrases the row has the arm again, the mic in its hand. Sung by the phrase, not the
@@ -3081,12 +3083,20 @@ internal sealed class FigureSolver
                     "clubs" => -Vec3.Up + juggleLeft * (0.6 * side) - juggleFwd * 0.15,
                     _ => -Vec3.Up + juggleLeft * (0.08 * side) - juggleFwd * 0.45,
                 };
-                var jugglePole = (Juggling!.StyleAt(isLeft ? 1 : 0, juggleSec) switch
+                // Behind the back and under the leg, as much as the hand's way is so over a little time either side (DESIGN.md
+                // 118.31: taken at the moment, the elbow turned out and back in a frame each side of the throw, at 240-300 m/s²).
+                double backShare = 0, underShare = 0;
+                for (int k = -4; k <= 4; k++)
                 {
-                    Juggling.Style.Back => -Vec3.Up * 0.3 + juggleLeft * (1.0 * side) - juggleFwd * 0.2,
-                    Juggling.Style.Under => -Vec3.Up * 0.2 + juggleLeft * (1.0 * side) + juggleFwd * 0.1,
-                    _ => ownPole,
-                }).Normalized();
+                    var near = Juggling!.StyleAt(isLeft ? 1 : 0, juggleSec + k * TrickPoleStep);
+                    backShare += near == Juggling.Style.Back ? 1.0 / 9 : 0;
+                    underShare += near == Juggling.Style.Under ? 1.0 / 9 : 0;
+                }
+                var jugglePole = ownPole.Normalized();
+                if (backShare > 0)
+                    jugglePole = Vec3.Slerp(jugglePole, (-Vec3.Up * 0.3 + juggleLeft * (1.0 * side) - juggleFwd * 0.2).Normalized(), Smooth(backShare));
+                if (underShare > 0)
+                    jugglePole = Vec3.Slerp(jugglePole, (-Vec3.Up * 0.2 + juggleLeft * (1.0 * side) + juggleFwd * 0.1).Normalized(), Smooth(underShare));
                 // A penguin's arm is turned in at the shoulder (the user: the shoulder put in): the elbow out to the side. As much
                 // as it is a penguin's over a little time (above), so the elbow does not turn over in a frame (it swung the
                 // forearm round at 1600 degrees a second).

@@ -602,9 +602,23 @@ public sealed class Juggling
         double most = Math.Max(0.01, 0.45 * Dwell * beat);
         double swing = Math.Clamp(2 * Lift / speed, Math.Min(0.05, most), most);
         double follow = Math.Min(FollowThrough, 0.35 * (2 - Dwell) * beat);
-        _keys[hand].Add((thrown - swing, from - leaves * (swing / 2), Still, throwStyle));
-        _keys[hand].Add((thrown, from, leaves, throwStyle));
-        _keys[hand].Add((thrown + follow, from + leaves * (follow / 2), Still, throwStyle));
+        if (throwStyle is Style.Under or Style.Back)
+        {
+            // Under the leg and behind the back, the hand swings through softly (DESIGN.md 118.31): down to the place
+            // without stopping there, up with the ball at a part of its speed, and on a little after it. (With a cascade's
+            // stop it waited under the thigh, 0.3 m/s, and was flung up to the ball's speed.)
+            AddSmooth(hand, (thrown - Math.Min(1.5 * swing, most), from - leaves.Normalized() * TrickDip, Still, throwStyle));
+            AddSmooth(hand, (thrown, from, Still, throwStyle));
+            _launch[(hand, thrown)] = leaves.Y * TrickLaunch;
+            _launchAcross[(hand, thrown)] = leaves.X * TrickLaunch;
+            AddSmooth(hand, (thrown + follow, from + leaves * (follow * TrickFollow), Still, throwStyle));
+        }
+        else
+        {
+            _keys[hand].Add((thrown - swing, from - leaves * (swing / 2), Still, throwStyle));
+            _keys[hand].Add((thrown, from, leaves, throwStyle));
+            _keys[hand].Add((thrown + follow, from + leaves * (follow / 2), Still, throwStyle));
+        }
         if (catchStyle == Style.Claw)
         {
             // A claw comes down on the ball from above (the user): up a little over where it meets it, then down onto it
@@ -839,6 +853,10 @@ public sealed class Juggling
     /// <summary>The reverse cascade's loop: how far below its throw it goes round (metres), and how fast the hand goes with
     /// the ball at the throw and at the catch, as parts of the ball's speed.</summary>
     private const double ReverseLoopDepth = 0.10, ReverseLaunch = 0.8, ReverseArrive = 0.6;
+    /// <summary>A throw under the leg or behind the back: how far back along the ball's way the hand is as it comes down to
+    /// the place (metres), how fast it goes with the ball at the throw (a part of its speed), and how far on after it (a
+    /// part of the ball's way over the follow-through).</summary>
+    private const double TrickDip = 0.06, TrickLaunch = 0.6, TrickFollow = 0.4;
 
     /// <summary>The least time from a hand's own throw to a penguin catch, seconds (at 120 it is 0.35 s every 1, 0.175 s every
     /// 1/2, which is quick and said, SH2020, but still a penguin's; from a claw at 120 it was 0.1 s).</summary>
