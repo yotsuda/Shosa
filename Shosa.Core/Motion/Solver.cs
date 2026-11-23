@@ -322,6 +322,8 @@ public static class Solver
         }
 
         // Tricks the body has to make room for (DESIGN.md 118.12): under the leg, the leg lifted; behind the back, over the shoulder.
+        // How high a ball thrown or caught behind the back has to rise to go past the shoulder, metres (SH2022).
+        const double BackClear = 0.55;
         foreach (var flight in juggling.Flights.Where(f => f.Trick is not null && f.Seg is not null))
         {
             double beat = TempoMap.Beat(clip.Tempos, flight.Thrown);
@@ -335,13 +337,21 @@ public static class Solver
                     Say(flight.Seg!, "SH2022", DiagnosticSeverity.Warning, FormattableString.Invariant(
                         $"The {side} hand throws from under the {side} leg at beat {beat:0.##}, and the leg is not lifted there: lift it in its row by then (`{side}Leg {{ fwd.bent }}`, the thigh level, the knee at the height of the hip), or the hand goes through the thigh."));
             }
-            else if (flight.Trick == "back")
+            else if (flight.Trick == "backthrow")
             {
                 double rise = 9.81 * Math.Pow(flight.Caught - flight.Thrown, 2) / 8;
-                if (rise < 0.55)
+                if (rise < BackClear)
                     Say(flight.Seg!, "SH2022", DiagnosticSeverity.Warning, FormattableString.Invariant(
-                        $"Thrown from behind the back, it rises {rise:0.00} m: it has to clear the other shoulder, some 0.55 m above the hand there. Throw a higher number (a 5), or less often."));
+                        $"Thrown from behind the back, it rises {rise:0.00} m: it has to clear the other shoulder, some {BackClear:0.00} m above the hand there. Throw a higher number (a 5), or less often."));
             }
+        }
+        // Caught behind the back (DESIGN.md 118.39): the ball comes down over the shoulder, so it has to go up past it.
+        foreach (var flight in juggling.Flights.Where(f => f.BackCatch is not null))
+        {
+            double rise = 9.81 * Math.Pow(flight.Caught - flight.Thrown, 2) / 8;
+            if (rise < BackClear)
+                Say(flight.BackCatch!, "SH2022", DiagnosticSeverity.Warning, FormattableString.Invariant(
+                    $"Caught behind the back at beat {TempoMap.Beat(clip.Tempos, flight.Caught):0.##}, it rises {rise:0.00} m: it has to come down over the shoulder, some {BackClear:0.00} m above the hand behind the back. Throw it higher (a 5), or less often."));
         }
 
         // A penguin's balls go up above the shoulders (the user): thrown in front of the belly and caught low behind the hip,

@@ -312,11 +312,36 @@ public class JuggleTests
     }
 
     [Fact]
+    public void A_ball_caught_behind_the_back_is_met_behind_the_waist_the_shoulders_turned()
+    {
+        // The ball caught in the @backcatch word (the left hand's, thrown again on beat 5 of every 1): at its catch the left
+        // hand is behind the chest, the shoulders turned well round, the left one back.
+        var c = Compile(Juggle("every 1  3:4 | 3:1 3:1@backcatch 3:2 |"));
+        Assert.Empty(c.Diagnostics);
+        var clip = c.Clip;
+        var fig = clip.Figures[0];
+        var caught = clip.Figures[0].Juggle!.Flights.Single(f => f[2] == 1 && Math.Abs(f[4] - 1.85) < 0.02);
+        int frame = (int)Math.Round(caught[4] * clip.Fps);
+        var (l, r) = (fig.Joint(frame, Rig.LShoulder), fig.Joint(frame, Rig.RShoulder));
+        var chestFwd = new Vec3(-(l - r).Z, 0, (l - r).X).Normalized();
+        Assert.True((fig.Joint(frame, Rig.LHand) - fig.Joint(frame, Rig.Chest)).Dot(chestFwd) < -0.15, "the left hand behind the chest");
+        var feetLeft = fig.Joint(frame, Rig.LAnkle) - fig.Joint(frame, Rig.RAnkle);
+        var feetFwd = new Vec3(-feetLeft.Z, 0, feetLeft.X).Normalized();
+        Assert.True((l - r).Dot(feetFwd) < -0.2, "the left shoulder back");
+        // Too low to come down over the shoulder; and not with a penguin's or a claw's catch.
+        Assert.Contains("SH2022", Codes(Compile(Juggle("every 1/2  3:4 | 3:1/2 3:1/2@backcatch 3:3 |"))));
+        Assert.Contains("SH1010", Codes(Compile(Juggle("every 1  3:4@backcatch@penguin |"))));
+        Assert.Contains("SH1010", Codes(Compile(Juggle("every 1  3:4@claw@backcatch |"))));
+        // The old name is gone.
+        Assert.Contains("SH1010", Codes(Compile(Juggle("every 1  3:2 3:1@back 3:1 |"))));
+    }
+
+    [Fact]
     public void Behind_the_back_the_shoulders_turn_well_round_the_throwing_one_back()
     {
         // The right hand's throw from behind the back on beat 3 (every 1): at it the shoulders' line is turned some 70
         // degrees from the feet's, the right shoulder back, and turned back square a beat either side.
-        var c = Compile(Juggle("every 1  3:2 3:1@back 3:1 |"));
+        var c = Compile(Juggle("every 1  3:2 3:1@backthrow 3:1 |"));
         Assert.Empty(c.Diagnostics);
         var clip = c.Clip;
         double Turn(int frame)
@@ -414,8 +439,8 @@ public class JuggleTests
         var lifted = Compile(Juggle("every 1/2  3:2 3:1/2@under 3:3/2 |", "steps { shift.left:4 | } rightLeg { skip:1 fwd.bent:1 then:1 down:1 | }"));
         Assert.DoesNotContain("SH2022", Codes(lifted));
         // Behind the back, too low to clear the shoulder; at every 1 high enough.
-        Assert.Contains("SH2022", Codes(Compile(Juggle("every 1/2  3:2 3:1/2@back 3:3/2 |"))));
-        Assert.DoesNotContain("SH2022", Codes(Compile(Juggle("every 1  3:2 3:1@back 3:1 |"))));
+        Assert.Contains("SH2022", Codes(Compile(Juggle("every 1/2  3:2 3:1/2@backthrow 3:3/2 |"))));
+        Assert.DoesNotContain("SH2022", Codes(Compile(Juggle("every 1  3:2 3:1@backthrow 3:1 |"))));
         // Two places for one hand, and a trick that is not one.
         Assert.Contains("SH1010", Codes(Compile(Juggle("every 1/2  3:4@penguin@claw |"))));
         Assert.Contains("mills", Assert.Single(Compile(Juggle("every 1/2  3:4@mils |")).Diagnostics).Message);

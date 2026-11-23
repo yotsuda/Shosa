@@ -25,10 +25,11 @@ public sealed class Juggling
     private const double G = 9.81;
 
     /// <summary>A ball leaving a hand and coming down in one. A hold (a 2 that stays) is not a throw.</summary>
-    /// <param name="Trick">A throw from under the leg or behind the back ("under", "back"), and the word it is in: what the solver checks.</param>
+    /// <param name="Trick">A throw from under the leg or behind the back ("under", "backthrow"), and the word it is in: what the solver checks.</param>
     /// <param name="Mills">Thrown and caught in Mills' Mess: its balls are all in one plane before the body.</param>
     /// <param name="MillsThird">In Mills' Mess, which of each three throws it is (0 the first, over the top; 1 the second; 2 the third, from under), else -1.</param>
-    public sealed record Flight(int Ball, int From, int To, double Thrown, double Caught, int Value, string? Trick = null, Seg? Seg = null, bool Mills = false, int MillsThird = -1);
+    /// <param name="BackCatch">Caught behind the back: the word it is caught in (`@backcatch`); null else. What the solver checks.</param>
+    public sealed record Flight(int Ball, int From, int To, double Thrown, double Caught, int Value, string? Trick = null, Seg? Seg = null, bool Mills = false, int MillsThird = -1, Seg? BackCatch = null);
 
     /// <summary>What went wrong, said at the word it is about.</summary>
     public sealed record Problem(Seg Seg, string Code, bool IsError, string Message);
@@ -292,10 +293,11 @@ public sealed class Juggling
                     if (millsFlight && !windmill && slot.Index % 3 == 0 && slot.Index > 0)
                         thrown -= MillsFirstEarlier * T;
                     Flights.Add(new Flight(ball, hand, to, thrown, caught, t.Value,
-                        slot.Seg.Tricks?.FirstOrDefault(x => x is "under" or "back"), slot.Seg, millsFlight,
+                        slot.Seg.Tricks?.FirstOrDefault(x => x is "under" or "backthrow"), slot.Seg, millsFlight,
                         // The windmill's two, as Mills' first and second: the top hand's and the one from under the arm on top,
                         // each pair as high as each other in the preview (DESIGN.md 118.28).
-                        !millsFlight ? -1 : windmill ? slot.Index % 2 : slot.Index % 3));
+                        !millsFlight ? -1 : windmill ? slot.Index % 2 : slot.Index % 3,
+                        landingSeg?.Tricks?.Contains("backcatch") == true ? landingSeg : null));
                     Arrive(land, ball, to, Flights.Count - 1);
                     var landing = slots[Math.Min(land, slots.Count - 1)];
                     var catcher = landing.Seg;   // none: caught for good at the end of the run, as a plain catch (not Mills' middle)
@@ -696,6 +698,20 @@ public sealed class Juggling
             _keys[to].Add((caught, into, new Vec3(arrives.X * 0.3, -ClawSnatch, arrives.Z * 0.3), catchStyle));
             return;
         }
+        // Caught behind the back (DESIGN.md 118.39): the hand goes round by its own hip to behind the back after its own
+        // throw, meets the ball going down with it there, and comes back round by the hip to the front for its next throw.
+        // The shoulders turn, the catching one back, as for a throw from behind the back.
+        if (catchStyle == Style.Back)
+        {
+            _backThrows.Add((to, caught));
+            var bySide = new Vec3(Side(to) * BackBySide, BackBySideHigh, BackBySideAhead);
+            double before = 0.5 * (2 - Dwell) * beat, after = 0.4 * Dwell * beat;
+            AddSmooth(to, (caught - before, bySide, Still, Style.Own));
+            AddSmooth(to, (caught, into, Still, catchStyle));
+            _arrive[(to, caught)] = arrives * CascadeArrive;
+            AddSmooth(to, (caught + after, bySide, Still, Style.Own));
+            return;
+        }
         // A ball's catch goes on down with the ball, the hand not stopped at it (DESIGN.md 118.32).
         if (SoftBalls && catchStyle == Style.Own)
         {
@@ -768,10 +784,17 @@ public sealed class Juggling
         if (Round(catchTricks))
             into = MillsPlace(_mills6.CatchK, _mills6.CatchMirror, Windmill(catchTricks)).Catch;
         // Behind the back: from behind the waist, toward the other side, over the other shoulder.
-        if (Has(throwTricks, "back"))
+        if (Has(throwTricks, "backthrow"))
         {
             from = new Vec3(-s * 0.06, -0.08, -0.52);
             throwStyle = Style.Back;
+        }
+        // Caught behind the back (DESIGN.md 118.39): the ball comes down over the shoulder of the side it was thrown from,
+        // and the hand reaches behind the waist toward that side to meet it, as low as a throw from there.
+        if (Has(catchTricks, "backcatch"))
+        {
+            into = new Vec3(-c * 0.06, -0.08, -0.52);
+            catchStyle = Style.Back;
         }
         // Under the leg: from under the thigh of its own side (lifted in its row), inside it.
         if (Has(throwTricks, "under"))

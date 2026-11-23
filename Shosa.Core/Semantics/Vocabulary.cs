@@ -215,7 +215,8 @@ public static class Vocabulary
         new("penguin", "Penguin: caught behind the hip, the arm straight and the palm turned back; thrown in front, palm up, above the shoulders."),
         new("claw", "Claw: the palm down, the ball thrown up to the face and snatched from above there, near its top. The catching hand has to come up to the face after its own throw and bring the ball down again: at `every 1/2` it suits a tempo of about 113 to 197 (SH2023 says when not)."),
         new("reverse", "Reverse: thrown from outside, over the top, and caught inside: the cascade turned the other way."),
-        new("back", "Behind the back: the hand throws from behind the waist, over the other shoulder. Throw it high enough to clear the shoulder (a 5)."),
+        new("backthrow", "Thrown behind the back: the hand throws from behind the waist, over the other shoulder, the shoulders turned well round. Throw it high enough to clear the shoulder (a 5)."),
+        new("backcatch", "Caught behind the back: the ball comes down over the shoulder it was thrown on, and the hand reaches behind the waist to meet it, the shoulders turned well round. Throw it high enough to come over the shoulder (a 5)."),
         new("under", "Under the leg: the hand throws from under the thigh of its own side. Lift that leg in its row at that moment (`rightLeg { fwd.bent }`: the thigh level, the knee bent); one throw is a word of its own (`3:1/2@under`)."),
     ];
 

@@ -2129,12 +2129,13 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                 // Tricks (DESIGN.md 118.12): how the hands throw and catch, not what is thrown. Some cannot go together.
                 string? clash = name.Text switch
                 {
-                    "penguin" => tricks.FirstOrDefault(t => t is "claw" or "back" or "under" or "windmill"),
-                    "claw" => tricks.FirstOrDefault(t => t is "penguin"),
-                    "back" => tricks.FirstOrDefault(t => t is "under" or "penguin" or "windmill"),
-                    "under" => tricks.FirstOrDefault(t => t is "back" or "penguin" or "windmill"),
-                    "mills" => tricks.FirstOrDefault(t => t is "windmill"),
-                    "windmill" => tricks.FirstOrDefault(t => t is "mills" or "penguin" or "back" or "under"),
+                    "penguin" => tricks.FirstOrDefault(t => t is "claw" or "backthrow" or "backcatch" or "under" or "windmill"),
+                    "claw" => tricks.FirstOrDefault(t => t is "penguin" or "backcatch"),
+                    "backthrow" => tricks.FirstOrDefault(t => t is "under" or "penguin" or "windmill"),
+                    "backcatch" => tricks.FirstOrDefault(t => t is "penguin" or "claw" or "mills" or "windmill"),
+                    "under" => tricks.FirstOrDefault(t => t is "backthrow" or "penguin" or "windmill"),
+                    "mills" => tricks.FirstOrDefault(t => t is "windmill" or "backcatch"),
+                    "windmill" => tricks.FirstOrDefault(t => t is "mills" or "penguin" or "backthrow" or "backcatch" or "under"),
                     _ => null,
                 };
                 if (clash is not null)

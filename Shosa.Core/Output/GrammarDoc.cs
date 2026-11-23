@@ -1365,14 +1365,18 @@ public static class GrammarDoc
               `@penguin` (caught behind the hip, the arm straight and the palm turned back, and thrown in front, palm up, above the shoulders: at tempo 120 `every 1`, else SH2020), `@claw` (the palm down, the
               ball thrown up to the face and snatched from above there near its top; at `every 1/2` it suits a tempo
               of about 113 to 197, else SH2023 says the tempo it suits), `@reverse` (thrown from outside over the top, caught inside),
-              `@back` (from behind the back over the other shoulder), `@under` (from under the thigh of the
-              throwing hand's side). Every throw of the word: one throw is a word of one throw, which a
-              cascade allows anywhere (`3:2 3:1/2@under 3:3/2`; at `every 1/2` a word on a whole beat of a
+              `@backthrow` (thrown from behind the back over the other shoulder), `@backcatch` (caught behind the
+              back, the ball come down over the shoulder it was thrown on), `@under` (from under the thigh of the
+              throwing hand's side); behind the back, the shoulders turn well round, that hand's side back.
+              A throwing trick is every throw of the word; a catching one (`@penguin`, `@claw`, `@backcatch`) every
+              ball caught in it, to be thrown again there. One throw is a word of one throw, which a
+              cascade allows anywhere (`3:2 3:1/2@under 3:3/2`, `3:2 3:1@backcatch 3:1`; at `every 1/2` a word on a whole beat of a
               run begun on one is the right hand's). Under the leg, lift that leg in its row by then
               (`rightLeg { skip:1 fwd.bent:1 then:1 down:1 }`, and the weight on the other foot in `steps`),
               or it is SH2022; behind the back, throw high enough to clear the shoulder (0.55 m, a throw
-              every 1 at tempo 120), or it is SH2022. `@penguin` goes with neither `@claw`, `@back` nor
-              `@under`, nor `@back` with `@under`, nor `@windmill` with `@mills`, `@penguin`, `@back` or `@under` (SH1010).
+              every 1 at tempo 120), or it is SH2022. `@penguin` goes with none of `@claw`, `@backthrow`, `@backcatch`
+              and `@under`, nor `@backthrow` with `@under`, nor `@backcatch` with `@claw` or `@mills`, nor `@windmill`
+              with `@mills`, `@penguin`, `@backthrow`, `@backcatch` or `@under` (SH1010).
             - The preview draws the balls (clubs turning end over end, rings along the forearms, edge to the front) and turns a
               character's palms up while it throws. Exported files have the arms; the balls are not in them.
 
