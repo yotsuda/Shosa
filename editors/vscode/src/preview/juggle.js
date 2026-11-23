@@ -84,7 +84,9 @@ export function palmsUp(vrm, weight, edge = false, styles = [0, 0], club = false
     const isLeft = side === 'left';
     // A penguin's catch (DESIGN.md 118.17): how much, 0..1, smoothed over a few frames (`penguin`, [right, left]); without
     // it, as the frame's style says.
-    const penguinShare = penguin ? Math.max(0, Math.min(1, penguin[isLeft ? 1 : 0] || 0)) : ((styles[isLeft ? 1 : 0] | 0) === 2 ? 1 : 0);
+    // The share is some 0.85 at the catch itself (the frames after the throw that follows are not a penguin's), so it is
+    // stretched to be whole there: the arm and the hand turn all the way at the catch, not most of it.
+    const penguinShare = penguin ? Math.max(0, Math.min(1, (penguin[isLeft ? 1 : 0] || 0) / PENGUIN_FULL)) : ((styles[isLeft ? 1 : 0] | 0) === 2 ? 1 : 0);
     // The whole arm turned in about its own length, not the hand alone at the wrist (the user: the arm's turn about its
     // axis was not enough): the upper arm and the forearm each turned in, as much as the catch is a penguin's.
     if (penguinShare > 0 && upper) {
@@ -174,14 +176,20 @@ export function palmsUp(vrm, weight, edge = false, styles = [0, 0], club = false
       const palmThumb = out.clone().addScaledVector(forearm, -out.dot(forearm));
       if (palmThumb.lengthSq() > 1e-8) target.slerp(turnTo(forearm, palmThumb.normalize()), share);
     }
-    // A penguin's catch: the fingers down along the straight arm, the thumb in and back, so the palm faces back and out,
-    // turned past the half turn (the user: turned further about the arm).
+    // A penguin's catch (the user): the arm turned in until the palm faces out from the body's side, the thumb back and a
+    // little out, the little finger forward and a little in; and the wrist bent in, toward the palm, so the fingers go out
+    // and the palm comes up under the ball falling by the hip.
     // The hand turns from the palm up to that about the fingers, always the way the arm turns in, by as much as the catch is
     // a penguin's. (Blended as two turns of the hand, which are nearly opposite, the shorter way between them changed sides
-    // as the arm moved and the hand jumped some 100 degrees in a frame.)
+    // as the arm moved and the hand jumped some 100 degrees in a frame.) The wrist bends after, by the same share.
     if (penguin && penguinShare > 0 && !clubThumb && style === 0) {
       const fingers = forearm.clone();
-      const penguinThumb = out.clone().negate().addScaledVector(bodyFwd, -PENGUIN_THUMB_BACK);
+      // Out and back from the hips, by which the hand is: the shoulders are turned some 40 degrees at the catch, and from
+      // the chest the thumb went back and in.
+      const hips = node('hips') || trunk;
+      const hipsFwd = Z.clone().applyQuaternion(restInverse).applyQuaternion(worldQuat(hips));
+      const hipsOut = X.clone().applyQuaternion(restInverse).applyQuaternion(worldQuat(hips)).multiplyScalar(isLeft ? 1 : -1);
+      const penguinThumb = hipsFwd.negate().addScaledVector(hipsOut, PENGUIN_THUMB_OUT);
       penguinThumb.addScaledVector(fingers, -penguinThumb.dot(fingers));
       if (penguinThumb.lengthSq() > 1e-8) {
         penguinThumb.normalize();
@@ -190,7 +198,11 @@ export function palmsUp(vrm, weight, edge = false, styles = [0, 0], club = false
         let angle = inward * Math.atan2(thumb.clone().cross(penguinThumb).dot(fingers), thumb.dot(penguinThumb));
         if (angle < 0) angle += 2 * Math.PI;
         const turnedThumb = thumb.clone().applyAxisAngle(fingers, inward * angle * penguinShare);
-        target.copy(turnTo(fingers, turnedThumb));
+        // The wrist bent toward the palm, about the thumb (which stays where it is).
+        const palm = fingers.clone().cross(turnedThumb).multiplyScalar(isLeft ? 1 : -1).normalize();
+        const flex = PENGUIN_WRIST_FLEX * Math.PI / 180 * penguinShare;
+        const bent = fingers.clone().multiplyScalar(Math.cos(flex)).addScaledVector(palm, Math.sin(flex));
+        target.copy(turnTo(bent, turnedThumb));
       }
     }
     const turned = worldQuat(hand).slerp(target, Math.min(1, weight));
@@ -201,8 +213,13 @@ export function palmsUp(vrm, weight, edge = false, styles = [0, 0], club = false
   }
 }
 
-/** A penguin's catch: degrees the upper arm and the forearm turn in about their length, and how far back the thumb points besides in (per unit in). */
-const PENGUIN_UPPER_TWIST = 45, PENGUIN_FORE_TWIST = 60, PENGUIN_THUMB_BACK = 1.0;
+/**
+ * A penguin's catch: degrees the upper arm and the forearm turn in about their length (the user: turn the arm more), how
+ * far out the thumb points besides back (per unit back), and degrees the wrist bends toward the palm.
+ */
+const PENGUIN_UPPER_TWIST = 70, PENGUIN_FORE_TWIST = 90, PENGUIN_THUMB_OUT = 0.5, PENGUIN_WRIST_FLEX = 60;
+/** The share of a penguin's frames round a frame (penguinShares) taken as the whole of it. */
+const PENGUIN_FULL = 0.8;
 
 /**
  * How much each hand is in a penguin's catch at a frame, [right, left], 0..1: the share of the frames round it (some 0.3 s

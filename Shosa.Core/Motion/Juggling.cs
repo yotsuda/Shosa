@@ -713,8 +713,8 @@ public sealed class Juggling
     private readonly List<(int Hand, double At)> _penguinCatches = [];
     /// <summary>The flights caught in a penguin's way, behind the hip.</summary>
     public IEnumerable<Flight> PenguinFlights => Flights.Where(f => _penguinCatches.Any(c => c.Hand == f.To && Math.Abs(c.At - f.Caught) < 1e-9));
-    /// <summary>How far the shoulders turn at a penguin catch, the catching one back (radians: some 14 degrees), and over how many seconds either side.</summary>
-    private const double PenguinTurn = 0.45, PenguinTurnSpan = 0.3;
+    /// <summary>How far the shoulders turn at a penguin catch, the catching one back (radians: some 43 degrees; the user: turn them more), and over how many seconds either side.</summary>
+    private const double PenguinTurn = 0.75, PenguinTurnSpan = 0.3;
 
     /// <summary>
     /// How far the back leans to the side (the torso's sideways part, to the dancer's left), where the torso's row says
