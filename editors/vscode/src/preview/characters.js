@@ -135,13 +135,15 @@ export function createCharacters(scene, changed) {
       const weight = m0 + (m1 - m0) * k;
       if (weight > 0) {
         const p = frames[f0], q = frames[Math.min(frames.length - 1, f0 + 1)];
-        // The windmill's top elbow pulled back (DESIGN.md 118.33), [right, left] at each frame.
-        const pulls = data.juggle.pull, p0 = pulls?.[Math.min(pulls.length - 1, f0)], p1 = pulls?.[Math.min(pulls.length - 1, f0 + 1)];
-        const pull = p0 && p1 ? { right: p0[0] + (p1[0] - p0[0]) * k, left: p0[1] + (p1[1] - p0[1]) * k } : null;
+        // The windmill's top forearm drawn in (DESIGN.md 118.33) and its wheel's held elbow (118.34), [right, left] at each frame.
+        const sides = list => {
+          const a0 = list?.[Math.min(list.length - 1, f0)], a1 = list?.[Math.min(list.length - 1, f0 + 1)];
+          return a0 && a1 ? { right: a0[0] + (a1[0] - a0[0]) * k, left: a0[1] + (a1[1] - a0[1]) * k } : null;
+        };
         millsGot = millsArms(vrm, entry.body, size, name => {
           const j = clip.joints.indexOf(name);
           return new THREE.Vector3(p[j * 3] + (q[j * 3] - p[j * 3]) * k, p[j * 3 + 1] + (q[j * 3 + 1] - p[j * 3 + 1]) * k, p[j * 3 + 2] + (q[j * 3 + 2] - p[j * 3 + 2]) * k);
-        }, weight, millsFound ? null : millsAt(entry, data, frame), pull);
+        }, weight, millsFound ? null : millsAt(entry, data, frame), sides(data.juggle.pull), sides(data.juggle.wheel));
       }
     }
     if (millsFound) millsFound.push(millsGot);

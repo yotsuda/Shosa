@@ -431,7 +431,7 @@ public static class Solver
         }
 
         var result = new ClipJuggle(juggling.Prop, juggling.Balls, [], [],
-            [.. juggling.Flights.Select(fl => new[] { fl.Ball, fl.From, fl.To, (float)Math.Round(fl.Thrown, 4), (float)Math.Round(fl.Caught, 4), fl.Mills ? 1f : 0f, fl.MillsThird })], [], [], []);
+            [.. juggling.Flights.Select(fl => new[] { fl.Ball, fl.From, fl.To, (float)Math.Round(fl.Thrown, 4), (float)Math.Round(fl.Caught, 4), fl.Mills ? 1f : 0f, fl.MillsThird })], [], [], [], []);
         for (int f = 0; f < frames.Count; f++)
         {
             double sec = (double)f / fps;
@@ -451,9 +451,12 @@ public static class Solver
             result.Weight.Add((float)Math.Round(juggling.Weight(sec), 3));
             result.Styles.Add([(int)juggling.StyleAt(0, sec), (int)juggling.StyleAt(1, sec)]);
             result.Mills.Add((float)Math.Round(juggling.MillsAt(sec) * juggling.Weight(sec), 3));
-            // How much the windmill's top arm has its elbow pulled back, [right, left]: the preview, which solves a
-            // character's arms again in Mills' Mess and the windmill, pulls its elbow back as much (DESIGN.md 118.33).
+            // How much the windmill's top arm has its forearm drawn in, [right, left]: the preview, which solves a
+            // character's arms again in Mills' Mess and the windmill, lets its hand in to the trunk as much (DESIGN.md 118.33).
             result.Pull!.Add([(float)Math.Round(juggling.WindmillPull(0, sec) * juggling.Weight(sec), 3), (float)Math.Round(juggling.WindmillPull(1, sec) * juggling.Weight(sec), 3)]);
+            // How much the windmill's hand from under the arm goes round its wheel, its elbow held, [right, left]: the preview
+            // keeps a character's elbow where the figure's is, scaled, as much (DESIGN.md 118.34).
+            result.Wheel!.Add([(float)Math.Round((juggling.Wheel(0, sec)?.Weight ?? 0) * juggling.Weight(sec), 3), (float)Math.Round((juggling.Wheel(1, sec)?.Weight ?? 0) * juggling.Weight(sec), 3)]);
         }
         return result;
     }
@@ -3046,6 +3049,18 @@ internal sealed class FigureSolver
                 // Held in softly as it comes to the straight arm, not stopped there (the user: it jerked at the catch).
                 var straight = SoftReach(reachOut, PenguinReachSoft, PenguinReach);
                 wrist = shoulder + Vec3.Lerp(SoftReach(reachOut), straight, penguin);
+                // The windmill's wheel (DESIGN.md 118.34): the elbow held from the shoulder as it is (the wheel is drawn for the
+                // figure's shoulder standing square; the back's lean moves the shoulder), and the wrist going round from it,
+                // not drawn in by the reach.
+                var wheel = Juggling.Wheel(isLeft ? 1 : 0, juggleSec);
+                Vec3 axle = default;
+                if (wheel is { } wh)
+                {
+                    Vec3 Axes(Vec3 v) => juggleLeft * v.X + Vec3.Up * v.Y + juggleFwd * v.Z;
+                    var squareShoulder = new Vec3(Math.Sign(wh.Elbow.X) * Rig.ShoulderHalf, Rig.Spine - Rig.ShoulderDrop - 0.15, -0.30);
+                    axle = shoulder + Axes(wh.Elbow - squareShoulder);
+                    wrist = Vec3.Lerp(wrist, axle + Axes(wh.Wrist - wh.Elbow), wh.Weight);
+                }
                 // Held straight, the arm goes out to its reach the way it points, wherever the hand's way is (the user: the
                 // wrist cannot turn on a bent elbow, and before the catch the elbow was still straightening as it turned).
                 if (held > 0 && (wrist - shoulder).Length > 1e-6)
@@ -3125,6 +3140,13 @@ internal sealed class FigureSolver
                 // forearm goes round (the user: the elbow's x fixed, the arm past it swung wide).
                 if (mills > 0)
                     bend = Vec3.Slerp(bend, ElbowOut(shoulder, hand, Rig.UpperArm, Rig.Forearm, juggleLeft * side, MillsElbowSide, bend), mills * juggleWeight * MillsElbowHold);
+                // The windmill's wheel: the elbow held where the wheel's axle is (DESIGN.md 118.34).
+                if (wheel is { } held2)
+                {
+                    var toward = axle - (shoulder + hand) * 0.5;
+                    if (toward.Length > 1e-6)
+                        bend = Vec3.Slerp(bend.Length < 1e-6 ? pole.Normalized() : bend.Normalized(), toward.Normalized(), held2.Weight * juggleWeight);
+                }
             }
             var (elbow, reachedHand) = TwoBone(shoulder, hand, Rig.UpperArm, Rig.Forearm, bend.Length < 1e-6 ? pole : bend);
             // Mills' Mess: the balls all the same distance in front of the body (the user: exactly). The ball lies past the
@@ -3132,7 +3154,7 @@ internal sealed class FigureSolver
             // the palm, where the ball is, is at that distance (twice, the arm solved again each time). Only while it holds a
             // ball: empty, the hands are free to pass each other in front and behind.
             // (Not while the windmill's top arm draws its hand and the ball in with its elbow pulled back: DESIGN.md 118.33.)
-            if (juggleWeight > 0 && Juggling!.MillsAt(juggleSec) * Juggling.HoldShare(isLeft ? 1 : 0, juggleSec) * (1 - Juggling.WindmillPull(isLeft ? 1 : 0, juggleSec)) is var millsShare && millsShare > 0)
+            if (juggleWeight > 0 && Juggling!.MillsAt(juggleSec) * Juggling.HoldShare(isLeft ? 1 : 0, juggleSec) * (1 - Juggling.WindmillPull(isLeft ? 1 : 0, juggleSec)) * (1 - (Juggling.Wheel(isLeft ? 1 : 0, juggleSec)?.Weight ?? 0)) is var millsShare && millsShare > 0)
             {
                 for (int pass = 0; pass < 2; pass++)
                 {

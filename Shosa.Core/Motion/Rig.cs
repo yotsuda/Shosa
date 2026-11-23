@@ -281,7 +281,7 @@ public sealed record ClipMic(string Hand, List<float> Up);
 /// <paramref name="Mills"/>: how much Mills' Mess has the arms at each frame (0..1), for the preview to solve a character's
 /// arms again on its own body while it does (its elbows held side to side as the figure's are).
 /// </summary>
-public sealed record ClipJuggle(string Prop, int Count, List<float[]> Frames, List<float> Weight, List<float[]> Flights, List<int[]> Styles, List<float> Mills, List<float[]>? Pull = null);
+public sealed record ClipJuggle(string Prop, int Count, List<float[]> Frames, List<float> Weight, List<float[]> Flights, List<int[]> Styles, List<float> Mills, List<float[]>? Pull = null, List<float[]>? Wheel = null);
 
 /// <summary>
 /// Degrees, more to the figure's left. <paramref name="Feet"/> is from the front of the room; the

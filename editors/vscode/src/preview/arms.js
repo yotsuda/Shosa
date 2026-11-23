@@ -44,7 +44,7 @@ function aim(bone, child, to) {
  * there instead of finding its place in this frame alone (millsAngles smooths them over the clip). Returns the angles
  * it found or used, or null.
  */
-export function millsArms(vrm, body, size, figure, weight, angles = null, pull = null) {
+export function millsArms(vrm, body, size, figure, weight, angles = null, pull = null, wheel = null) {
   if (!body || weight <= 0) return null;
   const found = {};
   const node = name => vrm.humanoid.getNormalizedBoneNode(name);
@@ -90,6 +90,27 @@ export function millsArms(vrm, body, size, figure, weight, angles = null, pull =
       const short = rz + armRadius + HAND_CLEAR * (1 - pulled) * k - target.clone().sub(trunkAt).dot(forward);
       if (short > 0) target.addScaledVector(forward, short);
     }
+    // The windmill's hand from under the arm goes round its wheel, its elbow held (DESIGN.md 118.34): the elbow where the
+    // figure's is from its shoulder, the upper arm scaled to the character's, forward by the thicker trunk; the wrist the
+    // forearm's length (the character's) from it the way the figure's is. The cone the forearm sweeps is the figure's.
+    const wheeled = Math.max(0, Math.min(1, wheel?.[side] ?? 0));
+    // (Turned forward by that much and kept the upper arm's length from the shoulder: moved forward as it was, it was out of
+    // the arm's reach, and the elbow hunted for it from frame to frame.)
+    const elbowHeld = fe.clone().sub(fs).multiplyScalar(l1 / Math.max(1e-6, f1)).addScaledVector(forward, ahead).setLength(l1).add(shoulder);
+    // And out of the trunk (its cross-section an ellipse with the arm's thickness), the upper arm's length kept: held inside
+    // it, the elbow was pushed out to the edge by a different way in each frame.
+    if (trunkAt && wheel?.[side] > 0) {
+      const outwardSide = left.clone().multiplyScalar(sign);
+      for (let pass = 0; pass < 3; pass++) {
+        const off = elbowHeld.clone().sub(trunkAt);
+        const ox = off.dot(outwardSide) / (rx + armRadius + ELBOW_CLEAR * k), oz = off.dot(forward) / (rz + armRadius + ELBOW_CLEAR * k);
+        const f = Math.hypot(ox, oz);
+        if (f >= 1 || f < 1e-6) break;
+        elbowHeld.addScaledVector(outwardSide, off.dot(outwardSide) * (1 / f - 1)).addScaledVector(forward, off.dot(forward) * (1 / f - 1));
+        elbowHeld.sub(shoulder).setLength(l1).add(shoulder);
+      }
+    }
+    if (wheeled > 0) target.lerp(elbowHeld.clone().addScaledVector(fw.clone().sub(fe).normalize(), l2), wheeled);
     const wrist = wristNow.clone().lerp(target, weight);
 
     // The elbow: on its circle round the line from the shoulder to the wrist, side to side as near the solver's place
@@ -114,7 +135,11 @@ export function millsArms(vrm, body, size, figure, weight, angles = null, pull =
     const sideR = rx + armRadius, frontR = rz + armRadius;
     const cost = t => {
       const miss = (c0 + a * Math.cos(t) + b * Math.sin(t) - wanted) / (ELBOW_SLACK * k), turn = t / (globalThis.shosaElbowTurn ?? ELBOW_TURN);
-      let c = miss * miss + turn * turn;
+      let c = (miss * miss + turn * turn) * (1 - wheeled);
+      if (wheeled > 0) {
+        at.copy(centre).addScaledVector(u, height * Math.cos(t)).addScaledVector(v, height * Math.sin(t));
+        c += wheeled * (at.distanceTo(elbowHeld) / (0.01 * k)) ** 2;
+      }
       if (trunkAt) {
         at.copy(centre).addScaledVector(u, height * Math.cos(t)).addScaledVector(v, height * Math.sin(t)).sub(trunkAt);
         const f = Math.hypot(at.dot(outward) / sideR, at.dot(forward) / frontR);

@@ -531,8 +531,8 @@ public sealed class Juggling
                     AddSmooth(to, (at, new Vec3(from.X - outward * WindmillWaitIn, topCatch.Y + WindmillWaitHigh, from.Z), Still, Style.Own));
                     _windmillWait[to] = at;
                     _windmillUnder.Add((to, thrown));
-                    // And the hand that threw it goes on up after it, into the room the top arm has made.
-                    AddSmooth(hand, (thrown + WindmillRiseAt, from + new Vec3(-outward * WindmillRiseIn, WindmillRise, 0), Still, throwStyle));
+                    // And the hand that threw it goes round its wheel, up into the room the top arm has made (Wheel).
+                    _wheel.Add((hand, thrown, 2 * beat, _mills6.ThrowMirror));
                 }
             }
             else
@@ -1090,10 +1090,9 @@ public sealed class Juggling
     private const double MillsFirstEarlier = 0.25;
     /// <summary>After Mills' first throw, how far above the higher of the throw and the next catch the hand comes round, metres.</summary>
     private const double MillsOverRise = 0.25;
-    /// <summary>The windmill's top hand getting out of the way of the ball from under its arm: how long after that throw
-    /// (seconds) it is out from where the ball then is and above it, and how far each (metres); and how far up after it the
-    /// hand that threw it goes, and in (metres).</summary>
-    private const double WindmillWait = 0.12, WindmillWaitIn = 0.30, WindmillWaitHigh = 0.0, WindmillRise = 0.10, WindmillRiseIn = 0.04, WindmillRiseAt = 0.06;
+    /// <summary>The windmill's top hand waiting for the ball from under its arm to go up past it on its outer side: until how
+    /// long after that throw (seconds), how far in from where it is thrown, and how far above its own catch (metres).</summary>
+    private const double WindmillWait = 0.12, WindmillWaitIn = 0.30, WindmillWaitHigh = 0.0;
     /// <summary>When the windmill's top hand last waited for a ball from under its arm, by hand.</summary>
     private readonly Dictionary<int, double> _windmillWait = [];
     /// <summary>The windmill's throws from under the top arm: the top hand and when (seconds).</summary>
@@ -1189,6 +1188,10 @@ public sealed class Juggling
         if (windmill)
         {
             var (wt, wc) = WindmillRight[((k % 2) + 2) % 2];
+            // The hand from under the arm throws and catches on its wheel: the catch as far round before the throw as the
+            // hold is long (a turn in two beats).
+            if (((k % 2) + 2) % 2 == 1)
+                (wt, wc) = (WheelPoint(WheelThrowAt), WheelPoint(WheelThrowAt + Math.PI * Dwell));
             return mirrored ? (new Vec3(-wt.X, wt.Y, wt.Z), new Vec3(-wc.X, wc.Y, wc.Z)) : (wt, wc);
         }
         int at = ((k % 6) + 6) % 6;
@@ -1231,8 +1234,62 @@ public sealed class Juggling
             sum += RawHand(hand, sec + tau) * k;
             total += k;
         }
-        return RawHand(hand, sec) * (1 - w) + sum * (w / total);
+        var soft = RawHand(hand, sec) * (1 - w) + sum * (w / total);
+        // The windmill's hand from under the arm goes round its wheel (WheelAt), as it is, not softened.
+        return Wheel(hand, sec) is { } wheel ? Vec3.Lerp(soft, wheel.Wrist, wheel.Weight) : soft;
     }
+
+    /// <summary>
+    /// The windmill's hand that throws from under the arm on top (the user: its elbow held still, the forearm going round
+    /// and round from it like a waterwheel, DESIGN.md 118.34): its wrist goes round a circle at an even speed, once in each
+    /// two throws, the elbow on the circle's axis behind it, the forearm's length from every point of it — as if the forearm
+    /// swept a cone from the elbow. Going round the way its old loop went: up and over toward its own side after the throw
+    /// from low under the other arm, down its own side, and back along the bottom. Where it throws and catches are on the
+    /// circle (WindmillRight's second row is made from it), so the two balls go up from low on the other side and come down
+    /// high on its own, the way the top hand's go. Null where it does not.
+    /// </summary>
+    public (Vec3 Wrist, Vec3 Elbow, double Weight)? Wheel(int hand, double sec)
+    {
+        (double Thrown, double Period, bool Mirrored)? near = null;
+        double nearest = double.PositiveInfinity, first = double.PositiveInfinity, last = double.NegativeInfinity;
+        foreach (var (h, thrown, period, mirrored) in _wheel)
+        {
+            if (h != hand)
+                continue;
+            first = Math.Min(first, thrown - period);
+            last = Math.Max(last, thrown + period);
+            if (Math.Abs(sec - thrown) < nearest)
+                (nearest, near) = (Math.Abs(sec - thrown), (thrown, period, mirrored));
+        }
+        if (near is not { } n)
+            return null;
+        double weight = MillsWeight(sec) * Smooth(Math.Clamp(1 - Math.Max(first - sec, sec - last) / 0.2, 0, 1));
+        if (weight <= 0)
+            return null;
+        double phi = WheelThrowAt - 2 * Math.PI * (sec - n.Thrown) / n.Period;
+        var wrist = WheelPoint(phi);
+        var elbow = WheelElbow;
+        if (n.Mirrored)
+            (wrist, elbow) = (new Vec3(-wrist.X, wrist.Y, wrist.Z), new Vec3(-elbow.X, elbow.Y, elbow.Z));
+        return (wrist, elbow, weight);
+    }
+
+    /// <summary>A point of the windmill's wheel at an angle (radians from the dancer's left, up positive), as for the left hand.</summary>
+    private static Vec3 WheelPoint(double phi) => WheelElbow + new Vec3(WheelRadius * Math.Cos(phi), WheelRadius * Math.Sin(phi), WheelAhead);
+
+    /// <summary>
+    /// The windmill's wheel, for the left hand under the right arm (the right hand's mirrored), in the juggling's frame: the
+    /// elbow held under the left shoulder and a little forward (the upper arm's length from the figure's shoulder), the
+    /// circle the forearm's wrist goes round so far in front of it, and as wide as the forearm leaves (Rig.Forearm). The
+    /// throw from under the arm is a little below the circle's middle on the right; the catch comes as far round after as
+    /// the time between them says (a third of the turn). (The circle 0.20 m in front of the elbow was 0.24 m wide: the arm
+    /// went out nearly straight to the side, the hand up to the face, and the forearms met; 0.26 m in front it is 0.17 m.)
+    /// </summary>
+    private static readonly Vec3 WheelElbow = new(0.13, 0.08, -0.15);
+    private const double WheelAhead = 0.26, WheelThrowAt = 190 * Math.PI / 180;
+    private static readonly double WheelRadius = Math.Sqrt(Rig.Forearm * Rig.Forearm - WheelAhead * WheelAhead);
+    /// <summary>The windmill's wheels: the hand from under the arm, when it throws, seconds a turn, and whether it is the right hand's.</summary>
+    private readonly List<(int Hand, double Thrown, double Period, bool Mirrored)> _wheel = [];
 
     /// <summary>How long Mills' hands are softened over (the Gaussian's spread), seconds.</summary>
     private const double MillsSoften = 0.065;
