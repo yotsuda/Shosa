@@ -613,25 +613,44 @@ public sealed class Juggling
     private const double MillsLean = 0.3;
 
     /// <summary>
-    /// How much a hand holds a ball around a time (seconds), 0..1: 1 holding, 0 empty, between over the 0.08 s either side
-    /// of a catch or a throw, so what is done only to a hand that holds comes and goes smoothly.
+    /// How much a hand holds a ball around a time (seconds), 0..1: 1 holding (the catch and the throw included), and on the
+    /// empty side less as it is further in time from holding, to 0 at 0.3 s, so what is done only to a hand that holds
+    /// comes and goes smoothly. (Sampled at a few times either side, it jumped in the short gap between a throw and the
+    /// next catch, and the elbow jumped with it: the user.)
     /// </summary>
     public double HoldShare(int hand, double sec)
     {
-        // All of it while it holds, the catch and the throw included; the coming and going is all on the empty side.
-        bool Holds(double at)
+        _holding ??= Holdings();
+        double nearest = double.PositiveInfinity;
+        foreach (var (from, to) in _holding[hand])
         {
-            for (int b = 0; b < Balls; b++)
-                if (HandOf(b, at) == hand || HandOf(b, at - 0.012) == hand || HandOf(b, at + 0.012) == hand)
-                    return true;
-            return false;
+            if (sec >= from && sec <= to)
+                return 1;
+            nearest = Math.Min(nearest, sec < from ? from - sec : sec - to);
         }
-        if (Holds(sec))
-            return 1;
-        for (int k = 1; k <= 3; k++)
-            if (Holds(sec - k * 0.03) || Holds(sec + k * 0.03))
-                return Smooth(1 - k / 4.0);
-        return 0;
+        return Smooth(1 - nearest / HoldRamp);
+    }
+
+    private const double HoldRamp = 0.3;
+    private List<(double From, double To)>[]? _holding;
+
+    /// <summary>Each hand's stretches of holding a ball, seconds: from a catch (or the start) to that ball's next throw.</summary>
+    private List<(double From, double To)>[] Holdings()
+    {
+        var held = new List<(double, double)>[] { [], [] };
+        for (int b = 0; b < Balls; b++)
+        {
+            var mine = Flights.Where(f => f.Ball == b).OrderBy(f => f.Thrown).ToList();
+            double since = double.NegativeInfinity;
+            int hand = b < _startHand.Count ? _startHand[b] : b % 2;
+            foreach (var f in mine)
+            {
+                held[hand].Add((since, f.Thrown));
+                (since, hand) = (f.Caught, f.To);
+            }
+            held[hand].Add((since, double.PositiveInfinity));
+        }
+        return held;
     }
 
     /// <summary>How much Mills' Mess has the juggling at a time (seconds), 0..1.</summary>
