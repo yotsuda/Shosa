@@ -557,9 +557,12 @@ public sealed class Juggling
     [
         // Close in before the body: Mills is a small rolling of the forearms (caught 30 cm out, a short-armed character's
         // arm went out straight).
-        (new Vec3(0.14, 0.05, 0.07), new Vec3(0.22, 0.09, 0.05)),
-        (new Vec3(0.10, 0.00, 0.00), new Vec3(0.20, 0.05, 0.00)),
-        (new Vec3(0.12, -0.06, -0.05), new Vec3(0.21, -0.02, -0.05)),
+        // All three thrown from the same place out on the left, along one way, and caught near the middle of the body (the
+        // user: the three on one path, thrown from outside, caught near the middle). The wrists differ so the balls,
+        // which lie past the wrist along the forearm, leave from one place: a crossed forearm points out to the left.
+        (new Vec3(0.17, 0.05, 0.07), new Vec3(0.03, 0.09, 0.05)),
+        (new Vec3(0.24, 0.01, 0.00), new Vec3(0.03, 0.05, 0.00)),
+        (new Vec3(0.18, -0.03, -0.05), new Vec3(0.03, -0.01, -0.05)),
     ];
 
     private static (Vec3 Throw, Vec3 Catch) MillsPlace(int k, bool mirrored)
