@@ -248,11 +248,12 @@ public class JuggleTests
                 Assert.Equal(was.Select(f => f[3]), now.Select(f => f[3]));
                 continue;
             }
-            // Mills' second throw of three goes higher, thrown a little before its beat (DESIGN.md 118.12); the rest on it.
+            // Mills' first and second throws of three go higher, thrown a little before their beats (DESIGN.md 118.12); the
+            // third on it.
             var early = was.Zip(now).Where(p => p.First[3] != p.Second[3]).ToList();
             Assert.NotEmpty(early);
             Assert.All(early, p => Assert.InRange(p.First[3] - p.Second[3], 0.01, 0.2));
-            Assert.True(early.Count <= (was.Count() + 2) / 3, $"{early.Count} of {was.Count()} throws moved");
+            Assert.True(early.Count <= 2 * (was.Count() + 2) / 3, $"{early.Count} of {was.Count()} throws moved");
         }
 
         // Mills' Mess: a hand throws from the other side of the body, the arms crossed.

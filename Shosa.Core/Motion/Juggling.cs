@@ -256,8 +256,13 @@ public sealed class Juggling
                     double thrown = slotThrown;
                     // Mills' second throw (and its mirror, the fifth) goes higher (the user): longer in the air, thrown a
                     // little before the beat.
-                    if (slot.Index % 3 == 1 && slot.Seg.Tricks?.Contains("mills") == true && landingSeg?.Tricks?.Contains("mills") == true)
+                    bool millsFlight = slot.Seg.Tricks?.Contains("mills") == true && landingSeg?.Tricks?.Contains("mills") == true;
+                    if (millsFlight && slot.Index % 3 == 1)
                         thrown -= MillsSecondEarlier * T;
+                    // The first (and the fourth) as high as the second (the user): a little before its beat too, but not the
+                    // word's very first throw, which the hands come in to from what the arms did.
+                    if (millsFlight && slot.Index % 3 == 0 && slot.Index > 0)
+                        thrown -= MillsFirstEarlier * T;
                     Flights.Add(new Flight(ball, hand, to, thrown, caught, t.Value,
                         slot.Seg.Tricks?.FirstOrDefault(x => x is "under" or "back"), slot.Seg,
                         slot.Seg.Tricks?.Contains("mills") == true && landingSeg?.Tricks?.Contains("mills") == true));
@@ -715,6 +720,8 @@ public sealed class Juggling
 
     /// <summary>How far below the lower of its throw and catch each Mills loop goes round, metres.</summary>
     private const double MillsLoopDepth = 0.08;
+    /// <summary>How much before its beat Mills' first throw leaves the hand, as a part of a throwing beat: as high as the second.</summary>
+    private const double MillsFirstEarlier = 0.25;
     /// <summary>After Mills' first throw, how far above the higher of the throw and the next catch the hand comes round, metres.</summary>
     private const double MillsOverRise = 0.25;
     /// <summary>When the top of that arc is, as a part of the time from the throw to the next catch.</summary>
