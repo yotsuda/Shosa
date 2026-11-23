@@ -1392,7 +1392,7 @@ section Show {
   A throwing hand sinks, swings up and lets go at the speed the ball or ring leaves at; a
   catching hand gives with it.
 - **Tricks**, put on a pattern with `@`, change how the hands throw and catch it, never what is
-  thrown: `3:4@mills` (Mills' Mess: every throw with the arms crossed, over and then under),
+  thrown: `3:4@mills` (Mills' Mess: six throws round, three from the left and three from the right, the arms crossing and uncrossing),
   `@penguin` (the arms straight down, caught and thrown by the hips), `@claw` (the palm down, the
   ball snatched from above), `@reverse` (thrown from outside over the top, caught inside),
   `@back` (from behind the back over the other shoulder), `@under` (from under the thigh of the

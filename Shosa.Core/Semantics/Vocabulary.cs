@@ -210,7 +210,7 @@ public static class Vocabulary
     /// </summary>
     public static readonly Word[] Tricks =
     [
-        new("mills", "Mills' Mess: each throw is made with the arms crossed, the one arm over the other and then under; each hand uncrosses to catch on its own side. Best on 3 (and 423)."),
+        new("mills", "Mills' Mess: six throws round. The arms crossed, the right hand over throws from the left side in; the arms uncrossing, the left hand throws; crossing the other way, the right hand under throws from low on the left. The three go up from left to right; then the same mirrored. Best on 3."),
         new("penguin", "Penguin: the arms straight down, the hands by the hips, fingers down: caught and thrown from there."),
         new("claw", "Claw: the palm down, the ball snatched from above at the top of the hand's loop."),
         new("reverse", "Reverse: thrown from outside, over the top, and caught inside: the cascade turned the other way."),

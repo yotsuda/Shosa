@@ -254,7 +254,13 @@ public sealed class Juggling
                     Flights.Add(new Flight(ball, hand, to, thrown, caught, t.Value,
                         slot.Seg.Tricks?.FirstOrDefault(x => x is "under" or "back"), slot.Seg));
                     Arrive(land, ball, to, Flights.Count - 1);
-                    var catcher = slots[Math.Min(land, slots.Count - 1)].Seg ?? slot.Seg;
+                    var landing = slots[Math.Min(land, slots.Count - 1)];
+                    var catcher = landing.Seg ?? slot.Seg;
+                    // Which of Mills' six throws this is, and which the ball is caught for: counted in its word, mirrored
+                    // when the word's first throw is the left hand's.
+                    bool Mirrored(Slot x) => x.Seg is not null && Siteswap.HandAt(x.InRun - x.Index, x.Seg.LeftFirst) == 1;
+                    _mills6 = (slot.Index % 6, Mirrored(slot), landing.Seg is null ? (slot.Index + t.Value) % 6 : landing.Index % 6,
+                        landing.Seg is null ? Mirrored(slot) : Mirrored(landing));
                     Swing(hand, to, t.Value, thrown, caught, T, slot.Seg.Tricks, catcher.Tricks, _throwsBy[hand]++);
                     lastCatch = Math.Max(lastCatch, caught);
                 }
@@ -472,21 +478,14 @@ public sealed class Juggling
             into = new Vec3(c * 0.30, -0.26, -0.30);   // outside the hip: coming down nearer in, it grazed the body
             catchStyle = Style.Penguin;
         }
-        // Mills' Mess: every throw is made with the arms crossed, the throwing hand reaching to the other side, over the
-        // other arm and then under it, one throw and the next; it uncrosses to catch on its own side. The hands roll round
-        // each other (the user: the forearms turn smoothly, the hands going well up and down): crossed over, high and in
-        // front, it comes down outside to catch low; crossed under, low and behind, it comes up outside to catch high.
+        // Mills' Mess, as the user laid it out: six throws round, three from the left and three, mirrored, from the right.
+        // Arms crossed, the right hand over, on the left, throws from outside in; the arms uncrossing, the left hand throws;
+        // the arms crossing the other way, the right hand under, low on the left, throws in. The three go up near one another
+        // from left to right; then the same mirrored. Caught a little further out than thrown, and carried in to the throw.
         if (Has(throwTricks, "mills"))
-        {
-            bool over = nth % 2 == 0;
-            from = new Vec3(-s * 0.05, over ? 0.12 : -0.10, over ? 0.08 : -0.06);
-        }
+            from = MillsPlace(_mills6.ThrowK, _mills6.ThrowMirror).Throw;
         if (Has(catchTricks, "mills"))
-        {
-            // After crossing over (its last throw) it catches low; after crossing under, high.
-            bool cameOver = (_throwsBy[to] - 1) % 2 == 0;
-            into = new Vec3(c * 0.22, cameOver ? -0.06 : 0.10, 0.0);
-        }
+            into = MillsPlace(_mills6.CatchK, _mills6.CatchMirror).Catch;
         // Behind the back: from behind the waist, toward the other side, over the other shoulder.
         if (Has(throwTricks, "back"))
         {
@@ -544,6 +543,32 @@ public sealed class Juggling
         foreach (var (from, to) in _mills)
             w = Math.Max(w, sec >= from && sec <= to ? 1 : sec < from ? Smooth(1 - (from - sec) / 0.4) : Smooth(1 - (sec - to) / 0.4));
         return w <= 0 ? 0 : w * 0.45 * (Hand(0, sec).X + Hand(1, sec).X);
+    }
+
+    /// <summary>The throw being planned in Mills' Mess: which of the six it is, and which the ball is caught for.</summary>
+    private (int ThrowK, bool ThrowMirror, int CatchK, bool CatchMirror) _mills6;
+
+    /// <summary>
+    /// Where the hand throws and catches on each of Mills' six throws (x to the dancer's left, as written for a word whose
+    /// first throw is the right hand's): 0 the right hand over, on the left; 1 the left hand on its own side, the arms
+    /// uncrossing; 2 the right hand under, low on the left; 3–5 the same mirrored.
+    /// </summary>
+    private static readonly (Vec3 Throw, Vec3 Catch)[] MillsLeft =
+    [
+        // Close in before the body: Mills is a small rolling of the forearms (caught 30 cm out, a short-armed character's
+        // arm went out straight).
+        (new Vec3(0.14, 0.05, 0.07), new Vec3(0.22, 0.09, 0.05)),
+        (new Vec3(0.10, 0.00, 0.00), new Vec3(0.20, 0.05, 0.00)),
+        (new Vec3(0.12, -0.06, -0.05), new Vec3(0.21, -0.02, -0.05)),
+    ];
+
+    private static (Vec3 Throw, Vec3 Catch) MillsPlace(int k, bool mirrored)
+    {
+        int at = ((k % 6) + 6) % 6;
+        var (t, c) = MillsLeft[at % 3];
+        bool right = (at >= 3) ^ mirrored;
+        Vec3 Flip(Vec3 v) => right ? new Vec3(-v.X, v.Y, v.Z) : v;
+        return (Flip(t), Flip(c));
     }
 
     /// <summary>How a hand is held at a time (seconds): as at the nearer of its places either side.</summary>
