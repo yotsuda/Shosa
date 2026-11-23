@@ -146,7 +146,7 @@ export function createCharacters(scene, changed) {
       const w0 = juggled[Math.min(juggled.length - 1, f0)], w1 = juggled[Math.min(juggled.length - 1, f0 + 1)];
       const clubs = data.juggle.prop === 'clubs';
       palmsUp(vrm, w0 + (w1 - w0) * k, data.juggle.prop === 'rings', data.juggle.styles ? data.juggle.styles[Math.min(data.juggle.styles.length - 1, Math.round(frame))] : [0, 0], clubs,
-        clubs && data.juggle.flights ? clubCatching(data.juggle.flights, frame / clip.fps) : [0, 0], penguinShares(data.juggle.styles, frame));
+        clubs && data.juggle.flights ? clubCatching(data.juggle.flights, frame / clip.fps) : [0, 0], penguinShares(data.juggle.styles, frame, data.juggle.flights, clip.fps));
     }
     return size;
   }
@@ -222,7 +222,7 @@ export function createCharacters(scene, changed) {
     for (let f = 0; f < count; f++) {
       place(entry, clip, data, f);
       entry.vrm.scene.updateMatrixWorld(true);
-      const { palms, forearms } = measure(entry.vrm, data.juggle.prop, data.juggle.styles?.[f], penguinShares(data.juggle.styles, f));
+      const { palms, forearms } = measure(entry.vrm, data.juggle.prop, data.juggle.styles?.[f], penguinShares(data.juggle.styles, f, data.juggle.flights, clip.fps));
       at.hips.push(hipsBone ? hipsBone.getWorldPosition(new THREE.Vector3()) : new THREE.Vector3());
       for (const hand of [0, 1]) {
         at.palms[hand].push(palms[hand] ?? new THREE.Vector3());
@@ -366,7 +366,7 @@ export function createCharacters(scene, changed) {
         // Where its palms are, for the balls it juggles (juggle.js). Right, left.
         if (data.juggle) {
           vrm.scene.updateMatrixWorld(true);
-          ({ palms: entry.palms, forearms: entry.forearms } = measure(vrm, data.juggle.prop, data.juggle.styles?.[Math.min(data.juggle.styles.length - 1, Math.round(frame))], penguinShares(data.juggle.styles, frame)));
+          ({ palms: entry.palms, forearms: entry.forearms } = measure(vrm, data.juggle.prop, data.juggle.styles?.[Math.min(data.juggle.styles.length - 1, Math.round(frame))], penguinShares(data.juggle.styles, frame, data.juggle.flights, clip.fps)));
         } else {
           entry.palms = null;
           entry.forearms = null;

@@ -3016,6 +3016,8 @@ internal sealed class FigureSolver
                 double penguin = 0;
                 for (int k = -4; k <= 4; k++)
                     penguin += Juggling!.StyleAt(isLeft ? 1 : 0, juggleSec + k * 0.03) == Juggling.Style.Penguin ? 1.0 / 9 : 0;
+                // Straight after the catch until the wrist has turned back (DESIGN.md 118.19).
+                penguin = Math.Max(penguin, Juggling!.PenguinHeld(isLeft ? 1 : 0, juggleSec));
                 // Held in softly as it comes to the straight arm, not stopped there (the user: it jerked at the catch).
                 var straight = SoftReach(reachOut, PenguinReachSoft, PenguinReach);
                 wrist = shoulder + Vec3.Lerp(SoftReach(reachOut), straight, penguin);

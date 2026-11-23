@@ -706,6 +706,27 @@ public sealed class Juggling
         return turn;
     }
 
+    /// <summary>
+    /// How much a penguin's arm is held straight after its catch, 0..1: whole while the preview turns the wrist back
+    /// (<see cref="PenguinUnwind"/>; the user: the wrist turns back before the elbow bends, which it cannot turned), then
+    /// let go over <see cref="PenguinLetGo"/>.
+    /// </summary>
+    public double PenguinHeld(int hand, double sec)
+    {
+        double held = 0;
+        foreach (var (h, at) in _penguinCatches)
+        {
+            double d = sec - at;
+            if (h != hand || d < 0 || d > PenguinUnwind + PenguinLetGo)
+                continue;
+            held = Math.Max(held, d <= PenguinUnwind ? 1 : Smooth(1 - (d - PenguinUnwind) / PenguinLetGo));
+        }
+        return held;
+    }
+
+    /// <summary>Seconds a penguin's wrist takes to turn back after its catch (the preview's PENGUIN_UNWIND, juggle.js: keep the two the same), and the arm to be let bend after.</summary>
+    private const double PenguinUnwind = 0.15, PenguinLetGo = 0.1;
+
     /// <summary>How fast a penguin's hand goes with the ball at its throw, and at its catch, as parts of the ball's speed.</summary>
     private const double PenguinLaunch = 0.4, PenguinArrive = 0.15;
 

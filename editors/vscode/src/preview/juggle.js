@@ -84,9 +84,7 @@ export function palmsUp(vrm, weight, edge = false, styles = [0, 0], club = false
     const isLeft = side === 'left';
     // A penguin's catch (DESIGN.md 118.17): how much, 0..1, smoothed over a few frames (`penguin`, [right, left]); without
     // it, as the frame's style says.
-    // The share is some 0.85 at the catch itself (the frames after the throw that follows are not a penguin's), so it is
-    // stretched to be whole there: the arm and the hand turn all the way at the catch, not most of it.
-    const penguinShare = penguin ? Math.max(0, Math.min(1, (penguin[isLeft ? 1 : 0] || 0) / PENGUIN_FULL)) : ((styles[isLeft ? 1 : 0] | 0) === 2 ? 1 : 0);
+    const penguinShare = penguin ? Math.max(0, Math.min(1, penguin[isLeft ? 1 : 0] || 0)) : ((styles[isLeft ? 1 : 0] | 0) === 2 ? 1 : 0);
     // The whole arm turned in about its own length, not the hand alone at the wrist (the user: the arm's turn about its
     // axis was not enough): the upper arm and the forearm each turned in, as much as the catch is a penguin's.
     if (penguinShare > 0 && upper) {
@@ -200,7 +198,8 @@ export function palmsUp(vrm, weight, edge = false, styles = [0, 0], club = false
         const turnedThumb = thumb.clone().applyAxisAngle(fingers, inward * angle * penguinShare);
         // The wrist bent toward the palm, about the thumb (which stays where it is).
         const palm = fingers.clone().cross(turnedThumb).multiplyScalar(isLeft ? 1 : -1).normalize();
-        const flex = PENGUIN_WRIST_FLEX * Math.PI / 180 * penguinShare;
+        const flexShare = penguin.flex ? Math.max(0, Math.min(1, penguin.flex[isLeft ? 1 : 0] || 0)) : penguinShare;
+        const flex = PENGUIN_WRIST_FLEX * Math.PI / 180 * flexShare;
         const bent = fingers.clone().multiplyScalar(Math.cos(flex)).addScaledVector(palm, Math.sin(flex));
         target.copy(turnTo(bent, turnedThumb));
       }
@@ -209,7 +208,7 @@ export function palmsUp(vrm, weight, edge = false, styles = [0, 0], club = false
     hand.quaternion.copy(worldQuat(hand.parent).invert().multiply(turned));
     hand.updateMatrixWorld(true);
     // A test page reads how each hand is turned (out\pv\harness-hands.html); nothing in the extension sets it.
-    if (globalThis.shosaPalmsDebug) globalThis.shosaPalmsDebug(side, forearm.toArray(), along.toArray(), thumb.toArray(), weight, turned.toArray(), share);
+    if (globalThis.shosaPalmsDebug) globalThis.shosaPalmsDebug(side, forearm.toArray(), along.toArray(), thumb.toArray(), weight, turned.toArray(), share, worldQuat(lower).toArray(), penguinShare);
   }
 }
 
@@ -217,16 +216,52 @@ export function palmsUp(vrm, weight, edge = false, styles = [0, 0], club = false
  * A penguin's catch: degrees the upper arm and the forearm turn in about their length (the user: turn the arm more), how
  * far out the thumb points besides back (per unit back), and degrees the wrist bends toward the palm.
  */
-const PENGUIN_UPPER_TWIST = 70, PENGUIN_FORE_TWIST = 90, PENGUIN_THUMB_OUT = 0.5, PENGUIN_WRIST_FLEX = 60;
-/** The share of a penguin's frames round a frame (penguinShares) taken as the whole of it. */
+const PENGUIN_UPPER_TWIST = 70, PENGUIN_FORE_TWIST = 65, PENGUIN_THUMB_OUT = 0, PENGUIN_WRIST_FLEX = 50;
+/** The share of a penguin's frames round a frame taken as the whole of it (penguinShares without the flights). */
 const PENGUIN_FULL = 0.8;
+/**
+ * Seconds a penguin's arm turns in before its catch, and turns back after it (the user: the wrist is turned back
+ * before the elbow bends, which it cannot do turned). The server holds the arm straight that long after the catch
+ * (Juggling.PenguinUnwind: keep the two the same).
+ */
+const PENGUIN_TWIST_IN = 0.35, PENGUIN_UNWIND = 0.15;
+/**
+ * Seconds the arm's turn about its length takes to come back after the catch, as the elbow bends and the hand comes
+ * forward: let go with the wrist, the hanging straight arm's hand turned palm up (forward) twisted 175 degrees on the
+ * forearm.
+ */
+const PENGUIN_UNTWIST = 0.4;
 
 /**
- * How much each hand is in a penguin's catch at a frame, [right, left], 0..1: the share of the frames round it (some 0.3 s
- * either side) whose style is the penguin's, so the arm turns in and out smoothly rather than in a frame.
+ * How much each hand is in a penguin's catch at a frame, [right, left], 0..1. From the catches (`flights`, the clip's
+ * fps): turning in over PENGUIN_TWIST_IN before each penguin catch, whole at it, and back over PENGUIN_UNWIND after.
+ * Without the flights, the share of the frames round it (some 0.3 s either side) whose style is the penguin's.
  */
-export function penguinShares(styles, frame) {
+export function penguinShares(styles, frame, flights = null, fps = 30) {
   if (!styles || !styles.length) return [0, 0];
+  if (flights) {
+    // The turn about the arm, and (`.flex`) the wrist bent in, which goes back first.
+    const sec = frame / fps, smooth = x => x * x * (3 - 2 * x);
+    const flex = [0, 0];
+    const shares = [0, 1].map(hand => {
+      let share = 0;
+      for (const fl of flights) {
+        if ((fl[2] | 0) !== hand) continue;
+        const caught = fl[4], d = sec - caught;
+        // Turned back by the time the hand throws again (the elbow bent and the hand forward), or PENGUIN_UNTWIST.
+        let next = Infinity;
+        for (const g of flights) if ((g[1] | 0) === hand && g[3] > caught && g[3] < next) next = g[3];
+        const untwist = Math.max(PENGUIN_UNWIND, Number.isFinite(next) ? (next - caught) * 0.9 : PENGUIN_UNTWIST);
+        if (d < -PENGUIN_TWIST_IN || d > untwist) continue;
+        if ((styles[Math.max(0, Math.min(styles.length - 1, Math.round(caught * fps)))]?.[hand] | 0) !== 2) continue;
+        share = Math.max(share, smooth(d < 0 ? 1 + d / PENGUIN_TWIST_IN : 1 - d / untwist));
+        if (d < PENGUIN_UNWIND) flex[hand] = Math.max(flex[hand], smooth(d < 0 ? 1 + d / PENGUIN_TWIST_IN : 1 - d / PENGUIN_UNWIND));
+      }
+      return share;
+    });
+    shares.flex = flex;
+    return shares;
+  }
   const at = Math.round(frame);
   return [0, 1].map(hand => {
     let n = 0, of = 0;
@@ -236,7 +271,8 @@ export function penguinShares(styles, frame) {
       of += w;
       if ((s?.[hand] | 0) === 2) n += w;
     }
-    return n / of;
+    // Some 0.85 at the catch itself (the frames after the throw that follows are not a penguin's): whole there.
+    return Math.min(1, n / of / PENGUIN_FULL);
   });
 }
 const PENGUIN_SPREAD = 9;
