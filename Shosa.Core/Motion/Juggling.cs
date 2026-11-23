@@ -613,6 +613,28 @@ public sealed class Juggling
             _launchAcross[(hand, thrown)] = leaves.X * TrickLaunch;
             AddSmooth(hand, (thrown + follow, from + leaves * (follow * TrickFollow), Still, throwStyle));
         }
+        else if (SoftBalls && throwStyle == Style.Own)
+        {
+            // A ball's cascade goes round softly, as Mills' Mess does (DESIGN.md 118.32): carried down and in from the catch
+            // outside, round the bottom, thrown from inside going up and across with the ball, and on up and out to the next
+            // catch. (With a stop, a swing up and a stop after, the hand turned back on itself at the throw, 109 degrees in
+            // a frame.)
+            // The bottom is under the way from where the hand last was (its catch, mostly out on its side) to the throw, and
+            // no sooner than halfway from there: after a ball handed across (a 1, caught near the middle a moment before a
+            // 4), placed by the beat it came a few hundredths of a second after the catch and the hand leapt to it.
+            double bottomAt = thrown - MillsBottomAt * Dwell * beat, outside = Catches(hand, value, across).X;
+            int before = _keys[hand].FindLastIndex(key => key.T < thrown - 1e-9);
+            if (before >= 0 && thrown - _keys[hand][before].T < 1)
+            {
+                outside = _keys[hand][before].At.X;
+                bottomAt = Math.Max(bottomAt, (_keys[hand][before].T + thrown) / 2);
+            }
+            var bottom = new Vec3((from.X + outside) / 2, from.Y - CascadeLoopDepth, from.Z);
+            AddSmooth(hand, (bottomAt, bottom, Still, throwStyle));
+            AddSmooth(hand, (thrown, from, Still, throwStyle));
+            _launch[(hand, thrown)] = leaves.Y * CascadeLaunch;
+            _launchAcross[(hand, thrown)] = leaves.X * CascadeLaunch;
+        }
         else
         {
             _keys[hand].Add((thrown - swing, from - leaves * (swing / 2), Still, throwStyle));
@@ -630,9 +652,22 @@ public sealed class Juggling
             _keys[to].Add((caught, into, new Vec3(arrives.X * 0.3, -ClawSnatch, arrives.Z * 0.3), catchStyle));
             return;
         }
+        // A ball's catch goes on down with the ball, the hand not stopped at it (DESIGN.md 118.32).
+        if (SoftBalls && catchStyle == Style.Own)
+        {
+            AddSmooth(to, (caught, into, Still, catchStyle));
+            _arrive[(to, caught)] = arrives * CascadeArrive;
+            return;
+        }
         // The catch gives with the ball, a third of its speed, and the hand stops at the bottom before the next swing.
         _keys[to].Add((caught, into, arrives * 0.3, catchStyle));
     }
+
+    /// <summary>Balls go round soft loops (rings and clubs keep their own swings, which the user set one by one).</summary>
+    private bool SoftBalls => !Rings && !Clubs;
+    /// <summary>A ball's cascade loop: how far below its throw it goes round (metres), and how fast the hand goes with the
+    /// ball at the throw and at the catch, as parts of the ball's speed (as Mills').</summary>
+    private const double CascadeLoopDepth = 0.08, CascadeLaunch = 0.8, CascadeArrive = 0.6;
 
     /// <summary>
     /// Where a trick puts a throw and a catch, and how the hand is held there (DESIGN.md 118.12). The throw is the word's
