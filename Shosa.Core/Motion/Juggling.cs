@@ -534,6 +534,10 @@ public sealed class Juggling
                 AddSmooth(hand, (thrown, from, Still, throwStyle));
                 _launch[(hand, thrown)] = leaves.Y * PenguinLaunch;
                 _launchAcross[(hand, thrown)] = leaves.X * PenguinLaunch;
+                // The arm swings up with the ball and goes on up after it a little before it turns down to the next catch
+                // (the user: without it the ball flew off on its own). As far as a part of the time to that catch allows.
+                double after = Math.Min(PenguinFollowAt, 0.25 * (2 - Dwell) * beat);
+                AddSmooth(hand, (thrown + after, from + leaves.Normalized() * (PenguinFollow * after / PenguinFollowAt), Still, throwStyle));
             }
             else
             {
@@ -723,12 +727,32 @@ public sealed class Juggling
             double d = sec - at;
             if (h != hand || d < -PenguinStraightBefore - PenguinStraighten || d > PenguinUnwind + PenguinLetGo)
                 continue;
+            var (before, straighten) = PenguinApproach(h, at);
+            if (d < -before - straighten)
+                continue;
             held = Math.Max(held,
-                d < -PenguinStraightBefore ? Smooth(1 + (d + PenguinStraightBefore) / PenguinStraighten)
+                d < -before ? Smooth(1 + (d + before) / straighten)
                 : d <= PenguinUnwind ? 1
                 : Smooth(1 - (d - PenguinUnwind) / PenguinLetGo));
         }
         return held;
+    }
+
+    /// <summary>
+    /// How long before a penguin catch its arm is straight, and how long it takes to straighten before that (seconds):
+    /// <see cref="PenguinStraightBefore"/> and <see cref="PenguinStraighten"/>, but no more than 0.25 and 0.4 of the time
+    /// since the hand's throw before it, so the throw's swing up and follow-through come first (the user: the arm went
+    /// straight down at once after the throw, and the ball seemed to fly off on its own). The preview's penguinShares
+    /// (juggle.js) works these out the same way.
+    /// </summary>
+    private (double Before, double Straighten) PenguinApproach(int hand, double caught)
+    {
+        double last = double.NegativeInfinity;
+        foreach (var f in Flights)
+            if (f.From == hand && f.Thrown < caught - 1e-9 && f.Thrown > last)
+                last = f.Thrown;
+        double gap = double.IsInfinity(last) ? 1 : caught - last;
+        return (Math.Min(PenguinStraightBefore, 0.25 * gap), Math.Min(PenguinStraighten, 0.4 * gap));
     }
 
     /// <summary>
@@ -743,8 +767,11 @@ public sealed class Juggling
             double d = sec - at;
             if (h != hand || d < -PenguinStraightBefore - PenguinStraighten || d > PenguinClearAfter + PenguinClearOff)
                 continue;
+            var (before, straighten) = PenguinApproach(h, at);
+            if (d < -before - straighten)
+                continue;
             clear = Math.Max(clear,
-                d < -PenguinStraightBefore ? Smooth(1 + (d + PenguinStraightBefore) / PenguinStraighten)
+                d < -before ? Smooth(1 + (d + before) / straighten)
                 : d <= PenguinClearAfter ? 1
                 : Smooth(1 - (d - PenguinClearAfter) / PenguinClearOff));
         }
@@ -762,7 +789,9 @@ public sealed class Juggling
     private const double PenguinStraightBefore = 0.2, PenguinStraighten = 0.15, PenguinUnwind = 0.15, PenguinLetGo = 0.1;
 
     /// <summary>How fast a penguin's hand goes with the ball at its throw, and at its catch, as parts of the ball's speed.</summary>
-    private const double PenguinLaunch = 0.4, PenguinArrive = 0.15;
+    private const double PenguinLaunch = 0.6, PenguinArrive = 0.15;
+    /// <summary>A penguin's throw: seconds after it the hand is at the top of its follow-through, and how far it has gone on with the ball by then (metres).</summary>
+    private const double PenguinFollowAt = 0.12, PenguinFollow = 0.16;
 
     /// <summary>The penguin catches: the catching hand and when (seconds).</summary>
     private readonly List<(int Hand, double At)> _penguinCatches = [];

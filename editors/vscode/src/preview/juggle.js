@@ -263,17 +263,27 @@ export function penguinShares(styles, frame, flights = null, fps = 30) {
         if (d < -PENGUIN_STRAIGHT - PENGUIN_STRAIGHTEN || d > 3) continue;
         if ((styles[Math.max(0, Math.min(styles.length - 1, Math.round(caught * fps)))]?.[hand] | 0) !== 2) continue;
         // The palm up again by the time the hand throws again (the elbow bent and the hand forward).
-        let next = Infinity;
-        for (const g of flights) if ((g[1] | 0) === hand && g[3] > caught && g[3] < next) next = g[3];
+        let next = Infinity, last = -Infinity;
+        for (const g of flights) {
+          if ((g[1] | 0) !== hand) continue;
+          if (g[3] > caught && g[3] < next) next = g[3];
+          if (g[3] < caught - 1e-9 && g[3] > last) last = g[3];
+        }
+        // No more of the time since the hand's throw before than 0.25 straight, 0.4 straightening and 0.23 turning in, so
+        // its swing up and follow-through come first (as Juggling.PenguinApproach).
+        const gap = Number.isFinite(last) ? caught - last : 1;
+        const straight = Math.min(PENGUIN_STRAIGHT, 0.25 * gap), straighten = Math.min(PENGUIN_STRAIGHTEN, 0.4 * gap);
+        const twistIn = Math.min(PENGUIN_TWIST_IN, 0.23 * gap);
+        if (d < -straight - straighten) continue;
         const held = PENGUIN_UNWIND + PENGUIN_LET_GO;
         const back = Math.max(0.1, (Number.isFinite(next) ? (next - caught) * 0.9 : PENGUIN_UNTWIST) - held);
         if (d > held + back) continue;
         relax[hand] = Math.max(relax[hand], smooth(
-          d < -PENGUIN_STRAIGHT ? 1 + (d + PENGUIN_STRAIGHT) / PENGUIN_STRAIGHTEN
+          d < -straight ? 1 + (d + straight) / straighten
           : d <= held ? 1
           : 1 - (d - held) / back));
-        if (d >= -PENGUIN_TWIST_IN && d <= PENGUIN_UNWIND)
-          share = Math.max(share, smooth(d < 0 ? 1 + d / PENGUIN_TWIST_IN : 1 - d / PENGUIN_UNWIND));
+        if (d >= -twistIn && d <= PENGUIN_UNWIND)
+          share = Math.max(share, smooth(d < 0 ? 1 + d / twistIn : 1 - d / PENGUIN_UNWIND));
       }
       return share;
     });
