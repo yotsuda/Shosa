@@ -15,6 +15,8 @@ import { clubCatching, gripHands, heldBy, palmAlong, palmsUp, penguinShares } fr
 
 // VRM's mouth expressions, in the order the server sends their weights (`mouth`, Mouth.Shapes).
 const MOUTH = ['aa', 'ih', 'ou', 'ee', 'oh'];
+/** How long the eyes' resting place is eased over while juggling, seconds (the Gaussian's spread). */
+const EYES_SOFTEN = 0.3;
 /** How far a club's handle lies from the middle of the hand toward the thumb, metres (on the figure's 0.31 m forearm). */
 const CLUB_TOWARD_THUMB = 0.025;
 
@@ -249,21 +251,40 @@ export function createCharacters(scene, changed) {
    * moved by the difference of the hands, a ball flew where no ball can).
    */
   /**
-   * Where the ball highest in the air is at a time (seconds), on the parabola juggle.js flies it on (from the character's
-   * palm at the throw to its palm at the catch), or null when none is in the air.
+   * Where the eyes rest while juggling at a time (seconds): the top of the highest way of the balls in the air (on the
+   * parabola juggle.js flies them on, from the character's palm at the throw to its palm at the catch), not the ball
+   * itself (the user: following each ball, the eyes rolled about too much). Eased over a little time either side, so
+   * they glide from one top to the next. Null when no ball is in the air.
    */
-  function highestBall(track, flights, sec) {
-    let best = null;
-    (flights || []).forEach((fl, i) => {
-      const [, from, to, thrown, caught] = fl;
-      if (sec < thrown || sec > caught) return;
-      const tf = Math.max(1e-6, caught - thrown), s = sec - thrown;
-      const gravity = track.millsGravity?.get(i) ?? 9.81;
-      const p = track.palm(from, thrown).lerp(track.palm(to, caught), s / tf);
-      p.y += gravity / 2 * s * (tf - s);
-      if (!best || p.y > best.y) best = p;
-    });
-    return best;
+  function highestTop(track, flights, sec) {
+    const topAt = at => {
+      let best = null;
+      (flights || []).forEach((fl, i) => {
+        const [, from, to, thrown, caught] = fl;
+        if (at < thrown || at > caught) return;
+        const tf = Math.max(1e-6, caught - thrown);
+        const gravity = track.millsGravity?.get(i) ?? 9.81;
+        const p0 = track.palm(from, thrown), p1 = track.palm(to, caught);
+        const s = Math.max(0, Math.min(tf, tf / 2 + (p1.y - p0.y) / (gravity * tf)));
+        const p = p0.lerp(p1, s / tf);
+        p.y += gravity / 2 * s * (tf - s);
+        if (!best || p.y > best.y) best = p;
+      });
+      return best;
+    };
+    const sum = new THREE.Vector3();
+    let total = 0;
+    // On a fixed grid of times, weighted by how far each is from now (sampled round now instead, the highest top changing
+    // between samples, the place hopped to and fro 1.5 cm from frame to frame).
+    const step = 1 / 60;
+    for (let n = Math.ceil((sec - 2.5 * EYES_SOFTEN) / step); n * step <= sec + 2.5 * EYES_SOFTEN; n++) {
+      const p = topAt(n * step);
+      if (!p) continue;
+      const k = Math.exp(-0.5 * ((n * step - sec) / EYES_SOFTEN) ** 2);
+      sum.addScaledVector(p, k);
+      total += k;
+    }
+    return total > 0 && topAt(sec) ? sum.multiplyScalar(1 / total) : null;
   }
 
   function trackPalms(entry, clip, data) {
@@ -297,6 +318,11 @@ export function createCharacters(scene, changed) {
       const entry = dressed[i];
       const bone = entry && entry.vrm && entry.vrm.humanoid.getNormalizedBoneNode(name);
       return bone ? bone.getWorldPosition(new THREE.Vector3()).toArray() : null;
+    },
+    /** Where the eyes look, [yaw, pitch] in degrees, or null. */
+    look(i) {
+      const entry = dressed[i];
+      return entry && entry.vrm && entry.vrm.lookAt ? [+entry.vrm.lookAt.yaw.toFixed(2), +entry.vrm.lookAt.pitch.toFixed(2), ...(entry.lookTarget ? entry.lookTarget.toArray().map(v => +v.toFixed(3)) : [])] : null;
     },
   };
 
@@ -412,11 +438,12 @@ export function createCharacters(scene, changed) {
         // Juggling: the eyes on the ball highest in the air now (the user; the head tips back for a very high one in the
         // figure itself). Looking ahead when none is up. vrm.update below turns the eyes.
         if (vrm.lookAt) {
-          const target = data.juggle && entry.track ? highestBall(entry.track, data.juggle.flights, frame / clip.fps) : null;
+          const target = data.juggle && entry.track ? highestTop(entry.track, data.juggle.flights, frame / clip.fps) : null;
           if (target) {
             vrm.humanoid.update();
             vrm.scene.updateMatrixWorld(true);
             vrm.lookAt.lookAt(target);
+            entry.lookTarget = target;
             entry.looking = true;
           } else if (entry.looking) {
             vrm.lookAt.reset();
