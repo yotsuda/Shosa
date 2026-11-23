@@ -819,7 +819,7 @@ internal sealed class FigureSolver
         return out_ * ((JuggleReachSoft + room * Math.Tanh((r - JuggleReachSoft) / room)) / r);
     }
     /// <summary>How far in front of the feet Mills' balls go, metres: all the same.</summary>
-    private const double MillsPlane = 0.28;
+    private const double MillsPlane = 0.33;
     /// <summary>How far the pelvis goes to the side with Mills' sway, per unit of the back's lean (against it, the hips out under a leaning back: with it, the body went away from the throws).</summary>
     private const double MillsLegSway = -0.4;
 

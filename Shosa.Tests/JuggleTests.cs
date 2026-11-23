@@ -240,7 +240,19 @@ public class JuggleTests
         {
             var c = Compile(Juggle($"every 1/2  3:4@{trick} |"));
             Assert.Empty(c.Diagnostics);
-            Assert.Equal(plain.Clip.Figures[0].Juggle!.Flights.Select(f => (f[0], f[1], f[2], f[3])), c.Clip.Figures[0].Juggle!.Flights.Select(f => (f[0], f[1], f[2], f[3])));
+            var was = plain.Clip.Figures[0].Juggle!.Flights;
+            var now = c.Clip.Figures[0].Juggle!.Flights;
+            Assert.Equal(was.Select(f => (f[0], f[1], f[2])), now.Select(f => (f[0], f[1], f[2])));
+            if (trick != "mills")
+            {
+                Assert.Equal(was.Select(f => f[3]), now.Select(f => f[3]));
+                continue;
+            }
+            // Mills' second throw of three goes higher, thrown a little before its beat (DESIGN.md 118.12); the rest on it.
+            var early = was.Zip(now).Where(p => p.First[3] != p.Second[3]).ToList();
+            Assert.NotEmpty(early);
+            Assert.All(early, p => Assert.InRange(p.First[3] - p.Second[3], 0.01, 0.15));
+            Assert.True(early.Count <= (was.Count() + 2) / 3, $"{early.Count} of {was.Count()} throws moved");
         }
 
         // Mills' Mess: a hand throws from the other side of the body, the arms crossed.

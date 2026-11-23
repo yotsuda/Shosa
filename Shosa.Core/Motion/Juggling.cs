@@ -229,7 +229,7 @@ public sealed class Juggling
 
             var beat = slot.Pattern!.Beats[slot.Index % slot.Pattern.Beats.Count];
             int turn = Siteswap.HandAt(slot.InRun, slot.Seg.LeftFirst);
-            double thrown = SlotSec(s), T = BeatSec(s);
+            double slotThrown = SlotSec(s), T = BeatSec(s);
             for (int hand = 0; hand < 2; hand++)
             {
                 // A pair's first number is the right hand's; @mirror gives it to the left.
@@ -251,8 +251,13 @@ public sealed class Juggling
                         Arrive(land, ball, hand, -1);   // held through: a 2 stays in the hand
                         continue;
                     }
-                    double caught = Math.Max(SlotSec(land) - Dwell * BeatSec(Math.Min(land, slots.Count - 1)), thrown + Handover * T);
+                    double caught = Math.Max(SlotSec(land) - Dwell * BeatSec(Math.Min(land, slots.Count - 1)), slotThrown + Handover * T);
                     var landingSeg = slots[Math.Min(land, slots.Count - 1)].Seg;
+                    double thrown = slotThrown;
+                    // Mills' second throw (and its mirror, the fifth) goes higher (the user): longer in the air, thrown a
+                    // little before the beat.
+                    if (slot.Index % 3 == 1 && slot.Seg.Tricks?.Contains("mills") == true && landingSeg?.Tricks?.Contains("mills") == true)
+                        thrown -= MillsSecondEarlier * T;
                     Flights.Add(new Flight(ball, hand, to, thrown, caught, t.Value,
                         slot.Seg.Tricks?.FirstOrDefault(x => x is "under" or "back"), slot.Seg,
                         slot.Seg.Tricks?.Contains("mills") == true && landingSeg?.Tricks?.Contains("mills") == true));
@@ -695,6 +700,9 @@ public sealed class Juggling
 
     /// <summary>How far below the lower of its throw and catch each Mills loop goes round, metres.</summary>
     private const double MillsLoopDepth = 0.08;
+    /// <summary>How much before its beat Mills' second throw leaves the hand, as a part of a throwing beat: longer in the air,
+    /// so higher (caught later instead, the hand under the crossed arms waited up against the arm on top).</summary>
+    private const double MillsSecondEarlier = 0.45;
     /// <summary>When the bottom of the loop is, as a part of the hold before the throw.</summary>
     private const double MillsBottomAt = 0.4;
     /// <summary>How fast the hand goes with the ball at a Mills throw, as a part of the ball's speed.</summary>
