@@ -456,7 +456,8 @@ public static class Solver
             result.Pull!.Add([(float)Math.Round(juggling.WindmillPull(0, sec) * juggling.Weight(sec), 3), (float)Math.Round(juggling.WindmillPull(1, sec) * juggling.Weight(sec), 3)]);
             // How much the windmill's hand from under the arm goes round its wheel, its elbow held, [right, left]: the preview
             // keeps a character's elbow where the figure's is, scaled, as much (DESIGN.md 118.34).
-            result.Wheel!.Add([(float)Math.Round((juggling.Wheel(0, sec)?.Weight ?? 0) * juggling.Weight(sec), 3), (float)Math.Round((juggling.Wheel(1, sec)?.Weight ?? 0) * juggling.Weight(sec), 3)]);
+            float HeldWheel(int hand) => juggling.Wheel(hand, sec) is { Held: true } w ? (float)Math.Round(w.Weight * juggling.Weight(sec), 3) : 0f;
+            result.Wheel!.Add([HeldWheel(0), HeldWheel(1)]);
         }
         return result;
     }
@@ -3054,7 +3055,7 @@ internal sealed class FigureSolver
                 // not drawn in by the reach.
                 var wheel = Juggling.Wheel(isLeft ? 1 : 0, juggleSec);
                 Vec3 axle = default;
-                if (wheel is { } wh)
+                if (wheel is { Held: true } wh)
                 {
                     Vec3 Axes(Vec3 v) => juggleLeft * v.X + Vec3.Up * v.Y + juggleFwd * v.Z;
                     var squareShoulder = new Vec3(Math.Sign(wh.Elbow.X) * Rig.ShoulderHalf, Rig.Spine - Rig.ShoulderDrop - 0.15, -0.30);
@@ -3141,7 +3142,7 @@ internal sealed class FigureSolver
                 if (mills > 0)
                     bend = Vec3.Slerp(bend, ElbowOut(shoulder, hand, Rig.UpperArm, Rig.Forearm, juggleLeft * side, MillsElbowSide, bend), mills * juggleWeight * MillsElbowHold);
                 // The windmill's wheel: the elbow held where the wheel's axle is (DESIGN.md 118.34).
-                if (wheel is { } held2)
+                if (wheel is { Held: true } held2)
                 {
                     var toward = axle - (shoulder + hand) * 0.5;
                     if (toward.Length > 1e-6)

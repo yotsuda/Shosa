@@ -335,8 +335,14 @@ public class JuggleTests
             Assert.True(Side(thrown, (int)f[0]) < 0, $"thrown on the right at {f[3]}");
             Assert.True(Side(caught, (int)f[0]) > 0, $"caught on the left at {f[4]}");
         }
+        // Where the hands pass each other side to side, the right one over the left (it swings down to its throw on its own
+        // side, the left hand over on the other: DESIGN.md 118.35).
         for (int frame = clip.FrameOfBeat(2); frame < clip.FrameOfBeat(6); frame++)
-            Assert.True(clip.Figures[0].Joint(frame, Rig.RHand).Y > clip.Figures[0].Joint(frame, Rig.LHand).Y, $"the right hand on top at frame {frame}");
+        {
+            var (r, l) = (clip.Figures[0].Joint(frame, Rig.RHand), clip.Figures[0].Joint(frame, Rig.LHand));
+            if (Math.Abs(r.X - l.X) < 0.15)
+                Assert.True(r.Y > l.Y, $"the right hand on top at frame {frame}");
+        }
         var mirrored = Compile(Juggle("every 1/2  3:4@windmill@mirror | 3:4@windmill@mirror |")).Clip;
         int mid = mirrored.FrameOfBeat(4);
         Assert.True(mirrored.Figures[0].Joint(mid, Rig.LHand).Y > mirrored.Figures[0].Joint(mid, Rig.RHand).Y, "mirrored, the left hand on top");

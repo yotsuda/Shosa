@@ -501,10 +501,17 @@ public sealed class Juggling
                     && waitAt > thrown - 2 * beat && waitAt < thrown;
                 if (!waited)
                     AddSmooth(hand, (thrown - MillsBottomAt * Dwell * beat, bottom, Still, throwStyle));
+                // The windmill's top hand swings the ball up from low on its own side (the user: a throw's swing up; the
+                // other hand is over on its own side then, so the arms are clear): down a little just before, and up with
+                // the ball faster than Mills' hands go.
+                bool topSwing = _mills6.Windmill && Top(_mills6.ThrowK) && waited;
+                if (topSwing)
+                    AddSmooth(hand, (thrown - TopSwingBefore, from + new Vec3(0, -TopSwingDip, 0), Still, throwStyle));
                 AddSmooth(hand, (thrown, from, Still, throwStyle));
                 // Up and across with the ball.
-                _launch[(hand, thrown)] = leaves.Y * MillsLaunch;
-                _launchAcross[(hand, thrown)] = leaves.X * MillsLaunch;
+                double launch = topSwing ? TopSwingLaunch : MillsLaunch;
+                _launch[(hand, thrown)] = leaves.Y * launch;
+                _launchAcross[(hand, thrown)] = leaves.X * launch;
                 // The first throw, over the top: the hand goes on up after the ball and comes round high, in an arc, to
                 // the next catch near the middle (the user: it dropped at once).
                 if (Top(_mills6.ThrowK))
@@ -1248,8 +1255,21 @@ public sealed class Juggling
     /// circle (WindmillRight's second row is made from it), so the two balls go up from low on the other side and come down
     /// high on its own, the way the top hand's go. Null where it does not.
     /// </summary>
-    public (Vec3 Wrist, Vec3 Elbow, double Weight)? Wheel(int hand, double sec)
+    /// <remarks>
+    /// The hand on top does not go round a wheel (DESIGN.md 118.35: on nearly the same circle half a turn behind, the
+    /// forearms went through each other where they crossed; on a circle of its own beside, the ball from under the arm ran
+    /// into the hand). It swings its throws up instead (Swing).
+    /// </remarks>
+    public (Vec3 Wrist, Vec3 Elbow, double Weight, bool Held)? Wheel(int hand, double sec)
     {
+        // Only while this hand is the one going round from under the arm: the one whose throw from under is nearest.
+        int under = hand;
+        double closest = double.PositiveInfinity;
+        foreach (var (h, thrown, _, _) in _wheel)
+            if (Math.Abs(sec - thrown) < closest)
+                (closest, under) = (Math.Abs(sec - thrown), h);
+        if (under != hand)
+            return null;
         (double Thrown, double Period, bool Mirrored)? near = null;
         double nearest = double.PositiveInfinity, first = double.PositiveInfinity, last = double.NegativeInfinity;
         foreach (var (h, thrown, period, mirrored) in _wheel)
@@ -1271,8 +1291,12 @@ public sealed class Juggling
         var elbow = WheelElbow;
         if (n.Mirrored)
             (wrist, elbow) = (new Vec3(-wrist.X, wrist.Y, wrist.Z), new Vec3(-elbow.X, elbow.Y, elbow.Z));
-        return (wrist, elbow, weight);
+        return (wrist, elbow, weight, true);
     }
+
+    /// <summary>The windmill's top hand's swing up to its throw: how long before it the hand is lowest, and how far below the
+    /// throw (metres), and how fast it goes up with the ball, as a part of the ball's speed.</summary>
+    private const double TopSwingBefore = 0.08, TopSwingDip = 0.10, TopSwingLaunch = 1.0;
 
     /// <summary>A point of the windmill's wheel at an angle (radians from the dancer's left, up positive), as for the left hand.</summary>
     private static Vec3 WheelPoint(double phi) => WheelElbow + new Vec3(WheelRadius * Math.Cos(phi), WheelRadius * Math.Sin(phi), WheelAhead);
