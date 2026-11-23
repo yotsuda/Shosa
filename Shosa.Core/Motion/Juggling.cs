@@ -465,6 +465,8 @@ public sealed class Juggling
             (from, into, throwStyle, catchStyle) = Trick(hand, to, value, from, into, throwTricks, catchTricks, nth);
         if (catchStyle == Style.Penguin)
             _penguinCatches.Add((to, caught));
+        if (throwStyle == Style.Back)
+            _backThrows.Add((hand, thrown));
         double flight = caught - thrown;
         if (value < 2 || flight < 0.05)
         {
@@ -833,8 +835,35 @@ public sealed class Juggling
             if (d < PenguinTurnSpan)
                 turn -= Side(hand) * PenguinTurn * Smooth(1 - d / PenguinTurnSpan);
         }
+        // Behind the back: the shoulders turn well round, level, the throwing one back (the user: without a good angle no
+        // one can throw up from behind the back), most at the throw.
+        foreach (var (hand, at) in _backThrows)
+        {
+            double d = Math.Abs(sec - at);
+            if (d < BackTurnSpan)
+                turn += Side(hand) * BackShoulderTurn * Smooth(1 - d / BackTurnSpan);
+        }
         return turn;
     }
+
+    /// <summary>How far the hips turn with the arms (radians, to the dancer's left), where the hips' row says nothing: behind
+    /// the back, with the shoulders, the throwing side back (the chest turns only so far on the hips).</summary>
+    public double HipTurn(double sec)
+    {
+        double turn = 0;
+        foreach (var (hand, at) in _backThrows)
+        {
+            double d = Math.Abs(sec - at);
+            if (d < BackTurnSpan)
+                turn += Side(hand) * BackHipTurn * Smooth(1 - d / BackTurnSpan);
+        }
+        return turn;
+    }
+
+    /// <summary>The throws behind the back: the hand and when (seconds).</summary>
+    private readonly List<(int Hand, double At)> _backThrows = [];
+    /// <summary>Behind the back, how far the shoulders and the hips turn at the throw (radians), and over how long either side of it (seconds).</summary>
+    private const double BackShoulderTurn = 70 * Math.PI / 180, BackHipTurn = 25 * Math.PI / 180, BackTurnSpan = 0.3;
 
     /// <summary>
     /// How much a penguin's arm is held fully straight round its catch, 0..1 (the solver stretches it to its reach): the

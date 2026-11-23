@@ -2243,6 +2243,9 @@ internal sealed class FigureSolver
         // Unwritten hips turn a little with the drift of the weight, toward the leg that takes it (3.4°).
         if (_alive && _hips.Count == 0)
             c.Hips -= 0.06 * drift + HipsPerMetre * stride;
+        // Juggling behind the back: the hips go round with the shoulders (DESIGN.md 118.38).
+        if (_hips.Count == 0 && Juggling is { } juggledHips)
+            c.Hips += juggledHips.HipTurn(Seconds(t));
         c.HipLeft = c.Left * Math.Cos(c.Hips) - c.Fwd * Math.Sin(c.Hips);
         c.HipFwd = c.Fwd * Math.Cos(c.Hips) + c.Left * Math.Sin(c.Hips);
         // A leaning torso is balanced by the hips going the other way. Sideways only as far as it costs the

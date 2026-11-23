@@ -312,6 +312,35 @@ public class JuggleTests
     }
 
     [Fact]
+    public void Behind_the_back_the_shoulders_turn_well_round_the_throwing_one_back()
+    {
+        // The right hand's throw from behind the back on beat 3 (every 1): at it the shoulders' line is turned some 70
+        // degrees from the feet's, the right shoulder back, and turned back square a beat either side.
+        var c = Compile(Juggle("every 1  3:2 3:1@back 3:1 |"));
+        Assert.Empty(c.Diagnostics);
+        var clip = c.Clip;
+        double Turn(int frame)
+        {
+            var fig = clip.Figures[0];
+            var (l, r) = (fig.Joint(frame, Rig.LShoulder), fig.Joint(frame, Rig.RShoulder));
+            var (la, ra) = (fig.Joint(frame, Rig.LAnkle), fig.Joint(frame, Rig.RAnkle));
+            double a = Math.Atan2(l.Z - r.Z, l.X - r.X) - Math.Atan2(la.Z - ra.Z, la.X - ra.X);
+            return Math.Atan2(Math.Sin(a), Math.Cos(a)) * 180 / Math.PI;
+        }
+        var thrown = clip.Figures[0].Juggle!.Flights.Single(f => f[1] == 0 && Math.Abs(f[3] - 1.0) < 1e-3);
+        double at = Turn((int)Math.Round(thrown[3] * clip.Fps));
+        Assert.InRange(Math.Abs(at), 55, 80);
+        // The right shoulder back: the right one is behind the left along the feet's forward.
+        int frame0 = (int)Math.Round(thrown[3] * clip.Fps);
+        var fig0 = clip.Figures[0];
+        var feetLeft = fig0.Joint(frame0, Rig.LAnkle) - fig0.Joint(frame0, Rig.RAnkle);
+        var fwd = new Vec3(-feetLeft.Z, 0, feetLeft.X).Normalized();
+        Assert.True((fig0.Joint(frame0, Rig.RShoulder) - fig0.Joint(frame0, Rig.LShoulder)).Dot(fwd) < -0.2, "the right shoulder back");
+        Assert.InRange(Math.Abs(Turn(clip.FrameOfBeat(0.5))), 0, 5);
+        Assert.InRange(Math.Abs(Turn(clip.FrameOfBeat(3.5))), 0, 5);
+    }
+
+    [Fact]
     public void A_ball_thrown_far_above_the_head_tips_the_head_back_a_little()
     {
         // A 7 (some 2 m above the head) tips it back up to about 20 degrees; a cascade's balls, below the head, do not.
