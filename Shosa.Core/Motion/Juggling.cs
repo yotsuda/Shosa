@@ -686,7 +686,7 @@ public sealed class Juggling
     /// to the far side, where the same hand takes it at the end of its swipe and holds it (TakeoutHigh).</summary>
     private const string TakeoutThrow = "\u0000takeoutThrow", TakeoutHigh = "\u0000takeoutHigh", TakeoutHeld = "\u0000takeoutHeld", TakeoutCaughtOut = "\u0000takeoutCaughtOut";
     /// <summary>Takeouts' throws from the hand's own side: this far out, this high (the 3), this far forward (the 3; the 4 further, in front of the 3s' way).</summary>
-    private const double TakeoutOwnOut = 0.30, TakeoutOwnHigh = 0.0, TakeoutOwnAhead = 0.0, TakeoutHighAhead = 0.24;
+    private const double TakeoutOwnOut = 0.30, TakeoutOwnHigh = 0.0, TakeoutOwnAhead = 0.0, TakeoutHighAhead = 0.12;
     /// <summary>The 4 thrown from inside, near the middle, up from below after the round (the user); the 3 caught further out.</summary>
     private const double TakeoutHighOut = 0.0, TakeoutCatchOut = 0.50, TakeoutHighUp = 0.04;
     /// <summary>The 4 thrown from under the other arm, crossed (the user): this far over on the other hand's side, this high
@@ -700,12 +700,12 @@ public sealed class Juggling
     /// <summary>The 4s' throws from under the other arm: when, and which way the back leans (+ the right shoulder up).</summary>
     private readonly List<(double T, double Sign)> _takeoutLeans = [];
     /// <summary>The 3 thrown from well outside, this far out and this far forward (as tennis's), and this part of a beat sooner, caught as much later.</summary>
-    private const double TakeoutAcrossOut = 0.42, TakeoutAcrossAhead = 0.26, TakeoutLonger = 0.0, TakeoutHighSooner = 0.0;
+    private const double TakeoutAcrossOut = 0.46, TakeoutAcrossAhead = 0.32, TakeoutLonger = 0.0, TakeoutHighSooner = 0.0;
     /// <summary>A ball thrown before the takeouts and caught in them: caught out there too, clear of the hand's first 4.</summary>
     private const string TakeoutWide = "\u0000takeoutWide";
     /// <summary>Takeouts' 4 comes down near the middle, a little on the thrower's side, this high, this far forward (in close:
     /// the user, it falls on the inside), and is swiped there.</summary>
-    private const double TakeoutTakeAt = 0.20, TakeoutTakeHigh = 0.06, TakeoutTakeAhead = 0.05;
+    private const double TakeoutTakeAt = 0.20, TakeoutTakeHigh = 0.06, TakeoutTakeAhead = 0.10;
     /// <summary>The swipe takes the 4 this much higher than TakeoutTakeHigh (the user), and stops as much higher; the round's
     /// way after and the next 4's throw keep TakeoutTakeHigh.</summary>
     private const double TakeoutTakeRaise = 0.10;
