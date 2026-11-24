@@ -21,25 +21,54 @@ var server = new LanguageServer(message =>
     }
 });
 
-while (!server.ExitRequested)
+// The messages are read as they come, on a thread of their own, so the server knows when more are waiting
+// behind the one it has: an edit with others behind it is solved with them, once (LanguageServer.Flush).
+var waiting = new System.Collections.Concurrent.BlockingCollection<string>();
+var reader = new Thread(() =>
 {
-    int length = ReadHeader(input);
-    if (length < 0)
-        break;
-
-    var body = new byte[length];
-    int read = 0;
-    while (read < length)
-    {
-        int n = input.Read(body, read, length - read);
-        if (n <= 0)
-            return 1;
-        read += n;
-    }
-
     try
     {
-        server.Handle(Encoding.UTF8.GetString(body));
+        while (true)
+        {
+            int length = ReadHeader(input);
+            if (length < 0)
+                break;
+
+            var body = new byte[length];
+            int read = 0;
+            while (read < length)
+            {
+                int n = input.Read(body, read, length - read);
+                if (n <= 0)
+                    return;
+                read += n;
+            }
+            waiting.Add(Encoding.UTF8.GetString(body));
+        }
+    }
+    catch (Exception ex) when (ex is IOException or ObjectDisposedException)
+    {
+        // the editor has gone
+    }
+    finally
+    {
+        waiting.CompleteAdding();
+    }
+}) { IsBackground = true, Name = "messages" };
+reader.Start();
+
+while (!server.ExitRequested)
+{
+    try
+    {
+        if (!waiting.TryTake(out string? message))
+        {
+            // Nothing is waiting: what the edits so far came to is solved and told.
+            server.Flush();
+            if (!waiting.TryTake(out message, Timeout.Infinite))
+                break;   // the input has ended
+        }
+        server.Handle(message, more: waiting.Count > 0);
     }
     catch (Exception ex)
     {

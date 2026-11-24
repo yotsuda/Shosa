@@ -11,10 +11,11 @@ using Shosa.Lsp;
 // then the language server as the editor drives it — a file opened, and one character of it typed
 // over again and again (DESIGN.md 120).
 //
-//   dotnet run -c Release --project tools\perf -- FILE.shosa [--find TEXT] [--times N]
+//   dotnet run -c Release --project tools\perf -- FILE.shosa [--find TEXT] [--times N] [--messages FOLDER]
 //
 // --find: the text whose last character is typed over (the first place it is found); without it,
-// the first digit after the middle of the file.
+// the first digit after the middle of the file. --messages: the shosa/clip messages of the file opened and of the
+// first two edits, as an editor that takes patches is sent them, for out\pv\harness-perf.html to give the preview's page.
 
 string file = Path.GetFullPath(args.FirstOrDefault(a => !a.StartsWith("--")) ?? @"samples\dance.shosa");
 string? Option(string name) => Array.IndexOf(args, name) is >= 0 and var i && i + 1 < args.Length ? args[i + 1] : null;
@@ -91,39 +92,72 @@ Console.WriteLine($"  solve          {Stats(solve)}   ({figures} figures, {frame
 Console.WriteLine($"  write as JSON  {Stats(write)}   ({bytes / 1024.0 / 1024.0:0.00} MB)");
 Console.WriteLine($"  compile, whole {Stats(whole)}");
 
-// ---- The server, as the editor drives it.
+// ---- The server, as the editor drives it: an editor that is sent every clip after every edit (as before
+// DESIGN.md 120, and as the tests still ask), then one that keeps the clips and takes patches (the extension).
 string uri = new Uri(file).AbsoluteUri;
-long sent = 0;
-int messages = 0;
-var server = new LanguageServer(message =>
-{
-    sent += System.Text.Encoding.UTF8.GetByteCount(message);
-    messages++;
-});
-void Send(object message) => server.Handle(JsonSerializer.Serialize(message));
-Send(new { jsonrpc = "2.0", id = 1, method = "initialize", @params = new { capabilities = new { } } });
-double open = Ms(() => Send(new { jsonrpc = "2.0", method = "textDocument/didOpen", @params = new { textDocument = new { uri, languageId = "shosa", version = 1, text } } }));
-Console.WriteLine(FormattableString.Invariant($"  server: open   {open,15:0.0} ms   ({sent / 1024.0 / 1024.0:0.00} MB sent)"));
-
-var edits = new List<double>();
-int version = 1;
 char original = text[at];
-for (int i = 0; i < times; i++)
+string? messagesFolder = Option("--messages") is { } folder ? Path.GetFullPath(folder) : null;
+foreach (bool patches in new[] { false, true })
 {
-    // The character typed over: another digit, and back.
-    string typed = (i % 2 == 0 ? (char.IsAsciiDigit(original) ? (char)('0' + (original - '0' + 1) % 10) : original) : original).ToString();
-    sent = 0;
-    messages = 0;
-    edits.Add(Ms(() => Send(new
+    long sent = 0;
+    int messages = 0;
+    string? lastClip = null;
+    var server = new LanguageServer(message =>
     {
-        jsonrpc = "2.0",
-        method = "textDocument/didChange",
-        @params = new
+        sent += System.Text.Encoding.UTF8.GetByteCount(message);
+        messages++;
+        if (message.Contains("\"method\":\"shosa/clip\""))
+            lastClip = message;
+    });
+    void Send(object message) => server.Handle(JsonSerializer.Serialize(message));
+    void Keep(string name)
+    {
+        if (!patches || messagesFolder is null || lastClip is null)
+            return;
+        Directory.CreateDirectory(messagesFolder);
+        using var said = JsonDocument.Parse(lastClip);
+        File.WriteAllText(Path.Combine(messagesFolder, name + ".json"), said.RootElement.GetProperty("params").GetRawText());
+    }
+
+    Console.WriteLine(patches ? "  an editor that takes patches:" : "  an editor that is sent every clip:");
+    Send(new { jsonrpc = "2.0", id = 1, method = "initialize", @params = new { capabilities = new { }, initializationOptions = new { clipPatches = patches } } });
+    double open = Ms(() => Send(new { jsonrpc = "2.0", method = "textDocument/didOpen", @params = new { textDocument = new { uri, languageId = "shosa", version = 1, text } } }));
+    Console.WriteLine(FormattableString.Invariant($"    open   {open,21:0.0} ms   ({sent / 1024.0 / 1024.0:0.00} MB sent)"));
+    Keep("open");
+
+    var edits = new List<double>();
+    int version = 1;
+    for (int i = 0; i < times; i++)
+    {
+        // The character typed over: another digit, and back.
+        string typed = (i % 2 == 0 ? (char.IsAsciiDigit(original) ? (char)('0' + (original - '0' + 1) % 10) : original) : original).ToString();
+        sent = 0;
+        messages = 0;
+        edits.Add(Ms(() => Send(new
         {
-            textDocument = new { uri, version = ++version },
-            contentChanges = new[] { new { range = new { start = new { line, character }, end = new { line, character = character + 1 } }, text = typed } },
-        },
-    })));
+            jsonrpc = "2.0",
+            method = "textDocument/didChange",
+            @params = new
+            {
+                textDocument = new { uri, version = ++version },
+                contentChanges = new[] { new { range = new { start = new { line, character }, end = new { line, character = character + 1 } }, text = typed } },
+            },
+        })));
+        if (i < 2)
+            Keep("edit" + (i + 1));
+        if (i == 0 && patches && messagesFolder is not null)
+        {
+            // The same edit with every clip whole, to compare what the page makes of the patch with.
+            string? answer = null;
+            var asked = new LanguageServer(message => { if (message.Contains("\"id\":2")) answer = message; });
+            asked.Handle(JsonSerializer.Serialize(new { jsonrpc = "2.0", id = 1, method = "initialize", @params = new { capabilities = new { }, initializationOptions = new { clipPatches = true } } }));
+            string edited = text.Remove(at, 1).Insert(at, typed);
+            asked.Handle(JsonSerializer.Serialize(new { jsonrpc = "2.0", method = "textDocument/didOpen", @params = new { textDocument = new { uri, languageId = "shosa", version = 1, text = edited } } }));
+            asked.Handle(JsonSerializer.Serialize(new { jsonrpc = "2.0", id = 2, method = "shosa/clip", @params = new { uri } }));
+            using var said = JsonDocument.Parse(answer!);
+            File.WriteAllText(Path.Combine(messagesFolder, "edit1-whole.json"), said.RootElement.GetProperty("result").GetRawText());
+        }
+    }
+    Console.WriteLine($"    edit   {Stats(edits)}   ({sent / 1024.0:0.0} KB sent in {messages} messages)");
 }
-Console.WriteLine($"  server: edit   {Stats(edits)}   ({sent / 1024.0 / 1024.0:0.00} MB sent in {messages} messages)");
 return 0;

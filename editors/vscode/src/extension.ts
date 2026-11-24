@@ -4,6 +4,7 @@ import * as vscode from 'vscode';
 import { LanguageClient, ServerOptions, State, TransportKind } from 'vscode-languageclient/node';
 import { registerExport } from './export';
 import { registerModels } from './models';
+import { applyClipPatch } from './preview/patch.js';
 import { ClipMusic, createStems } from './stems';
 import { registerTools } from './tools';
 
@@ -27,6 +28,11 @@ interface ClipMessage {
   clip: unknown;
   /** Every clip of the file: without a `form`, one per section. A figure may name a character file (`model`). */
   clips?: unknown[];
+  /** The number of this message among the file's. */
+  seq?: number;
+  /** Instead of `clips`: what an edit changed in the clips of message `base` (preview/patch.js). */
+  patch?: unknown;
+  base?: number;
 }
 
 /**
@@ -125,7 +131,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   // The preview is given every clip and where the cursor is; it shows one clip, and uses
   // the cursor to choose it when it has no clip of its own to stay on.
-  const post = (message: ClipMessage, reset: boolean) => {
+  // After an edit it is given what changed (`patch`, made on the clips of message `base`) and puts it into the
+  // clips it has: megabytes of frames are not copied to the page again for a word that moved two bars (DESIGN.md 120).
+  const post = (message: ClipMessage, reset: boolean, patch?: { patch: unknown; base: number }) => {
     const editor = editorFor(message.uri);
     const shown = message.clips ?? (message.clip ? [message.clip] : []);
     // The characters the dancers are dressed in (`dancer alice humanoid "girl.vrm"`), from the file's own folder.
@@ -149,8 +157,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       }
     }
     void panel?.webview.postMessage({
-      type: 'clip',
-      clips: shown,
+      ...(patch ? { type: 'patch', patch: patch.patch, base: patch.base } : { type: 'clip', clips: shown }),
+      seq: message.seq,
       models,
       offset: editor ? editor.document.offsetAt(editor.selection.active) : -1,
       reset,
@@ -200,12 +208,35 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const songs = vscode.workspace.createFileSystemWatcher('**/*.lys');
   const parts = vscode.workspace.createFileSystemWatcher('**/*.shosa');
   context.subscriptions.push(songs, parts);
+  // The server sends a file's clips whole once, and then what each edit changed (`clipPatches`): the clips are
+  // kept here as the server has them, for the preview whenever it is opened or turned to that file.
   client = new LanguageClient('shosa', 'Shosa', serverOptions,
-    { documentSelector: [{ language: 'shosa' }], synchronize: { fileEvents: [songs, parts] } });
-  client.onNotification('shosa/clip', (message: ClipMessage) => {
+    { documentSelector: [{ language: 'shosa' }], synchronize: { fileEvents: [songs, parts] }, initializationOptions: { clipPatches: true } });
+  const whole = (message: ClipMessage | null | undefined) => {
+    if (!message) {
+      return;
+    }
     clips.set(message.uri, message);
     if (panel && panelUri === message.uri) {
       post(message, false);
+    }
+  };
+  client.onNotification('shosa/clip', (message: ClipMessage) => {
+    if (message.patch === undefined) {
+      whole(message);
+      return;
+    }
+    const known = clips.get(message.uri);
+    if (!known || known.seq !== message.base || !known.clips) {
+      // Not made on what is kept here (it should not happen): every clip is asked for again.
+      clips.delete(message.uri);
+      void client?.sendRequest<ClipMessage | null>('shosa/clip', { uri: message.uri }).then(whole, () => undefined);
+      return;
+    }
+    const next: ClipMessage = { uri: message.uri, version: message.version, seq: message.seq, clip: undefined, clips: applyClipPatch(known.clips, message.patch) };
+    clips.set(message.uri, next);
+    if (panel && panelUri === message.uri) {
+      post(next, false, { patch: message.patch, base: message.base ?? -1 });
     }
   });
   // A server that has stopped (VS Code gives up after it crashes five times, as when the extension's files are
@@ -333,6 +364,15 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
               () => undefined);
           }
           break;
+
+        case 'resync': {
+          // The page was sent a patch made on other clips than it has (it should not happen): every clip again.
+          const known = panelUri ? clips.get(panelUri) : undefined;
+          if (known) {
+            post(known, false);
+          }
+          break;
+        }
 
         case 'ready':
           sentModels.clear();   // a new page knows no character yet

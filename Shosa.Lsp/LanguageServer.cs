@@ -32,9 +32,26 @@ public sealed class LanguageServer(Action<string> send)
         public string? Folder { get; } = path is null ? null : System.IO.Path.GetDirectoryName(path);
         /// <summary>Reads the songs the document names, beside its file; null for a document that is not a file.</summary>
         public SongSource? Songs { get; } = path is null ? null : new SongReader(System.IO.Path.GetDirectoryName(path) ?? ".").Read;
-        /// <summary>Set by the server's Compile as soon as the document is made, and after every change.</summary>
+        /// <summary>
+        /// Set by the server's Compile as soon as the document is made, and after a change — at once, or when it is
+        /// next needed (<see cref="Stale"/>): read it through the server's Current.
+        /// </summary>
         public ShosaCompilation Compilation { get; set; } = null!;
+        /// <summary>The text has changed since <see cref="Compilation"/> was made: more edits were waiting behind that one.</summary>
+        public bool Stale { get; set; }
+        /// <summary>The editor has not been told of the last change yet (its diagnostics, its movement).</summary>
+        public bool Unpublished { get; set; }
+        /// <summary>The clips as the editor has them, for an editor that takes patches; null before the first are sent.</summary>
+        public List<ClipPatch.Sent>? Sent { get; set; }
+        /// <summary>The number of the last `shosa/clip` sent: a patch names the one it is made on.</summary>
+        public int Seq { get; set; }
     }
+
+    /// <summary>
+    /// The editor keeps the clips it is sent and takes what an edit changed as a patch (<see cref="ClipPatch"/>):
+    /// it said so when it began (`initializationOptions.clipPatches`). Else every clip is sent whole after every edit.
+    /// </summary>
+    private bool _patches;
 
     /// <summary>
     /// Compiles a document: its songs beside it, and the files its `using` lines bring in — as
@@ -47,7 +64,41 @@ public sealed class LanguageServer(Action<string> send)
         return ShosaCompilation.Compile(tree, score, songs, usings);
     }
 
-    private void Compile(Document document) => document.Compilation = Compile(document.Tree, document.Path);
+    private void Compile(Document document)
+    {
+        document.Compilation = Compile(document.Tree, document.Path);
+        document.Stale = false;
+    }
+
+    /// <summary>The document compiled as its text is now.</summary>
+    private ShosaCompilation Current(Document document)
+    {
+        if (document.Stale)
+            Compile(document);
+        return document.Compilation;
+    }
+
+    /// <summary>
+    /// Tells the editor of the changes it has not been told of yet. A change with more messages waiting behind it
+    /// (<see cref="Handle"/>'s `more`) is taken into the text and no further: while one edit was being solved the
+    /// user typed three more, and only the text after the last is worth solving. Whoever feeds the server calls
+    /// this when nothing is waiting.
+    /// </summary>
+    public void Flush()
+    {
+        foreach (var (uri, document) in _documents.Where(d => d.Value.Unpublished).ToList())
+            Flush(uri, document);
+    }
+
+    private void Flush(string uri, Document document)
+    {
+        if (!document.Unpublished)
+            return;
+        document.Unpublished = false;   // first: a change that cannot be compiled is not tried again and again
+        Current(document);
+        Publish(uri);
+        CompileUsers(document.Path);   // a file of parts: the open dances that bring it in follow its unsaved text
+    }
 
     /// <summary>The text of a file that is open in the editor, by its full path.</summary>
     private string? OpenText(string path) =>
@@ -60,7 +111,7 @@ public sealed class LanguageServer(Action<string> send)
             return;
         foreach (var (uri, document) in _documents)
         {
-            if (document.Compilation.Included.Any(f => string.Equals(f.Path, path, StringComparison.OrdinalIgnoreCase)))
+            if (Current(document).Included.Any(f => string.Equals(f.Path, path, StringComparison.OrdinalIgnoreCase)))
             {
                 Compile(document);
                 Publish(uri);
@@ -131,7 +182,11 @@ public sealed class LanguageServer(Action<string> send)
 
     public bool ExitRequested { get; private set; }
 
-    public void Handle(string json)
+    /// <param name="more">
+    /// More messages are waiting behind this one: an edit is then taken into the text and solved later, with the
+    /// ones behind it (<see cref="Flush()"/>).
+    /// </param>
+    public void Handle(string json, bool more = false)
     {
         using var message = JsonDocument.Parse(json);
         var root = message.RootElement;
@@ -145,6 +200,9 @@ public sealed class LanguageServer(Action<string> send)
         switch (method)
         {
             case "initialize":
+                _patches = parameters.ValueKind == JsonValueKind.Object
+                    && parameters.TryGetProperty("initializationOptions", out var options) && options.ValueKind == JsonValueKind.Object
+                    && options.TryGetProperty("clipPatches", out var patches) && patches.ValueKind == JsonValueKind.True;
                 Reply(id, new
                 {
                     capabilities = new
@@ -200,9 +258,10 @@ public sealed class LanguageServer(Action<string> send)
 
                 document.Tree = tree;
                 document.Version = item.GetProperty("version").GetInt32();
-                Compile(document);
-                Publish(uri);
-                CompileUsers(document.Path);   // a file of parts: the open dances that bring it in follow its unsaved text
+                document.Stale = true;
+                document.Unpublished = true;
+                if (!more)
+                    Flush(uri, document);
                 break;
             }
 
@@ -244,7 +303,14 @@ public sealed class LanguageServer(Action<string> send)
             {
                 // The preview asks for the current movement when it opens.
                 string uri = parameters.GetProperty("uri").GetString()!;
-                Reply(id, _documents.TryGetValue(uri, out var document) ? ClipMessage(uri, document) : null);
+                if (!_documents.TryGetValue(uri, out var document))
+                {
+                    Reply(id, null);
+                    break;
+                }
+                // What it is told here is what its patches are made on from here: nothing may be waiting to be told.
+                Flush(uri, document);
+                Reply(id, ClipMessage(uri, document));
                 break;
             }
 
@@ -383,7 +449,7 @@ public sealed class LanguageServer(Action<string> send)
     {
         var document = _documents[uri];
         string text = document.Tree.Text;
-        var diagnostics = document.Compilation.Diagnostics.Select(d => new
+        var diagnostics = Current(document).Diagnostics.Select(d => new
         {
             // A zero-width span (something missing) would not show; give it one character.
             range = Range(text, d.Span.Length > 0 ? d.Span : new TextSpan(Math.Max(0, Math.Min(d.Span.Start, text.Length) - 1), 1)),
@@ -393,16 +459,30 @@ public sealed class LanguageServer(Action<string> send)
             message = d.Message,
         });
         Notify("textDocument/publishDiagnostics", new { uri, version = document.Version, diagnostics });
-        Notify("shosa/clip", ClipMessage(uri, document));
+        document.Unpublished = false;
+        document.Seq++;
+        if (!_patches)
+        {
+            Notify("shosa/clip", ClipMessage(uri, document));
+            return;
+        }
+        // An editor that keeps the clips: all of them the first time, then what each edit changed.
+        var was = document.Sent;
+        document.Sent = ClipPatch.Of(document.Compilation.Clips, was);
+        if (was is null)
+            Notify("shosa/clip", ClipMessage(uri, document));
+        else
+            Notify("shosa/clip", new { uri, version = document.Version, seq = document.Seq, @base = document.Seq - 1, patch = ClipPatch.Between(was, document.Sent), reusedItems = document.Tree.ReusedItems });
     }
 
-    private static object ClipMessage(string uri, Document document) => new
+    private object ClipMessage(string uri, Document document) => new
     {
         uri,
         version = document.Version,
-        // Every clip of the file; `clip` is the first, for a view that shows one.
-        clip = document.Compilation.Clip,
-        clips = document.Compilation.Clips,
+        seq = document.Seq,
+        // Every clip of the file; `clip` is the first, for a view that shows one (an editor that takes patches keeps `clips`).
+        clip = _patches ? null : Current(document).Clip,
+        clips = Current(document).Clips,
         reusedItems = document.Tree.ReusedItems,
     };
 
@@ -458,7 +538,7 @@ public sealed class LanguageServer(Action<string> send)
         if (Words.AtMusic(document.Tree, offset, SongsFor(document)) is { } music)
             (words, kind, from) = music;
         else
-            (words, kind) = Words.At(document.Tree, offset, Words.Brought(document.Compilation, document.Folder));
+            (words, kind) = Words.At(document.Tree, offset, Words.Brought(Current(document), document.Folder));
         int itemKind = kind switch
         {
             "keyword" => 14,                 // Keyword
@@ -498,14 +578,14 @@ public sealed class LanguageServer(Action<string> send)
 
         var tree = document.Tree;
         int offset = Offset(tree.Text, parameters.GetProperty("position"));
-        if (Words.Describe(tree, offset, document.Compilation.Score.MoveLengths, Words.Brought(document.Compilation, document.Folder)) is not (var word, var span))
+        if (Words.Describe(tree, offset, Current(document).Score.MoveLengths, Words.Brought(Current(document), document.Folder)) is not (var word, var span))
             return null;
 
         string value = $"**`{word.Name}`** — {word.Doc}";
 
         // When is it performed? The IR remembers which event each segment came from.
-        var ir = document.Compilation.Ir;
-        var times = document.Compilation.Score.Clips.SelectMany(c => c.Dancers).SelectMany(f => f.Tracks.Values).SelectMany(s => s)
+        var ir = Current(document).Ir;
+        var times = Current(document).Score.Clips.SelectMany(c => c.Dancers).SelectMany(f => f.Tracks.Values).SelectMany(s => s)
             .Where(s => offset >= s.Src && offset <= s.Src + s.Len)
             .Select(s => (T0: s.At, T1: s.Until)).Distinct().OrderBy(t => t.T0).ToList();
         if (times.Count > 0)
@@ -513,7 +593,7 @@ public sealed class LanguageServer(Action<string> send)
             string When((double T0, double T1) t)
             {
                 // The bars of the clip the event is in: a song's upbeat moves them off the multiples of the bar.
-                var clip = document.Compilation.Score.Clips.FirstOrDefault(c => c.Dancers.SelectMany(f => f.Tracks.Values).SelectMany(s => s)
+                var clip = Current(document).Score.Clips.FirstOrDefault(c => c.Dancers.SelectMany(f => f.Tracks.Values).SelectMany(s => s)
                     .Any(s => s.At == t.T0 && offset >= s.Src && offset <= s.Src + s.Len)) ?? ir;
                 var (bar, beat) = Bars.At(clip.Sections, Bars.Of(clip.Meters, clip.BeatsPerBar, clip.BeatUnit), t.T0);
                 return $"bar {bar}, beat {(beat + 1).ToString("0.##", CultureInfo.InvariantCulture)}";

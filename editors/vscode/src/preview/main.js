@@ -33,6 +33,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { createCharacters } from './characters.js';
 import { createFontSound } from './fontsound.js';
 import { createJuggle } from './juggle.js';
+import { applyClipPatch } from './patch.js';
 import { createRecording, cutRecording } from './recording.js';
 import { createSound } from './sound.js';
 import { MaxLevel, createStemPlayer, stemRows } from './stems.js';
@@ -216,6 +217,7 @@ const headGeometry = new THREE.SphereGeometry(0.105, 20, 16);
 const yAxis = new THREE.Vector3(0, 1, 0);
 
 let clips = [];         // every clip of the file
+let clipsSeq = null;    // the number of the message they came by, or were last patched by: a patch names the one it is made on
 let clip = null;        // the one shown: spans, sections and times below are all its own
 let figures = [];       // { data, bones: Mesh[], joints: Mesh[], points: Vector3[] }
 let beat = 0, playing = false, last = 0;
@@ -838,13 +840,22 @@ window.addEventListener('message', event => {
   if (message.type === 'waiting') {
     // A file the server has sent nothing for (yet), or a server that has stopped: the stage is cleared, and says which.
     clips = [];
+    clipsSeq = null;
     setPlaying(false);
     setClip(null, false);
     empty.textContent = message.text;
-  } else if (message.type === 'clip') {
+  } else if (message.type === 'clip' || message.type === 'patch') {
+    if (message.type === 'patch' && message.base !== clipsSeq) {
+      // Made on other clips than the page has: every clip is asked for again.
+      vscode.postMessage({ type: 'resync' });
+      return;
+    }
     empty.textContent = EMPTY;
     const shown = clip && !message.reset ? clip.name : null;
-    clips = message.clips ?? [];
+    // After an edit, what it changed is put into the clips as they were (patch.js): a figure it did not touch is
+    // the same object as before, and what was worked out for it stays.
+    clips = message.type === 'patch' ? applyClipPatch(clips, message.patch) : message.clips ?? [];
+    clipsSeq = message.seq;
     models = message.models ?? {};
     // An edit keeps the clip being looked at (by name: the objects are all new), and the
     // moment: change a word and see that pose change. If the name is gone (it is being
