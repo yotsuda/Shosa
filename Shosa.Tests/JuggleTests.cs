@@ -312,9 +312,11 @@ public class JuggleTests
     }
 
     [Theory]
-    [InlineData("every 1/2  4:4 | 534:3 4:1 | 633:3 4:1 | 7441:4 |")]
-    [InlineData("every 1/3  5:4 | 645:4 | 744:4 | 97531:10/3 5:2/3 | 75751:10/3 5:2/3 |")]
-    public void Balls_in_the_air_keep_well_apart_in_four_and_five_ball_patterns(string row)
+    [InlineData("every 1/2  4:4 | 534:3 4:1 | 633:3 4:1 | 7441:4 |", 0.10)]
+    [InlineData("every 1/3  5:4 | 645:4 | 744:4 | 97531:10/3 5:2/3 | 75751:10/3 5:2/3 |", 0.10)]
+    // Changes of pattern and of pace (DESIGN.md 118.43): a ball thrown in one comes down as it was thrown.
+    [InlineData("every 1/2  3:4 | 3:4@mills | 3:4@reverse | 3:4 | every 1  3:2 3:1@backThrow 3:1 | every 1/2  3:4@windmill | 3:4 |", 0.08)]
+    public void Balls_in_the_air_keep_well_apart_in_four_and_five_ball_patterns(string row, double apart)
     {
         // The fountain thrown inside and caught outside, the one going up in front; higher throws across wider (DESIGN.md
         // 118.42). On the figure 10 cm or more: a character's shorter arms draw it some 0.6 as wide, and a ball is 6.8 cm.
@@ -332,10 +334,10 @@ public class JuggleTests
                     {
                         var p = new Vec3(jg.Frames[frame][a * 7], jg.Frames[frame][a * 7 + 1], jg.Frames[frame][a * 7 + 2]);
                         var q = new Vec3(jg.Frames[frame][b * 7], jg.Frames[frame][b * 7 + 1], jg.Frames[frame][b * 7 + 2]);
-                        Assert.True((p - q).Length >= 0.10, $"balls {a} and {b} {(p - q).Length:0.000} m apart at {sec:0.00} s");
+                        Assert.True((p - q).Length >= apart, $"balls {a} and {b} {(p - q).Length:0.000} m apart at {sec:0.00} s");
                     }
         }
-        Assert.True(balls >= 4);
+        Assert.True(balls >= 3);
     }
 
     [Fact]

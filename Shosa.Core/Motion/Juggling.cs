@@ -295,7 +295,11 @@ public sealed class Juggling
                     // Thrown and caught round the body (Mills' Mess or the windmill, the same one at both ends): its ball in
                     // the plane before the body, the hands soft.
                     bool windmill = Windmill(slot.Seg.Tricks);
-                    bool millsFlight = Round(slot.Seg.Tricks) && Round(landingSeg?.Tricks) && windmill == Windmill(landingSeg?.Tricks);
+                    // A ball thrown in a word of a whole pattern's trick (Mills' Mess, the windmill, the reverse) comes down as
+                    // that pattern's, wherever it lands; a catching trick is the word's it lands in (DESIGN.md 118.43: thrown in
+                    // one pattern and caught in another's place, it crossed the next ball's way at the bar line, 1.6 cm).
+                    var catchTricks = landingSeg is null ? null : CatchTricks(slot.Seg.Tricks, landingSeg.Tricks);
+                    bool millsFlight = Round(slot.Seg.Tricks) && landingSeg is not null;
                     if (millsFlight && !windmill && slot.Round % 3 == 1)
                         thrown -= MillsSecondEarlier * T;
                     // The first (and the fourth) as high as the second (the user): a little before its beat too, but not the
@@ -310,15 +314,18 @@ public sealed class Juggling
                         landingSeg?.Tricks?.Contains("backCatch") == true ? landingSeg : null));
                     Arrive(land, ball, to, Flights.Count - 1);
                     var landing = slots[Math.Min(land, slots.Count - 1)];
-                    var catcher = landing.Seg;   // none: caught for good at the end of the run, as a plain catch (not Mills' middle)
                     // Which of Mills' six throws this is, and which the ball is caught for: counted from the first of its words
-                    // that follow one another, mirrored when that one's first throw is the left hand's.
+                    // that follow one another, mirrored when that one's first throw is the left hand's. Caught past them (in
+                    // another pattern's word, or at the end of the run), as the count would go on.
                     bool Mirrored(Slot x) => x.Seg is not null && Siteswap.HandAt(x.InRun - x.Round, x.Seg.LeftFirst) == 1;
-                    _mills6 = (slot.Round % 6, Mirrored(slot), landing.Seg is null ? (slot.Round + t.Value) % 6 : landing.Round % 6,
-                        landing.Seg is null ? Mirrored(slot) : Mirrored(landing), windmill);
+                    bool sameRound = landing.Seg is not null && Round(landing.Seg.Tricks) && Windmill(landing.Seg.Tricks) == windmill
+                        && landing.InRun - landing.Round == slot.InRun - slot.Round;
+                    _mills6 = (slot.Round % 6, Mirrored(slot), sameRound ? landing.Round % 6 : (slot.Round + t.Value) % 6,
+                        sameRound ? Mirrored(landing) : Mirrored(slot), windmill);
                     // The catching hand's own throw two beats before the catch, when it is still to be planned.
                     double ownThrown = land - 2 > s && land - 2 < slots.Count && slots[land - 2].Seg is not null ? SlotSec(land - 2) : double.NegativeInfinity;
-                    Swing(hand, to, t.Value, thrown, caught, T, slot.Seg.Tricks, catcher?.Tricks, _throwsBy[hand]++, ownThrown);
+                    // (Caught for good at the end of the run: a plain catch, not Mills' middle.)
+                    Swing(hand, to, t.Value, thrown, caught, T, slot.Seg.Tricks, catchTricks, _throwsBy[hand]++, ownThrown);
                     lastCatch = Math.Max(lastCatch, caught);
                 }
                 // Balls that came down and are not thrown: held, and thrown on the hand's next turn.
@@ -432,21 +439,25 @@ public sealed class Juggling
     // low and let go inside (the user: thrown where they were caught, a ring going up met the one coming down).
     private bool Rings => Prop == "rings";
     // Where the hand lets go: for a ring a little below where it caught, after the swing up from low.
-    private Vec3 Throws(int hand, int value, bool across) => value == 1
+    private Vec3 Throws(int hand, int value, bool across, double flight = -1) => value == 1
         ? new Vec3(Side(hand) * 0.12, -0.01, 0.02)
         : Rings ? new Vec3(Side(hand) * 0.13, 0.10, 0.02)
-        : new Vec3(Side(hand) * (across ? Math.Max(0.07, 0.15 - Wider(value)) : SameThrowX), 0, across ? CrossThrowZ : SameThrowZ);
+        : new Vec3(Side(hand) * (across ? Math.Max(0.07, 0.15 - Wider(value, flight)) : SameThrowX), 0, across ? CrossThrowZ : SameThrowZ);
     // A higher throw across goes up a little further in and comes down a little further out (DESIGN.md 118.42: in 97531
     // and 744 a high ball and a lower one crossed the middle at once, 5 cm apart), so balls of different heights cross the
-    // middle at different places.
-    private double Wider(int value) => Rings || Clubs ? 0 : CrossWider * Math.Max(0, value - 3);
+    // middle at different places. How high is how long it flies (DESIGN.md 118.43: a 3 thrown every beat after 3s every half
+    // beat goes as high as a 5 and crossed them, 7 cm apart), or by the number, whichever is wider (thrown quickly, a 7 flies short).
+    private double Wider(int value, double flight = -1) => Rings || Clubs ? 0
+        : Math.Max(CrossWider * Math.Max(0, value - 3), flight >= 0 ? CrossWiderPerSecond * Math.Max(0, flight - CascadeFlight) : 0);
+    /// <summary>A cascade's 3 at tempo 120 every half beat: how long it flies (seconds), from which a longer one goes wider by CrossWiderPerSecond.</summary>
+    private const double CascadeFlight = 0.425, CrossWiderPerSecond = 0.12;
     // A throw that comes back to its own hand (an even one: 441, the box (4,2x)*, the fountain) goes up on the hand's own
     // side, the hands well apart (the user: in the box they looked better further out). Thrown 28 cm out, caught 34.
-    private Vec3 Catches(int hand, int value, bool across = true) => value == 1
+    private Vec3 Catches(int hand, int value, bool across = true, double flight = -1) => value == 1
         ? new Vec3(Side(hand) * 0.16, -0.01, 0.02)
         : Rings ? new Vec3(Side(hand) * 0.31, 0.18, 0.02)
         : Clubs ? new Vec3(Side(hand) * (across ? 0.40 : 0.42), 0.08, -0.02)
-        : new Vec3(Side(hand) * (across ? 0.32 + Wider(value) : SameCatchX), 0.06, across ? CrossCatchZ : SameCatchZ);
+        : new Vec3(Side(hand) * (across ? 0.32 + Wider(value, flight) : SameCatchX), 0.06, across ? CrossCatchZ : SameCatchZ);
     // A ball thrown back to its own hand (441, the box): thrown in front and inside, caught behind and outside, so the one going
     // up and the one coming down in the same hand's column pass apart, and the one going up is in front of a ball crossing over
     // into that hand (the user: in 441 a ball going up met one coming down; thrown at 28 cm and caught at 34 they passed 4 cm apart).
@@ -455,6 +466,8 @@ public sealed class Juggling
     // other as seen from the front, only 14 cm apart front to back). DESIGN.md 118.42.
     private const double SameThrowX = 0.18, SameCatchX = 0.42;
     private const double SameThrowZ = 0.14, SameCatchZ = -0.08, CrossThrowZ = 0.02, CrossCatchZ = -0.08, CrossWider = 0.03;
+    /// <summary>A reverse catch inside, further back than a cascade's, clear of a cascade's ball going up there at a change of pattern (DESIGN.md 118.43).</summary>
+    private const double ReverseCatchBack = 0.08;
     // A club is half a metre long: caught well out to the side, the elbow out, or two meet in the air (the user).
     private bool Clubs => Prop == "clubs";
 
@@ -480,8 +493,8 @@ public sealed class Juggling
         // frame, at 11 m/s; DESIGN.md 118.30). The ball is still thrown again as the penguin's.
         if (catchTricks?.Contains("penguinCatch") == true && Math.Min(SinceOwnThrow(to, caught), caught - ownThrown) < PenguinLeast)
             catchTricks = [.. catchTricks.Where(x => x != "penguinCatch")];
-        var from = Throws(hand, value, across);
-        var into = Catches(to, value, across);
+        var from = Throws(hand, value, across, caught - thrown);
+        var into = Catches(to, value, across, caught - thrown);
         Style throwStyle = Style.Own, catchStyle = Style.Own;
         if (value >= 2)
             (from, into, throwStyle, catchStyle) = Trick(hand, to, value, from, into, throwTricks, catchTricks, nth);
@@ -764,7 +777,7 @@ public sealed class Juggling
         if (Has(throwTricks, "reverse"))
             from = new Vec3(s * Math.Abs(Catches(hand, value, to != hand).X), from.Y + 0.04, from.Z);
         if (Has(catchTricks, "reverse"))
-            into = new Vec3(c * Math.Abs(Throws(to, value, to != hand).X), into.Y, into.Z);
+            into = new Vec3(c * Math.Abs(Throws(to, value, to != hand).X), into.Y, into.Z - ReverseCatchBack);
         // Claw: the palm down, the ball snatched from above at the face on its way up (the user); thrown with the palm down too.
         if (Has(catchTricks, "clawCatch"))
         {
@@ -864,6 +877,17 @@ public sealed class Juggling
                 tangent = moving;
             keys[i] = keys[i] with { Velocity = tangent };
         }
+    }
+
+    /// <summary>
+    /// How a ball is caught: as the whole pattern it was thrown in (Mills' Mess, the windmill, the reverse), with the catching
+    /// tricks of the word it lands in (penguin, claw, behind the back). DESIGN.md 118.43.
+    /// </summary>
+    private static List<string>? CatchTricks(List<string>? thrownIn, List<string>? landsIn)
+    {
+        static bool Whole(string t) => t is "mills" or "windmill" or "reverse";
+        var tricks = (landsIn ?? []).Where(t => !Whole(t)).Concat((thrownIn ?? []).Where(Whole)).ToList();
+        return tricks.Count == 0 ? null : tricks;
     }
 
     /// <summary>The juggling's Mills' Mess at a time (seconds), 0..1: how much the body goes with the crossing arms.</summary>
