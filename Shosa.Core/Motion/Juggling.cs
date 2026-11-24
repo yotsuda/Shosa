@@ -1942,7 +1942,7 @@ public sealed class Juggling
     /// <summary>Takeouts' rounds' arc out past the face: the hand, the stop it rises from, the top (before the face) and where it is out (seconds).</summary>
     private readonly List<(int Hand, double Stop, double Top, double Out)> _arcOuts = [];
     /// <summary>How long the arc out from before the face to out on the own side takes, and how long it takes to give way after (seconds).</summary>
-    private const double ArcOutFor = 0.28, ArcOutRelease = 0.3, ArcOpenFor = 0.10, ArcRampFor = 0.14;
+    private const double ArcOutFor = 0.25, ArcOutRelease = 0.36, ArcOpenFor = 0.10, ArcRampFor = 0.14;
     /// <summary>
     /// Takeouts' arc out past the face (the user, 2026-11-24): how much the arm is in its own shape, 0..1 (coming on as the
     /// hand rises from the stop to before the face, going after it is out), and how far round, 0 before the face to 1 out on

@@ -906,6 +906,9 @@ internal sealed class FigureSolver
     /// <summary>Takeouts' arc out: the upper arm's turn from straight forward (degrees, + out to its own side) before the face
     /// and out, and how far below level it is.</summary>
     private const double ArcFrom = -40, ArcTo = 70, ArcDrop = 0, ArcOpen = 60, ArcLower = 60;
+    /// <summary>Takeouts: the arms, off the shoulders, softened over time by a Gaussian of this spread (seconds), so the
+    /// corners where the swipe, the arc out, the opening and the way down meet are round (the user: the whole arm smooth).</summary>
+    private const double TakeoutArmSoften = 0.05;
     /// <summary>Takeouts' round's way down: the opened elbow points back, this much out and this much down beside it (not straight down: with the hand below the shoulder, down lay along the arm and the elbow flipped out and back in a frame), and opens to this angle (degrees).</summary>
     private const double LowElbowOut = 0.6, LowElbowBack = 0.0, LowElbowDown = 1.0, LowElbowAhead = 2.5, LowElbowAngle = 120;
     /// <summary>How far off its place side to side Mills' elbow may be (metres) against how far round its circle it goes (radians).</summary>
@@ -2613,11 +2616,56 @@ internal sealed class FigureSolver
         _posing++;
         try
         {
-            return PoseCore(t, out problems);
+            var pose = PoseCore(t, out problems);
+            SoftenTakeoutArms(t, pose);
+            return pose;
         }
         finally
         {
             _posing--;
+        }
+    }
+
+    /// <summary>
+    /// Takeouts: each arm's elbow and hand, off its shoulder, the Gaussian mean of the poses a little before and after
+    /// (<see cref="TakeoutArmSoften"/>), the bones then their own lengths again. The arm is built of parts (the swipe's arc,
+    /// the arm's own shape out past the face, the elbow opening, the way down) each eased in over the last, and where one
+    /// comes in the hand and the elbow turned or sped up at once (the user, 2026-11-25: the whole arm smooth).
+    /// </summary>
+    private void SoftenTakeoutArms(double t, Vec3[] pose)
+    {
+        if (Juggling is not { } juggling)
+            return;
+        double sec = Seconds(t), weight = juggling.TakeoutAt(sec) * juggling.Weight(sec);
+        if (weight <= 0)
+            return;
+        // Nine samples half a spread apart, two spreads either way.
+        const int Reach = 4;
+        double step = TakeoutArmSoften / 2 * PerSecond(t);
+        var sums = new Vec3[4];
+        double total = 0;
+        for (int k = -Reach; k <= Reach; k++)
+        {
+            var near = k == 0 ? pose : PoseCore(Math.Max(0, t + k * step), out _);
+            double w = Math.Exp(-0.5 * (k / 2.0) * (k / 2.0));
+            total += w;
+            for (int s = 0; s < 2; s++)
+            {
+                int first = s == 0 ? Rig.LShoulder : Rig.RShoulder;
+                sums[s * 2] += (near[first + 1] - near[first]) * w;
+                sums[s * 2 + 1] += (near[first + 2] - near[first]) * w;
+            }
+        }
+        for (int s = 0; s < 2; s++)
+        {
+            int first = s == 0 ? Rig.LShoulder : Rig.RShoulder;
+            var shoulder = pose[first];
+            Vec3 elbowOff = sums[s * 2] * (1 / total), handOff = sums[s * 2 + 1] * (1 / total);
+            var hand = Vec3.Lerp(pose[first + 2], shoulder + handOff, weight);
+            var bendWay = Vec3.Lerp(pose[first + 1] - shoulder, elbowOff, weight);
+            var (elbow, reached) = TwoBone(shoulder, hand, Rig.UpperArm, Rig.Forearm, bendWay);
+            pose[first + 1] = elbow;
+            pose[first + 2] = reached;
         }
     }
 
