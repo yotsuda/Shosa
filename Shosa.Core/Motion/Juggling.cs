@@ -690,10 +690,8 @@ public sealed class Juggling
     /// <summary>The 4 thrown from inside, near the middle, up from below after the round (the user); the 3 caught further out.</summary>
     private const double TakeoutHighOut = 0.0, TakeoutCatchOut = 0.50, TakeoutHighUp = 0.04;
     /// <summary>The 4 thrown from under the other arm, crossed (the user): this far over on the other hand's side, this high
-    /// (low, from below after the round), and the back leant this much at that throw, the other arm's shoulder up (SideLean).</summary>
-    private const double TakeoutUnderCross = 0.12, TakeoutUnderHigh = -0.06, TakeoutLean = 0.16;
-    /// <summary>Seconds either side of such a throw the lean comes and goes over (as long as from one hand's 4 to the other's at 120, every 1/2).</summary>
-    private const double TakeoutLeanSpan = 0.75;
+    /// (low, from below after the round).</summary>
+    private const double TakeoutUnderCross = 0.12, TakeoutUnderHigh = -0.06;
     /// <summary>After the 4's throw from under the other arm: how fast the hand goes up with the ball (a part of its speed), and
     /// where it is this part of the way to its next catch: this far out on its own side, this much above the throw (the user:
     /// the arm goes up in the throw, as the other arm sets off up round its arc at nearly the same time).</summary>
@@ -701,8 +699,6 @@ public sealed class Juggling
     /// <summary>How fast the hand holding the swiped 4 sets off up its round from where the swipe ends (m/s; the user: it goes
     /// up at nearly the same time as the other arm throws from under it).</summary>
     private const double TakeoutRoundStartSpeed = 2.0;
-    /// <summary>The 4s' throws from under the other arm: when, and which way the back leans (+ the right shoulder up).</summary>
-    private readonly List<(double T, double Sign)> _takeoutLeans = [];
     /// <summary>The 3 thrown from well outside, this far out and this far forward (as tennis's), and this part of a beat sooner, caught as much later.</summary>
     private const double TakeoutAcrossOut = 0.46, TakeoutAcrossAhead = 0.32, TakeoutLonger = 0.0, TakeoutHighSooner = 0.0;
     /// <summary>A ball thrown before the takeouts and caught in them: caught out there too, clear of the hand's first 4.</summary>
@@ -1007,8 +1003,7 @@ public sealed class Juggling
                 return;
             }
             // The 4: thrown up from under the other arm, crossed over to its side, low, after the big round (the user); when
-            // no round comes before it, swung up from a little below. The back leans the other arm's shoulder up then.
-            _takeoutLeans.Add((thrown, hand == 1 ? 1 : -1));
+            // no round comes before it, swung up from a little below.
             // (After a round, its last place low and in is the bottom of the swing.)
             if (!_takeoutRests.Any(r => r.Hand == hand && r.T < thrown && r.T > thrown - 0.6))
                 AddSmooth(hand, (thrown - MillsBottomAt * Dwell * beat, from + new Vec3(0, -CascadeLoopDepth, 0), Still, throwStyle));
@@ -1675,27 +1670,12 @@ public sealed class Juggling
     /// nothing: in Mills' Mess the back sways away from the arm that crosses on top, its shoulder up, so the arm below has
     /// room under it (the user: the back swaying left and right, for the height between the two at the throw).
     /// </summary>
-    public double SideLean(double sec)
-    {
-        // Takeouts (DESIGN.md 118.49, the user): leant at each 4 thrown from under the other arm, its shoulder up, so the two
-        // arms do not meet; the throws come from the two hands by turns, so the back sways smoothly from side to side.
-        if (_takeoutLeans.Count > 0)
-        {
-            double lean = 0;
-            foreach (var (t, sign) in _takeoutLeans)
-            {
-                double d = Math.Abs(sec - t);
-                if (d < TakeoutLeanSpan)
-                    lean += sign * TakeoutLean * 0.5 * (1 + Math.Cos(Math.PI * d / TakeoutLeanSpan));
-            }
-            if (lean != 0)
-                return lean;
-        }
-        return LegLean(sec);
-    }
+    // (Takeouts leant at the waist at each 4 thrown from under the other arm, until the swipe went round a flat arc about the
+    // elbow and the arms no longer met: DESIGN.md 118.49.)
+    public double SideLean(double sec) => LegLean(sec);
 
     /// <summary>How far the body sways from the feet with the back (the pelvis over to the side it leans to): Mills' Mess
-    /// only, as SideLean's part from it; takeouts bend at the waist alone (the user).</summary>
+    /// only, as SideLean's part from it.</summary>
     public double LegLean(double sec)
     {
         // A slow, even sway, once each way in the six throws (the user: right, left, right, left, smoothly; following the
