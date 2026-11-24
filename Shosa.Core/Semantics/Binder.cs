@@ -2144,16 +2144,18 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                 // Tricks (DESIGN.md 118.12): how the hands throw and catch, not what is thrown. Some cannot go together.
                 string? clash = name.Text switch
                 {
-                    "penguinCatch" => tricks.FirstOrDefault(t => t is "clawCatch" or "backThrow" or "backCatch" or "underThrow" or "windmill"),
-                    "clawCatch" => tricks.FirstOrDefault(t => t is "penguinCatch" or "backCatch"),
+                    "penguinCatch" => tricks.FirstOrDefault(t => t is "clawCatch" or "backThrow" or "backCatch" or "underThrow" or "windmill" or "takeouts"),
+                    "clawCatch" => tricks.FirstOrDefault(t => t is "penguinCatch" or "backCatch" or "takeouts"),
                     "backThrow" => tricks.FirstOrDefault(t => t is "underThrow" or "penguinCatch" or "windmill"),
-                    "backCatch" => tricks.FirstOrDefault(t => t is "penguinCatch" or "clawCatch" or "mills" or "windmill"),
+                    "backCatch" => tricks.FirstOrDefault(t => t is "penguinCatch" or "clawCatch" or "mills" or "windmill" or "takeouts"),
                     "underThrow" => tricks.FirstOrDefault(t => t is "backThrow" or "penguinCatch" or "windmill"),
                     "mills" => tricks.FirstOrDefault(t => t is "windmill" or "backCatch"),
-                    "windmill" => tricks.FirstOrDefault(t => t is "mills" or "penguinCatch" or "backThrow" or "backCatch" or "underThrow" or "tennis" or "halfShower"),
+                    "windmill" => tricks.FirstOrDefault(t => t is "mills" or "penguinCatch" or "backThrow" or "backCatch" or "underThrow" or "tennis" or "halfShower" or "takeouts"),
                     // Whole patterns of their own: one at a time.
-                    "tennis" => tricks.FirstOrDefault(t => t is "halfShower" or "mills" or "windmill" or "reverse"),
-                    "halfShower" => tricks.FirstOrDefault(t => t is "tennis" or "mills" or "windmill" or "reverse"),
+                    "tennis" => tricks.FirstOrDefault(t => t is "halfShower" or "takeouts" or "mills" or "windmill" or "reverse"),
+                    "halfShower" => tricks.FirstOrDefault(t => t is "tennis" or "takeouts" or "mills" or "windmill" or "reverse"),
+                    // Takeouts' hand catches from above in its own way: no other catch for it either.
+                    "takeouts" => tricks.FirstOrDefault(t => t is "tennis" or "halfShower" or "mills" or "windmill" or "reverse" or "clawCatch" or "penguinCatch" or "backCatch"),
                     _ => null,
                 };
                 if (clash is not null)
