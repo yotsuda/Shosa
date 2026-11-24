@@ -695,9 +695,9 @@ public sealed class Juggling
     private const string TakeoutWide = "\u0000takeoutWide";
     /// <summary>Takeouts' 4 comes down near the middle, a little on the thrower's side, this high, this far forward (in close:
     /// the user, it falls on the inside), and is swiped there.</summary>
-    private const double TakeoutTakeAt = 0.0, TakeoutTakeHigh = 0.06, TakeoutTakeAhead = 0.0;
+    private const double TakeoutTakeAt = 0.08, TakeoutTakeHigh = 0.06, TakeoutTakeAhead = 0.0;
     /// <summary>The swipe carrying it on: how fast at the catch (m/s), how long to the far side (seconds), how far past the middle there.</summary>
-    private const double TakeoutSwipeCarry = 1.8, TakeoutCarry = 0.08, TakeoutCarryTo = 0.24;
+    private const double TakeoutSwipeCarry = 1.8, TakeoutCarry = 0.11, TakeoutCarryTo = 0.24;
     /// <summary>How fast the hand goes up with the 3 as it throws it (a part of the ball's speed), and in across on its swipe (m/s);
     /// at the 4's catch, how fast it goes down with it (a part of the ball's speed).</summary>
     private const double TakeoutLaunch = 0.6, TakeoutSwipeSpeed = 1.6, TakeoutArrive = 0.25;
@@ -710,7 +710,7 @@ public sealed class Juggling
     private static readonly (double Out, double Up, double Ahead)[] TakeoutRound =
         [(-0.16, 0.42, 0.04), (0.0, 0.60, 0.06), (0.26, 0.52, 0.04)];
     /// <summary>After it is level with the other hand's 3 thrown from outside, the round's way on down below and in (the last its bottom).</summary>
-    private static readonly (double Out, double Up, double Ahead)[] TakeoutRoundLow = [(0.22, 0.10, 0.14)];
+    private static readonly (double Out, double Up, double Ahead)[] TakeoutRoundLow = [(0.22, -0.16, 0.14)];
     /// <summary>How far above the swipe's catch the round's place level with the other hand's 3 is (the held ball reaches no lower than the catch).</summary>
     private const double TakeoutLevelAbove = 0.04;
     /// <summary>How far above the hand the ball it holds is (metres): the round's top is put this far below the 3's.</summary>
