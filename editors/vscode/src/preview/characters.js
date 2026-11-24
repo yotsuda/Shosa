@@ -152,7 +152,7 @@ export function createCharacters(scene, changed) {
         millsGot = millsArms(vrm, entry.body, size, name => {
           const j = clip.joints.indexOf(name);
           return new THREE.Vector3(p[j * 3] + (q[j * 3] - p[j * 3]) * k, p[j * 3 + 1] + (q[j * 3 + 1] - p[j * 3 + 1]) * k, p[j * 3 + 2] + (q[j * 3 + 2] - p[j * 3 + 2]) * k);
-        }, weight, millsFound ? null : millsAt(entry, data, frame), sides(data.juggle.pull), sides(data.juggle.wheel), followed >= held ? 1 : 0);
+        }, weight, millsFound ? null : millsAt(entry, data, frame), sides(data.juggle.pull), sides(data.juggle.wheel), followed >= held ? 1 : 0, sides(data.juggle.plane));
       }
     }
     if (millsFound) millsFound.push(millsGot);

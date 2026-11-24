@@ -442,7 +442,7 @@ public static class Solver
         }
 
         var result = new ClipJuggle(juggling.Prop, juggling.Balls, [], [],
-            [.. juggling.Flights.Select(fl => new[] { fl.Ball, fl.From, fl.To, (float)Math.Round(fl.Thrown, 4), (float)Math.Round(fl.Caught, 4), fl.Mills ? 1f : 0f, fl.MillsThird })], [], [], [], [], []);
+            [.. juggling.Flights.Select(fl => new[] { fl.Ball, fl.From, fl.To, (float)Math.Round(fl.Thrown, 4), (float)Math.Round(fl.Caught, 4), fl.Mills ? 1f : 0f, fl.MillsThird })], [], [], [], [], [], []);
         for (int f = 0; f < frames.Count; f++)
         {
             double sec = (double)f / fps;
@@ -463,6 +463,7 @@ public static class Solver
             result.Styles.Add([(int)juggling.StyleAt(0, sec), (int)juggling.StyleAt(1, sec)]);
             result.Mills.Add((float)Math.Round(juggling.MillsAt(sec) * juggling.Weight(sec), 3));
             result.Follow!.Add((float)Math.Round(juggling.TakeoutAt(sec) * juggling.Weight(sec), 3));
+            result.Plane!.Add([(float)Math.Round(juggling.RoundPlane(0, sec) * juggling.Weight(sec), 3), (float)Math.Round(juggling.RoundPlane(1, sec) * juggling.Weight(sec), 3)]);
             // How much the windmill's top arm has its forearm drawn in, [right, left]: the preview, which solves a
             // character's arms again in Mills' Mess and the windmill, lets its hand in to the trunk as much (DESIGN.md 118.33).
             result.Pull!.Add([(float)Math.Round(juggling.WindmillPull(0, sec) * juggling.Weight(sec), 3), (float)Math.Round(juggling.WindmillPull(1, sec) * juggling.Weight(sec), 3)]);
@@ -892,6 +893,8 @@ internal sealed class FigureSolver
     private const double MillsElbowSide = -0.05, MillsElbowHold = 1.0;
     /// <summary>Where a takeouts' swiping elbow is kept side to side: metres out from the shoulder.</summary>
     private const double SwipeElbowSide = 0.12;
+    /// <summary>Takeouts' round (DESIGN.md 118.49): the elbow's way, down and this much forward.</summary>
+    private const double RoundElbowAhead = 0.6;
     /// <summary>How far off its place side to side Mills' elbow may be (metres) against how far round its circle it goes (radians).</summary>
     private const double MillsElbowSlack = 0.045, MillsElbowTurn = 0.25;
     /// <summary>How far the pelvis goes to the side with Mills' sway, per unit of the back's lean (against it, the hips out under a leaning back: with it, the body went away from the throws).</summary>
@@ -3190,6 +3193,16 @@ internal sealed class FigureSolver
                 double swipe = Juggling.SwipeHold(isLeft ? 1 : 0, juggleSec);
                 if (swipe > 0)
                     bend = Vec3.Slerp(bend, ElbowOut(shoulder, hand, Rig.UpperArm, Rig.Forearm, juggleLeft * side, SwipeElbowSide, bend), swipe * juggleWeight);
+                // Takeouts' round: the forearm on an upright plane before the face (the user: wiping to and fro as in The Karate
+                // Kid's training): the elbow below the hand, as far forward as it (less a little), not back by the ribs.
+                double round = Juggling.RoundPlane(isLeft ? 1 : 0, juggleSec) * juggleWeight;
+                if (round > 0)
+                {
+                    // (One way, not sought on the elbow's circle as ElbowOut does: with the swipe's and the throw's holds coming and
+                    // going, two places on it came out about as good and the elbow leapt 20 cm from one to the other in a frame.)
+                    var planePole = (-Vec3.Up + juggleFwd * RoundElbowAhead).Normalized();
+                    bend = Vec3.Slerp(bend.Length < 1e-6 ? pole.Normalized() : bend.Normalized(), planePole, round);
+                }
                 // The windmill's wheel: the elbow held where the wheel's axle is (DESIGN.md 118.34).
                 if (wheel is { Held: true } held2)
                 {

@@ -19,6 +19,8 @@ const ELBOW_SIDE = -0.05, ELBOW_SLACK = 0.045, ELBOW_TURN = 0.6;
 const ELBOW_CLEAR = 0.01;
 /** How far in front of the trunk's front the hand is at the least, metres (scaled): room for the forearm to go round. */
 const HAND_CLEAR = 0.08;
+/** Takeouts' round: how far the elbow may be behind or before the wrist for the cost of a miss (metres, scaled). */
+const PLANE_SLACK = 0.03;
 const TRUNK_PARTS = new Set(['spine', 'chest', 'upperChest']);const qa = new THREE.Quaternion(), qb = new THREE.Quaternion();
 
 /**
@@ -45,7 +47,7 @@ function aim(bone, child, to) {
  * there instead of finding its place in this frame alone (millsAngles smooths them over the clip). Returns the angles
  * it found or used, or null.
  */
-export function millsArms(vrm, body, size, figure, weight, angles = null, pull = null, wheel = null, followed = 0) {
+export function millsArms(vrm, body, size, figure, weight, angles = null, pull = null, wheel = null, followed = 0, plane = null) {
   if (!body || weight <= 0) return null;
   const found = {};
   const node = name => vrm.humanoid.getNormalizedBoneNode(name);
@@ -86,7 +88,10 @@ export function millsArms(vrm, body, size, figure, weight, angles = null, pull =
     // hand pulled in toward the body, the forearm as if against it): the hand is not brought forward for the thicker trunk,
     // and is let in to the trunk's front, the arm's thickness off it, instead of being kept the forearm's room in front.
     const pulled = Math.max(0, Math.min(1, pull?.[side] ?? 0));
-    const target = fw.clone().sub(fs).multiplyScalar(k).add(shoulder).addScaledVector(forward, ahead * (1 - pulled));
+    // Takeouts' round (below): not brought forward for the thicker trunk either, so the elbow reaches as far forward as the
+    // hand (brought forward, the forearm leaned 18-20 degrees out of the upright plane before the face).
+    const planed = Math.max(0, Math.min(1, plane?.[side] ?? 0));
+    const target = fw.clone().sub(fs).multiplyScalar(k).add(shoulder).addScaledVector(forward, ahead * (1 - Math.max(pulled, planed)));
     if (trunkAt) {
       const short = rz + armRadius + HAND_CLEAR * (1 - pulled) * k - target.clone().sub(trunkAt).dot(forward);
       if (short > 0) target.addScaledVector(forward, short);
@@ -140,6 +145,12 @@ export function millsArms(vrm, body, size, figure, weight, angles = null, pull =
       if (wheeled > 0) {
         at.copy(centre).addScaledVector(u, height * Math.cos(t)).addScaledVector(v, height * Math.sin(t));
         c += wheeled * (at.distanceTo(elbowHeld) / (0.01 * k)) ** 2;
+      }
+      // Takeouts' round (DESIGN.md 118.49): the elbow as far forward as the wrist, the forearm on an upright plane before the
+      // face (the user: wiping to and fro as in The Karate Kid's training).
+      if (planed > 0) {
+        at.copy(centre).addScaledVector(u, height * Math.cos(t)).addScaledVector(v, height * Math.sin(t));
+        c += planed * ((at.dot(forward) - wrist.dot(forward)) / (PLANE_SLACK * k)) ** 2;
       }
       if (trunkAt) {
         at.copy(centre).addScaledVector(u, height * Math.cos(t)).addScaledVector(v, height * Math.sin(t)).sub(trunkAt);

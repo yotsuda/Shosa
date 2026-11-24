@@ -742,6 +742,8 @@ public sealed class Juggling
     private const double TakeoutBallAbove = 0.04;
     /// <summary>Seconds at the least from the stop after the swipe up to the round's top.</summary>
     private const double TakeoutRiseLeast = 0.14;
+    /// <summary>How far ahead of the juggling's middle the round's upright plane is (metres).</summary>
+    private const double TakeoutPlaneAhead = -0.06;
     /// <summary>The round's place up the far side at the least this part of the way up from the stop to the top.</summary>
     private const double TakeoutFarUp = 0.35;
     /// <summary>Seconds at the least from the stop to the round's top when it is brought sooner to keep the hand's speed up.</summary>
@@ -1131,6 +1133,11 @@ public sealed class Juggling
             places.Add(new Vec3(side * TakeoutAcrossOut, TakeoutTakeHigh + TakeoutLevelAbove, TakeoutAcrossAhead));
             foreach (var (outward, up, ahead) in TakeoutRoundLow)
                 places.Add(new Vec3(side * outward, up, ahead));
+            // All round in one upright plane before the face (the user: the forearm goes round on a vertical plane, wiping to
+            // and fro just before the face as in The Karate Kid's training), the elbow brought out to it (Solver, RoundPlane).
+            for (int i = 1; i < places.Count; i++)
+                places[i] = places[i] with { Z = TakeoutPlaneAhead };
+            _roundPlanes.Add((to, stopFrom, _takeoutNext > stopTo + 0.2 ? _takeoutNext : stopTo + 2 * beat));
             var throwAt = _takeoutNextOurs ? new Vec3(-side * TakeoutUnderCross, TakeoutUnderHigh, TakeoutHighAhead) : Throws(to, 3, true);
             places.Add(throwAt);
             double end = _takeoutNext > stopTo + 0.2 ? _takeoutNext : stopTo + 2 * beat;
@@ -1893,6 +1900,27 @@ public sealed class Juggling
 
     /// <summary>How many times over the two throws <see cref="MillsAcross"/> looks at the hands.</summary>
     private const int MillsAcrossSamples = 12;
+
+    /// <summary>Takeouts' rounds: the hand, from the stop after the swipe to its next throw (seconds).</summary>
+    private readonly List<(int Hand, double From, double To)> _roundPlanes = [];
+    /// <summary>How long a round's plane takes to come after the stop, and to go before the throw (seconds).</summary>
+    private const double RoundPlaneIn = 0.12, RoundPlaneOut = 0.45;
+    /// <summary>
+    /// How much a hand goes round a takeouts' round at a time, 0..1: its forearm on an upright plane before the face, the
+    /// elbow as far forward as the hand (the user: wiping to and fro before the face, The Karate Kid's training).
+    /// </summary>
+    public double RoundPlane(int hand, double sec)
+    {
+        double most = 0;
+        foreach (var (h, from, to) in _roundPlanes)
+        {
+            if (h != hand || sec < from || sec > to)
+                continue;
+            double w = Math.Min(Math.Min(1, (sec - from) / RoundPlaneIn), Math.Min(1, (to - sec) / RoundPlaneOut));
+            most = Math.Max(most, w * w * (3 - 2 * w));
+        }
+        return most;
+    }
 
     /// <summary>The takeouts words, seconds: their hands are softened (<see cref="Hand"/>).</summary>
     private readonly List<(double From, double To)> _takeouts = [];
