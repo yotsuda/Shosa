@@ -446,10 +446,9 @@ public class JuggleTests
             var across = flights.FirstOrDefault(g => (int)g[1] == 1 - hand && g[1] != g[2] && g[3] > f[4] && g[3] < next);
             if (across is not null && across[4] < 5.0)
             {
-                Assert.True(Out(hand, across[3]) > 0.3, $"out {Out(hand, across[3]):0.00} m as the other throws at {across[3]:0.00} s");
-                // (Within 0.2 m: past the face the elbow opens and the hand comes down at once, the user, 2026-11-24; it was 0.08
-                // when the elbow opened only from here.)
-                Assert.InRange(HandAt(hand, across[3]).Y - HandAt(1 - hand, across[3]).Y, -0.2, 0.2);
+                Assert.True(Out(hand, across[3]) > 0.15, $"out {Out(hand, across[3]):0.00} m as the other throws at {across[3]:0.00} s");
+                // (Not at one height any more: past the face the elbow opens and the hand goes on round a slow circle, not
+                // timed to be level with the other's throw; the user, 2026-11-24. The round's top is still about the 3's, above.)
             }
         }
         Assert.Contains("SH1010", Codes(Compile(Juggle("every 1/2  423:4@takeouts@halfShower |"))));

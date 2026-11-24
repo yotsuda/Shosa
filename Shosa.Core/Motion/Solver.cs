@@ -899,9 +899,12 @@ internal sealed class FigureSolver
     /// far forward than the hand.</summary>
     private const double RoundElbowFrom = 0.04, RoundElbowTo = 0.14, RoundElbowBehind = 0.03;
     /// <summary>Takeouts' swipe and round: the elbow's angle kept (degrees, 180 straight), and how far down beside out the elbow points.</summary>
-    private const double FixedElbowAngle = 95, FixedElbowDown = 0.7;
+    private const double FixedElbowAngle = 95, FixedElbowDown = 0.7, FixedElbowOut = 0.35;
+    /// <summary>Takeouts' round: the place the elbow is turned toward is a forearm below the hand and this far out on its own side
+    /// (metres: straight below, the elbow came in under the shoulder, inside a character's thicker trunk, and shook).</summary>
+    private const double RoundElbowAside = 0.18;
     /// <summary>Takeouts' round's way down: the opened elbow points back, this much out and this much down beside it (not straight down: with the hand below the shoulder, down lay along the arm and the elbow flipped out and back in a frame), and opens to this angle (degrees).</summary>
-    private const double LowElbowOut = 0.6, LowElbowDown = 0.3, LowElbowAngle = 150;
+    private const double LowElbowOut = 0.6, LowElbowBack = 0.0, LowElbowDown = 1.0, LowElbowAhead = 2.5, LowElbowAngle = 120;
     /// <summary>How far off its place side to side Mills' elbow may be (metres) against how far round its circle it goes (radians).</summary>
     private const double MillsElbowSlack = 0.045, MillsElbowTurn = 0.25;
     /// <summary>How far the pelvis goes to the side with Mills' sway, per unit of the back's lean (against it, the hips out under a leaning back: with it, the body went away from the throws).</summary>
@@ -3258,16 +3261,57 @@ internal sealed class FigureSolver
                         double length = fromShoulder.Length;
                         length += (Reach(FixedElbowAngle) - length) * fixedArm;
                         length += Math.Max(0, Reach(LowElbowAngle) - length) * low;
-                        hand = shoulder + fromShoulder.Normalized() * length;
+                        var radial = shoulder + fromShoulder.Normalized() * length;
+                        // Round the round, on the upright plane just before the body instead (the user: a slow circle, the
+                        // forearm upright on that plane, the hand not far out from the body; pushed straight out from the
+                        // shoulder it went forward too and swung out level at the forehead): the hand kept at the plane's
+                        // depth and as far from the shoulder across it as makes that length, a circle round the shoulder.
+                        double plane = Juggling.RoundPlane(isLeft ? 1 : 0, juggleSec) * juggleWeight;
+                        if (plane > 0)
+                        {
+                            // (Round the top the way's own size, the elbow as it falls: kept at 95 degrees there too, the circle
+                            // round the shoulder put the hand 0.87 m up, above the head, and swung it across at 4.7 m/s. Only
+                            // opened wider on the way down.)
+                            double depth = fromShoulder.Dot(juggleFwd);
+                            var across = fromShoulder - juggleFwd * depth;
+                            double own = fromShoulder.Length;
+                            double wide = own + Math.Max(0, Reach(LowElbowAngle) - own) * low;
+                            double r = Math.Sqrt(Math.Max(0, wide * wide - depth * depth));
+                            if (across.Length > 1e-6)
+                                radial = Vec3.Lerp(radial, shoulder + juggleFwd * depth + across.Normalized() * r, plane);
+                        }
+                        hand = radial;
                     }
                     // The elbow out and down (kept), or back, out and a little down (opened); steadied where that lies along the
                     // arm (the hand out at the shoulder's height, out and down is nearly the arm's own way, and the little left
                     // of it across the arm swung the elbow from below to behind in a frame).
                     var along = (hand - shoulder).Normalized();
-                    var kept = SteadyPole(juggleLeft * side - Vec3.Up * FixedElbowDown, along, -juggleFwd);
-                    var opened = SteadyPole(juggleLeft * (side * LowElbowOut) - juggleFwd - Vec3.Up * LowElbowDown, along, -juggleFwd);
+                    var kept = SteadyPole(juggleLeft * (side * FixedElbowOut) - Vec3.Up, along, -juggleFwd);
+                    // (Opened: out and down, and where that lies along the arm, forward, so the elbow comes out to the hand's
+                    // depth and the forearm stays on the upright plane before the body as the hand comes down round the outside:
+                    // the user. Back instead, the elbow went behind the body and the forearm leaned 35-70 degrees forward; one of
+                    // the two ways across the arm on that plane, chosen by out, by down or between, turned over somewhere on the
+                    // way and the elbow leapt.)
+                    var opened = SteadyPole(juggleLeft * (side * LowElbowOut) - Vec3.Up * LowElbowDown + juggleFwd * LowElbowAhead, along, juggleFwd);
                     var now = bend.Length < 1e-6 ? pole.Normalized() : bend.Normalized();
-                    bend = Vec3.Slerp(Vec3.Slerp(now, kept, fixedArm / Math.Max(1e-9, fixedArm + low) * Math.Min(1, fixedArm + low)), opened, low);
+                    // (All the way to the kept one as the takeouts have the arm, then on to the opened one as much as it opens:
+                    // weighted the other way, half the juggling's own way, back by the ribs, was left in midway.)
+                    double whole = Math.Min(1, fixedArm + low);
+                    bend = Vec3.Slerp(now, kept, whole);
+                    // Round the round on the upright plane and on down round the outside, the elbow toward a place a forearm
+                    // straight below the hand (the user: the forearm upright on that plane, the hand's depth and the elbow's
+                    // near; low down the arm hangs open): toward a place, not a way, so it moves smoothly (a way across the arm
+                    // turned over to its other side wherever it came to lie along the arm, and the elbow leapt across in a frame).
+                    double onPlane = Math.Max(Juggling.RoundPlane(isLeft ? 1 : 0, juggleSec) * juggleWeight, low / Math.Max(1e-9, fixedArm + low));
+                    if (onPlane > 0)
+                    {
+                        var toward = hand - Vec3.Up * Rig.Forearm + juggleLeft * (side * RoundElbowAside) - (shoulder + hand) * 0.5;
+                        toward -= along * toward.Dot(along);
+                        if (toward.Length > 1e-6)
+                            bend = Vec3.Slerp(bend, toward.Normalized(), onPlane);
+                        else
+                            bend = Vec3.Slerp(bend, opened, onPlane);
+                    }
                 }
                 // The windmill's wheel: the elbow held where the wheel's axle is (DESIGN.md 118.34).
                 if (wheel is { Held: true } held2)

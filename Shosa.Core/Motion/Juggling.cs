@@ -733,7 +733,7 @@ public sealed class Juggling
     /// <summary>The round after the stop (out on the hand's own side, up, ahead from the juggling's middle): up the far side, the
     /// ball just before the forehead (the hand some 4 cm below it), out and down past its own side, below and in.</summary>
     private static readonly (double Out, double Up, double Ahead)[] TakeoutRound =
-        [(-0.04, 0.42, -0.03), (0.0, 0.60, 0.04), (0.56, 0.52, 0.12)];
+        [(-0.04, 0.42, -0.03), (0.0, 0.60, 0.04), (0.36, 0.44, 0.12)];
     /// <summary>After it is level with the other hand's 3 thrown from outside, the round's way on down below and in (the last its bottom).</summary>
     private static readonly (double Out, double Up, double Ahead)[] TakeoutRoundLow = [(0.18, -0.10, 0.14)];
     /// <summary>How far above the swipe's catch the round's place level with the other hand's 3 is (the held ball reaches no lower than the catch).</summary>
@@ -743,7 +743,12 @@ public sealed class Juggling
     /// <summary>Seconds at the least from the stop after the swipe up to the round's top.</summary>
     private const double TakeoutRiseLeast = 0.14;
     /// <summary>How far ahead of the juggling's middle the round's upright plane is (metres).</summary>
-    private const double TakeoutPlaneAhead = -0.06;
+    private const double TakeoutPlaneAhead = -0.08;
+    /// <summary>The round's place level with the other hand's 3 as it is thrown: this far out on its own side (the user: not swung
+    /// out so far, a round circle; out where the 3 is thrown from, 0.52, the hand went 0.6 m out).</summary>
+    private const double TakeoutLevelOut = 0.36;
+    /// <summary>Whether the round's way is timed to be level with the other hand's 3 just as it is thrown (no: the user's slow circle).</summary>
+    private const bool TakeoutLevelKnot = false;
     /// <summary>The round's place up the far side at the least this part of the way up from the stop to the top.</summary>
     private const double TakeoutFarUp = 0.35;
     /// <summary>Seconds at the least from the stop to the round's top when it is brought sooner to keep the hand's speed up.</summary>
@@ -1130,7 +1135,7 @@ public sealed class Juggling
             places[topIndex - 1] = places[topIndex - 1] with { Y = Math.Max(places[topIndex - 1].Y, stop.Y + TakeoutFarUp * (places[topIndex].Y - stop.Y)) };
             int levelIndex = places.Count;
             // Level with the other hand's 3 as that is thrown, no lower than the swipe's catch (the held ball's bottom).
-            places.Add(new Vec3(side * TakeoutAcrossOut, TakeoutTakeHigh + TakeoutLevelAbove, TakeoutAcrossAhead));
+            places.Add(new Vec3(side * TakeoutLevelOut, TakeoutTakeHigh + TakeoutLevelAbove, TakeoutAcrossAhead));
             foreach (var (outward, up, ahead) in TakeoutRoundLow)
                 places.Add(new Vec3(side * outward, up, ahead));
             // All round in one upright plane before the face (the user: the forearm goes round on a vertical plane, wiping to
@@ -1181,7 +1186,10 @@ public sealed class Juggling
                 double topTime = _takeoutTopAt + TakeoutTopEven * (even - _takeoutTopAt);
                 knots.Add((Math.Max(topTime, stopTo + TakeoutRiseLeast), along[topAt]));
             }
-            if (_takeoutAcross > knots[^1].T + 0.08 && _takeoutAcross < end - 0.1 && along[levelAt] > knots[^1].S)
+            // (Not tied to the time the other hand throws its 3 any more: the hand hurried from 1.6 to 3.3 m/s on its way out and
+            // down to get there then, where the user wants a slow circle; the elbow opens past the top, so the two are not at
+            // one height then anyway.)
+            if (TakeoutLevelKnot && _takeoutAcross > knots[^1].T + 0.08 && _takeoutAcross < end - 0.1 && along[levelAt] > knots[^1].S)
                 knots.Add((_takeoutAcross, along[levelAt]));
             knots.Add((end, length));
             // The round's top no later than keeps the way up to it as quick as the speeds at its ends on the average (the user:
@@ -1931,7 +1939,7 @@ public sealed class Juggling
     /// <summary>How long after the throw the way down's open elbow goes (seconds).</summary>
     private const double LowSwingAfter = 0.3;
     /// <summary>How long the elbow takes to open (seconds), from this long after the round's top (past the face).</summary>
-    private const double LowSwingRise = 0.2, LowSwingAfterTop = 0.0;
+    private const double LowSwingRise = 0.6, LowSwingAfterTop = 0.1;
     /// <summary>
     /// How much a hand is on its round's way down at a time, 0..1: from out on its own side, the elbow opening wide downward
     /// (the user: the elbow up and the hand down looked wrong), till its throw from under the other arm, and a little after.
