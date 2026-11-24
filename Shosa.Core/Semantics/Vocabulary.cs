@@ -206,18 +206,18 @@ public static class Vocabulary
 
     /// <summary>
     /// Juggling tricks, put on a pattern with `@` (DESIGN.md 118.12): how the hands throw and catch it. What is thrown
-    /// (the siteswap) does not change. Every throw of the word; one throw is a word of one throw (`3:1/2@under`).
+    /// (the siteswap) does not change. Every throw of the word; one throw is a word of one throw (`3:1/2@underThrow`).
     /// </summary>
     public static readonly Word[] Tricks =
     [
         new("mills", "Mills' Mess: six throws round. The arms crossed, the right hand over throws from the left side in; the arms uncrossing, the left hand throws; crossing the other way, the right hand under throws from low on the left. The three go up from left to right; then the same mirrored. Best on 3."),
         new("windmill", "Windmill: the first hand's arm always on top, every ball thrown on that hand's side and caught on the other, all one way round. That hand throws over the top from its own side and catches crossed over, high on the other side; the other hand catches on its own side and throws from under the top arm. Best on 3. `@mirror` puts the left arm on top."),
-        new("penguin", "Penguin: caught behind the hip, the arm straight and the palm turned back; thrown in front, palm up, above the shoulders."),
-        new("claw", "Claw: the palm down, the ball thrown up to the face and snatched from above there, near its top. The catching hand has to come up to the face after its own throw and bring the ball down again: at `every 1/2` it suits a tempo of about 113 to 197 (SH2023 says when not)."),
+        new("penguinCatch", "Penguin catch: caught behind the hip, the arm straight and the palm turned back; thrown in front, palm up, above the shoulders."),
+        new("clawCatch", "Claw catch: the palm down, the ball thrown up to the face and snatched from above there, near its top. The catching hand has to come up to the face after its own throw and bring the ball down again: at `every 1/2` it suits a tempo of about 113 to 197 (SH2023 says when not)."),
         new("reverse", "Reverse: thrown from outside, over the top, and caught inside: the cascade turned the other way."),
-        new("backthrow", "Thrown behind the back: the hand throws from behind the waist, over the other shoulder, the shoulders turned well round. Throw it high enough to clear the shoulder (a 5)."),
-        new("backcatch", "Caught behind the back: the ball comes down over the shoulder it was thrown on, and the hand reaches behind the waist to meet it, the shoulders turned well round. Throw it high enough to come over the shoulder (a 5)."),
-        new("under", "Under the leg: the hand throws from under the thigh of its own side. Lift that leg in its row at that moment (`rightLeg { fwd.bent }`: the thigh level, the knee bent); one throw is a word of its own (`3:1/2@under`)."),
+        new("backThrow", "Thrown behind the back: the hand throws from behind the waist, over the other shoulder, the shoulders turned well round. Throw it high enough to clear the shoulder (a 5)."),
+        new("backCatch", "Caught behind the back: the ball comes down over the shoulder it was thrown on, and the hand reaches behind the waist to meet it, the shoulders turned well round. Throw it high enough to come over the shoulder (a 5)."),
+        new("underThrow", "Thrown under the leg: the hand throws from under the thigh of its own side. Lift that leg in its row at that moment (`rightLeg { fwd.bent }`: the thigh level, the knee bent); one throw is a word of its own (`3:1/2@underThrow`)."),
     ];
 
     public const string Hold = "then";

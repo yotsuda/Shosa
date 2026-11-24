@@ -25,10 +25,10 @@ public sealed class Juggling
     private const double G = 9.81;
 
     /// <summary>A ball leaving a hand and coming down in one. A hold (a 2 that stays) is not a throw.</summary>
-    /// <param name="Trick">A throw from under the leg or behind the back ("under", "backthrow"), and the word it is in: what the solver checks.</param>
+    /// <param name="Trick">A throw from under the leg or behind the back ("underThrow", "backThrow"), and the word it is in: what the solver checks.</param>
     /// <param name="Mills">Thrown and caught in Mills' Mess: its balls are all in one plane before the body.</param>
     /// <param name="MillsThird">In Mills' Mess, which of each three throws it is (0 the first, over the top; 1 the second; 2 the third, from under), else -1.</param>
-    /// <param name="BackCatch">Caught behind the back: the word it is caught in (`@backcatch`); null else. What the solver checks.</param>
+    /// <param name="BackCatch">Caught behind the back: the word it is caught in (`@backCatch`); null else. What the solver checks.</param>
     public sealed record Flight(int Ball, int From, int To, double Thrown, double Caught, int Value, string? Trick = null, Seg? Seg = null, bool Mills = false, int MillsThird = -1, Seg? BackCatch = null);
 
     /// <summary>What went wrong, said at the word it is about.</summary>
@@ -271,7 +271,7 @@ public sealed class Juggling
                     // the hands of a quick juggler that leaves no tempo at which the ball is still rising at the face (DESIGN.md
                     // 118.14). So it is caught when the hand gets there, at the face, near its top, and a tempo at which it
                     // falls further first, or the hand is hurried, is said (SH2023).
-                    if (landingSeg?.Tricks?.Contains("claw") == true && t.Value >= 3 && land - 2 > s)
+                    if (landingSeg?.Tricks?.Contains("clawCatch") == true && t.Value >= 3 && land - 2 > s)
                     {
                         double reach = (ClawFace - Throws(to, 3, true).Y) / ClawHandSpeed;
                         double free = SlotSec(land - 2) + reach;
@@ -303,11 +303,11 @@ public sealed class Juggling
                     if (millsFlight && !windmill && slot.Round % 3 == 0 && slot.Round > 0)
                         thrown -= MillsFirstEarlier * T;
                     Flights.Add(new Flight(ball, hand, to, thrown, caught, t.Value,
-                        slot.Seg.Tricks?.FirstOrDefault(x => x is "under" or "backthrow"), slot.Seg, millsFlight,
+                        slot.Seg.Tricks?.FirstOrDefault(x => x is "underThrow" or "backThrow"), slot.Seg, millsFlight,
                         // The windmill's two, as Mills' first and second: the top hand's and the one from under the arm on top,
                         // each pair as high as each other in the preview (DESIGN.md 118.28).
                         !millsFlight ? -1 : windmill ? slot.Round % 2 : slot.Round % 3,
-                        landingSeg?.Tricks?.Contains("backcatch") == true ? landingSeg : null));
+                        landingSeg?.Tricks?.Contains("backCatch") == true ? landingSeg : null));
                     Arrive(land, ball, to, Flights.Count - 1);
                     var landing = slots[Math.Min(land, slots.Count - 1)];
                     var catcher = landing.Seg;   // none: caught for good at the end of the run, as a plain catch (not Mills' middle)
@@ -470,8 +470,8 @@ public sealed class Juggling
         // A penguin catch needs the time to straighten the arm down by the hip and turn the hand: too soon after the hand's
         // own throw (coming into a penguin from a quick claw, 0.1 s), it is caught as a plain one (the hand flew 0.4 m in a
         // frame, at 11 m/s; DESIGN.md 118.30). The ball is still thrown again as the penguin's.
-        if (catchTricks?.Contains("penguin") == true && Math.Min(SinceOwnThrow(to, caught), caught - ownThrown) < PenguinLeast)
-            catchTricks = [.. catchTricks.Where(x => x != "penguin")];
+        if (catchTricks?.Contains("penguinCatch") == true && Math.Min(SinceOwnThrow(to, caught), caught - ownThrown) < PenguinLeast)
+            catchTricks = [.. catchTricks.Where(x => x != "penguinCatch")];
         var from = Throws(hand, value, across);
         var into = Catches(to, value, across);
         Style throwStyle = Style.Own, catchStyle = Style.Own;
@@ -617,7 +617,7 @@ public sealed class Juggling
         // up a little and round, down and back to the next catch. Only the throw and the catch are placed; the speed between
         // is from the places either side (Soften), as in Mills' Mess. (With a cascade's stop, swing up and stop after, the hand
         // stopped before the throw, flicked up at 80 m/s², and was flung back to the catch at 4.7 m/s to stop dead there.)
-        bool penguinThrow = throwTricks?.Contains("penguin") == true, penguinCatch = catchStyle == Style.Penguin;
+        bool penguinThrow = throwTricks?.Contains("penguinCatch") == true, penguinCatch = catchStyle == Style.Penguin;
         if (penguinThrow || penguinCatch)
         {
             if (penguinThrow)
@@ -758,12 +758,12 @@ public sealed class Juggling
         if (Has(catchTricks, "reverse"))
             into = new Vec3(c * Math.Abs(Throws(to, value, to != hand).X), into.Y, into.Z);
         // Claw: the palm down, the ball snatched from above at the face on its way up (the user); thrown with the palm down too.
-        if (Has(catchTricks, "claw"))
+        if (Has(catchTricks, "clawCatch"))
         {
             into = new Vec3(into.X, ClawFace, into.Z + 0.04);
             catchStyle = Style.Claw;
         }
-        if (Has(throwTricks, "claw"))
+        if (Has(throwTricks, "clawCatch"))
             throwStyle = Style.Claw;
         // Penguin: the arm straight down, the hand by the hip, fingers down: caught and thrown from there.
         // Penguin: the arm straight down by the side and turned in at the shoulder, the palm turned right round to face back,
@@ -772,7 +772,7 @@ public sealed class Juggling
         // A penguin's ball is thrown as a cascade's, from in front of the belly with the palm up (the user: caught behind,
         // the ball is brought forward and thrown in front, above the shoulders): only its catch is the penguin's. (Thrown
         // from the hanging arm with the palm still turned back, it left from behind the hand, low.)
-        if (Has(catchTricks, "penguin"))
+        if (Has(catchTricks, "penguinCatch"))
         {
             // Outside the hip and a little behind it, the arm straight down and back (the user: the elbow straight, the
             // shoulder put in, the palm turned, caught a little behind). The place is past the arm's reach, so the arm goes
@@ -796,20 +796,20 @@ public sealed class Juggling
         if (Round(catchTricks))
             into = MillsPlace(_mills6.CatchK, _mills6.CatchMirror, Windmill(catchTricks)).Catch;
         // Behind the back: from behind the waist, toward the other side, over the other shoulder.
-        if (Has(throwTricks, "backthrow"))
+        if (Has(throwTricks, "backThrow"))
         {
             from = new Vec3(-s * 0.06, -0.08, -0.52);
             throwStyle = Style.Back;
         }
         // Caught behind the back (DESIGN.md 118.39): the ball comes down over the shoulder of the side it was thrown from,
         // and the hand reaches behind the waist toward that side to meet it, as low as a throw from there.
-        if (Has(catchTricks, "backcatch"))
+        if (Has(catchTricks, "backCatch"))
         {
             into = new Vec3(-c * 0.06, -0.08, -0.52);
             catchStyle = Style.Back;
         }
         // Under the leg: from under the thigh of its own side (lifted in its row), inside it.
-        if (Has(throwTricks, "under"))
+        if (Has(throwTricks, "underThrow"))
         {
             from = new Vec3(s * 0.08, -0.26, -0.06);
             throwStyle = Style.Under;

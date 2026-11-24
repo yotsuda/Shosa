@@ -236,11 +236,11 @@ public class JuggleTests
         // The same cascade, with and without a trick: the same throws at the same times, other places for the hands.
         var plain = Compile(Juggle("every 1/2  3:4 |"));
         Assert.Empty(plain.Diagnostics);
-        foreach (string trick in new[] { "mills", "penguin", "claw", "reverse" })
+        foreach (string trick in new[] { "mills", "penguinCatch", "clawCatch", "reverse" })
         {
             var c = Compile(Juggle($"every 1/2  3:4@{trick} |"));
             // A penguin's balls at this pace stay below the shoulders (DESIGN.md 118.17): said, and nothing else.
-            Assert.Equal(trick == "penguin" ? ["SH2020"] : Array.Empty<string>(), Codes(c).Distinct());
+            Assert.Equal(trick == "penguinCatch" ? ["SH2020"] : Array.Empty<string>(), Codes(c).Distinct());
             var was = plain.Clip.Figures[0].Juggle!.Flights;
             var now = c.Clip.Figures[0].Juggle!.Flights;
             Assert.Equal(was.Select(f => (f[0], f[1], f[2])), now.Select(f => (f[0], f[1], f[2])));
@@ -264,7 +264,7 @@ public class JuggleTests
         Assert.True(mills.Figures[0].Joint(at, Rig.RHand).X > mills.Figures[0].Joint(at, Rig.Pelvis).X, "the right hand throws from the left of the body");
 
         // Penguin: caught down by the hip and a little behind it, the arm straight (DESIGN.md 118.17).
-        var penguin = Compile(Juggle("every 1/2  3:4@penguin |")).Clip;
+        var penguin = Compile(Juggle("every 1/2  3:4@penguinCatch |")).Clip;
         var caughtRight = penguin.Figures[0].Juggle!.Flights.First(f => f[2] == 0 && f[4] > 0.6f);
         int mid = (int)Math.Round(caughtRight[4] * penguin.Fps);
         var fig = penguin.Figures[0];
@@ -275,21 +275,21 @@ public class JuggleTests
         Assert.True((fig.Joint(mid, Rig.RHand) - fig.Joint(mid, Rig.RShoulder)).Length > 0.97 * (Rig.UpperArm + Rig.Forearm), "the arm straight");
         Assert.Contains(penguin.Figures[0].Juggle!.Styles, s => s[0] == (int)Juggling.Style.Penguin);
         // Thrown less often, its balls go above the shoulders, thrown in front of the body with the palm up (DESIGN.md 118.17).
-        var high = Compile(Juggle("every 1  3:4@penguin |"));
+        var high = Compile(Juggle("every 1  3:4@penguinCatch |"));
         Assert.DoesNotContain("SH2020", Codes(high));
         var thrown = high.Clip.Figures[0].Juggle!.Flights.First(f => f[1] == 0 && f[3] > 0.4f);
         int throwAt = (int)Math.Round(thrown[3] * high.Clip.Fps);
         Assert.True(high.Clip.Figures[0].Joint(throwAt, Rig.RHand).Z > high.Clip.Figures[0].Joint(throwAt, Rig.Pelvis).Z + 0.15, "thrown in front of the body");
         Assert.NotEqual((int)Juggling.Style.Penguin, high.Clip.Figures[0].Juggle!.Styles[throwAt][0]);
         // Claw: the palm down.
-        Assert.Contains(Compile(Juggle("every 1/2  3:4@claw |")).Clip.Figures[0].Juggle!.Styles, s => s[1] == (int)Juggling.Style.Claw);
+        Assert.Contains(Compile(Juggle("every 1/2  3:4@clawCatch |")).Clip.Figures[0].Juggle!.Styles, s => s[1] == (int)Juggling.Style.Claw);
     }
 
     [Fact]
     public void A_claw_is_thrown_up_to_the_face_and_caught_there_near_its_top()
     {
         // At tempo 120 every 1/2: caught at the face, no more than 5 cm down from its top, from above (the palm down).
-        var c = Compile(Juggle("every 1/2  3:4 | 3:4@claw | 3:4@claw |"));
+        var c = Compile(Juggle("every 1/2  3:4 | 3:4@clawCatch | 3:4@clawCatch |"));
         Assert.DoesNotContain("SH2023", Codes(c));
         var clip = c.Clip;
         var juggle = clip.Figures[0].Juggle!;
@@ -305,9 +305,9 @@ public class JuggleTests
         }
         // Too slow a tempo, the ball falls well past its top first; too quick, the hand is hurried. Both say the tempo it suits.
         string Slower(string text, int tempo) => text.Replace("tempo 120", $"tempo {tempo}");
-        var slow = Compile(Slower(Juggle("every 1/2  3:4 | 3:4@claw |"), 90));
+        var slow = Compile(Slower(Juggle("every 1/2  3:4 | 3:4@clawCatch |"), 90));
         Assert.Contains("past its top", Assert.Single(slow.Diagnostics, d => d.Code == "SH2023").Message);
-        var quick = Compile(Slower(Juggle("every 1/2  3:4 | 3:4@claw |"), 225));
+        var quick = Compile(Slower(Juggle("every 1/2  3:4 | 3:4@clawCatch |"), 225));
         Assert.Contains("hurried", Assert.Single(quick.Diagnostics, d => d.Code == "SH2023").Message);
     }
 
@@ -328,9 +328,9 @@ public class JuggleTests
     [Fact]
     public void A_ball_caught_behind_the_back_is_met_behind_the_waist_the_shoulders_turned()
     {
-        // The ball caught in the @backcatch word (the left hand's, thrown again on beat 5 of every 1): at its catch the left
+        // The ball caught in the @backCatch word (the left hand's, thrown again on beat 5 of every 1): at its catch the left
         // hand is behind the chest, the shoulders turned well round, the left one back.
-        var c = Compile(Juggle("every 1  3:4 | 3:1 3:1@backcatch 3:2 |"));
+        var c = Compile(Juggle("every 1  3:4 | 3:1 3:1@backCatch 3:2 |"));
         Assert.Empty(c.Diagnostics);
         var clip = c.Clip;
         var fig = clip.Figures[0];
@@ -343,11 +343,13 @@ public class JuggleTests
         var feetFwd = new Vec3(-feetLeft.Z, 0, feetLeft.X).Normalized();
         Assert.True((l - r).Dot(feetFwd) < -0.2, "the left shoulder back");
         // Too low to come down over the shoulder; and not with a penguin's or a claw's catch.
-        Assert.Contains("SH2022", Codes(Compile(Juggle("every 1/2  3:4 | 3:1/2 3:1/2@backcatch 3:3 |"))));
-        Assert.Contains("SH1010", Codes(Compile(Juggle("every 1  3:4@backcatch@penguin |"))));
-        Assert.Contains("SH1010", Codes(Compile(Juggle("every 1  3:4@claw@backcatch |"))));
-        // The old name is gone.
-        Assert.Contains("SH1010", Codes(Compile(Juggle("every 1  3:2 3:1@back 3:1 |"))));
+        Assert.Contains("SH2022", Codes(Compile(Juggle("every 1/2  3:4 | 3:1/2 3:1/2@backCatch 3:3 |"))));
+        Assert.Contains("SH1010", Codes(Compile(Juggle("every 1  3:4@backCatch@penguinCatch |"))));
+        Assert.Contains("SH1010", Codes(Compile(Juggle("every 1  3:4@clawCatch@backCatch |"))));
+        // The old names are gone, and point to the new ones (DESIGN.md 118.41).
+        Assert.Contains("'@backThrow' or '@backCatch'", Assert.Single(Compile(Juggle("every 1  3:2 3:1@back 3:1 |")).Diagnostics, d => d.Code == "SH1010").Message);
+        Assert.Contains("'@penguinCatch'", Assert.Single(Compile(Juggle("every 1  3:4@penguin |")).Diagnostics, d => d.Code == "SH1010").Message);
+        Assert.Contains("'@underThrow'", Assert.Single(Compile(Juggle("every 1  3:4@under |")).Diagnostics, d => d.Code == "SH1010").Message);
     }
 
     [Fact]
@@ -355,7 +357,7 @@ public class JuggleTests
     {
         // The right hand's throw from behind the back on beat 3 (every 1): at it the shoulders' line is turned some 70
         // degrees from the feet's, the right shoulder back, and turned back square a beat either side.
-        var c = Compile(Juggle("every 1  3:2 3:1@backthrow 3:1 |"));
+        var c = Compile(Juggle("every 1  3:2 3:1@backThrow 3:1 |"));
         Assert.Empty(c.Diagnostics);
         var clip = c.Clip;
         double Turn(int frame)
@@ -442,21 +444,21 @@ public class JuggleTests
         Assert.True(passing > 0, "mirrored, the hands pass each other");
         // Not with Mills' Mess, nor with what puts a hand elsewhere.
         Assert.Contains("SH1010", Codes(Compile(Juggle("every 1/2  3:4@windmill@mills |"))));
-        Assert.Contains("SH1010", Codes(Compile(Juggle("every 1/2  3:4@penguin@windmill |"))));
+        Assert.Contains("SH1010", Codes(Compile(Juggle("every 1/2  3:4@penguinCatch@windmill |"))));
     }
 
     [Fact]
     public void Tricks_that_need_the_body_say_so()
     {
         // Under the leg with the leg down, and lifted.
-        Assert.Contains("SH2022", Codes(Compile(Juggle("every 1/2  3:2 3:1/2@under 3:3/2 |"))));
-        var lifted = Compile(Juggle("every 1/2  3:2 3:1/2@under 3:3/2 |", "steps { shift.left:4 | } rightLeg { skip:1 fwd.bent:1 then:1 down:1 | }"));
+        Assert.Contains("SH2022", Codes(Compile(Juggle("every 1/2  3:2 3:1/2@underThrow 3:3/2 |"))));
+        var lifted = Compile(Juggle("every 1/2  3:2 3:1/2@underThrow 3:3/2 |", "steps { shift.left:4 | } rightLeg { skip:1 fwd.bent:1 then:1 down:1 | }"));
         Assert.DoesNotContain("SH2022", Codes(lifted));
         // Behind the back, too low to clear the shoulder; at every 1 high enough.
-        Assert.Contains("SH2022", Codes(Compile(Juggle("every 1/2  3:2 3:1/2@backthrow 3:3/2 |"))));
-        Assert.DoesNotContain("SH2022", Codes(Compile(Juggle("every 1  3:2 3:1@backthrow 3:1 |"))));
+        Assert.Contains("SH2022", Codes(Compile(Juggle("every 1/2  3:2 3:1/2@backThrow 3:3/2 |"))));
+        Assert.DoesNotContain("SH2022", Codes(Compile(Juggle("every 1  3:2 3:1@backThrow 3:1 |"))));
         // Two places for one hand, and a trick that is not one.
-        Assert.Contains("SH1010", Codes(Compile(Juggle("every 1/2  3:4@penguin@claw |"))));
+        Assert.Contains("SH1010", Codes(Compile(Juggle("every 1/2  3:4@penguinCatch@clawCatch |"))));
         Assert.Contains("mills", Assert.Single(Compile(Juggle("every 1/2  3:4@mils |")).Diagnostics).Message);
     }
 }

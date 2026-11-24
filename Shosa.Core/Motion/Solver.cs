@@ -329,7 +329,7 @@ public static class Solver
             double beat = TempoMap.Beat(clip.Tempos, flight.Thrown);
             var pose = solver.Pose(beat, out _);
             string side = flight.From == 0 ? "right" : "left";
-            if (flight.Trick == "under")
+            if (flight.Trick == "underThrow")
             {
                 var hip = pose[flight.From == 0 ? Rig.RHip : Rig.LHip];
                 var knee = pose[flight.From == 0 ? Rig.RKnee : Rig.LKnee];
@@ -337,7 +337,7 @@ public static class Solver
                     Say(flight.Seg!, "SH2022", DiagnosticSeverity.Warning, FormattableString.Invariant(
                         $"The {side} hand throws from under the {side} leg at beat {beat:0.##}, and the leg is not lifted there: lift it in its row by then (`{side}Leg {{ fwd.bent }}`, the thigh level, the knee at the height of the hip), or the hand goes through the thigh."));
             }
-            else if (flight.Trick == "backthrow")
+            else if (flight.Trick == "backThrow")
             {
                 double rise = 9.81 * Math.Pow(flight.Caught - flight.Thrown, 2) / 8;
                 if (rise < BackClear)
@@ -360,7 +360,7 @@ public static class Solver
         foreach (var flight in juggling.PenguinFlights)
         {
             double caughtBeat = TempoMap.Beat(clip.Tempos, flight.Caught);
-            if (flight.Seg is not { } word || word.Tricks?.Contains("penguin") != true)
+            if (flight.Seg is not { } word || word.Tricks?.Contains("penguinCatch") != true)
                 continue;
             int hand = flight.From == 0 ? Rig.RHand : Rig.LHand, to = flight.To == 0 ? Rig.RHand : Rig.LHand;
             var atThrow = solver.Pose(TempoMap.Beat(clip.Tempos, flight.Thrown), out _);

@@ -7022,6 +7022,15 @@ section Show {
 - **同じ技 (ミルズどうし、ウインドミルどうし) の語が、`@mirror`・`every` を同じにして間を空けずに続くときは、6 投 (ウインドミルは 2 投) の数え方を前の語から続ける** (`Slot.Round`)。鏡写しかどうかも続く最初の語から。背中の揺れの位相も続く最初の語の頭から (`_millsSway` の `Origin`)。語の中の番号 (`Slot.Index`) はパターンの何拍目かと語の境目の判定に使ったまま。
 - 見本 `out\juggle\mills2.shosa`。継ぎ目の前後 (1.7〜2.4、2.4〜3.1 秒) の手の加速度の最大 右 50・79 → 31・41、左 22・96 → 38・29、1 コマの最も急な折れ 156 → 67 度以下 (続くミルズのふつうの値と同じ)。試験 `Mills_written_on_in_a_second_word_goes_on_round_as_one_word_does` (2 語と、8/4 の 1 語 `3:8@mills` で、手と胸が 1 mm 以内で同じ)。C# 446 件通る。
 
+### 118.41 技の名前の決まり (2026-11-24、ユーザー決定)
+
+ユーザー: 「`@mills` は妥当か。ほかの技を足したとき、一貫性のある名前を維持できるか」。並べると、投げか受けかを名前に書く技 (`@backthrow` `@backcatch`) と書かない技 (`@under` は投げだけ、`@penguin` は受けだけ、`@claw` は両方) が混ざっていた。案を示し、ユーザーが camelCase を求め (「backCatch とか underThrow の方がいい」: 言語の語 `rightLeg` `otherKnee` と揃う)、「入れて」。調べると「ペンギンの投げ」という技の名前はない (名前のあるのはペンギンキャッチ。twjc.jugglingedge.com tutorial 29、Juggle Wiki「Trick throws and catches」): 前の返事で「ある」と言ったのは誤りだった。
+
+- **決まり**: (1) パターン全体の腕の回し方・回る向きの技は、通り名を 1 語で: `@mills` `@windmill` `@reverse` (足すなら `@burkes` `@rubenstein` `@boston`)。(2) 投げだけ・受けだけの技は、場所や形 + `Throw` / `Catch` を camelCase で: `@backThrow` `@backCatch` `@underThrow` `@penguinCatch` `@clawCatch` (足すなら `@underCatch` など)。`@clawCatch` は受けの技で、その語の投げも手のひらを下にする (前の `@claw` と同じ)。(3) 投げる数の並びで決まるもの (シャワー、ボックス) は技にせず、サイトスワップで書く。
+- 名前を変えた: `@under` → `@underThrow`、`@penguin` → `@penguinCatch`、`@claw` → `@clawCatch`、`@backthrow` → `@backThrow`、`@backcatch` → `@backCatch`。動きは変えていない。
+- 知らない技の SH1010 は、名前の頭が一致する技 (大文字小文字を区別しない、3 文字以上) を勧める: `@penguin` → `@penguinCatch`、`@back` → `@backThrow` か `@backCatch`、`@backthrow` → `@backThrow`。なければ前のとおり近い名前。
+- 文法書を作り直し、試験と `out\juggle\` の見本を書き換えた。C# 446 件、拡張 22 件通る。
+
 ## 119. プレビューのカメラ: Fit とスライダー (2026-11-23)
 
 ユーザー: 「ジャグリングをさせると、地面の余白が広くなってしまう。高く投げ上げたボールやクラブが画面外までいってしまう。これを簡単に調整できる UI を」。カメラは固定の位置 (2.4, 1.7, 4.6) から (0, 0.9, 0) を見るだけで、合わせる仕組みがなかった (ドラッグ・ホイール・右ドラッグはできた)。

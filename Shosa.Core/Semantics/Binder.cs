@@ -2129,13 +2129,13 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                 // Tricks (DESIGN.md 118.12): how the hands throw and catch, not what is thrown. Some cannot go together.
                 string? clash = name.Text switch
                 {
-                    "penguin" => tricks.FirstOrDefault(t => t is "claw" or "backthrow" or "backcatch" or "under" or "windmill"),
-                    "claw" => tricks.FirstOrDefault(t => t is "penguin" or "backcatch"),
-                    "backthrow" => tricks.FirstOrDefault(t => t is "under" or "penguin" or "windmill"),
-                    "backcatch" => tricks.FirstOrDefault(t => t is "penguin" or "claw" or "mills" or "windmill"),
-                    "under" => tricks.FirstOrDefault(t => t is "backthrow" or "penguin" or "windmill"),
-                    "mills" => tricks.FirstOrDefault(t => t is "windmill" or "backcatch"),
-                    "windmill" => tricks.FirstOrDefault(t => t is "mills" or "penguin" or "backthrow" or "backcatch" or "under"),
+                    "penguinCatch" => tricks.FirstOrDefault(t => t is "clawCatch" or "backThrow" or "backCatch" or "underThrow" or "windmill"),
+                    "clawCatch" => tricks.FirstOrDefault(t => t is "penguinCatch" or "backCatch"),
+                    "backThrow" => tricks.FirstOrDefault(t => t is "underThrow" or "penguinCatch" or "windmill"),
+                    "backCatch" => tricks.FirstOrDefault(t => t is "penguinCatch" or "clawCatch" or "mills" or "windmill"),
+                    "underThrow" => tricks.FirstOrDefault(t => t is "backThrow" or "penguinCatch" or "windmill"),
+                    "mills" => tricks.FirstOrDefault(t => t is "windmill" or "backCatch"),
+                    "windmill" => tricks.FirstOrDefault(t => t is "mills" or "penguinCatch" or "backThrow" or "backCatch" or "underThrow"),
                     _ => null,
                 };
                 if (clash is not null)
@@ -2144,7 +2144,15 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                     tricks.Add(name.Text);
             }
             else
-                Error("SH1010", name.Span, $"'@{name.Text}' cannot be put on a pattern: it takes @mirror (the left hand throws first) and the tricks @{string.Join(", @", Vocabulary.Tricks.Select(w => w.Name))}.{Hint(name.Text, Vocabulary.Tricks.Select(w => w.Name))}");
+            {
+                // A trick's name begun or written in other case (the names say throw or catch, DESIGN.md 118.41:
+                // `@penguin` is `@penguinCatch`, `@backthrow` is `@backThrow`) is pointed to; else the nearest.
+                var begun = Vocabulary.Tricks.Where(w => w.Name.StartsWith(name.Text, StringComparison.OrdinalIgnoreCase)).Select(w => w.Name).ToList();
+                string hint = name.Text.Length >= 3 && begun.Count > 0
+                    ? $" Did you mean {string.Join(" or ", begun.Select(b => $"'@{b}'"))}?"
+                    : Hint(name.Text, Vocabulary.Tricks.Select(w => w.Name));
+                Error("SH1010", name.Span, $"'@{name.Text}' cannot be put on a pattern: it takes @mirror (the left hand throws first) and the tricks @{string.Join(", @", Vocabulary.Tricks.Select(w => w.Name))}.{hint}");
+            }
         }
         if (ctx.Clip is null || t1 <= Epsilon)
             return;
