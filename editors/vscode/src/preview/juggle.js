@@ -68,7 +68,7 @@ const worldQuat = node => node.getWorldQuaternion(new THREE.Quaternion());
  * as posed, 1 all the way): a juggler's hands carry the balls on the palm. Shosa's figure has no turn of the hand,
  * and the character's hands, posed from its forearms, faced each other edge up. Call after the bones are posed.
  */
-export function palmsUp(vrm, weight, edge = false, styles = [0, 0], club = false, catching = [0, 0], penguin = null) {
+export function palmsUp(vrm, weight, edge = false, styles = [0, 0], club = false, catching = [0, 0], penguin = null, outward = [0, 0]) {
   if (!(weight > 0)) return;
   const node = name => vrm.humanoid.getNormalizedBoneNode(name);
   vrm.scene.updateMatrixWorld(true);
@@ -218,6 +218,16 @@ export function palmsUp(vrm, weight, edge = false, styles = [0, 0], club = false
         }
       }
     }
+    // Takeouts' swipe and the round after (DESIGN.md 118.49, the user): the palm turned out, toward the side the hand swipes
+    // to (for the right hand the dancer's left), the fingers along the forearm, kept so; by `outward` ([right, left], 0..1,
+    // eased over a few frames), so the hand turns, not jumps.
+    const outShare = Math.max(0, Math.min(1, outward[isLeft ? 1 : 0] || 0));
+    if (outShare > 0 && !clubThumb && style !== 2) {
+      const palmTo = bodyLeft.clone().multiplyScalar(isLeft ? -1 : 1);
+      const outThumb = palmTo.cross(along).multiplyScalar(isLeft ? 1 : -1);
+      outThumb.addScaledVector(along, -outThumb.dot(along));
+      if (outThumb.lengthSq() > 1e-4) target.slerp(turnTo(along, outThumb.normalize()), outShare);
+    }
     const turned = worldQuat(hand).slerp(target, Math.min(1, weight));
     hand.quaternion.copy(worldQuat(hand.parent).invert().multiply(turned));
     hand.updateMatrixWorld(true);
@@ -304,6 +314,23 @@ export function penguinShares(styles, frame, flights = null, fps = 30) {
   });
 }
 const PENGUIN_SPREAD = 9;
+
+/**
+ * How much each hand is held in a style at a frame, [right, left], 0..1: whole in its frames, and less as the nearest of them
+ * is further, to nothing at STYLE_TURN seconds, so the hand turns, not jumps (takeouts' palm turned out, style 5).
+ */
+export function styleShares(styles, frame, fps = 30, which = 5) {
+  if (!styles || !styles.length) return [0, 0];
+  const at = Math.round(frame), reach = Math.max(1, Math.round(STYLE_TURN * fps)), smooth = x => x * x * (3 - 2 * x);
+  return [0, 1].map(hand => {
+    for (let d = 0; d <= reach; d++)
+      for (const k of d ? [at - d, at + d] : [at])
+        if ((styles[Math.max(0, Math.min(styles.length - 1, k))]?.[hand] | 0) === which) return smooth(1 - d / (reach + 1));
+    return 0;
+  });
+}
+/** Seconds a hand takes to turn into a style and out of it (styleShares). */
+const STYLE_TURN = 0.12;
 
 /** How far a hand holding a club turns from the palm up toward the grip at the most, halfway through its hold (0..1). */
 const CLUB_HOLD_TURN = 0.3;
