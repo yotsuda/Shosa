@@ -375,45 +375,44 @@ public class JuggleTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void Takeouts_take_the_ball_under_out_of_the_air_past_the_middle_from_above(bool mirror)
+    public void Takeouts_take_the_other_hands_ball_out_of_the_air_just_after_their_own_high_throw(bool mirror)
     {
-        // The half-shower's throws; the hand that throws over catches the other's ball from above (a claw), a little past the
-        // middle on the thrower's side, and is up over the top on its way back out (DESIGN.md 118.49).
+        // 423 (DESIGN.md 118.49, the user): every throw from outside; each 3 is caught by the other hand from above (a claw), a
+        // little past the middle on the thrower's side, just after that hand's own 4, and carried up over the top before it is
+        // thrown again; each 4 comes back to its own hand.
         string m = mirror ? "@mirror" : "";
-        var plain = Compile(Juggle($"every 1/2  3:4{m} | 3:4{m} |"));
-        var c = Compile(Juggle($"every 1/2  3:4@takeouts{m} | 3:4@takeouts{m} |"));
+        var c = Compile(Juggle($"every 1/2  3:4{m} | 423:4~@takeouts{m} | :2 3:2{m} |"));
         Assert.Empty(c.Diagnostics);
-        var now = c.Clip.Figures[0].Juggle!.Flights;
-        Assert.Equal(plain.Clip.Figures[0].Juggle!.Flights.Select(f => (f[0], f[1], f[2])), now.Select(f => (f[0], f[1], f[2])));
         var clip = c.Clip;
         var fig = clip.Figures[0];
+        var flights = clip.Figures[0].Juggle!.Flights;
         var styles = clip.Figures[0].Juggle!.Styles;
-        int over = mirror ? 1 : 0;
         Vec3 HandAt(int hand, double sec) => fig.Joint((int)Math.Round(sec * clip.Fps), hand == 0 ? Rig.RHand : Rig.LHand) - fig.Joint((int)Math.Round(sec * clip.Fps), Rig.Pelvis);
         double Out(int hand, double sec) => (hand == 0 ? -1 : 1) * HandAt(hand, sec).X;
-        var inWord = now.Where(f => f[3] > 0.3 && f[4] < 3.6).ToList();
-        Assert.True(inWord.Count(f => (int)f[1] == over) >= 3);
+        // Thrown in the takeouts (2 to 5 s) and caught before it ends.
+        var inWord = flights.Where(f => f[3] > 1.95 && f[3] < 4.95 && f[4] < 5.0).ToList();
+        int threes = 0;
         foreach (var f in inWord)
         {
-            if ((int)f[1] == over)
-                Assert.True(Out(over, f[3]) > 0.25, $"thrown over {Out(over, f[3]):0.00} m out at {f[3]:0.00} s");
-            else
-            {
-                Assert.True(Out(1 - over, f[3]) < 0.15, $"thrown under {Out(1 - over, f[3]):0.00} m out at {f[3]:0.00} s");
-                // Taken out past the middle, on the thrower's side, from above.
-                Assert.True(Out(over, f[4]) < 0, $"taken out {Out(over, f[4]):0.00} m out at {f[4]:0.00} s");
-                Assert.Equal((int)Juggling.Style.Claw, styles[(int)Math.Round(f[4] * clip.Fps)][over]);
-                // Carried back up over the top: higher between the catch and the next throw than at either.
-                double next = inWord.Where(g => (int)g[1] == over && g[3] > f[4]).Select(g => (double)g[3]).DefaultIfEmpty(-1).Min();
-                if (next > 0)
-                {
-                    double top = Enumerable.Range(1, 9).Max(k => HandAt(over, f[4] + (next - f[4]) * k / 10).Y);
-                    Assert.True(top > HandAt(over, f[4]).Y + 0.05, $"carried over the top after {f[4]:0.00} s");
-                }
-            }
+            int from = (int)f[1], to = (int)f[2];
+            Assert.True(Out(from, f[3]) > 0.25, $"thrown {Out(from, f[3]):0.00} m out at {f[3]:0.00} s");
+            if (from == to)
+                continue;
+            threes++;
+            // Taken out past the middle, on the thrower's side, from above, just after the catching hand's own throw.
+            Assert.True(Out(to, f[4]) < 0, $"taken out {Out(to, f[4]):0.00} m out at {f[4]:0.00} s");
+            Assert.Equal((int)Juggling.Style.Claw, styles[(int)Math.Round(f[4] * clip.Fps)][to]);
+            double own = flights.Where(g => (int)g[1] == to && g[3] < f[4]).Max(g => (double)g[3]);
+            Assert.True(f[4] - own < 0.25, $"taken {f[4] - own:0.00} s after its own throw");
+            Assert.True(flights.Single(g => (int)g[1] == to && Math.Abs(g[3] - own) < 1e-4)[2] == to, "its own throw before is a 4");
+            // Carried back up over the top: higher between the catch and its next throw than at the catch.
+            double next = flights.Where(g => (int)g[1] == to && g[3] > f[4]).Min(g => (double)g[3]);
+            double top = Enumerable.Range(1, 9).Max(k => HandAt(to, f[4] + (next - f[4]) * k / 10).Y);
+            Assert.True(top > HandAt(to, f[4]).Y + 0.05, $"carried over the top after {f[4]:0.00} s");
         }
-        Assert.Contains("SH1010", Codes(Compile(Juggle("every 1/2  3:4@takeouts@halfShower |"))));
-        Assert.Contains("SH1010", Codes(Compile(Juggle("every 1/2  3:4@takeouts@clawCatch |"))));
+        Assert.True(threes >= 3);
+        Assert.Contains("SH1010", Codes(Compile(Juggle("every 1/2  423:4@takeouts@halfShower |"))));
+        Assert.Contains("SH1010", Codes(Compile(Juggle("every 1/2  423:4@takeouts@clawCatch |"))));
     }
 
     [Fact]
@@ -486,7 +485,7 @@ public class JuggleTests
     // Tennis: one ball over the top of the others, to and fro (DESIGN.md 118.45).
     [InlineData("every 1/2  3:4 | 3:4@tennis | 3:4@tennis | 3:4 |", 0.10)]
     [InlineData("every 1/2  3:4 | 3:4@halfShower | 3:4@halfShower | 3:4 |", 0.10)]
-    [InlineData("every 1/2  3:4 | 3:4@takeouts | 3:4@takeouts | 3:4 |", 0.10)]
+    [InlineData("every 1/2  3:4 | 423:4~@takeouts | :2 3:2 | 3:4 |", 0.10)]
     public void Balls_in_the_air_keep_well_apart_in_four_and_five_ball_patterns(string row, double apart)
     {
         // The fountain thrown inside and caught outside, the one going up in front; higher throws across wider (DESIGN.md
