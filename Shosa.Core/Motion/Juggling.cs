@@ -1138,13 +1138,6 @@ public sealed class Juggling
             for (int i = 1; i < places.Count; i++)
                 places[i] = places[i] with { Z = TakeoutPlaneAhead };
             _roundPlanes.Add((to, stopFrom, _takeoutNext > stopTo + 0.2 ? _takeoutNext : stopTo + 2 * beat));
-            // Out round its own side and down, the elbow opens wide downward (the user): from level with the other hand's 3
-            // (out on its own side) to the next throw.
-            {
-                double roundEnd = _takeoutNext > stopTo + 0.2 ? _takeoutNext : stopTo + 2 * beat;
-                double outAt = _takeoutAcross > stopTo + 0.1 && _takeoutAcross < roundEnd - 0.1 ? _takeoutAcross : stopTo + 0.6 * (roundEnd - stopTo);
-                _lowSwings.Add((to, outAt - LowSwingSooner, roundEnd));
-            }
             var throwAt = _takeoutNextOurs ? new Vec3(-side * TakeoutUnderCross, TakeoutUnderHigh, TakeoutHighAhead) : Throws(to, 3, true);
             places.Add(throwAt);
             double end = _takeoutNext > stopTo + 0.2 ? _takeoutNext : stopTo + 2 * beat;
@@ -1204,6 +1197,10 @@ public sealed class Juggling
                         knots[1] = (Math.Max(sooner, stopTo + TakeoutRiseQuickest), knots[1].S);
                 }
             var slopes = new double[knots.Count];
+            // Past the face (the round's top), the palm turns up and the elbow opens wide downward at once (the user: opened
+            // only once out on its own side, it was late, and the elbow rose in between), till the next throw.
+            double opensAt = topKnown && knots.Count >= 3 ? knots[1].T + LowSwingAfterTop : stopTo + 0.5 * (end - stopTo);
+            _lowSwings.Add((to, opensAt, end));
             slopes[^1] = TakeoutRoundEndSpeed;
             // Not from rest: the hand turns from the swipe straight up into the round (no faster than keeps the way going on).
             if (!stops)
@@ -1248,7 +1245,7 @@ public sealed class Juggling
                 var direction = (way[i] - way[i - 1]).Normalized();
                 // The palm kept turned out all the way round (the user: the wrist not turned after the catch), up again only for
                 // the swing up into the throw.
-                _keys[to].Add((t, at, direction * Math.Max(0, v), end - t > TakeoutPalmUpBefore ? Style.Outward : Style.Own));
+                _keys[to].Add((t, at, direction * Math.Max(0, v), t < opensAt && end - t > TakeoutPalmUpBefore ? Style.Outward : Style.Own));
             }
             // (The round's end, low and in, is the bottom of the throw's swing: no other put there.)
             _takeoutRests.Add((to, end - TakeoutRoundEvery));
@@ -1933,9 +1930,8 @@ public sealed class Juggling
     private readonly List<(int Hand, double From, double To)> _lowSwings = [];
     /// <summary>How long after the throw the way down's open elbow goes (seconds).</summary>
     private const double LowSwingAfter = 0.3;
-    /// <summary>How long the elbow takes to open, from this long before the hand is level with the other's 3 (seconds: in 0.08 s
-    /// the elbow leapt out and back in a frame, 234 m/s²).</summary>
-    private const double LowSwingRise = 0.25, LowSwingSooner = 0.0;
+    /// <summary>How long the elbow takes to open (seconds), from this long after the round's top (past the face).</summary>
+    private const double LowSwingRise = 0.2, LowSwingAfterTop = 0.0;
     /// <summary>
     /// How much a hand is on its round's way down at a time, 0..1: from out on its own side, the elbow opening wide downward
     /// (the user: the elbow up and the hand down looked wrong), till its throw from under the other arm, and a little after.

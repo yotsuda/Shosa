@@ -401,9 +401,11 @@ public class JuggleTests
             // Taken on the catching arm's own side, out near it (the user), swiping down from above just after the hand's own 3
             // from further out, and carried on to the far side.
             Assert.InRange(Out(hand, f[4]), 0.1, 0.3);
-            // The palm turned out as it swipes and catches, and kept so after (the user).
+            // The palm turned out as it swipes and catches, and kept so after, till the hand is past the face (the user: then
+            // the palm up and the elbow opened at once).
             Assert.Equal((int)Juggling.Style.Outward, styles[(int)Math.Round(f[4] * clip.Fps)][hand]);
-            Assert.Equal((int)Juggling.Style.Outward, styles[(int)Math.Round((f[4] + 0.3) * clip.Fps)][hand]);
+            Assert.Equal((int)Juggling.Style.Outward, styles[(int)Math.Round((f[4] + 0.15) * clip.Fps)][hand]);
+            Assert.NotEqual((int)Juggling.Style.Outward, styles[(int)Math.Round((f[4] + 0.5) * clip.Fps)][hand]);
             // (Only to the middle: the forearm turns round the elbow kept out on its own side, and the swipe rises into the
             // round there, DESIGN.md 118.49.)
             Assert.True(Out(hand, f[4] + 0.15) < 0.05, $"carried across to {Out(hand, f[4] + 0.15):0.00} m by {f[4] + 0.15:0.00} s");
@@ -445,7 +447,9 @@ public class JuggleTests
             if (across is not null && across[4] < 5.0)
             {
                 Assert.True(Out(hand, across[3]) > 0.3, $"out {Out(hand, across[3]):0.00} m as the other throws at {across[3]:0.00} s");
-                Assert.InRange(HandAt(hand, across[3]).Y - HandAt(1 - hand, across[3]).Y, -0.08, 0.08);
+                // (Within 0.2 m: past the face the elbow opens and the hand comes down at once, the user, 2026-11-24; it was 0.08
+                // when the elbow opened only from here.)
+                Assert.InRange(HandAt(hand, across[3]).Y - HandAt(1 - hand, across[3]).Y, -0.2, 0.2);
             }
         }
         Assert.Contains("SH1010", Codes(Compile(Juggle("every 1/2  423:4@takeouts@halfShower |"))));
