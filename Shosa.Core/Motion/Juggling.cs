@@ -709,6 +709,8 @@ public sealed class Juggling
     /// <summary>The swipe takes the 4 this much higher than TakeoutTakeHigh (the user), and stops as much higher; the round's
     /// way after and the next 4's throw keep TakeoutTakeHigh.</summary>
     private const double TakeoutTakeRaise = 0.10;
+    /// <summary>Where the swipe stops on the far side: this much nearer the body than the catch (the user).</summary>
+    private const double TakeoutStopIn = 0.20;
     /// <summary>The swipe carrying it on: how fast at the catch (m/s), how long to the far side (seconds), how far past the middle there.</summary>
     private const double TakeoutSwipeCarry = 1.8, TakeoutCarry = 0.12, TakeoutCarryTo = 0.24;
     /// <summary>How fast the hand goes up with the 3 as it throws it (a part of the ball's speed), and in across on its swipe (m/s);
@@ -973,7 +975,8 @@ public sealed class Juggling
             _arrive[(to, caught)] = new Vec3(-side * TakeoutSwipeCarry, arrives.Y * TakeoutArrive, 0);
             _takeoutSwipes.Add((to, caught));
             double stopFrom = caught + TakeoutCarry, stopTo = stopFrom + TakeoutStopFor;
-            var stop = new Vec3(-side * TakeoutCarryTo, TakeoutTakeHigh + TakeoutTakeRaise - TakeoutStopDown, into.Z);
+            // Drawn in to the body as it is carried across (the user: just after the swipe's catch, the hand nearer the body).
+            var stop = new Vec3(-side * TakeoutCarryTo, TakeoutTakeHigh + TakeoutTakeRaise - TakeoutStopDown, into.Z - TakeoutStopIn);
             _keys[to].Add((stopFrom, stop, Still, catchStyle));
             if (stopTo > stopFrom + 1e-6)
                 _keys[to].Add((stopTo, stop, Still, catchStyle));
