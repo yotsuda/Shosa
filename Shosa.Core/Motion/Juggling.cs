@@ -268,6 +268,28 @@ public sealed class Juggling
                     }
                     double caught = Math.Max(SlotSec(land) - Dwell * BeatSec(Math.Min(land, slots.Count - 1)), slotThrown + Handover * T);
                     var landingSeg = slots[Math.Min(land, slots.Count - 1)].Seg;
+                    // Tennis: only its one ball is thrown from outside over the top, the others from inside, lower (the user:
+                    // seen from the front its arc went through theirs). Higher and lower is longer and shorter in the air: the
+                    // tennis ball thrown a little before its beat and caught a little later, the others thrown a little after
+                    // and caught a little sooner. Every catch is a cascade's, out on the side.
+                    var throwTricks = slot.Seg.Tricks;
+                    double tennisShift = 0;
+                    if (throwTricks?.Contains("tennis") == true)
+                    {
+                        if (tennisBall < 0 && to != hand && t.Value >= 3)
+                            tennisBall = ball;
+                        throwTricks = [.. throwTricks.Where(x => x != "tennis")];
+                        if (to != hand && t.Value >= 3)
+                        {
+                            bool tennisOne = ball == tennisBall;
+                            throwTricks.Add(tennisOne ? TennisThrow : TennisOther);
+                            tennisShift = (tennisOne ? TennisLonger : -TennisShorter) * T;
+                            // Caught no later than leaves the catching hand a part of its hold before it throws again.
+                            caught = Math.Min(caught + tennisShift, SlotSec(land) - TennisLeastHold * Dwell * BeatSec(Math.Min(land, slots.Count - 1)));
+                        }
+                    }
+                    else
+                        tennisBall = -1;
                     // A claw catch (the user): thrown up to the face and snatched from above there at its top. Asked for before
                     // its top: the catching hand can be at the face no sooner than it has thrown its own ball (two throws before
                     // this one lands) and come up (0.18 s), and has to bring the ball down again for its next throw, and for
@@ -292,7 +314,7 @@ public sealed class Juggling
                         if (air > longest || hurried)
                             ClawTiming.Add((landingSeg, air, longest, reach, slowest, quickest, hurried));
                     }
-                    double thrown = slotThrown;
+                    double thrown = slotThrown - tennisShift;
                     // Mills' second throw (and its mirror, the fifth) goes higher (the user): longer in the air, thrown a
                     // little before the beat.
                     // Thrown and caught round the body (Mills' Mess or the windmill, the same one at both ends): its ball in
@@ -327,20 +349,19 @@ public sealed class Juggling
                         sameRound ? Mirrored(landing) : Mirrored(slot), windmill);
                     // The catching hand's own throw two beats before the catch, when it is still to be planned.
                     double ownThrown = land - 2 > s && land - 2 < slots.Count && slots[land - 2].Seg is not null ? SlotSec(land - 2) : double.NegativeInfinity;
-                    // Tennis: only its one ball is thrown from outside over the top; every catch is a cascade's, out on the side.
-                    var throwTricks = slot.Seg.Tricks;
-                    if (throwTricks?.Contains("tennis") == true)
-                    {
-                        if (tennisBall < 0 && to != hand && t.Value >= 3)
-                            tennisBall = ball;
-                        throwTricks = [.. throwTricks.Where(x => x != "tennis")];
-                        if (ball == tennisBall && to != hand && t.Value >= 3)
-                            throwTricks.Add(TennisThrow);
-                    }
-                    else
-                        tennisBall = -1;
                     if (catchTricks is not null && catchTricks.Contains("tennis"))
-                        catchTricks = catchTricks.Count == 1 ? null : [.. catchTricks.Where(x => x != "tennis")];
+                    {
+                        catchTricks = [.. catchTricks.Where(x => x != "tennis")];
+                        // Thrown before a tennis word and caught in it: caught inside, as the word's other balls are, clear of
+                        // the tennis ball going up from outside there (the user: at the change into tennis the first tennis
+                        // throw met it). Not the tennis ball itself, the one thrown again at the word's first throw.
+                        var landsAt = slots[Math.Min(land, slots.Count - 1)];
+                        bool tennisNext = landsAt.Index == 0 && (land == 0 || slots[land - 1].Seg?.Tricks?.Contains("tennis") != true);
+                        if (throwTricks?.Contains(TennisOther) != true && throwTricks?.Contains(TennisThrow) != true && !tennisNext)
+                            catchTricks.Add(TennisOther);
+                        if (catchTricks.Count == 0)
+                            catchTricks = null;
+                    }
                     // (Caught for good at the end of the run: a plain catch, not Mills' middle.)
                     Swing(hand, to, t.Value, thrown, caught, T, throwTricks, catchTricks, _throwsBy[hand]++, ownThrown);
                     lastCatch = Math.Max(lastCatch, caught);
@@ -485,8 +506,18 @@ public sealed class Juggling
     private const double SameThrowZ = 0.14, SameCatchZ = -0.08, CrossThrowZ = 0.02, CrossCatchZ = -0.08, CrossWider = 0.03;
     /// <summary>Tennis's ball's throw, which the planner gives it alone (not a word: the trick written is `tennis`).</summary>
     private const string TennisThrow = "\u0000tennisThrow";
-    /// <summary>Tennis's throw from outside: how far out as a part of the catch's, how much higher, how far forward (DESIGN.md 118.45).</summary>
-    private const double TennisOut = 1.0, TennisHigh = 0.04, TennisAhead = 0.08, TennisCatchOut = 0.06, TennisCatchAhead = 0.16;
+    /// <summary>Where and when a hand caught the tennis ball, out past a cascade's catch: its next throw's loop goes round from there.</summary>
+    private readonly HashSet<(int Hand, double T)> _tennisCatches = [];
+    /// <summary>The other balls of a tennis word, thrown inside the tennis ball's way.</summary>
+    private const string TennisOther = "\u0000tennisOther";
+    /// <summary>Tennis's throw from outside: how far out past the catch's, how much higher, how far forward; its catch further
+    /// out and forward (DESIGN.md 118.45, 118.46).</summary>
+    private const double TennisOut = 0.10, TennisHigh = 0.04, TennisAhead = 0.08, TennisCatchOut = 0.10, TennisCatchAhead = 0.16;
+    /// <summary>The other balls of a tennis word: thrown this far from the middle, caught this much in from a cascade's.</summary>
+    private const double TennisInsideThrow = 0.09, TennisInsideCatch = 0.06;
+    /// <summary>How much longer in the air the tennis ball is, and shorter the others, as parts of a beat at each end (thrown that much sooner or later, caught that much later or sooner),
+    /// and the least of its hold the catching hand keeps.</summary>
+    private const double TennisLonger = 0.25, TennisShorter = 0.12, TennisLeastHold = 0.55;
     /// <summary>A reverse catch inside, further back than a cascade's, clear of a cascade's ball going up there at a change of pattern (DESIGN.md 118.43).</summary>
     private const double ReverseCatchBack = 0.08;
     // A club is half a metre long: caught well out to the side, the elbow out, or two meet in the air (the user).
@@ -521,6 +552,8 @@ public sealed class Juggling
             (from, into, throwStyle, catchStyle) = Trick(hand, to, value, from, into, throwTricks, catchTricks, nth);
         if (catchStyle == Style.Penguin)
             _penguinCatches.Add((to, caught));
+        if (throwTricks?.Contains(TennisThrow) == true)
+            _tennisCatches.Add((to, caught));
         if (throwStyle == Style.Back)
             _backThrows.Add((hand, thrown));
         double flight = caught - thrown;
@@ -739,10 +772,13 @@ public sealed class Juggling
             // Tennis's throw from outside: the bottom under the way from the hand's catch out on its side, the latest place
             // before (the last one put is the hand's own throw before, inside: from there the hand went in and turned
             // right back out, 163 degrees in a frame; DESIGN.md 118.45).
-            if (throwTricks?.Contains(TennisThrow) == true)
-                for (int i = 0; i < _keys[hand].Count; i++)
-                    if (_keys[hand][i].T < thrown - 1e-9 && (before < 0 || _keys[hand][i].T > _keys[hand][before].T))
-                        before = i;
+            // So too the throw after the hand caught the tennis ball, far out (the last one, into a cascade: 149 degrees).
+            int latest = -1;
+            for (int i = 0; i < _keys[hand].Count; i++)
+                if (_keys[hand][i].T < thrown - 1e-9 && (latest < 0 || _keys[hand][i].T > _keys[hand][latest].T))
+                    latest = i;
+            if (latest >= 0 && (throwTricks?.Contains(TennisThrow) == true || _tennisCatches.Contains((hand, _keys[hand][latest].T))))
+                before = latest;
             if (before >= 0 && thrown - _keys[hand][before].T < 1)
             {
                 outside = _keys[hand][before].At.X;
@@ -821,9 +857,17 @@ public sealed class Juggling
         // Tennis: its one ball thrown from outside, over the top of the others, as a reverse's throw; caught outside as a cascade's.
         if (Has(throwTricks, TennisThrow))
         {
-            from = new Vec3(s * Math.Abs(Catches(hand, value, to != hand).X) * TennisOut, from.Y + TennisHigh, from.Z + TennisAhead);
+            from = new Vec3(s * (Math.Abs(Catches(hand, value, to != hand).X) + TennisOut), from.Y + TennisHigh, from.Z + TennisAhead);
             into = new Vec3(into.X + c * TennisCatchOut, into.Y, into.Z + TennisCatchAhead);
         }
+        // And the other two inside it, from nearer the middle, caught a little in from a cascade's.
+        if (Has(throwTricks, TennisOther))
+        {
+            from = new Vec3(s * TennisInsideThrow, from.Y, from.Z);
+            into = new Vec3(c * (Math.Abs(into.X) - TennisInsideCatch), into.Y, into.Z);
+        }
+        else if (Has(catchTricks, TennisOther))
+            into = new Vec3(c * (Math.Abs(into.X) - TennisInsideCatch), into.Y, into.Z);
         // Claw: the palm down, the ball snatched from above at the face on its way up (the user); thrown with the palm down too.
         if (Has(catchTricks, "clawCatch"))
         {

@@ -289,16 +289,25 @@ public class JuggleTests
     public void Tennis_throws_one_ball_from_outside_and_the_others_from_inside()
     {
         // The same throws as the cascade; one ball (the word's first across) leaves from outside the hand's own catch, every
-        // throw of it in the word, and the other two from inside (DESIGN.md 118.45).
+        // throw of it in the word, and the other two from inside (DESIGN.md 118.45). The tennis ball goes higher, longer in
+        // the air, and the others lower (118.46).
         var plain = Compile(Juggle("every 1/2  3:4 | 3:4 |"));
         var c = Compile(Juggle("every 1/2  3:4@tennis | 3:4@tennis |"));
         Assert.Empty(c.Diagnostics);
         var was = plain.Clip.Figures[0].Juggle!.Flights;
         var now = c.Clip.Figures[0].Juggle!.Flights;
-        Assert.Equal(was.Select(f => (f[0], f[1], f[2], f[3])), now.Select(f => (f[0], f[1], f[2], f[3])));
+        Assert.Equal(was.Select(f => (f[0], f[1], f[2])), now.Select(f => (f[0], f[1], f[2])));
         var clip = c.Clip;
         var fig = clip.Figures[0];
         int tennis = (int)now[0][0];
+        foreach (var (p, q) in was.Zip(now).Where(z => z.First[3] > 0.3 && z.First[3] < 3.6))
+        {
+            Assert.InRange(q[3] - p[3], -0.1, 0.1);
+            if ((int)q[0] == tennis)
+                Assert.True(q[4] - q[3] > p[4] - p[3] + 0.08, $"the tennis ball thrown at {q[3]:0.00} s flies longer");
+            else
+                Assert.True(q[4] - q[3] < p[4] - p[3] - 0.03, $"the ball thrown at {q[3]:0.00} s flies shorter");
+        }
         // Off the pelvis, to the throwing hand's own side: + outward.
         double Out(float[] f)
         {
