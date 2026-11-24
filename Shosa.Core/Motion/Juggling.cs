@@ -1138,6 +1138,13 @@ public sealed class Juggling
             for (int i = 1; i < places.Count; i++)
                 places[i] = places[i] with { Z = TakeoutPlaneAhead };
             _roundPlanes.Add((to, stopFrom, _takeoutNext > stopTo + 0.2 ? _takeoutNext : stopTo + 2 * beat));
+            // Out round its own side and down, the elbow opens wide downward (the user): from level with the other hand's 3
+            // (out on its own side) to the next throw.
+            {
+                double roundEnd = _takeoutNext > stopTo + 0.2 ? _takeoutNext : stopTo + 2 * beat;
+                double outAt = _takeoutAcross > stopTo + 0.1 && _takeoutAcross < roundEnd - 0.1 ? _takeoutAcross : stopTo + 0.6 * (roundEnd - stopTo);
+                _lowSwings.Add((to, outAt - LowSwingSooner, roundEnd));
+            }
             var throwAt = _takeoutNextOurs ? new Vec3(-side * TakeoutUnderCross, TakeoutUnderHigh, TakeoutHighAhead) : Throws(to, 3, true);
             places.Add(throwAt);
             double end = _takeoutNext > stopTo + 0.2 ? _takeoutNext : stopTo + 2 * beat;
@@ -1917,6 +1924,30 @@ public sealed class Juggling
             if (h != hand || sec < from || sec > to)
                 continue;
             double w = Math.Min(Math.Min(1, (sec - from) / RoundPlaneIn), Math.Min(1, (to - sec) / RoundPlaneOut));
+            most = Math.Max(most, w * w * (3 - 2 * w));
+        }
+        return most;
+    }
+
+    /// <summary>Takeouts' rounds' way down: the hand, from out on its own side to its next throw (seconds).</summary>
+    private readonly List<(int Hand, double From, double To)> _lowSwings = [];
+    /// <summary>How long after the throw the way down's open elbow goes (seconds).</summary>
+    private const double LowSwingAfter = 0.3;
+    /// <summary>How long the elbow takes to open, from this long before the hand is level with the other's 3 (seconds: in 0.08 s
+    /// the elbow leapt out and back in a frame, 234 m/s²).</summary>
+    private const double LowSwingRise = 0.25, LowSwingSooner = 0.0;
+    /// <summary>
+    /// How much a hand is on its round's way down at a time, 0..1: from out on its own side, the elbow opening wide downward
+    /// (the user: the elbow up and the hand down looked wrong), till its throw from under the other arm, and a little after.
+    /// </summary>
+    public double LowSwing(int hand, double sec)
+    {
+        double most = 0;
+        foreach (var (h, from, to) in _lowSwings)
+        {
+            if (h != hand || sec < from || sec > to + LowSwingAfter)
+                continue;
+            double w = sec <= to ? Math.Min(1, (sec - from) / LowSwingRise) : 1 - (sec - to) / LowSwingAfter;
             most = Math.Max(most, w * w * (3 - 2 * w));
         }
         return most;
