@@ -375,11 +375,12 @@ public class JuggleTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void Takeouts_swipe_across_take_the_own_4_on_the_far_side_and_carry_it_back_round_an_arc(bool mirror)
+    public void Takeouts_swipe_the_own_4_across_as_it_falls_and_carry_it_back_round_a_wide_arc_showing_it(bool mirror)
     {
         // 423 (DESIGN.md 118.49, the user): a hand throws its 3 from its own side as it sets off on its swipe (the other hand
-        // catches it), swipes across in front and takes its own 4 from above past the middle on the far side (a claw), stops
-        // once there holding it and carries it back up round an arc (the 2), while the other hand throws its own 4.
+        // catches it), takes its own 4 from above near the middle as it falls and carries it straight across to the far side,
+        // stops once there and carries it back round a wide arc out past its own side, the palm to the front (the 2), while
+        // the other hand throws its own 4 under it.
         string m = mirror ? "@mirror" : "";
         var c = Compile(Juggle($"every 1/2  3:4{m} | 423:4~@takeouts{m} | :2 3:2{m} |"));
         Assert.Empty(c.Diagnostics);
@@ -395,19 +396,23 @@ public class JuggleTests
         foreach (var f in fours)
         {
             int hand = (int)f[1];
-            // Taken past the middle on the far side, from above, just after the hand's own 3 from its own side.
-            Assert.True(Out(hand, f[4]) < 0, $"4 taken {Out(hand, f[4]):0.00} m out at {f[4]:0.00} s");
+            // Taken near the middle, from above, just after the hand's own 3 from its own side, and carried on to the far side.
+            Assert.True(Math.Abs(Out(hand, f[4])) < 0.15, $"4 taken {Out(hand, f[4]):0.00} m out at {f[4]:0.00} s");
             Assert.Equal((int)Juggling.Style.Claw, styles[(int)Math.Round(f[4] * clip.Fps)][hand]);
+            Assert.True(Out(hand, f[4] + 0.15) < -0.1, $"carried across to {Out(hand, f[4] + 0.15):0.00} m by {f[4] + 0.15:0.00} s");
             var three = flights.Where(g => (int)g[1] == hand && g[3] < f[4]).MaxBy(g => g[3])!;
             Assert.True(three[2] != hand && f[4] - three[3] < 0.25, $"its 3 just before, at {three[3]:0.00} s");
             Assert.True(Out(hand, three[3]) > 0.2, $"3 thrown {Out(hand, three[3]):0.00} m out at {three[3]:0.00} s");
-            // Not thrown on: held, stopped once, then carried up round an arc, while the other hand throws its 4.
+            // Not thrown on: held, stopped once, then back round an arc up over the top and out past its own side, the palm
+            // to the front, while the other hand throws its 4.
             double next = flights.Where(g => (int)g[1] == hand && g[3] > f[4]).Min(g => (double)g[3]);
             Assert.True(next - f[4] > 0.5, $"held {next - f[4]:0.00} s");
-            var speeds = Enumerable.Range(1, 8).Select(k => (HandAt(hand, f[4] + k / clip.Fps) - HandAt(hand, f[4] + (k - 1) / clip.Fps)).Length * clip.Fps).ToList();
+            var speeds = Enumerable.Range(1, 9).Select(k => (HandAt(hand, f[4] + k / clip.Fps) - HandAt(hand, f[4] + (k - 1) / clip.Fps)).Length * clip.Fps).ToList();
             Assert.True(speeds.Min() < 0.3, $"stopped after {f[4]:0.00} s (slowest {speeds.Min():0.00} m/s)");
-            double top = Enumerable.Range(1, 9).Max(k => HandAt(hand, f[4] + 0.4 * k / 9).Y);
-            Assert.True(top > HandAt(hand, f[4]).Y + 0.05, $"back round an arc after {f[4]:0.00} s");
+            var back = Enumerable.Range(1, 12).Select(k => f[4] + 0.6 * k / 12).ToList();
+            Assert.True(back.Max(s => HandAt(hand, s).Y) > HandAt(hand, f[4]).Y + 0.1, $"up round an arc after {f[4]:0.00} s");
+            Assert.True(back.Max(s => Out(hand, s)) > 0.3, $"out past its own side after {f[4]:0.00} s");
+            Assert.Contains(back, s => styles[(int)Math.Round(s * clip.Fps)][hand] == (int)Juggling.Style.Show);
             Assert.Contains(flights, g => (int)g[1] == 1 - hand && g[1] == g[2] && g[3] > f[4] && g[3] < f[4] + 0.4);
         }
         Assert.Contains("SH1010", Codes(Compile(Juggle("every 1/2  423:4@takeouts@halfShower |"))));

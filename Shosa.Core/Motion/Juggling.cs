@@ -52,7 +52,8 @@ public sealed class Juggling
     private readonly int[] _throwsBy = [0, 0];
 
     /// <summary>How a hand is held (DESIGN.md 118.12): the prop's own way (a ball on the palm, a ring by an edge), or a trick's.</summary>
-    public enum Style { Own = 0, Claw = 1, Penguin = 2, Back = 3, Under = 4 }
+    /// <param name="Show">Takeouts' carry back (DESIGN.md 118.49): the palm turned to the front, the ball shown to the audience.</param>
+    public enum Style { Own = 0, Claw = 1, Penguin = 2, Back = 3, Under = 4, Show = 5 }
 
     private readonly IReadOnlyList<TempoIr> _tempos;
     /// <summary>Words thrown as a way between two patterns, not patterns of the row's balls themselves: nothing is expected at their start.</summary>
@@ -564,19 +565,27 @@ public sealed class Juggling
     /// <summary>Takeouts' throws from the hand's own side: this far out, this high (the 3), this far forward (the 3; the 4 further, in front of the 3s' way).</summary>
     private const double TakeoutOwnOut = 0.30, TakeoutOwnHigh = 0.04, TakeoutOwnAhead = 0.0, TakeoutHighAhead = 0.08;
     /// <summary>The 4 thrown nearer the middle than the 3 and the 3 caught further out, so the 4 just thrown and the 3 coming down into the same hand pass apart seen from the front.</summary>
-    private const double TakeoutHighOut = 0.16, TakeoutCatchOut = 0.44;
+    private const double TakeoutHighOut = 0.20, TakeoutCatchOut = 0.44;
     /// <summary>A ball thrown before the takeouts and caught in them: caught out there too, clear of the hand's first 4.</summary>
     private const string TakeoutWide = "\u0000takeoutWide";
-    /// <summary>Takeouts' 4 taken at the end of the swipe: this far past the middle on the far side, this high.</summary>
-    private const double TakeoutTakePast = 0.06, TakeoutTakeHigh = 0.16;
+    /// <summary>Takeouts' 4 comes down near the middle, a little on the thrower's side, this high, this far forward (in close:
+    /// the user, it falls on the inside), and is swiped there.</summary>
+    private const double TakeoutTakeAt = 0.02, TakeoutTakeHigh = 0.20, TakeoutTakeAhead = 0.04;
+    /// <summary>The swipe carrying it on: how fast at the catch (m/s), how long to the far side (seconds), how far past the middle there.</summary>
+    private const double TakeoutSwipeCarry = 1.8, TakeoutCarry = 0.12, TakeoutCarryTo = 0.24;
     /// <summary>How fast the hand goes up with the 3 as it throws it (a part of the ball's speed), and in across on its swipe (m/s);
-    /// at the 4's catch, how fast it goes on in (m/s) and down with it (a part of the ball's speed).</summary>
-    private const double TakeoutLaunch = 0.6, TakeoutSwipeSpeed = 1.6, TakeoutTakeOn = 0.5, TakeoutArrive = 0.25;
-    /// <summary>After taking the 4, the hand stops once there: from how long after (seconds), for how long, how far on in and down (metres).</summary>
-    private const double TakeoutStopAfter = 0.05, TakeoutStopFor = 0.08, TakeoutStopOn = 0.04, TakeoutStopDown = 0.02;
-    /// <summary>Then back slowly over the top close to the body: the top (out on its own side, up, ahead); how many throwing
-    /// beats the way back takes; how high it rests on its own side after.</summary>
-    private const double TakeoutOverOut = 0.12, TakeoutOverHigh = 0.32, TakeoutOverAhead = -0.06, TakeoutBack = 2.0, TakeoutRestHigh = -0.04;
+    /// at the 4's catch, how fast it goes down with it (a part of the ball's speed).</summary>
+    private const double TakeoutLaunch = 0.6, TakeoutSwipeSpeed = 1.6, TakeoutArrive = 0.25;
+    /// <summary>On the far side the hand stops once: for how long (seconds), how far below the catch (metres).</summary>
+    private const double TakeoutStopFor = 0.08, TakeoutStopDown = 0.04;
+    /// <summary>Where and when each carry back came to rest: the hand, seconds.</summary>
+    private readonly List<(int Hand, double T)> _takeoutRests = [];
+    /// <summary>How many throwing beats the way back round the circle takes, from the stop to the rest.</summary>
+    private const double TakeoutBack = 1.7;
+    /// <summary>The circle the hand goes back round, about where the elbow is (out on its own side, up, ahead) and as wide; the
+    /// places on it it goes through, degrees from straight out on its own side (90 the top), the last where it rests.</summary>
+    private const double TakeoutWheelX = 0.10, TakeoutWheelY = 0.10, TakeoutWheelZ = 0.0, TakeoutWheelRadius = 0.30;
+    private static readonly double[] TakeoutWheelAngles = [135, 90, 45, 0, -35];
     /// <summary>A reverse catch inside, further back than a cascade's, clear of a cascade's ball going up there at a change of pattern (DESIGN.md 118.43).</summary>
     private const double ReverseCatchBack = 0.08;
     // A club is half a metre long: caught well out to the side, the elbow out, or two meet in the air (the user).
@@ -732,23 +741,36 @@ public sealed class Juggling
                 return;
             }
             // The 4: swung up from a little below on its own side.
-            AddSmooth(hand, (thrown - MillsBottomAt * Dwell * beat, from + new Vec3(0, -CascadeLoopDepth, 0), Still, throwStyle));
+            // (After a carry back, its rest low on this side is the bottom of the swing.)
+            if (!_takeoutRests.Any(r => r.Hand == hand && r.T < thrown && r.T > thrown - 0.6))
+                AddSmooth(hand, (thrown - MillsBottomAt * Dwell * beat, from + new Vec3(0, -CascadeLoopDepth, 0), Still, throwStyle));
             AddSmooth(hand, (thrown, from, Still, throwStyle));
             _launch[(hand, thrown)] = leaves.Y * CascadeLaunch;
             _launchAcross[(hand, thrown)] = leaves.X * CascadeLaunch;
-            // Taken over there from above, the hand going on in a little and down with it.
+            // Taken near the middle as it falls, with a quick swipe (the user), and carried straight on across to the far
+            // side, where the hand stops once.
             AddSmooth(to, (caught, into, Still, catchStyle));
-            _arrive[(to, caught)] = new Vec3(-side * TakeoutTakeOn, arrives.Y * TakeoutArrive, 0);
-            double stopFrom = caught + TakeoutStopAfter, stopTo = stopFrom + TakeoutStopFor;
-            var stop = into + new Vec3(-side * TakeoutStopOn, -TakeoutStopDown, 0);
+            _arrive[(to, caught)] = new Vec3(-side * TakeoutSwipeCarry, arrives.Y * TakeoutArrive, 0);
+            double stopFrom = caught + TakeoutCarry, stopTo = stopFrom + TakeoutStopFor;
+            var stop = new Vec3(-side * TakeoutCarryTo, TakeoutTakeHigh - TakeoutStopDown, into.Z);
             _keys[to].Add((stopFrom, stop, Still, catchStyle));
-            _keys[to].Add((stopTo, stop, Still, catchStyle));
-            // Back over the top at an even speed (the time to the top as the way to it), to rest low on its own side.
-            var over = new Vec3(side * TakeoutOverOut, TakeoutOverHigh, TakeoutOverAhead);
-            var rest = new Vec3(side * TakeoutOwnOut, TakeoutRestHigh, TakeoutOwnAhead);
-            double home = stopTo + TakeoutBack * beat, a = (over - stop).Length, b = (rest - over).Length;
-            AddSmooth(to, (stopTo + (home - stopTo) * a / (a + b), over, Still, Style.Own));
-            AddSmooth(to, (home, rest, Still, Style.Own));
+            _keys[to].Add((stopTo, stop, Still, Style.Show));
+            // Back round a wide circle about the elbow (the user: further out), up over the top, out past its own side and down
+            // to rest low there, at an even speed (the time between two places as the way between them).
+            var way = new List<Vec3> { stop };
+            foreach (double degrees in TakeoutWheelAngles)
+            {
+                double th = degrees * Math.PI / 180;
+                way.Add(new Vec3(side * (TakeoutWheelX + TakeoutWheelRadius * Math.Cos(th)), TakeoutWheelY + TakeoutWheelRadius * Math.Sin(th), TakeoutWheelZ));
+            }
+            double home = stopTo + TakeoutBack * beat, total = 0;
+            var run = new List<double> { 0 };
+            for (int i = 1; i < way.Count; i++)
+                run.Add(total += (way[i] - way[i - 1]).Length);
+            // The palm turned to the front all the way back, the ball shown to the audience (the user).
+            for (int i = 1; i < way.Count; i++)
+                AddSmooth(to, (stopTo + (home - stopTo) * run[i] / total, way[i], Still, Style.Show));
+            _takeoutRests.Add((to, home));
             return;
         }
         // The reverse cascade goes round softly too, as Mills' Mess does (DESIGN.md 118.29): each hand round a loop the other
@@ -977,7 +999,7 @@ public sealed class Juggling
         if (Has(throwTricks, TakeoutHigh))
         {
             from = new Vec3(s * TakeoutHighOut, 0, TakeoutHighAhead);
-            into = new Vec3(-s * TakeoutTakePast, TakeoutTakeHigh, TakeoutHighAhead);
+            into = new Vec3(s * TakeoutTakeAt, TakeoutTakeHigh, TakeoutTakeAhead);
             catchStyle = Style.Claw;
         }
         // Claw: the palm down, the ball snatched from above at the face on its way up (the user); thrown with the palm down too.
