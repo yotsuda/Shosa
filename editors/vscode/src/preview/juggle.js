@@ -598,8 +598,12 @@ export function createJuggle(scene) {
             } else {
               let hand = frames[0][j + 3] | 0, last = -Infinity;
               for (const fl of juggle.flights) if (fl[0] === b && fl[4] < sec && fl[4] > last) [hand, last] = [fl[2], fl[4]];
-              const claw = (juggle.styles?.[Math.min(juggle.styles.length - 1, Math.round(frame))]?.[hand] | 0) === 1;
-              const stack = p.clone().sub(figurePalm(figure.points, clip.joints, hand === 0 ? 'right' : 'left', new THREE.Vector3(), palmAlong(juggle.prop), claw ? -0.05 : PALM_UP));
+              const heldStyle = juggle.styles?.[Math.min(juggle.styles.length - 1, Math.round(frame))]?.[hand] | 0;
+              // As the server puts it (Solver: a claw's under the palm, a turned-out hold's not raised): only how far the
+              // ball is from that is added to the character's palm. (Taken as raised, a takeouts' swiped ball hung 4 cm
+              // below the turned-out palm: the user, the ball and the palm apart.)
+              const up = heldStyle === 1 ? -0.05 : heldStyle === 5 ? 0 : PALM_UP;
+              const stack = p.clone().sub(figurePalm(figure.points, clip.joints, hand === 0 ? 'right' : 'left', new THREE.Vector3(), palmAlong(juggle.prop), up));
               p.copy(track.palm(hand, sec)).add(stack);
               [from, to, u] = [hand, hand, 0];
               // Held, caught from Mills or to be thrown in it: in its plane too.
