@@ -702,7 +702,7 @@ public sealed class Juggling
     private const double TakeoutUnderLaunch = 0.8, TakeoutUnderOutAt = 0.5, TakeoutUnderOut = 0.15, TakeoutUnderOutUp = 0.30;
     /// <summary>How fast the hand holding the swiped 4 sets off up its round from where the swipe ends (m/s; the user: it goes
     /// up at nearly the same time as the other arm throws from under it).</summary>
-    private const double TakeoutRoundStartSpeed = 1.4;
+    private const double TakeoutRoundStartSpeed = 2.0;
     /// <summary>How far back along the swipe the round's way is guided from (metres): it sets off as the swipe went.</summary>
     private const double TakeoutRoundLeadIn = 0.3;
     /// <summary>The 3 thrown from well outside, this far out and this far forward (as tennis's), and this part of a beat sooner, caught as much later.</summary>
@@ -723,7 +723,7 @@ public sealed class Juggling
     /// at the 4's catch, how fast it goes down with it (a part of the ball's speed).</summary>
     private const double TakeoutLaunch = 0.6, TakeoutSwipeSpeed = 1.6, TakeoutArrive = 0.25;
     /// <summary>On the far side the hand stops once: for how long (seconds), how far below the catch (metres).</summary>
-    private const double TakeoutStopFor = 0.0, TakeoutStopDown = -0.08;
+    private const double TakeoutStopFor = 0.0, TakeoutStopDown = -0.14;
     /// <summary>Where and when each round came low and in, before the next 4: the hand, seconds.</summary>
     private readonly List<(int Hand, double T)> _takeoutRests = [];
     /// <summary>The swipes' catches of the 4s: the hand, seconds.</summary>
@@ -739,9 +739,11 @@ public sealed class Juggling
     /// <summary>How far above the hand the ball it holds is (metres): the round's top is put this far below the 3's.</summary>
     private const double TakeoutBallAbove = 0.04;
     /// <summary>Seconds at the least from the stop after the swipe up to the round's top.</summary>
-    private const double TakeoutRiseLeast = 0.17;
+    private const double TakeoutRiseLeast = 0.14;
     /// <summary>How much of the top's raise (to the 3's top) the round's place out on its own side after it takes.</summary>
     private const double TakeoutAfterTopRaise = 0.7;
+    /// <summary>The round's top's time: this part of the way from the 3's top to where an even speed would put it.</summary>
+    private const double TakeoutTopEven = 0.5;
     /// <summary>When the other hand throws its 3 from outside while this hand goes round (seconds).</summary>
     private double _takeoutAcross;
     /// <summary>When the hand's own 3 thrown before the swipe is at its top, and how high (the round's top goes there then).</summary>
@@ -797,7 +799,10 @@ public sealed class Juggling
             double g = rise > 0 ? 1 - (1 - f) * (1 - f) : f;
             // (The rise over the middle in time: by the angle, which turns slowly at first, it came just before the catch and
             // the hand dropped sharply onto the 4.)
-            return SwipePlace(side, a, r0 + (r1 - r0) * g, y0 + (y1 - y0) * f + rise * Math.Sin(Math.PI * u));
+            // (After the catch the height comes on as the square: level from the catch, and going up into the stop as fast as
+            // the round sets off up from there. Evenly, the swipe ended level and the hand turned up only at the stop.)
+            double lift = rise > 0 ? f : f * f;
+            return SwipePlace(side, a, r0 + (r1 - r0) * g, y0 + (y1 - y0) * lift + rise * Math.Sin(Math.PI * u));
         }
         for (double t = t0 + TakeoutRoundEvery; t < t1 - TakeoutRoundEvery * 0.5; t += TakeoutRoundEvery)
             _keys[hand].Add((t, At(t), (At(t + 1e-3) - At(t - 1e-3)) * (1 / 2e-3), t >= outwardFrom ? Style.Outward : style));
@@ -1013,7 +1018,7 @@ public sealed class Juggling
                             double turn = Math.Min((before + after) / 2, 3 * Math.Min(before, after));
                             _keys[hand].RemoveAll(k => k.T > take.T + 1e-9 && k.T < arc.StopT - 1e-9);
                             SwipeAlong(hand, side, take.T, arc.Angle, arc.Radius, arc.Y, turn, arc.StopT, arc.StopAngle, arc.StopRadius, arc.StopY, arc.StopTurn, arc.Style);
-                            _arrive[(hand, take.T)] = SwipeVelocity(side, arc.Angle, arc.Radius, arc.Y, turn, arc.StopAngle, arc.StopRadius, arc.StopY);
+                            _arrive[(hand, take.T)] = SwipeVelocity(side, arc.Angle, arc.Radius, arc.Y, turn, arc.StopAngle, arc.StopRadius, arc.Y);
                             arc = arc with { Turn = turn };
                         }
                         _launchAcross[(hand, thrown)] = SwipeVelocity(side, a0, r0, from.Y, w0, arc.Angle, 2 * arc.Radius - r0, arc.Y).X;
@@ -1076,11 +1081,15 @@ public sealed class Juggling
                 var (ac, rc) = SwipePolar(side, into);
                 var (az, rz) = SwipePolar(side, stop);
                 double average = (az - ac) / (stopFrom - caught), turn = SwipeCatchTurn * average;
-                _arrive[(to, caught)] = SwipeVelocity(side, ac, rc, into.Y, turn, az, rz, stop.Y);
+                // (Level at the catch: the height comes on as the square of the way, SwipeAlong.)
+                _arrive[(to, caught)] = SwipeVelocity(side, ac, rc, into.Y, turn, az, rz, into.Y);
                 _swipeArcs[(to, caught)] = (ac, rc, into.Y, turn, stopFrom, az, rz, stop.Y, SwipeStopTurn * average, catchStyle);
                 _swipeHolds.Add((to, caught - SwipeHoldBefore, stopFrom));
                 SwipeAlong(to, side, caught, ac, rc, into.Y, turn, stopFrom, az, rz, stop.Y, SwipeStopTurn * average, catchStyle);
-                swipeEnd = SwipeVelocity(side, az, rz, stop.Y, SwipeStopTurn * average, az, rz, stop.Y);
+                // At the stop: round the arc, and up twice as fast as the height goes on average along it (the square's end).
+                double endTurn = SwipeStopTurn * average, span = az - ac;
+                swipeEnd = new Vec3(side * ((rz - rc) / span * Math.Cos(az) - rz * Math.Sin(az)), 2 * (stop.Y - into.Y) / span,
+                    (rz - rc) / span * Math.Sin(az) + rz * Math.Cos(az)) * endTurn;
             }
             bool stops = stopTo > stopFrom + 1e-6;
             int stopKey = _keys[to].Count;
@@ -1146,8 +1155,14 @@ public sealed class Juggling
             // average speeds either side (their harmonic mean, so it never turns back).
             var knots = new List<(double T, double S)> { (stopTo, 0) };
             // (No sooner than TakeoutRiseLeast after the stop: at the 3's top itself, the hand leapt up at 6.7 m/s.)
+            // (Half way from the 3's top to where an even speed round would put it: at the 3's top alone, the way up to it was
+            // slow after a quick swipe, and the hand slowed from 2.5 to 1.3 m/s just after the stop.)
             if (topKnown)
-                knots.Add((Math.Max(_takeoutTopAt, stopTo + TakeoutRiseLeast), along[topAt]));
+            {
+                double even = stopTo + (_takeoutNext > stopTo + 0.2 ? _takeoutNext - stopTo : 2 * beat) * along[topAt] / length;
+                double topTime = _takeoutTopAt + TakeoutTopEven * (even - _takeoutTopAt);
+                knots.Add((Math.Max(topTime, stopTo + TakeoutRiseLeast), along[topAt]));
+            }
             if (_takeoutAcross > knots[^1].T + 0.08 && _takeoutAcross < end - 0.1 && along[levelAt] > knots[^1].S)
                 knots.Add((_takeoutAcross, along[levelAt]));
             knots.Add((end, length));
@@ -1156,7 +1171,8 @@ public sealed class Juggling
             // Not from rest: the hand turns from the swipe straight up into the round (no faster than keeps the way going on).
             if (!stops)
             {
-                double start = Math.Min(TakeoutRoundStartSpeed, 2 * (knots[1].S - knots[0].S) / (knots[1].T - knots[0].T));
+                // (As fast as the swipe comes up into the stop, when that is faster: the hand slowed there from 2.5 to 1.2 m/s.)
+                double start = Math.Min(Math.Max(TakeoutRoundStartSpeed, swipeEnd.Length), 2 * (knots[1].S - knots[0].S) / (knots[1].T - knots[0].T));
                 slopes[0] = start;
                 // (Half way between the arc's last way and the round's first: turned there in a frame, the hand went round 85
                 // degrees at 70 m/s².)
