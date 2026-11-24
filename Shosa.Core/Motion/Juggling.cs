@@ -694,6 +694,8 @@ public sealed class Juggling
     private const double TakeoutUnderCross = 0.12, TakeoutUnderHigh = -0.06;
     /// <summary>The first 4, with no round before it: this part of the way from its own throwing place to the crossed one.</summary>
     private const double TakeoutFirstCross = 0.5;
+    /// <summary>The last 4, caught as a cascade's: this much further forward (metres).</summary>
+    private const double TakeoutLastAhead = 0.15;
     /// <summary>After the 4's throw from under the other arm: how fast the hand goes up with the ball (a part of its speed), and
     /// where it is this part of the way to its next catch: this far out on its own side, this much above the throw (the user:
     /// the arm goes up in the throw, as the other arm sets off up round its arc at nearly the same time).</summary>
@@ -738,6 +740,8 @@ public sealed class Juggling
     private const double TakeoutBallAbove = 0.04;
     /// <summary>Seconds at the least from the stop after the swipe up to the round's top.</summary>
     private const double TakeoutRiseLeast = 0.17;
+    /// <summary>How much of the top's raise (to the 3's top) the round's place out on its own side after it takes.</summary>
+    private const double TakeoutAfterTopRaise = 0.7;
     /// <summary>When the other hand throws its 3 from outside while this hand goes round (seconds).</summary>
     private double _takeoutAcross;
     /// <summary>When the hand's own 3 thrown before the swipe is at its top, and how high (the round's top goes there then).</summary>
@@ -1094,7 +1098,14 @@ public sealed class Juggling
             const int topIndex = 2;
             bool topKnown = !double.IsNaN(_takeoutTopAt);
             if (topKnown)
+            {
+                // (The place out on its own side after it raised as much: the top alone raised, the way bent sharply down there.)
+                double raised = _takeoutTopHigh - TakeoutBallAbove - places[topIndex].Y;
                 places[topIndex] = places[topIndex] with { Y = _takeoutTopHigh - TakeoutBallAbove };
+                places[topIndex + 1] = places[topIndex + 1] with { Y = places[topIndex + 1].Y + TakeoutAfterTopRaise * raised };
+                // (And the place before it: lowered with the top, the way went straight up and turned over sharply there.)
+                places[topIndex - 1] = places[topIndex - 1] with { Y = places[topIndex - 1].Y + TakeoutAfterTopRaise * raised };
+            }
             int levelIndex = places.Count;
             // Level with the other hand's 3 as that is thrown, no lower than the swipe's catch (the held ball's bottom).
             places.Add(new Vec3(side * TakeoutAcrossOut, TakeoutTakeHigh + TakeoutLevelAbove, TakeoutAcrossAhead));
@@ -1421,6 +1432,10 @@ public sealed class Juggling
             into = new Vec3(s * TakeoutTakeAt, TakeoutTakeHigh + TakeoutTakeRaise, TakeoutTakeAhead);
             catchStyle = Style.Outward;
         }
+        // The last 4, falling into the next pattern and caught as a cascade's: a little forward, near where the hand has just
+        // thrown its 3 from (at the cascade's place, it pulled back 25 cm in 0.15 s and the elbow dropped).
+        else if (Has(throwTricks, TakeoutHigh))
+            into = into with { Z = into.Z + TakeoutLastAhead };
         // Claw: the palm down, the ball snatched from above at the face on its way up (the user); thrown with the palm down too.
         if (Has(catchTricks, "clawCatch"))
         {
