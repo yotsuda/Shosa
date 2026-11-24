@@ -5,6 +5,19 @@
 下のパスはリポジトリの根から。
 - ★ **開始時に `C:\MyProj\Bamen\docs\repro\REQUESTS.md` の `open` を見る** (2026-11-23〜)。Bamen (撮影の言語。`shosa clip` を読んでカメラを解く) からの依頼の 1 枚。使い方は Shosa → Lily# の `docs/repro/REQUESTS.md` と同じ (入れたら `fixed <commit>`、入れないなら `won't`、聞くなら `question`)。1 は座る (と立ち上がる)、2 は曲がった道の歩き (急がない)。
 
+## 編集のたびに固まらないように (2026-11-25、DESIGN.md 120)
+
+ユーザー: 「.shosa を編集するとプレビューが更新されるまで少し固まる。Roslyn の red-green tree を参考にインクリメンタルビルドを」。測ると、固まりはプレビューのページ (編集 1 回 3.3 秒: 全コマ・全員ぶんの腕のめり込みよけのやり直し) だった。
+
+- **プレビュー**: 変わったコマだけ腕を出し直す (`characters.js` `movedFrames`、`clearance.js` `elbowSwings(…, was, dirty)`)。3320 → 16 ms、全部やり直しも 3300 → 320 ms。結果は前と完全に同じ (照合済み)。
+- **サーバー → 拡張 → ページ**: 最初だけ全部、あとは変わった行だけのパッチ (`Shosa.Lsp\ClipPatch.cs`、`preview\patch.js`、拡張が `clipPatches: true` と言う)。13 MB → 113 KB。パッチは前のものを書き換えず、変わらなかった物は同じオブジェクトのまま (下流はそれで使い回す)。
+- **打っている間は解かない**: 並んだ編集は最後の本文で 1 回だけ解く (`Program.cs` の読むスレッド、`LanguageServer.Flush`)。
+- **ソルバー**: コマごとの体幹を覚える (`SolvedAt`、`CoreOf`)。105 → 約 70 ms、出力は全部同じ。サーバーの編集 1 回は 210 → 約 90 ms。
+- **決まり (120.6)**: ソルバーを速くする変更は `tools\perf --dump` / `--compare` で全部の数が同じことを確かめる (60 譜の控えは `out\pv\corpus`、作り直しは 120.6 の一覧)。「ほぼ同じ時刻」の使い回しは数が変わるので退けた (最大 4.5 mm)。
+- 測る道具: `tools\perf` (サーバー、段ごと)、`out\pv\run-perf.ps1` [-Messages] (ページ、窓なしの Chrome)。
+- **ユーザーが見るのはこれから** (拡張は入れ直した: 各ウィンドウで Reload Window)。次の候補は 120.7: IR が同じクリップは解かない (スコアの多い譜とコメントの編集に効く)、長いジャグリングの譜のプレビュー、束縛の差分。ソルバーを時間の窓で差分にするのは、いまの作りでは正しさの根拠が取れないのでしていない。
+- Bamen の依頼 1 (座る)・2 (曲がった道) は `open` のまま (このセッションは速さだけ)。
+
 ## 現在地 (2026-11-22 の終わり)
 
 **試しの 1 曲を AI だけで振り付けた**: `scratch\Zunda-to-Metan-no-Jikoshokai.shosa` (曲は隣の `.lys`。`scratch\` は git に入っていない)。ずんだもんとめたんの 2 人、58 小節 108.75 秒、`check` は no problems。
@@ -111,5 +124,8 @@ cd editors\vscode; npm run build; npm run check; npm test   # npm test はプレ
 code --extensionDevelopmentPath=C:\MyProj\Shosa\editors\vscode C:\MyProj\Shosa\samples   # 拡張を読み込んだ VS Code
 tools\deploy-extension.ps1   # 拡張をパッケージにして、この PC の VS Code に入れる (-SkipPublish: サーバーは前回のまま。C# を変えたコミットの後には使わない: 古いサーバーが入る。DESIGN.md 97.5。-NoPack: 入れるだけ)。あとは各ウィンドウで Reload Window
 tools\test-extension-host.ps1   # 入れた拡張を実際の VS Code (空のプロファイル、窓が数秒開く) で試す: Copilot 向けの道具 3 つ、保存前の編集、ターミナルの shosa。-Repository で editors\vscode の拡張。DESIGN.md 45 節
+dotnet run -c Release --project tools\perf -- scratch\Zunda-to-Metan-no-Jikoshokai.shosa --find "up.fwd(15"   # 編集 1 回のコストを段ごとに (サーバー側。DESIGN.md 120.1)
+tools\perf\bin\Release\net10.0\Shosa.Perf.exe --compare out\pv\corpus @(Get-ChildItem samples\*.shosa, scratch\*.shosa, out\juggle\*.shosa, out\vrm\*.shosa, out\mic\*.shosa, out\walkfeet\*.shosa, out\sing6\*.shosa | % FullName)   # ソルバーの出力が控えと同じか (速くする変更の前に --dump で控える。DESIGN.md 120.6)
+out\pv\run-perf.ps1 [-Messages]   # プレビューのページで編集 1 回のコスト (窓なしの Chrome)。-Messages はサーバーの本物のパッチで (先に dotnet build -c Release tools\perf)
 tools\pack-extension.ps1     # パッケージだけ: artifacts\extension\shosa-win32-x64-<版>.vsix (サーバーと shosa を .NET ごと同梱。Lily# は入れない。DESIGN.md 24 節。THIRD-PARTY-NOTICES.txt は tools\third-party-notices.ps1 が毎回作る。87.7)
 ```

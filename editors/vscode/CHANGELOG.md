@@ -12,7 +12,7 @@ The first release, for Windows (x64).
 
 ### Preview
 
-- **Open Preview to the Side** (Ctrl+K V): the figures move as you type. The word being performed is lit in the source; put the cursor on a word to see its pose; click a limb to go to the word that put it there.
+- **Open Preview to the Side** (Ctrl+K V): the figures move as you type. The word being performed is lit in the source; put the cursor on a word to see its pose; click a limb to go to the word that put it there. An edit of a long dance does not hold the preview up: only the frames it moved are sent and worked out again.
 - **Dancing to a song**: `music "song.lys"` takes the tempo, the time and the order of the sections from a [Lily#](https://yotsuda.github.io/LilySharp/) song, and the preview plays the song with the dance. The song is read by the Lily# extension, which is needed only for this.
 - A score without a song is heard as a click on every beat and a clap at every mark (`!hit`).
 - **Camera** (the button at the bottom of the preview): **Fit** (or F) frames the whole score, every dancer and everything they juggle from start to end, as close as it fits; **Zoom**, **Height** and **Angle** move the view by hand, and **Reset** puts it back. The view is kept, and the MP4 is filmed from it.
