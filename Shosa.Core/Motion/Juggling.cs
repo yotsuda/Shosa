@@ -1207,7 +1207,12 @@ public sealed class Juggling
             var slopes = new double[knots.Count];
             // Past the face (the round's top), the palm turns up and the elbow opens wide downward at once (the user: opened
             // only once out on its own side, it was late, and the elbow rose in between), till the next throw.
-            double opensAt = topKnown && knots.Count >= 3 ? knots[1].T + LowSwingAfterTop : stopTo + 0.5 * (end - stopTo);
+            // The arm's own shape from the stop up to the face and out (ArcOut), then the elbow opens and the hand comes down.
+            // (From the stop on, at one speed: from the round's top, the arm in its shape stood 15 cm above the way's top and the
+            // hand shot up to it at 4 m/s, stopped out on its side and hurried down at 5 m/s.)
+            double arcEnd = Math.Min(stopTo + ArcOutFor, end - ArcOpenFor - ArcOutRelease);
+            _arcOuts.Add((to, stopTo, stopTo + ArcRampFor, arcEnd));
+            double opensAt = arcEnd + ArcOpenFor + LowSwingAfterTop;
             _lowSwings.Add((to, opensAt, end));
             slopes[^1] = TakeoutRoundEndSpeed;
             // Not from rest: the hand turns from the swipe straight up into the round (no faster than keeps the way going on).
@@ -1253,7 +1258,7 @@ public sealed class Juggling
                 var direction = (way[i] - way[i - 1]).Normalized();
                 // The palm kept turned out all the way round (the user: the wrist not turned after the catch), up again only for
                 // the swing up into the throw.
-                _keys[to].Add((t, at, direction * Math.Max(0, v), t < opensAt && end - t > TakeoutPalmUpBefore ? Style.Outward : Style.Own));
+                _keys[to].Add((t, at, direction * Math.Max(0, v), t < arcEnd && end - t > TakeoutPalmUpBefore ? Style.Outward : Style.Own));
             }
             // (The round's end, low and in, is the bottom of the throw's swing: no other put there.)
             _takeoutRests.Add((to, end - TakeoutRoundEvery));
@@ -1934,12 +1939,41 @@ public sealed class Juggling
         return most;
     }
 
+    /// <summary>Takeouts' rounds' arc out past the face: the hand, the stop it rises from, the top (before the face) and where it is out (seconds).</summary>
+    private readonly List<(int Hand, double Stop, double Top, double Out)> _arcOuts = [];
+    /// <summary>How long the arc out from before the face to out on the own side takes, and how long it takes to give way after (seconds).</summary>
+    private const double ArcOutFor = 0.28, ArcOutRelease = 0.3, ArcOpenFor = 0.10, ArcRampFor = 0.14;
+    /// <summary>
+    /// Takeouts' arc out past the face (the user, 2026-11-24): how much the arm is in its own shape, 0..1 (coming on as the
+    /// hand rises from the stop to before the face, going after it is out), and how far round, 0 before the face to 1 out on
+    /// its own side: the upper arm level, turning out round the shoulder, the forearm upright on it, the elbow at 90 degrees.
+    /// </summary>
+    public (double Weight, double Round) ArcOut(int hand, double sec)
+    {
+        foreach (var (h, stop, top, outAt) in _arcOuts)
+        {
+            // (Then, out, 1 to 2: the forearm opens out round the elbow, the elbow staying where it is, pointing down; then the
+            // arm gives way to its way down.)
+            double opened = outAt + ArcOpenFor;
+            if (h != hand || sec < stop || sec > opened + ArcOutRelease)
+                continue;
+            double w = sec < top ? (sec - stop) / Math.Max(1e-6, top - stop) : sec <= opened ? 1 : 1 - (sec - opened) / ArcOutRelease;
+            // (Round from the stop at one speed, the shape coming on over the first part; then the forearm opens.)
+            double u = Math.Clamp((sec - stop) / Math.Max(1e-6, outAt - stop), 0, 1), v = Math.Clamp((sec - outAt) / ArcOpenFor, 0, 1);
+            // (Both at one speed; then, giving way, 2 to 3, the opened arm goes on down round the shoulder: still there, the hand
+            // stopped where the forearm had opened, 1.2 m/s, and then shot down at 4.6.)
+            double down = sec > opened ? (sec - opened) / ArcOutRelease : 0;
+            return (w * w * (3 - 2 * w), u + v + down);
+        }
+        return (0, 0);
+    }
+
     /// <summary>Takeouts' rounds' way down: the hand, from out on its own side to its next throw (seconds).</summary>
     private readonly List<(int Hand, double From, double To)> _lowSwings = [];
     /// <summary>How long after the throw the way down's open elbow goes (seconds).</summary>
     private const double LowSwingAfter = 0.3;
     /// <summary>How long the elbow takes to open (seconds), from this long after the round's top (past the face).</summary>
-    private const double LowSwingRise = 0.6, LowSwingAfterTop = 0.1;
+    private const double LowSwingRise = 0.06, LowSwingAfterTop = 0.0;
     /// <summary>
     /// How much a hand is on its round's way down at a time, 0..1: from out on its own side, the elbow opening wide downward
     /// (the user: the elbow up and the hand down looked wrong), till its throw from under the other arm, and a little after.

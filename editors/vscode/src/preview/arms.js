@@ -93,7 +93,11 @@ export function millsArms(vrm, body, size, figure, weight, angles = null, pull =
     const planed = Math.max(0, Math.min(1, plane?.[side] ?? 0));
     const target = fw.clone().sub(fs).multiplyScalar(k).add(shoulder).addScaledVector(forward, ahead * (1 - Math.max(pulled, planed)));
     if (trunkAt) {
-      const short = rz + armRadius + HAND_CLEAR * (1 - pulled) * k - target.clone().sub(trunkAt).dot(forward);
+      // (Only while the hand is before the trunk side to side: out beside it, takeouts' arc out kept the wrist 4-10 cm ahead
+      // of the elbow, where the user wants the forearm upright, DESIGN.md 118.49.)
+      const beside = Math.abs(target.clone().sub(trunkAt).dot(left)) - (rx + armRadius);
+      const before = Math.max(0, Math.min(1, 1 - beside / (0.06 * k)));
+      const short = (rz + armRadius + HAND_CLEAR * (1 - pulled) * k - target.clone().sub(trunkAt).dot(forward)) * before;
       if (short > 0) target.addScaledVector(forward, short);
     }
     // The windmill's hand from under the arm goes round its wheel, its elbow held (DESIGN.md 118.34): the elbow where the

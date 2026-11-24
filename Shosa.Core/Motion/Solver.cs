@@ -903,6 +903,9 @@ internal sealed class FigureSolver
     /// <summary>Takeouts' round: the place the elbow is turned toward is a forearm below the hand and this far out on its own side
     /// (metres: straight below, the elbow came in under the shoulder, inside a character's thicker trunk, and shook).</summary>
     private const double RoundElbowAside = 0.18;
+    /// <summary>Takeouts' arc out: the upper arm's turn from straight forward (degrees, + out to its own side) before the face
+    /// and out, and how far below level it is.</summary>
+    private const double ArcFrom = -40, ArcTo = 70, ArcDrop = 0, ArcOpen = 60, ArcLower = 60;
     /// <summary>Takeouts' round's way down: the opened elbow points back, this much out and this much down beside it (not straight down: with the hand below the shoulder, down lay along the arm and the elbow flipped out and back in a frame), and opens to this angle (degrees).</summary>
     private const double LowElbowOut = 0.6, LowElbowBack = 0.0, LowElbowDown = 1.0, LowElbowAhead = 2.5, LowElbowAngle = 120;
     /// <summary>How far off its place side to side Mills' elbow may be (metres) against how far round its circle it goes (radians).</summary>
@@ -3312,6 +3315,44 @@ internal sealed class FigureSolver
                         else
                             bend = Vec3.Slerp(bend, opened, onPlane);
                     }
+                }
+                // Takeouts' arc out past the face, the arm in its own shape (the user, 2026-11-24: the forearm upright, the wrist
+                // as far forward as the elbow, the elbow kept at 90 degrees and not rising as the hand goes out; it did not do so
+                // put by the hand's way): the upper arm a little below level, turning round the shoulder from forward and in
+                // (before the face) to out on its own side; the forearm straight up from the elbow.
+                var (arcWeight, arcRound) = Juggling.ArcOut(isLeft ? 1 : 0, juggleSec);
+                arcWeight *= juggleWeight;
+                if (arcWeight > 0)
+                {
+                    double turn = (ArcFrom + (ArcTo - ArcFrom) * Math.Min(1, arcRound)) * Math.PI / 180, drop = ArcDrop * Math.PI / 180;
+                    var level = juggleFwd * Math.Cos(turn) + juggleLeft * (side * Math.Sin(turn));
+                    var elbowAt = shoulder + level * (Rig.UpperArm * Math.Cos(drop)) - Vec3.Up * (Rig.UpperArm * Math.Sin(drop));
+                    // (Out, the forearm opens out round the elbow toward the upper arm's own way, the elbow pointing down.)
+                    double open = ArcOpen * Math.Clamp(arcRound - 1, 0, 1) * Math.PI / 180;
+                    var forearmWay = Vec3.Up * Math.Cos(open) + level * Math.Sin(open);
+                    // (Round the shoulder, the way and the length each between the two: straight between them, the hand cut in
+                    // toward the shoulder, 0.52 and 0.58 m out to 0.40, and the opened elbow folded to 80 degrees on the way down.)
+                    var shaped = elbowAt + forearmWay * (Rig.Forearm - 0.002) - shoulder;
+                    // (Giving way, the opened arm turns on down round the shoulder, out to down, on the upright plane.)
+                    double lower = ArcLower * Math.Clamp(arcRound - 2, 0, 1) * Math.PI / 180;
+                    if (lower > 0)
+                    {
+                        var axis = (juggleLeft * side).Cross(-Vec3.Up).Normalized();
+                        Vec3 Turn(Vec3 v) => v * Math.Cos(lower) + axis.Cross(v) * Math.Sin(lower) + axis * (axis.Dot(v) * (1 - Math.Cos(lower)));
+                        shaped = Turn(shaped);
+                        elbowAt = shoulder + Turn(elbowAt - shoulder);
+                    }
+                    var ownWay = hand - shoulder;
+                    if (ownWay.Length > 1e-6 && shaped.Length > 1e-6)
+                        hand = shoulder + Vec3.Slerp(ownWay.Normalized(), shaped.Normalized(), arcWeight) * (ownWay.Length + (shaped.Length - ownWay.Length) * arcWeight);
+                    // (The elbow toward its place in the arm's shape, or, as that gives way, toward the way down's place, a
+                    // forearm below the hand and out: turned at once between the two, the elbow leapt up and down at 120-190.)
+                    var below = hand - Vec3.Up * Rig.Forearm + juggleLeft * (side * RoundElbowAside);
+                    var toward = Vec3.Lerp(below, elbowAt, arcWeight) - (shoulder + hand) * 0.5;
+                    var along2 = (hand - shoulder).Normalized();
+                    toward -= along2 * toward.Dot(along2);
+                    if (toward.Length > 1e-6)
+                        bend = Vec3.Slerp(bend.Length < 1e-6 ? pole.Normalized() : bend.Normalized(), toward.Normalized(), arcWeight);
                 }
                 // The windmill's wheel: the elbow held where the wheel's axle is (DESIGN.md 118.34).
                 if (wheel is { Held: true } held2)
