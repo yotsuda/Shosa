@@ -132,11 +132,16 @@ export function createCharacters(scene, changed) {
     // (Test pages: globalThis.shosaNoMillsArms leaves them as the turns put them, shosaNoClearance keeps nothing out after.)
     // The elbows' angles are worked out for the whole clip beforehand (millsOf); `millsFound` is that working out, which
     // takes what each frame finds alone.
-    const mills = data.juggle && data.juggle.mills;
+    // Takeouts the same way (DESIGN.md 118.49, juggle.follow), but the elbows pointing as the figure's: with the turns alone
+    // on a character with shorter arms, the hand holding the swiped ball slowed from 1.6 to 0.7 m/s as it went up past the
+    // other arm's elbow, where the figure's went on at 1.5 (the user: the hand and the elbow go past each other smoothly).
+    const mills = data.juggle && data.juggle.mills, follow = data.juggle && data.juggle.follow;
     let millsGot = null;
     if (mills && mills.length && entry.body && !globalThis.shosaArmsAsSolved && !globalThis.shosaNoMillsArms) {
       const m0 = mills[Math.min(mills.length - 1, f0)], m1 = mills[Math.min(mills.length - 1, f0 + 1)];
-      const weight = m0 + (m1 - m0) * k;
+      const o0 = follow?.[Math.min(follow.length - 1, f0)] ?? 0, o1 = follow?.[Math.min(follow.length - 1, f0 + 1)] ?? 0;
+      const held = m0 + (m1 - m0) * k, followed = globalThis.shosaNoFollowArms ? 0 : o0 + (o1 - o0) * k;
+      const weight = Math.max(held, followed);
       if (weight > 0) {
         const p = frames[f0], q = frames[Math.min(frames.length - 1, f0 + 1)];
         // The windmill's top forearm drawn in (DESIGN.md 118.33) and its wheel's held elbow (118.34), [right, left] at each frame.
@@ -147,7 +152,7 @@ export function createCharacters(scene, changed) {
         millsGot = millsArms(vrm, entry.body, size, name => {
           const j = clip.joints.indexOf(name);
           return new THREE.Vector3(p[j * 3] + (q[j * 3] - p[j * 3]) * k, p[j * 3 + 1] + (q[j * 3 + 1] - p[j * 3 + 1]) * k, p[j * 3 + 2] + (q[j * 3 + 2] - p[j * 3 + 2]) * k);
-        }, weight, millsFound ? null : millsAt(entry, data, frame), sides(data.juggle.pull), sides(data.juggle.wheel));
+        }, weight, millsFound ? null : millsAt(entry, data, frame), sides(data.juggle.pull), sides(data.juggle.wheel), followed >= held ? 1 : 0);
       }
     }
     if (millsFound) millsFound.push(millsGot);
@@ -179,7 +184,7 @@ export function createCharacters(scene, changed) {
   function millsOf(entry, clip, data, size) {
     if (entry.mills?.data === data && entry.mills.size === size) return;
     entry.mills = null;
-    if (!(data.juggle && data.juggle.mills && data.juggle.mills.some(w => w > 0))) return;
+    if (!(data.juggle && (data.juggle.mills?.some(w => w > 0) || data.juggle.follow?.some(w => w > 0)))) return;
     const found = [];
     for (let f = 0; f < data.turns.length; f++) place(entry, clip, data, f, false, found);
     entry.mills = { data, size, ...millsAngles(data.turns.length, f => found[f]) };

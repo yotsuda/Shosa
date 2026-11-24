@@ -404,8 +404,9 @@ public class JuggleTests
             // The palm turned out as it swipes and catches, and kept so after (the user).
             Assert.Equal((int)Juggling.Style.Outward, styles[(int)Math.Round(f[4] * clip.Fps)][hand]);
             Assert.Equal((int)Juggling.Style.Outward, styles[(int)Math.Round((f[4] + 0.3) * clip.Fps)][hand]);
-            // (Only to the middle: the forearm turns round the elbow kept out on its own side, DESIGN.md 118.49.)
-            Assert.True(Out(hand, f[4] + 0.15) < 0, $"carried across to {Out(hand, f[4] + 0.15):0.00} m by {f[4] + 0.15:0.00} s");
+            // (Only to the middle: the forearm turns round the elbow kept out on its own side, and the swipe rises into the
+            // round there, DESIGN.md 118.49.)
+            Assert.True(Out(hand, f[4] + 0.15) < 0.05, $"carried across to {Out(hand, f[4] + 0.15):0.00} m by {f[4] + 0.15:0.00} s");
             var three = flights.Where(g => (int)g[1] == hand && g[3] < f[4]).MaxBy(g => g[3])!;
             Assert.Equal(1, (int)three[0]);   // the one thrown across from outside, never swiped: ball 1 (blue)
             Assert.True(three[2] != hand && f[4] - three[3] < 0.25, $"its 3 just before, at {three[3]:0.00} s");

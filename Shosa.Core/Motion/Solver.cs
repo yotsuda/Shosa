@@ -442,7 +442,7 @@ public static class Solver
         }
 
         var result = new ClipJuggle(juggling.Prop, juggling.Balls, [], [],
-            [.. juggling.Flights.Select(fl => new[] { fl.Ball, fl.From, fl.To, (float)Math.Round(fl.Thrown, 4), (float)Math.Round(fl.Caught, 4), fl.Mills ? 1f : 0f, fl.MillsThird })], [], [], [], []);
+            [.. juggling.Flights.Select(fl => new[] { fl.Ball, fl.From, fl.To, (float)Math.Round(fl.Thrown, 4), (float)Math.Round(fl.Caught, 4), fl.Mills ? 1f : 0f, fl.MillsThird })], [], [], [], [], []);
         for (int f = 0; f < frames.Count; f++)
         {
             double sec = (double)f / fps;
@@ -462,6 +462,7 @@ public static class Solver
             result.Weight.Add((float)Math.Round(juggling.Weight(sec), 3));
             result.Styles.Add([(int)juggling.StyleAt(0, sec), (int)juggling.StyleAt(1, sec)]);
             result.Mills.Add((float)Math.Round(juggling.MillsAt(sec) * juggling.Weight(sec), 3));
+            result.Follow!.Add((float)Math.Round(juggling.TakeoutAt(sec) * juggling.Weight(sec), 3));
             // How much the windmill's top arm has its forearm drawn in, [right, left]: the preview, which solves a
             // character's arms again in Mills' Mess and the windmill, lets its hand in to the trunk as much (DESIGN.md 118.33).
             result.Pull!.Add([(float)Math.Round(juggling.WindmillPull(0, sec) * juggling.Weight(sec), 3), (float)Math.Round(juggling.WindmillPull(1, sec) * juggling.Weight(sec), 3)]);

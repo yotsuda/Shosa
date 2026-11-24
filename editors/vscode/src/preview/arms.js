@@ -5,6 +5,7 @@
 // elbows out and in, 0.24 m side to side. Here, while Mills' Mess has the arms, each arm is aimed again: the hand where
 // the figure's is from the shoulder, scaled to the character's arm and brought forward by how much thicker its trunk is,
 // and the elbow put as the solver puts the figure's (Solver.ElbowOut), but never inside the trunk side to side.
+// In takeouts (`followed`, DESIGN.md 118.49) the same, but the elbow pointing as the figure's, not held under the shoulder.
 import * as THREE from 'three';
 
 /** The figure's trunk and arm thickness (Solver.TrunkRadius, its arms as the sheet draws them), metres. */
@@ -44,7 +45,7 @@ function aim(bone, child, to) {
  * there instead of finding its place in this frame alone (millsAngles smooths them over the clip). Returns the angles
  * it found or used, or null.
  */
-export function millsArms(vrm, body, size, figure, weight, angles = null, pull = null, wheel = null) {
+export function millsArms(vrm, body, size, figure, weight, angles = null, pull = null, wheel = null, followed = 0) {
   if (!body || weight <= 0) return null;
   const found = {};
   const node = name => vrm.humanoid.getNormalizedBoneNode(name);
@@ -135,7 +136,7 @@ export function millsArms(vrm, body, size, figure, weight, angles = null, pull =
     const sideR = rx + armRadius, frontR = rz + armRadius;
     const cost = t => {
       const miss = (c0 + a * Math.cos(t) + b * Math.sin(t) - wanted) / (ELBOW_SLACK * k), turn = t / (globalThis.shosaElbowTurn ?? ELBOW_TURN);
-      let c = (miss * miss + turn * turn) * (1 - wheeled);
+      let c = (miss * miss * (1 - followed) + turn * turn) * (1 - wheeled);
       if (wheeled > 0) {
         at.copy(centre).addScaledVector(u, height * Math.cos(t)).addScaledVector(v, height * Math.sin(t));
         c += wheeled * (at.distanceTo(elbowHeld) / (0.01 * k)) ** 2;

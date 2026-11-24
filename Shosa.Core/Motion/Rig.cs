@@ -280,8 +280,10 @@ public sealed record ClipMic(string Hand, List<float> Up);
 /// way, 1 a claw's palm down, 2 a penguin's fingers down, 3 behind the back, 4 under the leg), for the preview to turn the hands.
 /// <paramref name="Mills"/>: how much Mills' Mess has the arms at each frame (0..1), for the preview to solve a character's
 /// arms again on its own body while it does (its elbows held side to side as the figure's are).
+/// <paramref name="Follow"/>: how much takeouts have the arms at each frame (0..1): the preview solves a character's arms
+/// again the same way, its hands on the figure's way and its elbows pointing as the figure's (DESIGN.md 118.49).
 /// </summary>
-public sealed record ClipJuggle(string Prop, int Count, List<float[]> Frames, List<float> Weight, List<float[]> Flights, List<int[]> Styles, List<float> Mills, List<float[]>? Pull = null, List<float[]>? Wheel = null);
+public sealed record ClipJuggle(string Prop, int Count, List<float[]> Frames, List<float> Weight, List<float[]> Flights, List<int[]> Styles, List<float> Mills, List<float[]>? Pull = null, List<float[]>? Wheel = null, List<float>? Follow = null);
 
 /// <summary>
 /// Degrees, more to the figure's left. <paramref name="Feet"/> is from the front of the room; the
