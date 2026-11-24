@@ -2150,7 +2150,10 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                     "backCatch" => tricks.FirstOrDefault(t => t is "penguinCatch" or "clawCatch" or "mills" or "windmill"),
                     "underThrow" => tricks.FirstOrDefault(t => t is "backThrow" or "penguinCatch" or "windmill"),
                     "mills" => tricks.FirstOrDefault(t => t is "windmill" or "backCatch"),
-                    "windmill" => tricks.FirstOrDefault(t => t is "mills" or "penguinCatch" or "backThrow" or "backCatch" or "underThrow"),
+                    "windmill" => tricks.FirstOrDefault(t => t is "mills" or "penguinCatch" or "backThrow" or "backCatch" or "underThrow" or "tennis" or "halfShower"),
+                    // Whole patterns of their own: one at a time.
+                    "tennis" => tricks.FirstOrDefault(t => t is "halfShower" or "mills" or "windmill" or "reverse"),
+                    "halfShower" => tricks.FirstOrDefault(t => t is "tennis" or "mills" or "windmill" or "reverse"),
                     _ => null,
                 };
                 if (clash is not null)

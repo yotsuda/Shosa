@@ -1380,6 +1380,7 @@ public static class GrammarDoc
               ball thrown up to the face and snatched from above there near its top; at `every 1/2` it suits a tempo
               of about 113 to 197, else SH2023 says the tempo it suits), `@reverse` (thrown from outside over the top, caught inside),
               `@tennis` (one ball thrown from well outside and higher, over the top of the others, to and fro like a tennis ball over the net; the rest a lower cascade nearer the middle),
+              `@halfShower` (the first hand always throws from well outside, higher, over the top; the other always from inside, lower, under it),
               `@backThrow` (thrown from behind the back over the other shoulder), `@backCatch` (caught behind the
               back, the ball come down over the shoulder it was thrown on), `@underThrow` (from under the thigh of the
               throwing hand's side); behind the back, the shoulders turn well round, that hand's side back.
@@ -1391,7 +1392,8 @@ public static class GrammarDoc
               or it is SH2022; behind the back, throw high enough to clear the shoulder (0.55 m, a throw
               every 1 at tempo 120), or it is SH2022. `@penguinCatch` goes with none of `@clawCatch`, `@backThrow`, `@backCatch`
               and `@underThrow`, nor `@backThrow` with `@underThrow`, nor `@backCatch` with `@clawCatch` or `@mills`, nor `@windmill`
-              with `@mills`, `@penguinCatch`, `@backThrow`, `@backCatch` or `@underThrow` (SH1010).
+              with `@mills`, `@penguinCatch`, `@backThrow`, `@backCatch` or `@underThrow`, nor `@tennis` and `@halfShower` with
+              each other, `@mills`, `@windmill` or `@reverse` (SH1010).
             - The preview draws the balls (clubs turning end over end, rings along the forearms, edge to the front) and turns a
               character's palms up while it throws. Exported files have the arms; the balls are not in them.
 

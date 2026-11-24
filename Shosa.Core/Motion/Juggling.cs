@@ -278,24 +278,27 @@ public sealed class Juggling
                     // seen from the front its arc went through theirs). Higher and lower is longer and shorter in the air: the
                     // tennis ball thrown a little before its beat and caught a little later, the others thrown a little after
                     // and caught a little sooner. Every catch is a cascade's, out on the side.
+                    // The half-shower (DESIGN.md 118.48) is the same two throws by hands, not by a ball: the word's first hand
+                    // (the right; @mirror the left) always over the top from outside, the other always under from inside.
                     var throwTricks = slot.Seg.Tricks;
                     double tennisShift = 0;
-                    if (throwTricks?.Contains("tennis") == true)
+                    bool tennis = throwTricks?.Contains("tennis") == true, halfShower = throwTricks?.Contains("halfShower") == true;
+                    if (!tennis)
+                        tennisBall = -1;
+                    if (tennis || halfShower)
                     {
-                        if (tennisBall < 0 && to != hand && t.Value >= 3)
+                        if (tennis && tennisBall < 0 && to != hand && t.Value >= 3)
                             tennisBall = ball;
-                        throwTricks = [.. throwTricks.Where(x => x != "tennis")];
+                        throwTricks = [.. throwTricks!.Where(x => x is not ("tennis" or "halfShower"))];
                         if (to != hand && t.Value >= 3)
                         {
-                            bool tennisOne = ball == tennisBall;
+                            bool tennisOne = tennis ? ball == tennisBall : hand == (slot.Seg.LeftFirst ? 1 : 0);
                             throwTricks.Add(tennisOne ? TennisThrow : TennisOther);
                             tennisShift = (tennisOne ? TennisLonger : -TennisShorter) * T;
                             // Caught no later than leaves the catching hand a part of its hold before it throws again.
                             caught = Math.Min(caught + tennisShift, SlotSec(land) - TennisLeastHold * Dwell * BeatSec(Math.Min(land, slots.Count - 1)));
                         }
                     }
-                    else
-                        tennisBall = -1;
                     // A claw catch (the user): thrown up to the face and snatched from above there at its top. Asked for before
                     // its top: the catching hand can be at the face no sooner than it has thrown its own ball (two throws before
                     // this one lands) and come up (0.18 s), and has to bring the ball down again for its next throw, and for
@@ -364,6 +367,17 @@ public sealed class Juggling
                         var landsAt = slots[Math.Min(land, slots.Count - 1)];
                         bool tennisNext = landsAt.Index == 0 && (land == 0 || slots[land - 1].Seg?.Tricks?.Contains("tennis") != true);
                         if (throwTricks?.Contains(TennisOther) != true && throwTricks?.Contains(TennisThrow) != true && !tennisNext)
+                            catchTricks.Add(TennisOther);
+                        if (catchTricks.Count == 0)
+                            catchTricks = null;
+                    }
+                    // Into a half-shower: a ball thrown before it and caught by the hand that throws over is caught inside, as
+                    // that hand catches the under-throws, clear of its first throw over going up outside (as tennis's).
+                    if (catchTricks is not null && catchTricks.Contains("halfShower"))
+                    {
+                        catchTricks = [.. catchTricks.Where(x => x != "halfShower")];
+                        if (throwTricks?.Contains(TennisOther) != true && throwTricks?.Contains(TennisThrow) != true
+                            && landingSeg is not null && to == (landingSeg.LeftFirst ? 1 : 0))
                             catchTricks.Add(TennisOther);
                         if (catchTricks.Count == 0)
                             catchTricks = null;

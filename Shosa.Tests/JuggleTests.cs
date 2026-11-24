@@ -332,6 +332,46 @@ public class JuggleTests
         Assert.All(gaps, g => Assert.InRange(g, 0.375 - 0.01, 0.375 + 0.01));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void A_half_shower_throws_over_from_one_hand_and_under_from_the_other(bool mirror)
+    {
+        // The right hand (@mirror the left) always from well outside, longer in the air; the other always from inside,
+        // shorter (DESIGN.md 118.48).
+        string m = mirror ? "@mirror" : "";
+        var plain = Compile(Juggle($"every 1/2  3:4{m} | 3:4{m} |"));
+        var c = Compile(Juggle($"every 1/2  3:4@halfShower{m} | 3:4@halfShower{m} |"));
+        Assert.Empty(c.Diagnostics);
+        var was = plain.Clip.Figures[0].Juggle!.Flights;
+        var now = c.Clip.Figures[0].Juggle!.Flights;
+        Assert.Equal(was.Select(f => (f[0], f[1], f[2])), now.Select(f => (f[0], f[1], f[2])));
+        var clip = c.Clip;
+        var fig = clip.Figures[0];
+        int over = mirror ? 1 : 0;
+        double Out(float[] f)
+        {
+            int at = (int)Math.Round(f[3] * clip.Fps);
+            var hand = fig.Joint(at, f[1] == 0 ? Rig.RHand : Rig.LHand);
+            return (f[1] == 0 ? -1 : 1) * (hand.X - fig.Joint(at, Rig.Pelvis).X);
+        }
+        foreach (var (p, q) in was.Zip(now).Where(z => z.First[3] > 0.3 && z.First[3] < 3.6))
+        {
+            if ((int)q[1] == over)
+            {
+                Assert.True(Out(q) > 0.25, $"thrown over {Out(q):0.00} m out at {q[3]:0.00} s");
+                Assert.True(q[4] - q[3] > p[4] - p[3] + 0.08, $"thrown over at {q[3]:0.00} s flies longer");
+            }
+            else
+            {
+                Assert.True(Out(q) < 0.2, $"thrown under {Out(q):0.00} m out at {q[3]:0.00} s");
+                Assert.True(q[4] - q[3] < p[4] - p[3] - 0.03, $"thrown under at {q[3]:0.00} s flies shorter");
+            }
+        }
+        // One whole pattern at a time.
+        Assert.Contains("SH1010", Codes(Compile(Juggle("every 1/2  3:4@halfShower@tennis |"))));
+    }
+
     [Fact]
     public void Tennis_throws_one_ball_from_outside_and_the_others_from_inside()
     {
@@ -401,6 +441,7 @@ public class JuggleTests
     [InlineData("every 1/2  3:4 | 3:4@mills | 3:4@reverse | 3:4 | every 1  3:2 3:1@backThrow 3:1 | every 1/2  3:4@windmill | 3:4 |", 0.08)]
     // Tennis: one ball over the top of the others, to and fro (DESIGN.md 118.45).
     [InlineData("every 1/2  3:4 | 3:4@tennis | 3:4@tennis | 3:4 |", 0.10)]
+    [InlineData("every 1/2  3:4 | 3:4@halfShower | 3:4@halfShower | 3:4 |", 0.10)]
     public void Balls_in_the_air_keep_well_apart_in_four_and_five_ball_patterns(string row, double apart)
     {
         // The fountain thrown inside and caught outside, the one going up in front; higher throws across wider (DESIGN.md
