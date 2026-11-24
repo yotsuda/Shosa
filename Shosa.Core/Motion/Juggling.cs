@@ -73,7 +73,57 @@ public sealed class Juggling
             return null;
         var juggling = new Juggling(prop, tempos);
         juggling.Plan(segs);
+        juggling.Planned();
         return juggling;
+    }
+
+    // ---- Planned: nothing changes from here on, and what is asked again and again is found faster — the same
+    // numbers, to the last bit (DESIGN.md 120.9). A figure that juggles asks where a hand is ten thousand times a
+    // frame (the head following the highest ball, each ball's flight from the hand's place at its throw to its
+    // place at its catch, each place the mean of 25 about it), and each asking went through the hand's places
+    // from the first.
+
+    /// <summary>Each hand's places' times, once they are final and in order (as they are); null for a hand whose are not, which is then searched place by place.</summary>
+    private readonly double[]?[] _times = [null, null];
+    /// <summary>For each flight, how high the hand it leaves is at its throw and the hand it comes to at its catch (<see cref="HighestInAir"/>); NaN until asked.</summary>
+    private double[]? _thrownY, _caughtY;
+
+    private void Planned()
+    {
+        for (int hand = 0; hand < 2; hand++)
+        {
+            var keys = _keys[hand];
+            var times = new double[keys.Count];
+            bool ordered = true;
+            for (int i = 0; i < times.Length; i++)
+            {
+                times[i] = keys[i].T;
+                ordered &= i == 0 || times[i - 1] <= times[i];   // false for a NaN too
+            }
+            _times[hand] = ordered ? times : null;
+        }
+        _thrownY = new double[Flights.Count];
+        _caughtY = new double[Flights.Count];
+        Array.Fill(_thrownY, double.NaN);
+        Array.Fill(_caughtY, double.NaN);
+    }
+
+    /// <summary>
+    /// The first of a hand's places after its first that a time is not after — what going through them in order
+    /// finds — or the count of them when it is after them all.
+    /// </summary>
+    private static int PlaceNotBefore(double[] times, double sec)
+    {
+        int low = 1, high = times.Length;
+        while (low < high)
+        {
+            int middle = (low + high) >>> 1;
+            if (sec > times[middle])
+                low = middle + 1;
+            else
+                high = middle;
+        }
+        return low;
     }
 
     // ------------------------------------------------------------------ the throws
@@ -2185,7 +2235,7 @@ public sealed class Juggling
         var keys = _keys[hand];
         if (keys.Count == 0)
             return Style.Own;
-        for (int i = 0; i + 1 < keys.Count; i++)
+        for (int i = _times[hand] is { } times ? PlaceNotBefore(times, sec) - 1 : 0; i + 1 < keys.Count; i++)
         {
             if (sec > keys[i + 1].T)
                 continue;
@@ -2374,7 +2424,8 @@ public sealed class Juggling
             return Ready(hand);
         if (sec <= keys[0].T)
             return keys[0].At;
-        for (int i = 0; i + 1 < keys.Count; i++)
+        // From the place before the first one the time is not after (Planned), or from the first.
+        for (int i = _times[hand] is { } times ? PlaceNotBefore(times, sec) - 1 : 0; i + 1 < keys.Count; i++)
         {
             var (t0, a, va, _) = keys[i];
             var (t1, b, vb, _) = keys[i + 1];
@@ -2450,12 +2501,25 @@ public sealed class Juggling
     public double? HighestInAir(double sec)
     {
         double? best = null;
-        foreach (var f in Flights)
+        for (int i = 0; i < Flights.Count; i++)
         {
+            var f = Flights[i];
             if (f.Thrown > sec || sec > f.Caught || f.Value < 2)
                 continue;
             double tf = f.Caught - f.Thrown, s = sec - f.Thrown, u = tf < 1e-6 ? 1 : s / tf;
-            double y = Hand(f.From, f.Thrown).Y * (1 - u) + Hand(f.To, f.Caught).Y * u + G / 2 * s * (tf - s);
+            // Where the two hands are at the flight's two ends is the flight's own: found once (Planned).
+            double from, to;
+            if (_thrownY is { } thrownY && _caughtY is { } caughtY && i < thrownY.Length)
+            {
+                if (double.IsNaN(thrownY[i]))
+                    (thrownY[i], caughtY[i]) = (Hand(f.From, f.Thrown).Y, Hand(f.To, f.Caught).Y);
+                (from, to) = (thrownY[i], caughtY[i]);
+            }
+            else
+            {
+                (from, to) = (Hand(f.From, f.Thrown).Y, Hand(f.To, f.Caught).Y);
+            }
+            double y = from * (1 - u) + to * u + G / 2 * s * (tf - s);
             if (best is null || y > best)
                 best = y;
         }
