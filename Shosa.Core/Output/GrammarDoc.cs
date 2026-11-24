@@ -1306,16 +1306,23 @@ public static class GrammarDoc
             ## Juggling: `juggle`
 
             A dancer whose line says `juggles balls` (or `clubs`, `rings`) throws them in a `juggle` row,
-            written in **siteswap** exactly as jugglers write it. One word is one pattern; its length is how
-            long that pattern goes on. `every` says how many beats from one throw to the next, and is
-            written before the first pattern of the row (SH1042); it holds until it is written again.
+            written in **siteswap** exactly as jugglers write it. `every` says how many beats from one throw
+            to the next, and is written before the first pattern of the row (SH1042); it holds until it is
+            written again.
+
+            - **A word with no length is its throws as written**, one throwing beat each: at `every 1/2`,
+              `531` is 3 throws and 3/2 beats, `3 3 3 531 531 4 3` (or `333531531 43`, the same) is 11 throws.
+              One `531` is the pattern once through, not over and over: write it twice, `531531`, or give it
+              a length.
+            - **A word with a length is the pattern over and over for that long**: `3:8` is sixteen throws,
+              `531:3` six (531 531).
 
             ```
             dancer alice humanoid juggles balls on solo
 
             section Show {
               solo {
-                juggle { every 1/2  3:4 | 531:3 3:1 | 441:3 3:1 | skip:2 (4,2x)*:2 | }
+                juggle { every 1/2  3:4 | 531531 3 3 | 441441 3 3 | skip:2 (4,2x)* | }
                 steps  { then:4 | leftFoot.side:2 together:2 | then:4 | then:4 | }
               }
             }
@@ -1337,13 +1344,20 @@ public static class GrammarDoc
               taking turns through it, and a ball thrown in one pattern comes down in the next. A pattern can
               follow another only when what is in the air at the change is what it would have thrown itself
               before (`3` → `531`, `531` → `3`, `3` → `441` are direct; `3` → `51` is not). When it cannot, it is
-              SH2019, which says the throws that make the change when there are some: `3:3/2 4:1/2 51:2`.
+              SH2019, which says the throws that make the change when there are some: `3:3/2 4 51:2`.
               A word thrown once through or less is such a passage: it need not be a pattern on its own (`4`
-              once is not four balls), and is judged only by what is in the air before it. A plain pattern
-              and a pattern of pairs need throws of their own between them; `skip` between them always works.
+              once is not four balls; `5314` is no pattern), and is judged only by what is in the air before
+              it. A plain pattern and a pattern of pairs need throws of their own between them; `skip`
+              between them always works.
             - A length need not be a whole number of the pattern: at `every 1/2`, `531:3` is six throws (531
               531) and `531:2` four (5 3 1 5). The next pattern takes over from what is in the air then, so a
               cut in the middle of a pattern is a change like any other.
+            - The throws go on evenly through a run, from one word into the next (`every 3/4  3:4 | 3:4 |`
+              throws every 3/4 over the bar line): a word whose length is not a whole number of throws
+              hands the rest of its last throwing beat to the next word.
+            - Bar lines count the throws as they count any beats: at `every 1/2` in 4/4, eight throws a bar
+              (`33333333 | 531531 33 |`). Throws written out that run across a bar line are tied over it as
+              any word is, or written without bar lines.
             - `skip:N`: no throwing for N beats. The balls in the air are caught, the hands keep them, and
               the arms dance their rows; the next pattern starts again from the hands.
             - The beats are the score's: `{ 531:3/2 3:1/2 } q q`, `%`, `verse 2 { … }` and bar lines work as

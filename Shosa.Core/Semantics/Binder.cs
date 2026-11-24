@@ -1925,7 +1925,9 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                 : "A word takes time: its length is how long the body stays there. The first word of a score is the pose it starts in, with no ':0': guard jab");
             written = 1;
         }
-        double length = ctx.ForcedLength ?? ((written ?? (definition is not null ? Natural(words[0].Text) : 1)) + extra) * ctx.Scale;
+        // A juggle word with no length is its throws as written, one throwing beat each (DESIGN.md 118.47): `3 3 531 4 3`.
+        double? thrown = juggle && written is null && ctx.ForcedLength is null ? Literal(target, words) : null;
+        double length = ctx.ForcedLength ?? ((written ?? thrown ?? (definition is not null ? Natural(words[0].Text) : 1)) + extra) * ctx.Scale;
         double t0 = time, t1 = time + length;
         time = t1;
         if (lastBar is { } closing)
@@ -2082,6 +2084,19 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
     /// a throw every `every` beats. Whether it can follow the word before is the solver's to say: it is
     /// the balls in the air that decide, and they are counted in throws, not in words.
     /// </summary>
+    /// <summary>
+    /// How long a juggle word with no length is, in beats before the scale: its throws as written, each a throwing beat of the
+    /// row's `every` (a pair two, as siteswap counts it; `*` twice the pairs). Null for `skip`, `then` and what is not siteswap
+    /// (left to say what is wrong with it).
+    /// </summary>
+    private double? Literal(SyntaxNode? target, List<SyntaxToken> words)
+    {
+        if (target is null || words.Count == 0 || words is [{ Text: Vocabulary.Skip or Vocabulary.Hold }])
+            return null;
+        var (once, _) = Siteswap.Parse(target.ToString().Trim(), repeated: false);
+        return once is null ? null : once.Beats.Count * (double.IsNaN(_every) ? 0.5 : _every);
+    }
+
     private void BindJuggle(SyntaxNode ev, SyntaxNode target, List<SyntaxToken> words, Ctx ctx, double t0, double t1)
     {
         if (words is [{ Text: Vocabulary.Skip }])
@@ -2100,7 +2115,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         var (pattern, problem) = Siteswap.Parse(text);
         if (pattern is null)
         {
-            // Thrown once through or less, it is a passage between two patterns (`3:3/2 4:1/2 51:2`): what is in the
+            // Thrown once through or less, it is a passage between two patterns (`3:3/2 4 51:2`): what is in the
             // air decides whether it can be thrown there, and the solver says so. Its spelling must still be siteswap.
             var (once, spelling) = Siteswap.Parse(text, repeated: false);
             if (once is null || Siteswap.Throws(t1 - t0, _every * ctx.Scale) > once.Beats.Count)

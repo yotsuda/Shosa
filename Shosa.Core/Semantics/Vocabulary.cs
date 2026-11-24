@@ -25,7 +25,7 @@ public static class Vocabulary
         new("torso", "The spine: `up` is upright, `up.fwd(10)` leans 10 degrees forward, `fwd` is folded level."),
         new("shoulders", "The line of the shoulders turned from the feet, as seen from above: `left(30)` (degrees), `right(85)`, `center`. The chest turns on the hips to put it there; the feet stay."),
         new("head", "Where the face looks: `fwd` is straight ahead. It nods with the chest's lean, but does not turn with the hips or the shoulders."),
-        new("juggle", "What the hands throw (`juggles balls` on the dancer line), in siteswap as jugglers write it: `juggle { every 1/2  3:8 | 531:6 (4,4):2 }`. A word is a pattern, thrown from its beat for its length; `every` says how many beats from one throw to the next. While a pattern is thrown, the arms are the juggle row's."),
+        new("juggle", "What the hands throw (`juggles balls` on the dancer line), in siteswap as jugglers write it: `juggle { every 1/2  3:4 | 531531 3 3 | }`. A word with no length is its throws as written, one throwing beat each (`531` once through); with a length, the pattern over and over for that long (`3:4`); `every` says how many beats from one throw to the next. While a pattern is thrown, the arms are the juggle row's."),
     ];
 
     /// <summary>What the `shoulders` track says. A number after the side is degrees from the feet, up to <see cref="MaxShoulders"/>.</summary>

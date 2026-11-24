@@ -155,6 +155,9 @@ public sealed class Juggling
         double every = run[0].Seg.Every ?? 0.5;
         Seg? before = null;
         int roundCount = 0;
+        // The throws go on one after another through the run, each word's from where the one before left off, not from the
+        // word's own start (DESIGN.md 118.47; 118.11: `every 3/4` in words of 4 beats squeezed the throws at each word's start).
+        double next = run[0].Seg.T0;
         foreach (var (seg, pattern) in run)
         {
             every = seg.Every ?? 0.5;
@@ -164,13 +167,16 @@ public sealed class Juggling
             if (!(before is not null && Round(before.Tricks) && Round(seg.Tricks) && Windmill(before.Tricks) == Windmill(seg.Tricks)
                   && before.LeftFirst == seg.LeftFirst && before.Every == seg.Every && Math.Abs(before.T1 - seg.T0) < 1e-6))
                 roundCount = 0;
-            for (int k = 0; ; k++)
+            double from = Math.Max(next, seg.T0);
+            int k = 0;
+            for (; ; k++)
             {
-                double beat = seg.T0 + k * every;
+                double beat = from + k * every;
                 if (beat >= seg.T1 - 1e-6)
                     break;
                 slots.Add(new Slot(beat, seg, pattern, k, index++, roundCount++));
             }
+            next = from + k * every;
             before = seg;
         }
         if (slots.Count == 0)
@@ -423,7 +429,7 @@ public sealed class Juggling
         {
             var bridge = Siteswap.Bridge(inAir.Select(a => a.Beat).ToList(), expects.Select(e => e.Beat).ToList(), Math.Max(prevPattern.Highest, slot.Pattern.Highest));
             if (bridge is not null)
-                hint = $" Throw {bridge} between them, for {Beats(bridge.Length * (slot.Seg.Every ?? 0.5))} of the time before: … {previous.Pattern}:… {bridge}:{Beats(bridge.Length * (slot.Seg.Every ?? 0.5))} {slot.Seg.Pattern}:… (a change of pattern often needs a throw or two of its own).";
+                hint = $" Throw {bridge} between them, written as it is, with no length (its {bridge.Length} throw{(bridge.Length == 1 ? "" : "s")}, {Beats(bridge.Length * (slot.Seg.Every ?? 0.5))} of the time before): … {previous.Pattern} {bridge} {slot.Seg.Pattern} … (a change of pattern often needs a throw or two of its own).";
         }
         Problems.Add(new Problem(slot.Seg, "SH2019", true,
             $"'{slot.Seg.Pattern}' cannot follow '{previous.Pattern}' here: the balls in the air come down on other beats than it throws them (a change works when what is in the air is what the new pattern would have thrown before it).{hint}"));

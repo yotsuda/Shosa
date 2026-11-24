@@ -286,6 +286,53 @@ public class JuggleTests
     }
 
     [Fact]
+    public void A_pattern_with_no_length_is_its_throws_as_written()
+    {
+        // DESIGN.md 118.47: one throwing beat a throw. `531 531` and `531531` are the same six throws, 3 beats at every 1/2,
+        // and the same as `531:3`; bar lines count them.
+        double[] Thrown(string row)
+        {
+            var c = Compile(Juggle(row));
+            Assert.Empty(c.Diagnostics);
+            return c.Clip.Figures[0].Juggle!.Flights.Select(f => Math.Round((double)f[3], 3)).ToArray();
+        }
+        var written = Thrown("every 1/2  3:1/2 531 531 3:1/2 |");
+        Assert.Equal(written, Thrown("every 1/2  3:1/2 531531 3:1/2 |"));
+        Assert.Equal(written, Thrown("every 1/2  3:1/2 531:3 3:1/2 |").Take(written.Length));
+        Assert.Empty(Compile(Juggle("every 1/2  33333333 | 531531 33 | 3 3 3 3 441 3 |")).Diagnostics);
+        var c = Compile(Juggle("every 1/2  3333333 |"));
+        Assert.Contains("SH1002", Codes(c));
+        // A pair is two throwing beats, as siteswap counts it: (4,4) is 1 beat at every 1/2, (4,2x)* 2.
+        Assert.Empty(Compile(Juggle("every 1/2  (4,4)(4,4)(4,4)(4,4) |")).Diagnostics);
+        Assert.Empty(Compile(Juggle("every 1/2  (4,2x)* (4,2x)* |")).Diagnostics);
+    }
+
+    [Fact]
+    public void The_throws_suggested_between_two_patterns_are_written_as_they_are()
+    {
+        // 3 into 51 needs a throw between them: the error says it in siteswap, and written in so, the row is right.
+        var c = Compile(Juggle("every 1/2  3:2 51:2 |"));
+        var error = Assert.Single(c.Diagnostics, d => d.Code == "SH2019");
+        var m = System.Text.RegularExpressions.Regex.Match(error.Message, @"… 3 (\S+) 51 …");
+        Assert.True(m.Success, error.Message);
+        string bridge = m.Groups[1].Value;
+        var fixedRow = Compile(Juggle($"every 1/2  3:2 {bridge} 51:2 |"));
+        Assert.DoesNotContain("SH2019", Codes(fixedRow));
+    }
+
+    [Fact]
+    public void The_throws_go_on_evenly_from_one_word_into_the_next()
+    {
+        // every 3/4 in words of 4 beats: the throws go on every 3/4 over the bar line, not starting again at each word's
+        // start (DESIGN.md 118.11, 118.47).
+        var c = Compile(Juggle("every 3/4  3:4 | 3:4 | 3:4 |"));
+        Assert.DoesNotContain("SH2019", Codes(c));
+        var thrown = c.Clip.Figures[0].Juggle!.Flights.Select(f => (double)f[3]).OrderBy(t => t).ToList();
+        var gaps = thrown.Zip(thrown.Skip(1), (a, b) => b - a).ToList();
+        Assert.All(gaps, g => Assert.InRange(g, 0.375 - 0.01, 0.375 + 0.01));
+    }
+
+    [Fact]
     public void Tennis_throws_one_ball_from_outside_and_the_others_from_inside()
     {
         // The same throws as the cascade; one ball (the word's first across) leaves from outside the hand's own catch, every
