@@ -890,7 +890,7 @@ internal sealed class FigureSolver
     /// 15 degrees in from straight down on the whole rather than 25, the user asking for it less turned in, DESIGN.md 118.26.)
     private const double MillsElbowSide = -0.05, MillsElbowHold = 1.0;
     /// <summary>Where a takeouts' swiping elbow is kept side to side: metres out from the shoulder.</summary>
-    private const double SwipeElbowSide = 0.16;
+    private const double SwipeElbowSide = 0.12;
     /// <summary>How far off its place side to side Mills' elbow may be (metres) against how far round its circle it goes (radians).</summary>
     private const double MillsElbowSlack = 0.045, MillsElbowTurn = 0.25;
     /// <summary>How far the pelvis goes to the side with Mills' sway, per unit of the back's lean (against it, the hips out under a leaning back: with it, the body went away from the throws).</summary>

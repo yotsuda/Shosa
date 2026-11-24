@@ -698,7 +698,9 @@ public sealed class Juggling
     private const double TakeoutUnderLaunch = 0.8, TakeoutUnderOutAt = 0.5, TakeoutUnderOut = 0.40, TakeoutUnderOutUp = 0.30;
     /// <summary>How fast the hand holding the swiped 4 sets off up its round from where the swipe ends (m/s; the user: it goes
     /// up at nearly the same time as the other arm throws from under it).</summary>
-    private const double TakeoutRoundStartSpeed = 2.0;
+    private const double TakeoutRoundStartSpeed = 1.4;
+    /// <summary>How far back along the swipe the round's way is guided from (metres): it sets off as the swipe went.</summary>
+    private const double TakeoutRoundLeadIn = 0.3;
     /// <summary>The 3 thrown from well outside, this far out and this far forward (as tennis's), and this part of a beat sooner, caught as much later.</summary>
     private const double TakeoutAcrossOut = 0.46, TakeoutAcrossAhead = 0.32, TakeoutLonger = 0.0, TakeoutHighSooner = 0.0;
     /// <summary>A ball thrown before the takeouts and caught in them: caught out there too, clear of the hand's first 4.</summary>
@@ -725,7 +727,7 @@ public sealed class Juggling
     /// <summary>The round after the stop (out on the hand's own side, up, ahead from the juggling's middle): up the far side, the
     /// ball just before the forehead (the hand some 4 cm below it), out and down past its own side, below and in.</summary>
     private static readonly (double Out, double Up, double Ahead)[] TakeoutRound =
-        [(-0.10, 0.42, 0.02), (0.0, 0.60, 0.04), (0.30, 0.52, 0.10)];
+        [(-0.04, 0.42, -0.08), (0.0, 0.60, 0.04), (0.30, 0.52, 0.10)];
     /// <summary>After it is level with the other hand's 3 thrown from outside, the round's way on down below and in (the last its bottom).</summary>
     private static readonly (double Out, double Up, double Ahead)[] TakeoutRoundLow = [(0.18, -0.20, 0.14)];
     /// <summary>How far above the swipe's catch the round's place level with the other hand's 3 is (the held ball reaches no lower than the catch).</summary>
@@ -755,12 +757,13 @@ public sealed class Juggling
     /// the 3's throw it starts from (a part of its average from there to the catch), and how high it rises over the middle of
     /// that (metres, going up with the ball and down onto the 4). Angles are from straight out on the own side, round forward.</summary>
     private const double SwipeCentreOut = 0.22, SwipeCentreAhead = -0.18;
-    private const double SwipeThrowTurn = 0.7, SwipeRise = 0.14;
+    private const double SwipeThrowTurn = 0.7, SwipeRise = 0.08;
     /// <summary>The arc's turning speed at the catch, as a part more than its average from there to the stop, and at the stop, as a part of it.</summary>
     private const double SwipeCatchTurn = 1.2, SwipeStopTurn = 0.3;
     /// <summary>The swipes' arcs, from each catch of the 4 on: the hand and the catch's time → the catch's angle (radians),
-    /// radius and height, and its turning speed there (radians a second).</summary>
-    private readonly Dictionary<(int Hand, double T), (double Angle, double Radius, double Y, double Turn)> _swipeArcs = [];
+    /// radius and height, its turning speed there (radians a second), and the stop's time, angle, radius, height and turning speed.</summary>
+    private readonly Dictionary<(int Hand, double T), (double Angle, double Radius, double Y, double Turn,
+        double StopT, double StopAngle, double StopRadius, double StopY, double StopTurn, Style Style)> _swipeArcs = [];
     private static (double Angle, double Radius) SwipePolar(double side, Vec3 at)
     {
         double o = side * at.X - SwipeCentreOut, z = at.Z - SwipeCentreAhead;
@@ -786,7 +789,9 @@ public sealed class Juggling
             double f = Math.Abs(a1 - a0) < 1e-9 ? u : (a - a0) / (a1 - a0);
             // (From the throw the radius comes in soonest: out at the throw the arm is as long as it goes.)
             double g = rise > 0 ? 1 - (1 - f) * (1 - f) : f;
-            return SwipePlace(side, a, r0 + (r1 - r0) * g, y0 + (y1 - y0) * f + rise * Math.Sin(Math.PI * Math.Clamp(f, 0, 1)));
+            // (The rise over the middle in time: by the angle, which turns slowly at first, it came just before the catch and
+            // the hand dropped sharply onto the 4.)
+            return SwipePlace(side, a, r0 + (r1 - r0) * g, y0 + (y1 - y0) * f + rise * Math.Sin(Math.PI * u));
         }
         for (double t = t0 + TakeoutRoundEvery; t < t1 - TakeoutRoundEvery * 0.5; t += TakeoutRoundEvery)
             _keys[hand].Add((t, At(t), (At(t + 1e-3) - At(t - 1e-3)) * (1 / 2e-3), t >= outwardFrom ? Style.Outward : style));
@@ -985,7 +990,18 @@ public sealed class Juggling
                         // From the throw, outside the body, round the flat arc in to the catch, the elbow turning level (the
                         // user: not the arm thrust across), going up with the ball over the middle of it and down onto the 4.
                         var (a0, r0) = SwipePolar(side, from);
-                        double w0 = SwipeThrowTurn * (arc.Angle - a0) / (take.T - thrown);
+                        double before = (arc.Angle - a0) / (take.T - thrown), after = (arc.StopAngle - arc.Angle) / (arc.StopT - take.T);
+                        double w0 = SwipeThrowTurn * before;
+                        // One turning speed at the catch for the way in and the way on (each laid alone, the speed jumped there):
+                        // between the two averages, no more than either side allows without turning back. The way on laid again.
+                        if (before > 0 && after > 0)
+                        {
+                            double turn = Math.Min((before + after) / 2, 3 * Math.Min(before, after));
+                            _keys[hand].RemoveAll(k => k.T > take.T + 1e-9 && k.T < arc.StopT - 1e-9);
+                            SwipeAlong(hand, side, take.T, arc.Angle, arc.Radius, arc.Y, turn, arc.StopT, arc.StopAngle, arc.StopRadius, arc.StopY, arc.StopTurn, arc.Style);
+                            _arrive[(hand, take.T)] = SwipeVelocity(side, arc.Angle, arc.Radius, arc.Y, turn, arc.StopAngle, arc.StopRadius, arc.StopY);
+                            arc = arc with { Turn = turn };
+                        }
                         _launchAcross[(hand, thrown)] = SwipeVelocity(side, a0, r0, from.Y, w0, arc.Angle, 2 * arc.Radius - r0, arc.Y).X;
                         SwipeAlong(hand, side, thrown, a0, r0, from.Y, w0, take.T, arc.Angle, arc.Radius, arc.Y, arc.Turn, throwStyle, SwipeRise,
                             // (The palm turned out for the swipe from half way: the user.)
@@ -1037,14 +1053,16 @@ public sealed class Juggling
             // Drawn in to the body as it is carried across (the user: just after the swipe's catch, the hand nearer the body).
             var stop = new Vec3(-side * TakeoutCarryTo, TakeoutTakeHigh + TakeoutTakeRaise - TakeoutStopDown, into.Z - TakeoutStopIn);
             // Carried round a flat arc, the elbow turning level, from the catch in close to the body on the far side (the user).
+            Vec3 swipeEnd;
             {
                 var (ac, rc) = SwipePolar(side, into);
                 var (az, rz) = SwipePolar(side, stop);
                 double average = (az - ac) / (stopFrom - caught), turn = SwipeCatchTurn * average;
                 _arrive[(to, caught)] = SwipeVelocity(side, ac, rc, into.Y, turn, az, rz, stop.Y);
-                _swipeArcs[(to, caught)] = (ac, rc, into.Y, turn);
+                _swipeArcs[(to, caught)] = (ac, rc, into.Y, turn, stopFrom, az, rz, stop.Y, SwipeStopTurn * average, catchStyle);
                 _swipeHolds.Add((to, caught - SwipeHoldBefore, stopFrom));
                 SwipeAlong(to, side, caught, ac, rc, into.Y, turn, stopFrom, az, rz, stop.Y, SwipeStopTurn * average, catchStyle);
+                swipeEnd = SwipeVelocity(side, az, rz, stop.Y, SwipeStopTurn * average, az, rz, stop.Y);
             }
             bool stops = stopTo > stopFrom + 1e-6;
             int stopKey = _keys[to].Count;
@@ -1072,7 +1090,9 @@ public sealed class Juggling
             places.Add(throwAt);
             double end = _takeoutNext > stopTo + 0.2 ? _takeoutNext : stopTo + 2 * beat;
             // The way: a Catmull-Rom curve through the places, going on up past the throw (the way the hand throws).
-            var guide = new List<Vec3> { places[0] * 2 - places[1] };
+            // (Its guide before the stop back along the swipe: the way sets off going on as the swipe went and bends up from
+            // there; from a guide straight below, it turned 85-95 degrees in a frame.)
+            var guide = new List<Vec3> { swipeEnd.Length > 1e-6 ? places[0] - swipeEnd.Normalized() * TakeoutRoundLeadIn : places[0] * 2 - places[1] };
             guide.AddRange(places);
             guide.Add(throwAt + new Vec3(0, TakeoutRoundOnUp, 0));
             var way = new List<Vec3>();
@@ -1113,7 +1133,9 @@ public sealed class Juggling
             {
                 double start = Math.Min(TakeoutRoundStartSpeed, 2 * (knots[1].S - knots[0].S) / (knots[1].T - knots[0].T));
                 slopes[0] = start;
-                _keys[to][stopKey] = _keys[to][stopKey] with { Velocity = (way[1] - way[0]).Normalized() * start };
+                // (Half way between the arc's last way and the round's first: turned there in a frame, the hand went round 85
+                // degrees at 70 m/s².)
+                _keys[to][stopKey] = _keys[to][stopKey] with { Velocity = ((way[1] - way[0]).Normalized() * start + swipeEnd) * 0.5 };
             }
             for (int k = 1; k + 1 < knots.Count; k++)
             {
@@ -1753,7 +1775,7 @@ public sealed class Juggling
     private readonly List<(int Hand, double From, double To)> _swipeHolds = [];
     /// <summary>How long before the swipe's catch its elbow is held, how long it takes to come, and to go after the stop (seconds:
     /// let go at once, the elbow leapt 23 cm in 0.07 s into the round going up the far side).</summary>
-    private const double SwipeHoldBefore = 0.2, SwipeHoldRamp = 0.08, SwipeHoldRelease = 0.3;
+    private const double SwipeHoldBefore = 0.2, SwipeHoldRamp = 0.2, SwipeHoldRelease = 0.45;
     /// <summary>How much a hand is in a takeouts' swipe at a time, 0..1: its elbow held at one place side to side while the
     /// forearm turns round it (the user: the elbow's x moved too much).</summary>
     public double SwipeHold(int hand, double sec)
