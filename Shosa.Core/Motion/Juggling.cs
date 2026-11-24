@@ -712,7 +712,7 @@ public sealed class Juggling
     /// <summary>Where the swipe stops on the far side: this much nearer the body than the catch (the user).</summary>
     private const double TakeoutStopIn = 0.20;
     /// <summary>The swipe carrying it on: how fast at the catch (m/s), how long to the far side (seconds), how far past the middle there.</summary>
-    private const double TakeoutSwipeCarry = 1.8, TakeoutCarry = 0.12, TakeoutCarryTo = 0.08;
+    private const double TakeoutSwipeCarry = 1.8, TakeoutCarry = 0.12, TakeoutCarryTo = 0.0;
     /// <summary>How fast the hand goes up with the 3 as it throws it (a part of the ball's speed), and in across on its swipe (m/s);
     /// at the 4's catch, how fast it goes down with it (a part of the ball's speed).</summary>
     private const double TakeoutLaunch = 0.6, TakeoutSwipeSpeed = 1.6, TakeoutArrive = 0.25;
@@ -725,7 +725,7 @@ public sealed class Juggling
     /// <summary>The round after the stop (out on the hand's own side, up, ahead from the juggling's middle): up the far side, the
     /// ball just before the forehead (the hand some 4 cm below it), out and down past its own side, below and in.</summary>
     private static readonly (double Out, double Up, double Ahead)[] TakeoutRound =
-        [(-0.18, 0.42, 0.02), (0.0, 0.60, 0.04), (0.30, 0.52, 0.10)];
+        [(-0.10, 0.42, 0.02), (0.0, 0.60, 0.04), (0.30, 0.52, 0.10)];
     /// <summary>After it is level with the other hand's 3 thrown from outside, the round's way on down below and in (the last its bottom).</summary>
     private static readonly (double Out, double Up, double Ahead)[] TakeoutRoundLow = [(0.18, -0.20, 0.14)];
     /// <summary>How far above the swipe's catch the round's place level with the other hand's 3 is (the held ball reaches no lower than the catch).</summary>
@@ -754,7 +754,7 @@ public sealed class Juggling
     /// outside the body in close to it): its centre (out on the hand's own side, ahead: about the elbow), its turning speed at
     /// the 3's throw it starts from (a part of its average from there to the catch), and how high it rises over the middle of
     /// that (metres, going up with the ball and down onto the 4). Angles are from straight out on the own side, round forward.</summary>
-    private const double SwipeCentreOut = 0.17, SwipeCentreAhead = -0.20;
+    private const double SwipeCentreOut = 0.22, SwipeCentreAhead = -0.18;
     private const double SwipeThrowTurn = 0.7, SwipeRise = 0.14;
     /// <summary>The arc's turning speed at the catch, as a part more than its average from there to the stop, and at the stop, as a part of it.</summary>
     private const double SwipeCatchTurn = 1.2, SwipeStopTurn = 0.3;
@@ -1043,6 +1043,7 @@ public sealed class Juggling
                 double average = (az - ac) / (stopFrom - caught), turn = SwipeCatchTurn * average;
                 _arrive[(to, caught)] = SwipeVelocity(side, ac, rc, into.Y, turn, az, rz, stop.Y);
                 _swipeArcs[(to, caught)] = (ac, rc, into.Y, turn);
+                _swipeHolds.Add((to, caught - SwipeHoldBefore, stopFrom));
                 SwipeAlong(to, side, caught, ac, rc, into.Y, turn, stopFrom, az, rz, stop.Y, SwipeStopTurn * average, catchStyle);
             }
             bool stops = stopTo > stopFrom + 1e-6;
@@ -1747,6 +1748,26 @@ public sealed class Juggling
 
     /// <summary>How much Mills' Mess has the juggling at a time (seconds), 0..1.</summary>
     public double MillsAt(double sec) => MillsWeight(sec);
+
+    /// <summary>Takeouts' swipes (DESIGN.md 118.49): the hand, from before its catch of the 4 to where it stops, seconds.</summary>
+    private readonly List<(int Hand, double From, double To)> _swipeHolds = [];
+    /// <summary>How long before the swipe's catch its elbow is held, how long it takes to come, and to go after the stop (seconds:
+    /// let go at once, the elbow leapt 23 cm in 0.07 s into the round going up the far side).</summary>
+    private const double SwipeHoldBefore = 0.2, SwipeHoldRamp = 0.08, SwipeHoldRelease = 0.3;
+    /// <summary>How much a hand is in a takeouts' swipe at a time, 0..1: its elbow held at one place side to side while the
+    /// forearm turns round it (the user: the elbow's x moved too much).</summary>
+    public double SwipeHold(int hand, double sec)
+    {
+        double most = 0;
+        foreach (var (h, from, to) in _swipeHolds)
+        {
+            if (h != hand || sec < from - SwipeHoldRamp || sec > to + SwipeHoldRelease)
+                continue;
+            double w = sec < from ? (sec - from + SwipeHoldRamp) / SwipeHoldRamp : sec > to ? (to + SwipeHoldRelease - sec) / SwipeHoldRelease : 1;
+            most = Math.Max(most, w * w * (3 - 2 * w));
+        }
+        return most;
+    }
 
     /// <summary>
     /// How far the two hands are to the dancer's left together, metres, taken over two throws round <paramref name="sec"/>

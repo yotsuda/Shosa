@@ -889,6 +889,8 @@ internal sealed class FigureSolver
     /// and forward instead, 1.8 m a round. Then 5 cm in, held a little more loosely (MillsElbowSlack 0.045): the upper arm
     /// 15 degrees in from straight down on the whole rather than 25, the user asking for it less turned in, DESIGN.md 118.26.)
     private const double MillsElbowSide = -0.05, MillsElbowHold = 1.0;
+    /// <summary>Where a takeouts' swiping elbow is kept side to side: metres out from the shoulder.</summary>
+    private const double SwipeElbowSide = 0.16;
     /// <summary>How far off its place side to side Mills' elbow may be (metres) against how far round its circle it goes (radians).</summary>
     private const double MillsElbowSlack = 0.045, MillsElbowTurn = 0.25;
     /// <summary>How far the pelvis goes to the side with Mills' sway, per unit of the back's lean (against it, the hips out under a leaning back: with it, the body went away from the throws).</summary>
@@ -3182,6 +3184,11 @@ internal sealed class FigureSolver
                 // forearm goes round (the user: the elbow's x fixed, the arm past it swung wide).
                 if (mills > 0)
                     bend = Vec3.Slerp(bend, ElbowOut(shoulder, hand, Rig.UpperArm, Rig.Forearm, juggleLeft * side, MillsElbowSide, bend), mills * juggleWeight * MillsElbowHold);
+                // Takeouts' swipe the same way: the elbow kept out on its own side while the forearm turns round it in to the
+                // body (the user: the elbow's x moved too much; DESIGN.md 118.49).
+                double swipe = Juggling.SwipeHold(isLeft ? 1 : 0, juggleSec);
+                if (swipe > 0)
+                    bend = Vec3.Slerp(bend, ElbowOut(shoulder, hand, Rig.UpperArm, Rig.Forearm, juggleLeft * side, SwipeElbowSide, bend), swipe * juggleWeight);
                 // The windmill's wheel: the elbow held where the wheel's axle is (DESIGN.md 118.34).
                 if (wheel is { Held: true } held2)
                 {
