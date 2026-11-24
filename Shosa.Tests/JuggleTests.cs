@@ -396,11 +396,14 @@ public class JuggleTests
         foreach (var f in fours)
         {
             int hand = (int)f[1];
+            // Each hand always swipes its own ball (the user): the right ball 0, the left ball 2 (red and yellow in the preview).
+            Assert.Equal(hand == 0 ? 0 : 2, (int)f[0]);
             // Taken near the middle, from above, just after the hand's own 3 from its own side, and carried on to the far side.
             Assert.True(Math.Abs(Out(hand, f[4])) < 0.15, $"4 taken {Out(hand, f[4]):0.00} m out at {f[4]:0.00} s");
             Assert.Equal((int)Juggling.Style.Claw, styles[(int)Math.Round(f[4] * clip.Fps)][hand]);
             Assert.True(Out(hand, f[4] + 0.15) < -0.1, $"carried across to {Out(hand, f[4] + 0.15):0.00} m by {f[4] + 0.15:0.00} s");
             var three = flights.Where(g => (int)g[1] == hand && g[3] < f[4]).MaxBy(g => g[3])!;
+            Assert.Equal(1, (int)three[0]);   // the one thrown across from outside, never swiped: ball 1 (blue)
             Assert.True(three[2] != hand && f[4] - three[3] < 0.25, $"its 3 just before, at {three[3]:0.00} s");
             Assert.True(Out(hand, three[3]) > 0.2, $"3 thrown {Out(hand, three[3]):0.00} m out at {three[3]:0.00} s");
             // Not thrown on: held, stopped once, then back round an arc up over the top and out past its own side, the palm

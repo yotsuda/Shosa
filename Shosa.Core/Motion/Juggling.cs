@@ -202,20 +202,35 @@ public sealed class Juggling
         var (firstSeg, firstPattern) = run[0];
         var expects = Siteswap.Expects(firstPattern, firstSeg.LeftFirst, firstSeg.LeftFirst);
         double start = SlotSec(0);
+        // Takeouts keep their balls' parts all through (the user): the right hand always swipes the same ball, the left the
+        // same other one, and the third is always the one thrown across. Which ball each of the run's first throws is decides
+        // which ball comes to which part, so the balls are taken up so that in the run's first takeouts the right hand's 4
+        // is ball 0, the left's ball 2 and the 3 ball 1 (red, yellow and blue in the preview).
+        var wanted = TakeoutBalls(slots, expects);
         if (first)
         {
             // The first balls: in the hands from the start of the clip.
             first = false;
+            var startHand = new int[Balls];
+            for (int k = 0; k < Balls; k++)
+                startHand[wanted?[k] ?? k] = expects[k].Hand;
             for (int b = 0; b < Balls; b++)
             {
-                _startHand.Add(expects[b].Hand);
-                held[expects[b].Hand].Add(b);
+                _startHand.Add(startHand[b]);
+                held[startHand[b]].Add(b);
             }
         }
-        foreach (var (beat, hand) in expects)
+        for (int k = 0; k < expects.Count; k++)
         {
+            var (beat, hand) = expects[k];
             int ball;
-            if (held[hand].Count > 0)
+            int want = wanted is not null && k < wanted.Length ? wanted[k] : -1;
+            if (want >= 0 && held[hand].Contains(want))
+            {
+                ball = want;
+                held[hand].Remove(want);
+            }
+            else if (want < 0 && held[hand].Count > 0)
             {
                 ball = held[hand][0];
                 held[hand].RemoveAt(0);
@@ -223,8 +238,14 @@ public sealed class Juggling
             else
             {
                 // Not in that hand: it is handed across before the run begins.
-                ball = held[1 - hand][0];
-                held[1 - hand].RemoveAt(0);
+                int from = want >= 0 && held[1 - hand].Contains(want) ? 1 - hand : held[1 - hand].Count > 0 ? 1 - hand : hand;
+                ball = want >= 0 && held[from].Contains(want) ? want : held[from][0];
+                held[from].Remove(ball);
+                if (from == hand)
+                {
+                    Arrive(beat, ball, hand, -1);
+                    continue;
+                }
                 double at = Math.Max(heldSince, start - 2 * Ramp);
                 Flights.Add(new Flight(ball, 1 - hand, hand, at - 0.15, at, 1));
             }
@@ -447,6 +468,67 @@ public sealed class Juggling
         heldSince = lastCatch + 0.2;
         Runs.Add((start, lastCatch));
         Busy.Add((run[0].Seg.T0, run[^1].Seg.T1));
+    }
+
+    /// <summary>
+    /// Takeouts' balls (DESIGN.md 118.49): which ball each of the run's first throws should be, by the order the pattern
+    /// expects them, so that in the run's first takeouts word the right hand's 4 is ball 0, the left hand's 4 ball 2 and the
+    /// 3 ball 1. Worked out by following where each of those first balls goes by the throws alone; null without takeouts.
+    /// </summary>
+    private int[]? TakeoutBalls(List<Slot> slots, List<(int Beat, int Hand)> expects)
+    {
+        if (!slots.Any(x => x.Seg?.Tricks?.Contains("takeouts") == true) || expects.Count != Balls || Balls != 3)
+            return null;
+        var arriving = new Dictionary<int, List<(int Label, int Hand)>>();
+        void Arrive(int slot, int label, int hand)
+        {
+            if (!arriving.TryGetValue(slot, out var list))
+                arriving[slot] = list = [];
+            list.Add((label, hand));
+        }
+        for (int k = 0; k < expects.Count; k++)
+            Arrive(expects[k].Beat, k, expects[k].Hand);
+        var part = new int[] { -1, -1, -1 };
+        for (int s = 0; s < slots.Count; s++)
+        {
+            var slot = slots[s];
+            if (slot.Seg is null)
+                break;
+            var beat = slot.Pattern!.Beats[slot.Index % slot.Pattern.Beats.Count];
+            int turn = Siteswap.HandAt(slot.InRun, slot.Seg.LeftFirst);
+            bool takeouts = slot.Seg.Tricks?.Contains("takeouts") == true;
+            for (int hand = 0; hand < 2; hand++)
+            {
+                int writer = beat.Sync && slot.Seg.LeftFirst ? 1 - hand : hand;
+                var throws = beat.Of(writer, turn).Where(t => t.Value > 0).ToList();
+                var here = arriving.TryGetValue(s, out var list) ? list.Where(a => a.Hand == hand).ToList() : [];
+                for (int k = 0; k < throws.Count && k < here.Count; k++)
+                {
+                    var t = throws[k];
+                    int to = Siteswap.Lands(hand, t, beat.Sync);
+                    Arrive(s + t.Value, here[k].Label, to);
+                    if (!takeouts || t.Value < 3)
+                        continue;
+                    // The right hand's 4 ball 0, the left's ball 2, the 3 ball 1.
+                    int ball = to == hand ? (hand == 0 ? 0 : 2) : 1;
+                    if (part[here[k].Label] < 0 && !part.Contains(ball))
+                        part[here[k].Label] = ball;
+                }
+                for (int k = throws.Count; k < here.Count; k++)
+                    Arrive(s + 2, here[k].Label, hand);
+            }
+            if (!part.Contains(-1))
+                return part;
+            // Only the run's first takeouts word: once past it, what it did not settle stays as it comes.
+            if (takeouts && s + 1 < slots.Count && slots[s + 1].Seg?.Tricks?.Contains("takeouts") != true)
+                break;
+        }
+        // Whatever is not settled, the balls left over in order.
+        var free = new Queue<int>(Enumerable.Range(0, 3).Where(b => !part.Contains(b)));
+        for (int k = 0; k < 3; k++)
+            if (part[k] < 0)
+                part[k] = free.Dequeue();
+        return part;
     }
 
     /// <summary>
