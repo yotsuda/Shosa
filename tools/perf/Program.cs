@@ -17,6 +17,11 @@ using Shosa.Lsp;
 // the first digit after the middle of the file. --messages: the shosa/clip messages of the file opened and of the
 // first two edits, as an editor that takes patches is sent them, for out\pv\harness-perf.html to give the preview's page.
 
+// SHOSA_FRAMES_AT_ONCE=N: the solver finds N frames of a figure on each processor (DESIGN.md 120.10); 0 for all on one.
+// Whatever it is, --compare must find every number the same.
+if (int.TryParse(Environment.GetEnvironmentVariable("SHOSA_FRAMES_AT_ONCE"), out int atOnce))
+    Solver.FramesAtOnce = atOnce <= 0 ? int.MaxValue : atOnce;
+
 // Every number the solver gives, kept and compared (Corpus.cs).
 if (args.Length >= 3 && args[0] is "--dump" or "--compare")
     return Corpus.Run(args);
@@ -72,7 +77,8 @@ var solve = new List<double>();
 var write = new List<double>();
 var whole = new List<double>();
 long bytes = 0;
-int frames = 0, figures = 0;
+int frames = 0, figures = 0, collected = 0;
+long allocated = 0;
 for (int i = 0; i < times; i++)
 {
     SyntaxTree tree = null!;
@@ -80,11 +86,15 @@ for (int i = 0; i < times; i++)
     ScoreIr score = null!;
     bind.Add(Ms(() => score = Binder.Bind(tree, null, songs).Item1));
     var clips = new List<MotionClip>();
+    long before = GC.GetAllocatedBytesForCurrentThread();
+    int collections = GC.CollectionCount(0);
     solve.Add(Ms(() =>
     {
         foreach (var ir in score.Clips)
             clips.Add(Solver.Solve(ir, []));
     }));
+    allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+    collected = GC.CollectionCount(0) - collections;
     write.Add(Ms(() => bytes = JsonSerializer.SerializeToUtf8Bytes(new { clips }, json).LongLength));
     whole.Add(Ms(() => ShosaCompilation.Compile(text, null, songs, usings)));
     frames = clips.Sum(c => c.Figures.Sum(f => f.Frames.Count));
@@ -92,7 +102,7 @@ for (int i = 0; i < times; i++)
 }
 Console.WriteLine($"  parse          {Stats(parse)}");
 Console.WriteLine($"  bind           {Stats(bind)}");
-Console.WriteLine($"  solve          {Stats(solve)}   ({figures} figures, {frames} frames of a figure)");
+Console.WriteLine($"  solve          {Stats(solve)}   ({figures} figures, {frames} frames of a figure; {allocated / 1024.0 / 1024.0:0.0} MB allocated, {collected} collections)");
 Console.WriteLine($"  write as JSON  {Stats(write)}   ({bytes / 1024.0 / 1024.0:0.00} MB)");
 Console.WriteLine($"  compile, whole {Stats(whole)}");
 

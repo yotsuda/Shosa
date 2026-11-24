@@ -95,6 +95,124 @@ public static class Solver
         return clip;
     }
 
+    /// <summary>A solver for every dancer of a clip, built, and told the beats of the frames.</summary>
+    private static Dictionary<string, FigureSolver> Solvers(MotionIr ir, double beatsPerFrame, double[] beatOfFrame)
+    {
+        var solvers = new Dictionary<string, FigureSolver>();
+        foreach (var dancer in ir.Dancers)
+            solvers[dancer.Id] = new FigureSolver(dancer, ir, beatsPerFrame, id => solvers.GetValueOrDefault(id));
+        foreach (var dancer in ir.Dancers)
+            solvers[dancer.Id].Build();
+        foreach (var dancer in ir.Dancers)
+            solvers[dancer.Id].SolvedAt(beatOfFrame);
+        return solvers;
+    }
+
+    /// <summary>
+    /// A figure at one frame: its joints (as the clip has them: `inPlace` taken out), what was wrong there, the way
+    /// it faces, where its body really is (before `inPlace`), and the two rows of the clip.
+    /// </summary>
+    private readonly record struct Posed(Vec3[] Pose, PoseProblems Problems, double Facing, Body Body, float[] Data, float[] Turns);
+
+    /// <param name="travel">`inPlace`: the travel taken out over the clip; else nothing.</param>
+    private static Posed PoseFrame(FigureSolver solver, MotionIr ir, double t, Vec3 travel)
+    {
+        var pose = solver.Pose(t, out var problems);
+        var body = new Body(pose[Rig.Head], pose[Rig.Chest], pose[Rig.Waist], pose[Rig.Pelvis],
+            [pose[Rig.LHip], pose[Rig.LKnee], pose[Rig.LAnkle]], [pose[Rig.RHip], pose[Rig.RKnee], pose[Rig.RAnkle]]);
+        if (ir.Inplace && ir.TotalBeats > 0)
+        {
+            var back = travel * (t / ir.TotalBeats);
+            for (int j = 0; j < pose.Length; j++)
+                pose[j] -= back;
+        }
+
+        var data = new float[pose.Length * 3];
+        for (int j = 0; j < pose.Length; j++)
+        {
+            data[j * 3] = (float)Math.Round(pose[j].X, 4);
+            data[j * 3 + 1] = (float)Math.Round(pose[j].Y, 4);
+            data[j * 3 + 2] = (float)Math.Round(pose[j].Z, 4);
+        }
+
+        var rotations = Skeleton.Rotations(pose);
+        var turns = new float[rotations.Length * 4];
+        for (int b = 0; b < rotations.Length; b++)
+        {
+            turns[b * 4] = (float)rotations[b].X;
+            turns[b * 4 + 1] = (float)rotations[b].Y;
+            turns[b * 4 + 2] = (float)rotations[b].Z;
+            turns[b * 4 + 3] = (float)rotations[b].W;
+        }
+        return new Posed(pose, problems, solver.FacingAt(t), body, data, turns);
+    }
+
+    /// <summary>
+    /// How many frames of a figure one processor finds when a clip's frames are found on several at once; null for
+    /// the solver's own choice (a short clip on one). For the tests, and for `tools\perf` to compare: whatever it is,
+    /// every number comes out the same.
+    /// </summary>
+    public static int? FramesAtOnce { get; set; }
+
+    /// <summary>Fewer frames of a figure than this (all the dancers' together) are found one by one: the solvers to make cost more than the processors save.</summary>
+    private const int FewFrames = 600;
+    /// <summary>The frames (all the dancers' together) that are worth another processor, and the most processors used.</summary>
+    private const int FramesWorthAnother = 250, MostAtOnce = 16;
+
+    /// <summary>
+    /// Every dancer at every frame, for a long clip, found on several processors at once (DESIGN.md 120.10); null for a
+    /// short one. What a figure is at a moment depends on the IR and the moment alone, not on which moments were
+    /// asked before: the frames are cut into stretches of time, and each stretch is found by solvers of its own,
+    /// built from the same IR (a solver keeps what it found, and is one thread's). The numbers are the same.
+    /// </summary>
+    private static Posed[][]? PosedAhead(MotionIr ir, Dictionary<string, FigureSolver> solvers, double beatsPerFrame, double[] beatOfFrame)
+    {
+        int frames = beatOfFrame.Length, dancers = ir.Dancers.Count;
+        int stretch;
+        if (FramesAtOnce is { } asked)
+        {
+            stretch = Math.Max(1, asked);
+        }
+        else
+        {
+            if (frames * dancers < FewFrames || Environment.ProcessorCount < 2)
+                return null;
+            int processors = Math.Min(Math.Min(Environment.ProcessorCount, MostAtOnce), Math.Max(2, frames * dancers / FramesWorthAnother));
+            stretch = (frames + processors - 1) / processors;
+        }
+        int stretches = (frames + stretch - 1) / stretch;
+        if (stretches <= 1 || dancers == 0)
+            return null;
+
+        var posed = new Posed[dancers][];
+        for (int d = 0; d < dancers; d++)
+            posed[d] = new Posed[frames];
+        bool life = LifeOn;
+        try
+        {
+            Parallel.For(0, stretches, s =>
+            {
+                using var _ = Life(life);
+                // The first stretch on the solvers the clip already has; the others on their own.
+                var mine = s == 0 ? solvers : Solvers(ir, beatsPerFrame, beatOfFrame);
+                int from = s * stretch, to = Math.Min(frames, from + stretch);
+                for (int d = 0; d < dancers; d++)
+                {
+                    var solver = mine[ir.Dancers[d].Id];
+                    var travel = ir.Inplace && ir.TotalBeats > 0 ? solver.Travel : default;
+                    for (int f = from; f < to; f++)
+                        posed[d][f] = PoseFrame(solver, ir, beatOfFrame[f], travel);
+                }
+            });
+        }
+        catch (AggregateException failed) when (failed.InnerExceptions.Count > 0)
+        {
+            // As found one by one: what went wrong, not a list of it.
+            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(failed.InnerExceptions[0]).Throw();
+        }
+        return posed;
+    }
+
     public static MotionClip Solve(MotionIr ir, List<Diagnostic> diagnostics)
     {
         int fps = ir.Fps;
@@ -109,20 +227,17 @@ public static class Solver
         // The solver's own small step of time, for smoothing: a frame at the first tempo.
         double beatsPerFrame = ir.Tempo / (60.0 * fps);
 
-        var solvers = new Dictionary<string, FigureSolver>();
-        foreach (var dancer in ir.Dancers)
-            solvers[dancer.Id] = new FigureSolver(dancer, ir, beatsPerFrame, id => solvers.GetValueOrDefault(id));
-        foreach (var dancer in ir.Dancers)
-            solvers[dancer.Id].Build();
-        foreach (var dancer in ir.Dancers)
-            solvers[dancer.Id].SolvedAt(beatOfFrame);
+        var solvers = Solvers(ir, beatsPerFrame, beatOfFrame);
+        // A long clip's frames, found on every processor at once (DESIGN.md 120.10); null for a short one, found below one by one.
+        var ahead = PosedAhead(ir, solvers, beatsPerFrame, beatOfFrame);
 
         // Head, chest and pelvis of every dancer at every frame, where they really are (before `inPlace`).
         var bodies = new Dictionary<string, List<Body>>();
         var unreached = new HashSet<int>();
 
-        foreach (var dancer in ir.Dancers)
+        for (int d = 0; d < ir.Dancers.Count; d++)
         {
+            var dancer = ir.Dancers[d];
             var solver = solvers[dancer.Id];
             var clipFigure = new ClipFigure { Id = dancer.Id, Name = dancer.Name, Model = dancer.Model, ModelHeight = dancer.ModelHeight };
             // The mouth sings with the song, on its clock: frames are even in seconds.
@@ -194,36 +309,12 @@ public static class Solver
             for (int f = 0; f < frames; f++)
             {
                 double t = beatOfFrame[f];
-                var pose = solver.Pose(t, out var problems);
-                body.Add(new Body(pose[Rig.Head], pose[Rig.Chest], pose[Rig.Waist], pose[Rig.Pelvis],
-                    [pose[Rig.LHip], pose[Rig.LKnee], pose[Rig.LAnkle]], [pose[Rig.RHip], pose[Rig.RKnee], pose[Rig.RAnkle]]));
-                if (ir.Inplace && ir.TotalBeats > 0)
-                {
-                    var back = travel * (t / ir.TotalBeats);
-                    for (int j = 0; j < pose.Length; j++)
-                        pose[j] -= back;
-                }
-
-                var data = new float[pose.Length * 3];
-                for (int j = 0; j < pose.Length; j++)
-                {
-                    data[j * 3] = (float)Math.Round(pose[j].X, 4);
-                    data[j * 3 + 1] = (float)Math.Round(pose[j].Y, 4);
-                    data[j * 3 + 2] = (float)Math.Round(pose[j].Z, 4);
-                }
-                clipFigure.Frames.Add(data);
-                clipFigure.Yaws.Add(solver.FacingAt(t));
-
-                var rotations = Skeleton.Rotations(pose);
-                var turns = new float[rotations.Length * 4];
-                for (int b = 0; b < rotations.Length; b++)
-                {
-                    turns[b * 4] = (float)rotations[b].X;
-                    turns[b * 4 + 1] = (float)rotations[b].Y;
-                    turns[b * 4 + 2] = (float)rotations[b].Z;
-                    turns[b * 4 + 3] = (float)rotations[b].W;
-                }
-                clipFigure.Rotations.Add(turns);
+                var posed = ahead is null ? PoseFrame(solver, ir, t, travel) : ahead[d][f];
+                var (pose, problems, facing) = (posed.Pose, posed.Problems, posed.Facing);
+                body.Add(posed.Body);
+                clipFigure.Frames.Add(posed.Data);
+                clipFigure.Yaws.Add(facing);
+                clipFigure.Rotations.Add(posed.Turns);
 
                 if (problems.Overreach)
                     Flag(Channels.Support, t, "SH2002", DiagnosticSeverity.Warning,
@@ -267,14 +358,14 @@ public static class Solver
                     Speed(Rig.RAnkle, SegAt(dancer, Channels.RightLeg, t) is null ? Channels.Support : Channels.RightLeg, MaxFootSpeed, "foot");
                 }
                 previous = pose;
-                previousFacing = solver.FacingAt(t);
+                previousFacing = facing;
 
                 void Speed(int joint, string channel, double limit, string what)
                 {
                     // A hand is judged against the body it hangs on: an arm held out through a turn or
                     // a jump is not a fast arm. (The feet, which make the turn, are judged against the floor.)
                     double speed = what == "hand"
-                        ? (InBody(pose, joint, solver.FacingAt(t)) - InBody(previous!, joint, previousFacing)).Length * fps
+                        ? (InBody(pose, joint, facing) - InBody(previous!, joint, previousFacing)).Length * fps
                         : (pose[joint] - previous![joint]).Length * fps;
                     if (speed > limit)
                         Flag(channel, t, "SH2003", DiagnosticSeverity.Warning,
