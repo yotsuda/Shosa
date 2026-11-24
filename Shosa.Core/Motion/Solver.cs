@@ -2210,7 +2210,7 @@ internal sealed class FigureSolver
         }
         // Mills' Mess: the body sways from the feet as well as at the waist (the user: the legs too, a little from the
         // floor): the pelvis goes over to the side the back leans to, the legs leaning from the ankles.
-        if (Juggling is { } juggler && juggler.SideLean(Seconds(t)) is var legSway && legSway != 0)
+        if (Juggling is { } juggler && juggler.LegLean(Seconds(t)) is var legSway && legSway != 0)
             p += c.Left * (legSway * MillsLegSway);
         if (c.Float < 0.01)
         {
