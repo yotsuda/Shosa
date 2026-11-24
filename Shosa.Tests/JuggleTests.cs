@@ -411,6 +411,13 @@ public class JuggleTests
             Assert.True(Out(hand, three[3]) > 0.35, $"3 thrown {Out(hand, three[3]):0.00} m out at {three[3]:0.00} s");
             Assert.True(Out(1 - hand, three[4]) > 0.35, $"3 caught {Out(1 - hand, three[4]):0.00} m out at {three[4]:0.00} s");
             Assert.True(three[4] - three[3] > 0.5, $"3 in the air {three[4] - three[3]:0.00} s");
+            // The round's top about when the 3 thrown just before is at its top (the user: the two at their tops at one time).
+            if (three[4] < 5.0)
+            {
+                var round = Enumerable.Range(0, 24).Select(k => f[4] + 0.6 * k / 24).ToList();
+                double topAt = round.MaxBy(s => HandAt(hand, s).Y);
+                Assert.InRange(topAt - (three[3] + three[4]) / 2, -0.25, 0.25);
+            }
             // Not thrown on: held, stopped once, then back round an arc up over the top and out past its own side, the palm
             // to the front, while the other hand throws its 4.
             double next = flights.Where(g => (int)g[1] == hand && g[3] > f[4]).Min(g => (double)g[3]);
