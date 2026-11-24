@@ -460,7 +460,7 @@ public sealed class Juggling
                         {
                             double bt = SlotSec(land - 2) - TakeoutLonger * BeatSec(land - 2);
                             double bc = TakeoutAcrossCaught(SlotSec(land + 1) - Dwell * BeatSec(land + 1), SlotSec(land + 1), BeatSec(land + 1));
-                            double tf = bc - bt, vy = (TakeoutOwnHigh - TakeoutOwnHigh) / tf + G * tf / 2;
+                            double tf = bc - bt, vy = TakeoutCatchHigh / tf + G * tf / 2;
                             _takeoutTopAt = bt + vy / G;
                             _takeoutTopHigh = TakeoutOwnHigh + vy * vy / (2 * G);
                         }
@@ -695,9 +695,9 @@ public sealed class Juggling
     private const string TakeoutWide = "\u0000takeoutWide";
     /// <summary>Takeouts' 4 comes down near the middle, a little on the thrower's side, this high, this far forward (in close:
     /// the user, it falls on the inside), and is swiped there.</summary>
-    private const double TakeoutTakeAt = 0.08, TakeoutTakeHigh = 0.06, TakeoutTakeAhead = 0.0;
+    private const double TakeoutTakeAt = 0.20, TakeoutTakeHigh = 0.06, TakeoutTakeAhead = 0.0;
     /// <summary>The swipe carrying it on: how fast at the catch (m/s), how long to the far side (seconds), how far past the middle there.</summary>
-    private const double TakeoutSwipeCarry = 1.8, TakeoutCarry = 0.11, TakeoutCarryTo = 0.24;
+    private const double TakeoutSwipeCarry = 1.8, TakeoutCarry = 0.12, TakeoutCarryTo = 0.24;
     /// <summary>How fast the hand goes up with the 3 as it throws it (a part of the ball's speed), and in across on its swipe (m/s);
     /// at the 4's catch, how fast it goes down with it (a part of the ball's speed).</summary>
     private const double TakeoutLaunch = 0.6, TakeoutSwipeSpeed = 1.6, TakeoutArrive = 0.25;
@@ -716,14 +716,21 @@ public sealed class Juggling
     /// <summary>How far above the hand the ball it holds is (metres): the round's top is put this far below the 3's.</summary>
     private const double TakeoutBallAbove = 0.04;
     /// <summary>Seconds at the least from the stop after the swipe up to the round's top.</summary>
-    private const double TakeoutRiseLeast = 0.2;
+    private const double TakeoutRiseLeast = 0.17;
     /// <summary>When the other hand throws its 3 from outside while this hand goes round (seconds).</summary>
     private double _takeoutAcross;
     /// <summary>When the hand's own 3 thrown before the swipe is at its top, and how high (the round's top goes there then).</summary>
     private double _takeoutTopAt = double.NaN, _takeoutTopHigh;
     /// <summary>The 3's catch: this many throwing beats later than the pattern says (the user: its top at the round's top), but
     /// leaving the catching hand this much before it throws it again (a little before its beat).</summary>
-    private const double TakeoutAcrossHold = 0.25;
+    private const double TakeoutAcrossHold = 0.55;
+    /// <summary>The 3 caught this high (metres above its throw), so that caught sooner (TakeoutAcrossHold) it still goes as high
+    /// and comes to its top as late; the hand carries it down round a bottom this far below the throw and swings it up (the user).</summary>
+    private const double TakeoutCatchHigh = 0.16, TakeoutThrowDip = 0.05;
+    /// <summary>After the 3's throw the hand goes on up round the top of an arc and swipes down slanting onto its 4 (the user): the
+    /// top this part of the way through that time, this part of the way in to the 4's catch, this high above the throw; and how
+    /// fast it comes down at the catch (m/s).</summary>
+    private const double TakeoutOverAt = 0.5, TakeoutOverIn = 0.35, TakeoutOverUp = 0.16, TakeoutSwipeDown = 1.2;
     private static double TakeoutAcrossCaught(double plain, double landSec, double beat) =>
         Math.Max(plain, landSec - (TakeoutLonger + TakeoutAcrossHold) * beat);
     /// <summary>The round as one smooth way: how far its guide goes on up past the throw (metres), how finely it is laid down
@@ -883,9 +890,34 @@ public sealed class Juggling
             double side = Side(hand);
             if (throwTricks.Contains(TakeoutThrow))
             {
+                // Swung up into the throw round an arc (the user): from the catch before (high, out on its own side), down
+                // round a bottom under the way, and up with the ball.
+                int latest = -1;
+                for (int i = 0; i < _keys[hand].Count; i++)
+                    if (_keys[hand][i].T < thrown - 1e-9 && (latest < 0 || _keys[hand][i].T > _keys[hand][latest].T))
+                        latest = i;
+                if (latest >= 0 && thrown - _keys[hand][latest].T > 0.08 && thrown - _keys[hand][latest].T < 0.4)
+                {
+                    var last = _keys[hand][latest];
+                    AddSmooth(hand, ((last.T + thrown) / 2, new Vec3((last.At.X + from.X) / 2, from.Y - TakeoutThrowDip, from.Z), Still, throwStyle));
+                }
                 AddSmooth(hand, (thrown, from, Still, throwStyle));
                 _launch[(hand, thrown)] = leaves.Y * TakeoutLaunch;
                 _launchAcross[(hand, thrown)] = -side * TakeoutSwipeSpeed;
+                // On up with it, round the top of the arc, high and in (the user), then the swipe comes down from there
+                // slanting onto the hand's 4 (its catch, put already: the 4 was thrown before).
+                int next = -1;
+                for (int i = 0; i < _keys[hand].Count; i++)
+                    if (_keys[hand][i].T > thrown + 1e-9 && (next < 0 || _keys[hand][i].T < _keys[hand][next].T))
+                        next = i;
+                if (next >= 0 && _keys[hand][next].T - thrown < 0.4 && _arrive.ContainsKey((hand, _keys[hand][next].T)))
+                {
+                    var take = _keys[hand][next];
+                    double overAt = thrown + TakeoutOverAt * (take.T - thrown);
+                    var over = new Vec3(from.X + (take.At.X - from.X) * TakeoutOverIn, from.Y + TakeoutOverUp, (from.Z + take.At.Z) / 2);
+                    AddSmooth(hand, (overAt, over, Still, throwStyle));
+                    _arrive[(hand, take.T)] = new Vec3(-side * TakeoutSwipeCarry, -TakeoutSwipeDown, 0);
+                }
                 AddSmooth(to, (caught, into, Still, catchStyle));
                 _arrive[(to, caught)] = arrives * CascadeArrive;
                 return;
@@ -1229,7 +1261,7 @@ public sealed class Juggling
             // From well outside to well outside, high, as tennis's ball goes (the user), a little in front.
             from = new Vec3(s * TakeoutAcrossOut, TakeoutOwnHigh, TakeoutAcrossAhead);
             if (Has(throwTricks, TakeoutCaughtOut))
-                into = new Vec3(c * TakeoutCatchOut, TakeoutOwnHigh, TakeoutAcrossAhead);
+                into = new Vec3(c * TakeoutCatchOut, TakeoutOwnHigh + TakeoutCatchHigh, TakeoutAcrossAhead);
         }
         else if (Has(catchTricks, TakeoutWide))
             into = new Vec3(c * TakeoutCatchOut, into.Y, into.Z);

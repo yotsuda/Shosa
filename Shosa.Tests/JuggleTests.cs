@@ -398,8 +398,9 @@ public class JuggleTests
             int hand = (int)f[1];
             // Each hand always swipes its own ball (the user): the right ball 0, the left ball 2 (red and yellow in the preview).
             Assert.Equal(hand == 0 ? 0 : 2, (int)f[0]);
-            // Taken near the middle, from above, just after the hand's own 3 from its own side, and carried on to the far side.
-            Assert.True(Math.Abs(Out(hand, f[4])) < 0.15, $"4 taken {Out(hand, f[4]):0.00} m out at {f[4]:0.00} s");
+            // Taken on the catching arm's own side, out near it (the user), swiping down from above just after the hand's own 3
+            // from further out, and carried on to the far side.
+            Assert.InRange(Out(hand, f[4]), 0.1, 0.3);
             // The palm turned out as it swipes and catches, and kept so after (the user).
             Assert.Equal((int)Juggling.Style.Outward, styles[(int)Math.Round(f[4] * clip.Fps)][hand]);
             Assert.Equal((int)Juggling.Style.Outward, styles[(int)Math.Round((f[4] + 0.3) * clip.Fps)][hand]);
@@ -416,7 +417,9 @@ public class JuggleTests
             {
                 var round = Enumerable.Range(0, 24).Select(k => f[4] + 0.6 * k / 24).ToList();
                 double topAt = round.MaxBy(s => HandAt(hand, s).Y);
-                Assert.InRange(topAt - (three[3] + three[4]) / 2, -0.25, 0.25);
+                // (The 3's top: it is caught higher than it is thrown, so a little after the middle of its flight.)
+                double tf = three[4] - three[3], rise = HandAt(1 - hand, three[4]).Y - HandAt(hand, three[3]).Y;
+                Assert.InRange(topAt - (three[3] + tf / 2 + rise / (9.81 * tf)), -0.25, 0.25);
             }
             // Not thrown on: held, stopped once, then back round an arc up over the top and out past its own side, the palm
             // to the front, while the other hand throws its 4.
