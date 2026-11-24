@@ -311,6 +311,33 @@ public class JuggleTests
         Assert.Contains("hurried", Assert.Single(quick.Diagnostics, d => d.Code == "SH2023").Message);
     }
 
+    [Theory]
+    [InlineData("every 1/2  4:4 | 534:3 4:1 | 633:3 4:1 | 7441:4 |")]
+    [InlineData("every 1/3  5:4 | 645:4 | 744:4 | 97531:10/3 5:2/3 | 75751:10/3 5:2/3 |")]
+    public void Balls_in_the_air_keep_well_apart_in_four_and_five_ball_patterns(string row)
+    {
+        // The fountain thrown inside and caught outside, the one going up in front; higher throws across wider (DESIGN.md
+        // 118.42). On the figure 10 cm or more: a character's shorter arms draw it some 0.6 as wide, and a ball is 6.8 cm.
+        var c = Compile(Juggle(row));
+        Assert.Empty(c.Diagnostics);
+        var jg = c.Clip.Figures[0].Juggle!;
+        int balls = jg.Frames[0].Length / 7;
+        for (int frame = 0; frame < jg.Frames.Count; frame++)
+        {
+            double sec = frame / c.Clip.Fps;
+            var air = jg.Flights.Where(f => f[3] + 0.04 <= sec && sec <= f[4] - 0.04).Select(f => (int)f[0]).ToHashSet();
+            foreach (int a in air)
+                foreach (int b in air)
+                    if (a < b)
+                    {
+                        var p = new Vec3(jg.Frames[frame][a * 7], jg.Frames[frame][a * 7 + 1], jg.Frames[frame][a * 7 + 2]);
+                        var q = new Vec3(jg.Frames[frame][b * 7], jg.Frames[frame][b * 7 + 1], jg.Frames[frame][b * 7 + 2]);
+                        Assert.True((p - q).Length >= 0.10, $"balls {a} and {b} {(p - q).Length:0.000} m apart at {sec:0.00} s");
+                    }
+        }
+        Assert.True(balls >= 4);
+    }
+
     [Fact]
     public void Mills_written_on_in_a_second_word_goes_on_round_as_one_word_does()
     {

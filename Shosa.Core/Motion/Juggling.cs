@@ -435,18 +435,26 @@ public sealed class Juggling
     private Vec3 Throws(int hand, int value, bool across) => value == 1
         ? new Vec3(Side(hand) * 0.12, -0.01, 0.02)
         : Rings ? new Vec3(Side(hand) * 0.13, 0.10, 0.02)
-        : new Vec3(Side(hand) * (across ? 0.15 : SameThrowX), 0, across ? 0.01 : SameThrowZ);
+        : new Vec3(Side(hand) * (across ? Math.Max(0.07, 0.15 - Wider(value)) : SameThrowX), 0, across ? CrossThrowZ : SameThrowZ);
+    // A higher throw across goes up a little further in and comes down a little further out (DESIGN.md 118.42: in 97531
+    // and 744 a high ball and a lower one crossed the middle at once, 5 cm apart), so balls of different heights cross the
+    // middle at different places.
+    private double Wider(int value) => Rings || Clubs ? 0 : CrossWider * Math.Max(0, value - 3);
     // A throw that comes back to its own hand (an even one: 441, the box (4,2x)*, the fountain) goes up on the hand's own
     // side, the hands well apart (the user: in the box they looked better further out). Thrown 28 cm out, caught 34.
     private Vec3 Catches(int hand, int value, bool across = true) => value == 1
         ? new Vec3(Side(hand) * 0.16, -0.01, 0.02)
         : Rings ? new Vec3(Side(hand) * 0.31, 0.18, 0.02)
         : Clubs ? new Vec3(Side(hand) * (across ? 0.40 : 0.42), 0.08, -0.02)
-        : new Vec3(Side(hand) * (across ? 0.32 : SameCatchX), 0.06, across ? -0.02 : SameCatchZ);
+        : new Vec3(Side(hand) * (across ? 0.32 + Wider(value) : SameCatchX), 0.06, across ? CrossCatchZ : SameCatchZ);
     // A ball thrown back to its own hand (441, the box): thrown in front and inside, caught behind and outside, so the one going
     // up and the one coming down in the same hand's column pass apart, and the one going up is in front of a ball crossing over
     // into that hand (the user: in 441 a ball going up met one coming down; thrown at 28 cm and caught at 34 they passed 4 cm apart).
-    private const double SameThrowX = 0.34, SameThrowZ = 0.08, SameCatchX = 0.42, SameCatchZ = -0.06;
+    // In the fountain (four balls) thrown well inside and caught outside, each hand's balls going round a loop beside each
+    // other (the user: thrown at 34 cm out and caught at 42, the one going up and the one coming down passed through each
+    // other as seen from the front, only 14 cm apart front to back). DESIGN.md 118.42.
+    private const double SameThrowX = 0.18, SameCatchX = 0.42;
+    private const double SameThrowZ = 0.14, SameCatchZ = -0.08, CrossThrowZ = 0.02, CrossCatchZ = -0.08, CrossWider = 0.03;
     // A club is half a metre long: caught well out to the side, the elbow out, or two meet in the air (the user).
     private bool Clubs => Prop == "clubs";
 
