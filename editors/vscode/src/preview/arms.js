@@ -7,6 +7,7 @@
 // and the elbow put as the solver puts the figure's (Solver.ElbowOut), but never inside the trunk side to side.
 // In takeouts (`followed`, DESIGN.md 118.49) the same, but the elbow pointing as the figure's, not held under the shoulder.
 import * as THREE from 'three';
+import { refresh } from './clearance.js';
 
 /** The figure's trunk and arm thickness (Solver.TrunkRadius, its arms as the sheet draws them), metres. */
 const FIGURE_TRUNK = 0.11, FIGURE_ARM = 0.04;
@@ -51,7 +52,7 @@ export function millsArms(vrm, body, size, figure, weight, angles = null, pull =
   if (!body || weight <= 0) return null;
   const found = {};
   const node = name => vrm.humanoid.getNormalizedBoneNode(name);
-  vrm.scene.updateMatrixWorld(true);
+  refresh(vrm);
   // The character's trunk, side to side and front to back, at its widest about the chest.
   let rx = 0, rz = 0;
   for (const shape of body.trunk) {

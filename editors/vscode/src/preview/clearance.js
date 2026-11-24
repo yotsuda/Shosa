@@ -208,20 +208,21 @@ export function keepArmsOut(vrm, body, size, swings = null) {
  * Turns an arm (its elbow already swung) out at the shoulder until it is clear of the trunk and head, by as little as does
  * it and no more than MOST. Returns the turn as put on the upper arm's own turn (premultiplied), or null for none.
  */
-function turnOut(vrm, body, size, side) {
+function turnOut(vrm, body, size, side, posed = null) {
   const node = name => vrm.humanoid.getNormalizedBoneNode(name);
   const thickness = body.arms[side];
   const upperArm = node(side + 'UpperArm'), lowerArm = node(side + 'LowerArm'), hand = node(side + 'Hand');
   if (!thickness || !upperArm || !lowerArm || !hand) return null;
   const before = upperArm.quaternion.clone();
+  posed ??= poseBody(vrm, body, size);
   {
     let turnedBy = 0;
     for (let pass = 0; pass < PASSES && turnedBy < MOST; pass++) {
-      vrm.scene.updateMatrixWorld(true);
+      refresh(vrm);
       const shoulder = upperArm.getWorldPosition(new THREE.Vector3());
       const elbow = lowerArm.getWorldPosition(new THREE.Vector3());
       const wrist = hand.getWorldPosition(new THREE.Vector3());
-      const deepest = deepestPoint(vrm, body, size, side, shoulder, elbow, wrist, thickness);
+      const deepest = deepestPoint(posed, side, shoulder, elbow, wrist, thickness);
       if (!deepest) break;
       // Move that point of the arm out along the body's normal, turning the whole arm about the shoulder.
       const lever = v1.subVectors(deepest.point, shoulder);
@@ -257,16 +258,17 @@ const SWING_HOLD = 3, SWING_EASE = 3;
  * none does, the one that leaves it least inside), on the side of `before` (the last frame's) unless the other side is
  * much smaller. 0 when the arm is clear or has no elbow to swing. The arm is as posed, not yet swung.
  */
-export function elbowSwing(vrm, body, size, side, before) {
+export function elbowSwing(vrm, body, size, side, before, posed = null) {
   const node = name => vrm.humanoid.getNormalizedBoneNode(name);
   const thickness = body.arms[side];
   const upperArm = node(side + 'UpperArm'), lowerArm = node(side + 'LowerArm'), hand = node(side + 'Hand');
   if (!thickness || !upperArm || !lowerArm || !hand) return 0;
-  vrm.scene.updateMatrixWorld(true);
+  refresh(vrm);
+  posed ??= poseBody(vrm, body, size);
   const shoulder = upperArm.getWorldPosition(new THREE.Vector3());
   const elbow = lowerArm.getWorldPosition(new THREE.Vector3());
   const wrist = hand.getWorldPosition(new THREE.Vector3());
-  const first = deepestPoint(vrm, body, size, side, shoulder, elbow, wrist, thickness);
+  const first = deepestPoint(posed, side, shoulder, elbow, wrist, thickness);
   if (!first) return 0;
   const axis = new THREE.Vector3().subVectors(wrist, shoulder);
   if (axis.lengthSq() < 1e-8) return 0;
@@ -282,7 +284,7 @@ export function elbowSwing(vrm, body, size, side, before) {
       const angle = sign * k * SWING_STEP * Math.PI / 180;
       turn.setFromAxisAngle(axis, angle);
       swung.subVectors(elbow, shoulder).applyQuaternion(turn).add(shoulder);
-      const found = deepestPoint(vrm, body, size, side, shoulder, swung, wrist, thickness);
+      const found = deepestPoint(posed, side, shoulder, swung, wrist, thickness);
       const depth = found ? found.depth : 0;
       if (depth < best.depth - 1e-4) best = { angle, depth };
     }
@@ -300,12 +302,27 @@ export function elbowSwing(vrm, body, size, side, before) {
  * The elbows' swings at every frame of a clip, worked out once (`pose(f)` poses the character at frame f as solved,
  * without its arms kept out): each frame on the side the frame before went, then every swing held a few frames either
  * side and eased in and out, so an elbow moves round the body in one sweep and does not flap. { left, right } per frame.
+ *
+ * After an edit only the frames it moved are worked out again (DESIGN.md 120): `was` is what this gave for the movement
+ * before the edit (the same character, size and count of frames) and `dirty[f]` is 1 where frame f is posed otherwise
+ * than it was. A frame is posed and tested again where it is dirty, or where what it depends on came out otherwise
+ * (the swing of the frame before, its own eased swing); everything else is taken from `was`. What comes out is what
+ * working it all out gives (harness-perf.html compares). The smoothing is done whole: it is arithmetic.
  */
-export function elbowSwings(vrm, body, size, count, pose) {
+export function elbowSwings(vrm, body, size, count, pose, was = null, dirty = null) {
+  if (!was || !dirty) was = dirty = null;
   const raw = { left: new Float64Array(count), right: new Float64Array(count) };
+  let moved = true;   // whether the frame before came out otherwise than it was
   for (let f = 0; f < count; f++) {
+    if (was && !dirty[f] && !moved) {
+      raw.left[f] = was.raw.left[f];
+      raw.right[f] = was.raw.right[f];
+      continue;
+    }
     pose(f);
-    for (const side of ['left', 'right']) raw[side][f] = elbowSwing(vrm, body, size, side, f > 0 ? raw[side][f - 1] : 0);
+    const posed = poseBody(vrm, body, size);
+    for (const side of ['left', 'right']) raw[side][f] = elbowSwing(vrm, body, size, side, f > 0 ? raw[side][f - 1] : 0, posed);
+    moved = !was || raw.left[f] !== was.raw.left[f] || raw.right[f] !== was.raw.right[f];
   }
   const eased = { left: new Float64Array(count), right: new Float64Array(count) };
   for (const side of ['left', 'right']) {
@@ -330,10 +347,16 @@ export function elbowSwings(vrm, body, size, count, pose) {
   // Then the turns out at the shoulder, each frame posed and its elbows swung as eased, smoothed the same way.
   const turns = { left: [], right: [] };
   for (let f = 0; f < count; f++) {
+    if (was && !dirty[f] && eased.left[f] === was.left[f] && eased.right[f] === was.right[f]) {
+      turns.left.push(was.turns.left[f]);
+      turns.right.push(was.turns.right[f]);
+      continue;
+    }
     pose(f);
+    const posed = poseBody(vrm, body, size);
     for (const side of ['left', 'right']) {
       if (eased[side][f]) turnElbow(vrm, side, eased[side][f]);
-      turns[side].push(globalThis.shosaNoTurnOut ? new THREE.Quaternion() : turnOut(vrm, body, size, side) ?? new THREE.Quaternion());
+      turns[side].push(globalThis.shosaNoTurnOut ? new THREE.Quaternion() : turnOut(vrm, body, size, side, posed) ?? new THREE.Quaternion());
     }
   }
   // A test page sees how far each arm was turned out, degrees per frame, before and after smoothing.
@@ -359,14 +382,46 @@ export function elbowSwings(vrm, body, size, count, pose) {
     }
   }
   if (globalThis.shosaTurnOutLog) globalThis.shosaTurnOutLog.push({ raw: { left: turns.left.map(degrees), right: turns.right.map(degrees) }, out: { left: out.left.map(degrees), right: out.right.map(degrees) } });
-  return { ...eased, out };
+  // `raw` and `turns` are kept for the next edit to go on from.
+  return { ...eased, out, raw, turns };
+}
+
+/**
+ * Brings the world matrices of the character's own (normalized) bones up to date: all that is read here. The whole
+ * scene — its meshes, its hair and skirt bones — took most of the time of working a clip out (DESIGN.md 120).
+ */
+export function refresh(vrm) {
+  const root = vrm.humanoid.normalizedHumanBonesRoot;
+  if (root) root.updateWorldMatrix(true, true);
+  else vrm.scene.updateMatrixWorld(true);
+}
+
+/**
+ * The body's shapes where the character's bones have them now: the trunk's segments and the head's centre. The arms
+ * move in a frame (an elbow tried at every angle, an arm turned out); the trunk and the head do not, so they are
+ * placed once for it.
+ */
+function poseBody(vrm, body, size) {
+  const node = name => vrm.humanoid.getNormalizedBoneNode(name);
+  refresh(vrm);
+  const trunk = body.trunk.map(shape => {
+    const a = node(shape.from).getWorldPosition(new THREE.Vector3());
+    const b = node(shape.to).getWorldPosition(new THREE.Vector3());
+    return { shape, a, axes: frame(a, b, node(shape.from).getWorldQuaternion(qb)) };
+  });
+  let head = null;
+  if (body.head) {
+    const bone = node('head');
+    head = { radius: body.head.radius, centre: body.head.local.clone().multiplyScalar(size).applyQuaternion(bone.getWorldQuaternion(qb)).add(bone.getWorldPosition(new THREE.Vector3())) };
+  }
+  return { trunk, head, size };
 }
 
 /** Swings the elbow round the shoulder–wrist line by `angle`, keeping the hand where it was and turned as it was. */
 function turnElbow(vrm, side, angle) {
   const node = name => vrm.humanoid.getNormalizedBoneNode(name);
   const upperArm = node(side + 'UpperArm'), hand = node(side + 'Hand');
-  vrm.scene.updateMatrixWorld(true);
+  refresh(vrm);
   const shoulder = upperArm.getWorldPosition(new THREE.Vector3());
   const wrist = hand.getWorldPosition(new THREE.Vector3());
   const axis = new THREE.Vector3().subVectors(wrist, shoulder);
@@ -385,8 +440,8 @@ function turnElbow(vrm, side, angle) {
 }
 
 /** The point of the arm that is farthest inside the body, with the way out and how far: null when the arm is clear. */
-function deepestPoint(vrm, body, size, side, shoulder, elbow, wrist, thickness) {
-  const node = name => vrm.humanoid.getNormalizedBoneNode(name);
+function deepestPoint(posed, side, shoulder, elbow, wrist, thickness) {
+  const size = posed.size;
   let found = null;
   const consider = (point, depth, normal) => {
     if (depth > 0 && (!found || depth > found.depth)) found = { point: point.clone(), depth, normal: normal.clone() };
@@ -397,10 +452,7 @@ function deepestPoint(vrm, body, size, side, shoulder, elbow, wrist, thickness) 
     else point.lerpVectors(elbow, wrist, t);
     const armRadius = thickness[part] * size;
 
-    for (const shape of body.trunk) {
-      const a = node(shape.from).getWorldPosition(v1.clone());
-      const b = node(shape.to).getWorldPosition(v2.clone());
-      const axes = frame(a, b, node(shape.from).getWorldQuaternion(qb));
+    for (const { shape, a, axes } of posed.trunk) {
       const offset = v3.subVectors(point, a);
       const along = offset.dot(axes.u);
       if (along < 0 || along > axes.length) continue;
@@ -426,12 +478,10 @@ function deepestPoint(vrm, body, size, side, shoulder, elbow, wrist, thickness) 
     // smaller (70%) and the arm thin, so a hand on the chin stays, and only a hand sunk into the face is pushed out
     // (DESIGN.md 116.2).
     const wristEnd = part === 'lower' && t > 0.5;
-    if (body.head) {
-      const head = node('head');
-      const centre = body.head.local.clone().multiplyScalar(size).applyQuaternion(head.getWorldQuaternion(qb)).add(head.getWorldPosition(v1.clone()));
-      const offset = v3.subVectors(point, centre);
+    if (posed.head) {
+      const offset = v3.subVectors(point, posed.head.centre);
       const distance = offset.length();
-      const reach = wristEnd ? 0.7 * body.head.radius * size : body.head.radius * size + armRadius;
+      const reach = wristEnd ? 0.7 * posed.head.radius * size : posed.head.radius * size + armRadius;
       if (distance < reach && distance > 1e-4) consider(point, reach - distance, offset.divideScalar(distance));
     }
   }

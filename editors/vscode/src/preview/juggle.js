@@ -6,6 +6,7 @@
 // that hand's; in the air, from the thrower's to the catcher's as the flight goes on. The arc itself is left as it
 // is: how high a ball goes is the time it flies, whoever throws it.
 import * as THREE from 'three';
+import { refresh } from './clearance.js';
 
 /**
  * A beanbag is about 68 mm across; a club 50 cm long. A juggling ring is a flat band (the user): 32.4 cm across, the
@@ -71,7 +72,7 @@ const worldQuat = node => node.getWorldQuaternion(new THREE.Quaternion());
 export function palmsUp(vrm, weight, edge = false, styles = [0, 0], club = false, catching = [0, 0], penguin = null, outward = [0, 0]) {
   if (!(weight > 0)) return;
   const node = name => vrm.humanoid.getNormalizedBoneNode(name);
-  vrm.scene.updateMatrixWorld(true);
+  refresh(vrm);
   const rest = worldQuat(vrm.scene), restInverse = rest.clone().invert();
   const trunk = node('upperChest') || node('chest') || node('spine') || node('hips');
   if (!trunk) return;
@@ -89,12 +90,12 @@ export function palmsUp(vrm, weight, edge = false, styles = [0, 0], club = false
     // axis was not enough): the upper arm and the forearm each turned in, as much as the catch is a penguin's.
     if (penguinShare > 0 && upper) {
       const inward = bodyLeft.clone().multiplyScalar(isLeft ? -1 : 1);
-      vrm.scene.updateMatrixWorld(true);
+      refresh(vrm);
       // Where the hand is: turning the upper arm about its length swings a bent forearm round, so the forearm is aimed back
       // at it after (the hand jumped, and the balls with it, while the elbow was still bent on the way to the catch).
       const wristWas = hand.getWorldPosition(new THREE.Vector3());
       for (const [bone, child, degrees] of [[upper, lower, PENGUIN_UPPER_TWIST], [lower, hand, PENGUIN_FORE_TWIST]]) {
-        vrm.scene.updateMatrixWorld(true);
+        refresh(vrm);
         const axis = child.getWorldPosition(new THREE.Vector3()).sub(bone.getWorldPosition(new THREE.Vector3()));
         if (axis.lengthSq() < 1e-10) continue;
         axis.normalize();
@@ -108,7 +109,7 @@ export function palmsUp(vrm, weight, edge = false, styles = [0, 0], club = false
         bone.updateMatrixWorld(true);
         if (bone === upper) {
           // The forearm back on the hand by the least turn.
-          vrm.scene.updateMatrixWorld(true);
+          refresh(vrm);
           const elbow = lower.getWorldPosition(new THREE.Vector3());
           const now = hand.getWorldPosition(new THREE.Vector3()).sub(elbow), want = wristWas.clone().sub(elbow);
           if (now.lengthSq() > 1e-10 && want.lengthSq() > 1e-10) {
@@ -395,7 +396,7 @@ export function heldBy(juggle, frame) {
  * ring is a fist, an empty one opens to catch (the user). Call after the hands are turned (palmsUp).
  */
 export function gripHands(vrm, amounts) {
-  vrm.scene.updateMatrixWorld(true);
+  refresh(vrm);
   const inverse = worldQuat(vrm.scene).invert();
   // In the rest frame the fingers close down toward the palm about the forward axis (the other way on the left hand); the
   // thumb turns about x, under the palm, on both.

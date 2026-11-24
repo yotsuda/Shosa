@@ -9,7 +9,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
 import { millsAngles, millsArms } from './arms.js';
-import { elbowSwings, keepArmsOut, measureBody } from './clearance.js';
+import { elbowSwings, keepArmsOut, measureBody, refresh } from './clearance.js';
 import { createMicHands } from './mic.js';
 import { clubCatching, gripHands, heldBy, palmAlong, palmsUp, penguinShares, styleShares } from './juggle.js';
 
@@ -178,8 +178,39 @@ export function createCharacters(scene, changed) {
     if (entry.swings?.data === data && entry.swings.size === size) return entry.swings;
     const count = data.turns.length;
     millsOf(entry, clip, data, size);
-    entry.swings = { data, size, ...elbowSwings(entry.vrm, entry.body, size, count, f => place(entry, clip, data, f, false)) };
+    // After an edit, only the frames it moved (DESIGN.md 120).
+    // (A test page works every frame out again with globalThis.shosaSwingsWhole, to compare.)
+    const was = entry.swings && entry.swings.size === size && entry.swings.vrm === entry.vrm && !globalThis.shosaSwingsWhole ? entry.swings : null;
+    const dirty = was ? movedFrames(clip, data, was.clip, was.data) : null;
+    entry.swings = { data, clip, size, vrm: entry.vrm, ...elbowSwings(entry.vrm, entry.body, size, count, f => place(entry, clip, data, f, false), was, dirty) };
     return entry.swings;
+  }
+
+  /**
+   * Which frames of a figure are posed otherwise than those of the figure it was before an edit (`place` at a whole
+   * frame: the bones' turns and where the pelvis is), 1 for each; null when every frame may be, so nothing of the old
+   * one can be kept: another count of frames, another skeleton, another start (the hips are placed from the first
+   * frame), or juggling (its arms are solved again over the whole clip, arms.js).
+   */
+  function movedFrames(clip, data, wasClip, wasData) {
+    const turns = data.turns, frames = data.frames, wasTurns = wasData.turns, wasFrames = wasData.frames;
+    const count = turns.length;
+    if (data.juggle || wasData.juggle || wasTurns.length !== count || frames.length !== wasFrames.length || frames.length < count) return null;
+    if (clip.hipsHeight !== wasClip.hipsHeight || (clip.skeletonBones ?? []).join() !== (wasClip.skeletonBones ?? []).join()) return null;
+    const pelvis = clip.joints.indexOf('pelvis') * 3;
+    if (pelvis < 0 || pelvis !== wasClip.joints.indexOf('pelvis') * 3) return null;
+    const same = (a, b, from, to) => {
+      for (let i = from; i < to; i++) if (a[i] !== b[i]) return false;
+      return true;
+    };
+    if (!same(frames[0], wasFrames[0], pelvis, pelvis + 3)) return null;
+    const dirty = new Uint8Array(count);
+    for (let f = 0; f < count; f++) {
+      // (A row that is the same array is a row a patch left as it was.)
+      const a = turns[f], b = wasTurns[f], p = frames[f], q = wasFrames[f];
+      if ((a !== b && (a.length !== b.length || !same(a, b, 0, a.length))) || (p !== q && !same(p, q, pelvis, pelvis + 3))) dirty[f] = 1;
+    }
+    return dirty;
   }
 
   /** Mills' elbow angles for a clip's figure at every frame, worked out once per movement (arms.js millsAngles). */
@@ -363,7 +394,7 @@ export function createCharacters(scene, changed) {
     const hipsBone = entry.vrm.humanoid.getNormalizedBoneNode('hips');
     for (let f = 0; f < count; f++) {
       place(entry, clip, data, f);
-      entry.vrm.scene.updateMatrixWorld(true);
+      refresh(entry.vrm);
       const { palms, forearms } = measure(entry.vrm, data.juggle.prop, data.juggle.styles?.[f], penguinShares(data.juggle.styles, f, data.juggle.flights, clip.fps), styleShares(data.juggle.styles, f, clip.fps, 5));
       at.hips.push(hipsBone ? hipsBone.getWorldPosition(new THREE.Vector3()) : new THREE.Vector3());
       for (const hand of [0, 1]) {
@@ -384,6 +415,10 @@ export function createCharacters(scene, changed) {
 
   // Test pages read where a character's joints are (out\pv\harness-elbows.html); nothing in the extension does.
   globalThis.shosaPreviewCharacters = {
+    /** The elbows' swings of figure i's character as last worked out (harness-perf.html), or null. */
+    swings(i) {
+      return dressed[i] ? dressed[i].swings ?? null : null;
+    },
     joint(i, name) {
       const entry = dressed[i];
       const bone = entry && entry.vrm && entry.vrm.humanoid.getNormalizedBoneNode(name);
