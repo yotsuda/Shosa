@@ -7028,7 +7028,7 @@ section Show {
 
 - **決まり**: (1) パターン全体の腕の回し方・回る向きの技は、通り名を 1 語で: `@mills` `@windmill` `@reverse` (足すなら `@burkes` `@rubenstein` `@boston`)。(2) 投げだけ・受けだけの技は、場所や形 + `Throw` / `Catch` を camelCase で: `@backThrow` `@backCatch` `@underThrow` `@penguinCatch` `@clawCatch` (足すなら `@underCatch` など)。`@clawCatch` は受けの技で、その語の投げも手のひらを下にする (前の `@claw` と同じ)。(3) 投げる数の並びで決まるもの (シャワー、ボックス) は技にせず、サイトスワップで書く。
 - 名前を変えた: `@under` → `@underThrow`、`@penguin` → `@penguinCatch`、`@claw` → `@clawCatch`、`@backthrow` → `@backThrow`、`@backcatch` → `@backCatch`。動きは変えていない。
-- 知らない技の SH1010 は、名前の頭が一致する技 (大文字小文字を区別しない、3 文字以上) を勧める: `@penguin` → `@penguinCatch`、`@back` → `@backThrow` か `@backCatch`、`@backthrow` → `@backThrow`。なければ前のとおり近い名前。
+- 古い名前に固有の警告やエラーは出さない (ユーザー決定)。古い名前はほかの知らない技と同じく SH1010 (近い名前があれば前のとおり勧める)。一度は名前の頭が一致する新しい名前を勧める処理を入れたが、ユーザーが「古い名前に固有の警告やエラーは出さないで」と言い、外した。
 - 文法書を作り直し、試験と `out\juggle\` の見本を書き換えた。C# 446 件、拡張 22 件通る。
 
 ## 119. プレビューのカメラ: Fit とスライダー (2026-11-23)

@@ -346,10 +346,6 @@ public class JuggleTests
         Assert.Contains("SH2022", Codes(Compile(Juggle("every 1/2  3:4 | 3:1/2 3:1/2@backCatch 3:3 |"))));
         Assert.Contains("SH1010", Codes(Compile(Juggle("every 1  3:4@backCatch@penguinCatch |"))));
         Assert.Contains("SH1010", Codes(Compile(Juggle("every 1  3:4@clawCatch@backCatch |"))));
-        // The old names are gone, and point to the new ones (DESIGN.md 118.41).
-        Assert.Contains("'@backThrow' or '@backCatch'", Assert.Single(Compile(Juggle("every 1  3:2 3:1@back 3:1 |")).Diagnostics, d => d.Code == "SH1010").Message);
-        Assert.Contains("'@penguinCatch'", Assert.Single(Compile(Juggle("every 1  3:4@penguin |")).Diagnostics, d => d.Code == "SH1010").Message);
-        Assert.Contains("'@underThrow'", Assert.Single(Compile(Juggle("every 1  3:4@under |")).Diagnostics, d => d.Code == "SH1010").Message);
     }
 
     [Fact]

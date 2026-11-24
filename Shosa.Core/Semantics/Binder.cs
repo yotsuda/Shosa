@@ -2144,15 +2144,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                     tricks.Add(name.Text);
             }
             else
-            {
-                // A trick's name begun or written in other case (the names say throw or catch, DESIGN.md 118.41:
-                // `@penguin` is `@penguinCatch`, `@backthrow` is `@backThrow`) is pointed to; else the nearest.
-                var begun = Vocabulary.Tricks.Where(w => w.Name.StartsWith(name.Text, StringComparison.OrdinalIgnoreCase)).Select(w => w.Name).ToList();
-                string hint = name.Text.Length >= 3 && begun.Count > 0
-                    ? $" Did you mean {string.Join(" or ", begun.Select(b => $"'@{b}'"))}?"
-                    : Hint(name.Text, Vocabulary.Tricks.Select(w => w.Name));
-                Error("SH1010", name.Span, $"'@{name.Text}' cannot be put on a pattern: it takes @mirror (the left hand throws first) and the tricks @{string.Join(", @", Vocabulary.Tricks.Select(w => w.Name))}.{hint}");
-            }
+                Error("SH1010", name.Span, $"'@{name.Text}' cannot be put on a pattern: it takes @mirror (the left hand throws first) and the tricks @{string.Join(", @", Vocabulary.Tricks.Select(w => w.Name))}.{Hint(name.Text, Vocabulary.Tricks.Select(w => w.Name))}");
         }
         if (ctx.Clip is null || t1 <= Epsilon)
             return;
