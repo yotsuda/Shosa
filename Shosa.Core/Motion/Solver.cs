@@ -40,14 +40,14 @@ public static class Solver
     {
         public void Dispose() => undo();
     }
-    public static MotionClip Solve(MotionIr ir, List<Diagnostic> diagnostics)
+    /// <summary>A clip with everything it has straight from the IR, and no figures yet.</summary>
+    private static MotionClip Head(MotionIr ir)
     {
-        int fps = ir.Fps;
         var clip = new MotionClip
         {
             Name = ir.Name,
             Title = ir.Title,
-            Fps = fps,
+            Fps = ir.Fps,
             Tempo = ir.Tempo,
             BeatsPerBar = ir.BeatsPerBar,
             Tempos = [.. TempoMap.Of(ir.Tempos, ir.Tempo)],
@@ -60,6 +60,45 @@ public static class Solver
         };
         foreach (var mark in ir.Marks)
             clip.Marks.Add(new ClipMark(mark.Beat, Math.Round(clip.SecondsAt(mark.Beat), 4), mark.Name, mark.Dancer, mark.Section, mark.Play));
+        return clip;
+    }
+
+    /// <summary>Which word is being performed when, for every dancer in turn: the one thing of a clip that says where its words are in the text.</summary>
+    private static void Spans(MotionIr ir, MotionClip clip)
+    {
+        foreach (var dancer in ir.Dancers)
+        {
+            foreach (var (channel, segs) in dancer.Tracks)
+            {
+                foreach (var seg in segs)
+                {
+                    // When its word is the one being performed: from the beat it is written at, for its length
+                    // (an IR written by hand may say only when the part moves).
+                    var (from, until) = seg.Until > seg.At ? (seg.At, seg.Until) : (seg.T0, seg.T1);
+                    clip.Spans.Add(new ClipSpan(from, until, seg.Src, seg.Len, dancer.Id, channel));
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// The clip of an IR that differs from one already solved only in where its words are in the text (a
+    /// comment was edited, a line added above): the figures of <paramref name="solved"/> as they are — the
+    /// same objects, which is how whoever comes after knows nothing moved — under a head and spans of this
+    /// IR's (DESIGN.md 120.8). The caller is the one who knows the two IRs are the same otherwise.
+    /// </summary>
+    public static MotionClip Moved(MotionIr ir, MotionClip solved)
+    {
+        var clip = Head(ir);
+        clip.Figures.AddRange(solved.Figures);
+        Spans(ir, clip);
+        return clip;
+    }
+
+    public static MotionClip Solve(MotionIr ir, List<Diagnostic> diagnostics)
+    {
+        int fps = ir.Fps;
+        var clip = Head(ir);
 
         // Frames are even in seconds; where the tempo changes, the beats between two of them change.
         double totalSeconds = clip.SecondsAt(ir.TotalBeats);
@@ -247,18 +286,9 @@ public static class Solver
             if (solver.Juggling is { } juggling)
                 clipFigure.Juggle = JuggleFrames(juggling, clipFigure.Frames, fps);
             clip.Figures.Add(clipFigure);
-            foreach (var (channel, segs) in dancer.Tracks)
-            {
-                foreach (var seg in segs)
-                {
-                    // When its word is the one being performed: from the beat it is written at, for its length
-                    // (an IR written by hand may say only when the part moves).
-                    var (from, until) = seg.Until > seg.At ? (seg.At, seg.Until) : (seg.T0, seg.T1);
-                    clip.Spans.Add(new ClipSpan(from, until, seg.Src, seg.Len, dancer.Id, channel));
-                }
-            }
         }
 
+        Spans(ir, clip);
         Collisions(ir, bodies, beatOfFrame, diagnostics);
         return clip;
     }

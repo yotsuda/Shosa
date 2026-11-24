@@ -163,5 +163,22 @@ foreach (bool patches in new[] { false, true })
         }
     }
     Console.WriteLine($"    edit   {Stats(edits)}   ({sent / 1024.0:0.0} KB sent in {messages} messages)");
+
+    // An edit that changes no movement, only where the words are: a blank line put in at the top, and taken out
+    // (as a comment written above the dance is). No clip is solved again (DESIGN.md 120.8).
+    var moves = new List<double>();
+    for (int i = 0; i < times; i++)
+    {
+        sent = 0;
+        messages = 0;
+        var range = new { start = new { line = 0, character = 0 }, end = new { line = i % 2, character = 0 } };
+        moves.Add(Ms(() => Send(new
+        {
+            jsonrpc = "2.0",
+            method = "textDocument/didChange",
+            @params = new { textDocument = new { uri, version = ++version }, contentChanges = new[] { new { range, text = i % 2 == 0 ? "\n" : "" } } },
+        })));
+    }
+    Console.WriteLine($"    a line above {Stats(moves)}   ({sent / 1024.0:0.0} KB sent in {messages} messages)");
 }
 return 0;

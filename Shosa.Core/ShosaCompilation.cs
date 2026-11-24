@@ -12,7 +12,7 @@ namespace Shosa.Core;
 /// </summary>
 public sealed class ShosaCompilation
 {
-    private ShosaCompilation(SyntaxTree tree, SyntaxTree bound, ScoreIr score, List<MotionClip> clips, List<Diagnostic> diagnostics, IReadOnlyList<IncludedFile> included)
+    private ShosaCompilation(SyntaxTree tree, SyntaxTree bound, ScoreIr score, List<MotionClip> clips, List<Diagnostic> diagnostics, IReadOnlyList<IncludedFile> included, List<SolvedClip> solved)
     {
         Tree = tree;
         Bound = bound;
@@ -20,7 +20,11 @@ public sealed class ShosaCompilation
         Score = score;
         Clips = clips;
         Diagnostics = diagnostics;
+        _solved = solved;
     }
+
+    /// <summary>Each clip as the solver gave it, for the compilation made after this one (<see cref="Compile(SyntaxTree, string?, SongSource?, UsingSource?, ShosaCompilation?)"/>'s `previous`).</summary>
+    private readonly List<SolvedClip> _solved;
 
     /// <summary>The file as written. With `using` lines, what is bound is this and the files they bring in, after it.</summary>
     public SyntaxTree Tree { get; }
@@ -60,10 +64,15 @@ public sealed class ShosaCompilation
     /// Reads the files the `using` lines name (<see cref="UsingSource.For"/> for a file on disk).
     /// Without one a `using` line brings in nothing.
     /// </param>
-    public static ShosaCompilation Compile(string text, string? score = null, SongSource? songs = null, UsingSource? usings = null) =>
-        Compile(SyntaxTree.Parse(text), score, songs, usings);
+    /// <param name="previous">
+    /// The compilation before an edit (an editor's): a clip whose IR the edit left as it was, but for where
+    /// its words are in the text, is not solved again — its figures are the same objects as in that one
+    /// (DESIGN.md 120.8). What comes out is what it would be without.
+    /// </param>
+    public static ShosaCompilation Compile(string text, string? score = null, SongSource? songs = null, UsingSource? usings = null, ShosaCompilation? previous = null) =>
+        Compile(SyntaxTree.Parse(text), score, songs, usings, previous);
 
-    public static ShosaCompilation Compile(SyntaxTree tree, string? score = null, SongSource? songs = null, UsingSource? usings = null)
+    public static ShosaCompilation Compile(SyntaxTree tree, string? score = null, SongSource? songs = null, UsingSource? usings = null, ShosaCompilation? previous = null)
     {
         var main = tree;
         IReadOnlyList<IncludedFile> included = [];
@@ -82,10 +91,12 @@ public sealed class ShosaCompilation
         // is in when it is not in all of them (the same bar is too fast only in the score that
         // plays it faster).
         var movement = new List<(Diagnostic First, List<string> Scores)>();
+        var kept = new List<SolvedClip>();
         foreach (var ir in bound.Clips)
         {
-            var solved = new List<Diagnostic>();
-            var clip = Solver.Solve(ir, solved);
+            var one = (previous is null ? null : SolvedClip.Moved(previous._solved, ir)) ?? SolvedClip.Solve(ir);
+            kept.Add(one);
+            var (clip, solved) = (one.Clip, one.Said);
             clips.Add(clip);
             foreach (var d in solved.DistinctBy(d => (d.Code, d.Span)))
             {
@@ -113,7 +124,7 @@ public sealed class ShosaCompilation
                 .Select(d => d.Span.Start >= tree.Text.Length ? d with { Span = new TextSpan(mainLength, 0) } : Usings.Attribute(d, tree.Text, mainLength, included, folder))
                 .DistinctBy(d => (d.Code, d.Span, d.Message)).ToList();
         }
-        return new ShosaCompilation(main, tree, bound, clips, diagnostics.OrderBy(d => d.Span.Start).ToList(), included);
+        return new ShosaCompilation(main, tree, bound, clips, diagnostics.OrderBy(d => d.Span.Start).ToList(), included, kept);
     }
 
     /// <summary>1-based line and column of a position in the text.</summary>

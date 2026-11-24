@@ -57,16 +57,17 @@ public sealed class LanguageServer(Action<string> send)
     /// Compiles a document: its songs beside it, and the files its `using` lines bring in — as
     /// they are in the editor when they are open there (unsaved), else as they are on disk.
     /// </summary>
-    private ShosaCompilation Compile(SyntaxTree tree, string? path, string? score = null)
+    private ShosaCompilation Compile(SyntaxTree tree, string? path, string? score = null, ShosaCompilation? previous = null)
     {
         SongSource? songs = path is null ? null : new SongReader(Path.GetDirectoryName(path) ?? ".").Read;
         var usings = path is null ? null : new UsingSource(path, OpenText);
-        return ShosaCompilation.Compile(tree, score, songs, usings);
+        return ShosaCompilation.Compile(tree, score, songs, usings, previous);
     }
 
     private void Compile(Document document)
     {
-        document.Compilation = Compile(document.Tree, document.Path);
+        // The one before goes in: the clips the edit did not change are not solved again (DESIGN.md 120.8).
+        document.Compilation = Compile(document.Tree, document.Path, previous: document.Compilation);
         document.Stale = false;
     }
 
