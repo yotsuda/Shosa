@@ -291,7 +291,8 @@ public sealed class Juggling
                         throwTricks = [.. throwTricks.Where(x => x != "takeouts")];
                         if (to != hand && t.Value >= 3)
                             throwTricks.Add(TakeoutThrow);
-                        else if (to == hand && t.Value >= 3)
+                        // (A 4 that comes down after the takeouts is thrown on there, not held: caught as it would be.)
+                        else if (to == hand && t.Value >= 3 && landingSeg?.Tricks?.Contains("takeouts") == true)
                             throwTricks.Add(TakeoutHigh);
                     }
                     if (!tennis)
@@ -335,10 +336,6 @@ public sealed class Juggling
                             ClawTiming.Add((landingSeg, air, longest, reach, slowest, quickest, hurried));
                     }
                     double thrown = slotThrown - tennisShift;
-                    // Takeouts' 4 is held next (a 2): caught late, just before, so the hand that swiped has the time to come
-                    // back round its arc slowly (the user: it went back too soon).
-                    if (throwTricks?.Contains(TakeoutHigh) == true && land < slots.Count && slots[land].Seg?.Tricks?.Contains("takeouts") == true)
-                        caught = Math.Max(caught, SlotSec(land) - TakeoutHighHold * BeatSec(land));
                     // Mills' second throw (and its mirror, the fifth) goes higher (the user): longer in the air, thrown a
                     // little before the beat.
                     // Thrown and caught round the body (Mills' Mess or the windmill, the same one at both ends): its ball in
@@ -389,7 +386,13 @@ public sealed class Juggling
                     // Into a half-shower: a ball thrown before it and caught by the hand that throws over is caught inside, as
                     // that hand catches the under-throws, clear of its first throw over going up outside (as tennis's).
                     if (catchTricks is not null && catchTricks.Contains("takeouts"))
-                        catchTricks = catchTricks.Count == 1 ? null : [.. catchTricks.Where(x => x != "takeouts")];
+                    {
+                        catchTricks = [.. catchTricks.Where(x => x != "takeouts")];
+                        if (to != hand && throwTricks?.Contains(TakeoutThrow) != true)
+                            catchTricks.Add(TakeoutWide);
+                        if (catchTricks.Count == 0)
+                            catchTricks = null;
+                    }
                     if (catchTricks is not null && catchTricks.Contains("halfShower"))
                     {
                         catchTricks = [.. catchTricks.Where(x => x != "halfShower")];
@@ -555,23 +558,25 @@ public sealed class Juggling
     /// <summary>How much longer in the air the tennis ball is, and shorter the others, as parts of a beat at each end (thrown that much sooner or later, caught that much later or sooner),
     /// and the least of its hold the catching hand keeps.</summary>
     private const double TennisLonger = 0.25, TennisShorter = 0.12, TennisLeastHold = 0.55;
-    /// <summary>Takeouts' throws (DESIGN.md 118.49): the 3 let go from the swipe across in front (TakeoutThrow); the 4 up on the
-    /// hand's own side and back to it (TakeoutHigh).</summary>
+    /// <summary>Takeouts' throws (DESIGN.md 118.49): the 3, thrown as the hand sets off on its swipe (TakeoutThrow); the 4, over
+    /// to the far side, where the same hand takes it at the end of its swipe and holds it (TakeoutHigh).</summary>
     private const string TakeoutThrow = "\u0000takeoutThrow", TakeoutHigh = "\u0000takeoutHigh";
-    /// <summary>Takeouts' 3: let go from the swipe this far past the middle (on the other hand's side), this high, this far
-    /// forward; taken high on the catching hand's own side, this far out, this high, this far forward, from above.</summary>
-    private const double TakeoutLetGoPast = 0.06, TakeoutLetGoHigh = 0.16, TakeoutLetGoAhead = 0.06;
-    private const double TakeoutTakeOut = 0.26, TakeoutTakeHigh = 0.30, TakeoutTakeAhead = 0.04;
-    /// <summary>How fast the swiping hand goes with the 3 as it lets it go, and the taking hand with it as it takes it, as parts of the ball's speed.</summary>
-    private const double TakeoutLaunch = 0.9, TakeoutArrive = 0.25;
-    /// <summary>Takeouts' 4: thrown on the hand's own side, this far out, this far forward; caught back this far out, this far
-    /// forward (behind its way up); and caught as late as this part of a beat before it is held (the 2).</summary>
-    private const double TakeoutHighOut = 0.38, TakeoutHighAhead = 0.02, TakeoutHighCatchOut = 0.40, TakeoutHighCatchAhead = -0.04, TakeoutHighHold = 0.0;
-    /// <summary>After the swipe, the top of the hand's arc back over the top close to the body (out on its own side, up, ahead),
-    /// on its way to its own 4 coming down.</summary>
-    private const double TakeoutOverOut = 0.12, TakeoutOverHigh = 0.32, TakeoutOverAhead = -0.06;
-    /// <summary>After the swipe lets the 3 go, the hand stops once on the far side: from how long after (seconds), for how long, how far on along the ball's way (metres).</summary>
-    private const double TakeoutStopAfter = 0.07, TakeoutStopFor = 0.06, TakeoutStopOn = 0.06;
+    /// <summary>Takeouts' throws from the hand's own side: this far out, this high (the 3), this far forward (the 3; the 4 further, in front of the 3s' way).</summary>
+    private const double TakeoutOwnOut = 0.30, TakeoutOwnHigh = 0.04, TakeoutOwnAhead = 0.0, TakeoutHighAhead = 0.08;
+    /// <summary>The 4 thrown nearer the middle than the 3 and the 3 caught further out, so the 4 just thrown and the 3 coming down into the same hand pass apart seen from the front.</summary>
+    private const double TakeoutHighOut = 0.16, TakeoutCatchOut = 0.44;
+    /// <summary>A ball thrown before the takeouts and caught in them: caught out there too, clear of the hand's first 4.</summary>
+    private const string TakeoutWide = "\u0000takeoutWide";
+    /// <summary>Takeouts' 4 taken at the end of the swipe: this far past the middle on the far side, this high.</summary>
+    private const double TakeoutTakePast = 0.06, TakeoutTakeHigh = 0.16;
+    /// <summary>How fast the hand goes up with the 3 as it throws it (a part of the ball's speed), and in across on its swipe (m/s);
+    /// at the 4's catch, how fast it goes on in (m/s) and down with it (a part of the ball's speed).</summary>
+    private const double TakeoutLaunch = 0.6, TakeoutSwipeSpeed = 1.6, TakeoutTakeOn = 0.5, TakeoutArrive = 0.25;
+    /// <summary>After taking the 4, the hand stops once there: from how long after (seconds), for how long, how far on in and down (metres).</summary>
+    private const double TakeoutStopAfter = 0.05, TakeoutStopFor = 0.08, TakeoutStopOn = 0.04, TakeoutStopDown = 0.02;
+    /// <summary>Then back slowly over the top close to the body: the top (out on its own side, up, ahead); how many throwing
+    /// beats the way back takes; how high it rests on its own side after.</summary>
+    private const double TakeoutOverOut = 0.12, TakeoutOverHigh = 0.32, TakeoutOverAhead = -0.06, TakeoutBack = 2.0, TakeoutRestHigh = -0.04;
     /// <summary>A reverse catch inside, further back than a cascade's, clear of a cascade's ball going up there at a change of pattern (DESIGN.md 118.43).</summary>
     private const double ReverseCatchBack = 0.08;
     // A club is half a metre long: caught well out to the side, the elbow out, or two meet in the air (the user).
@@ -709,35 +714,41 @@ public sealed class Juggling
                 _keys[to].Add((caught, into, arrives * 0.3, catchStyle));
             return;
         }
-        // Takeouts' 3 (the user): the hand that took the other's ball high on its own side swipes across in front with it and
-        // lets it go past the middle going across with it, no stop; then it goes back round an arc over the top, close to the
-        // body, to its own 4 coming down on its own side (caught late for this, so the arc is slow), while the other hand
-        // throws its own 4. The other hand takes this ball high on its own side from above, going a little with it.
-        if (throwTricks?.Contains(TakeoutThrow) == true)
+        // Takeouts (DESIGN.md 118.49, the user). The 3: thrown from the hand's own side as it sets off on its swipe across in
+        // front, the hand going on in with it; the other hand catches it on its side as a cascade's. The 4: thrown from the
+        // hand's own side over to the far side, where the same hand, having swiped across, takes it from above, stops once
+        // there holding it and goes back slowly round an arc over the top, close to the body, to its own side, holding it
+        // (the 2), while the other hand throws its own 4.
+        if (throwTricks?.Contains(TakeoutThrow) == true || throwTricks?.Contains(TakeoutHigh) == true)
         {
-            AddSmooth(hand, (thrown, from, Still, throwStyle));
-            _launch[(hand, thrown)] = leaves.Y * TakeoutLaunch;
-            _launchAcross[(hand, thrown)] = leaves.X * TakeoutLaunch;
-            // The arc back: to the hand's next place after the throw, already placed (its own 4's catch, planned before).
-            int next = -1;
-            for (int i = 0; i < _keys[hand].Count; i++)
-                if (_keys[hand][i].T > thrown + 1e-6 && (next < 0 || _keys[hand][i].T < _keys[hand][next].T))
-                    next = i;
-            double stopFrom = thrown + TakeoutStopAfter, stopTo = stopFrom + TakeoutStopFor;
-            if (next >= 0 && _keys[hand][next].T - stopTo is > 0.12 and < 1.5)
+            double side = Side(hand);
+            if (throwTricks.Contains(TakeoutThrow))
             {
-                // Stopped once over there, on the far side, a little on past the letting go (the user), then slowly back.
-                var stop = from + leaves.Normalized() * TakeoutStopOn;
-                _keys[hand].Add((stopFrom, stop, Still, Style.Own));
-                _keys[hand].Add((stopTo, stop, Still, Style.Own));
-                var (t1, end, _, _) = _keys[hand][next];
-                var over = new Vec3(Side(hand) * TakeoutOverOut, TakeoutOverHigh, TakeoutOverAhead);
-                // Through the top at an even speed: the time to it as the way to it.
-                double a = (over - stop).Length, b = (end - over).Length;
-                AddSmooth(hand, (stopTo + (t1 - stopTo) * a / (a + b), over, Still, Style.Own));
+                AddSmooth(hand, (thrown, from, Still, throwStyle));
+                _launch[(hand, thrown)] = leaves.Y * TakeoutLaunch;
+                _launchAcross[(hand, thrown)] = -side * TakeoutSwipeSpeed;
+                AddSmooth(to, (caught, into, Still, catchStyle));
+                _arrive[(to, caught)] = arrives * CascadeArrive;
+                return;
             }
+            // The 4: swung up from a little below on its own side.
+            AddSmooth(hand, (thrown - MillsBottomAt * Dwell * beat, from + new Vec3(0, -CascadeLoopDepth, 0), Still, throwStyle));
+            AddSmooth(hand, (thrown, from, Still, throwStyle));
+            _launch[(hand, thrown)] = leaves.Y * CascadeLaunch;
+            _launchAcross[(hand, thrown)] = leaves.X * CascadeLaunch;
+            // Taken over there from above, the hand going on in a little and down with it.
             AddSmooth(to, (caught, into, Still, catchStyle));
-            _arrive[(to, caught)] = arrives * TakeoutArrive;
+            _arrive[(to, caught)] = new Vec3(-side * TakeoutTakeOn, arrives.Y * TakeoutArrive, 0);
+            double stopFrom = caught + TakeoutStopAfter, stopTo = stopFrom + TakeoutStopFor;
+            var stop = into + new Vec3(-side * TakeoutStopOn, -TakeoutStopDown, 0);
+            _keys[to].Add((stopFrom, stop, Still, catchStyle));
+            _keys[to].Add((stopTo, stop, Still, catchStyle));
+            // Back over the top at an even speed (the time to the top as the way to it), to rest low on its own side.
+            var over = new Vec3(side * TakeoutOverOut, TakeoutOverHigh, TakeoutOverAhead);
+            var rest = new Vec3(side * TakeoutOwnOut, TakeoutRestHigh, TakeoutOwnAhead);
+            double home = stopTo + TakeoutBack * beat, a = (over - stop).Length, b = (rest - over).Length;
+            AddSmooth(to, (stopTo + (home - stopTo) * a / (a + b), over, Still, Style.Own));
+            AddSmooth(to, (home, rest, Still, Style.Own));
             return;
         }
         // The reverse cascade goes round softly too, as Mills' Mess does (DESIGN.md 118.29): each hand round a loop the other
@@ -953,18 +964,21 @@ public sealed class Juggling
         }
         else if (Has(catchTricks, TennisOther))
             into = new Vec3(c * (Math.Abs(into.X) - TennisInsideCatch), into.Y, into.Z);
-        // Takeouts: the 3 let go from the swipe a little past the middle on the other hand's side, going across, and taken high
-        // on that hand's own side from above (the user); the 4 up on the thrower's own side and back down there to it.
+        // Takeouts: the 3 thrown from the hand's own side as it sets off on its swipe, caught by the other hand on its side;
+        // the 4 thrown from the hand's own side over to the far side, where the same hand, swiping across, takes it from
+        // above a little past the middle (the user).
         if (Has(throwTricks, TakeoutThrow))
         {
-            from = new Vec3(-s * TakeoutLetGoPast, TakeoutLetGoHigh, TakeoutLetGoAhead);
-            into = new Vec3(c * TakeoutTakeOut, TakeoutTakeHigh, TakeoutTakeAhead);
-            catchStyle = Style.Claw;
+            from = new Vec3(s * TakeoutOwnOut, TakeoutOwnHigh, TakeoutOwnAhead);
+            into = new Vec3(c * TakeoutCatchOut, into.Y, into.Z);
         }
+        else if (Has(catchTricks, TakeoutWide))
+            into = new Vec3(c * TakeoutCatchOut, into.Y, into.Z);
         if (Has(throwTricks, TakeoutHigh))
         {
             from = new Vec3(s * TakeoutHighOut, 0, TakeoutHighAhead);
-            into = new Vec3(s * TakeoutHighCatchOut, into.Y, TakeoutHighCatchAhead);
+            into = new Vec3(-s * TakeoutTakePast, TakeoutTakeHigh, TakeoutHighAhead);
+            catchStyle = Style.Claw;
         }
         // Claw: the palm down, the ball snatched from above at the face on its way up (the user); thrown with the palm down too.
         if (Has(catchTricks, "clawCatch"))

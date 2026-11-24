@@ -1381,7 +1381,7 @@ public static class GrammarDoc
               of about 113 to 197, else SH2023 says the tempo it suits), `@reverse` (thrown from outside over the top, caught inside),
               `@tennis` (one ball thrown from well outside and higher, over the top of the others, to and fro like a tennis ball over the net; the rest a lower cascade nearer the middle),
               `@halfShower` (the first hand always throws from well outside, higher, over the top; the other always from inside, lower, under it),
-              `423:4~@takeouts | :2 …` (a hand takes the other's ball high on its own side and swipes it across in front, letting it go past the middle as the 3, stops once and goes back round an arc over the top while the other hand throws its 4, which comes back to it and is held as the 2),
+              `423:4~@takeouts | :2 …` (a hand throws its 3 to the other as it sets off on a swipe across in front, takes its own 4 from above on the far side, stops once and carries it back round an arc over the top as the 2, while the other hand throws its own 4),
               `@backThrow` (thrown from behind the back over the other shoulder), `@backCatch` (caught behind the
               back, the ball come down over the shoulder it was thrown on), `@underThrow` (from under the thigh of the
               throwing hand's side); behind the back, the shoulders turn well round, that hand's side back.
