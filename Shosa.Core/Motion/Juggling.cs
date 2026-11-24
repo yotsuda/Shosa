@@ -357,6 +357,9 @@ public sealed class Juggling
                             ClawTiming.Add((landingSeg, air, longest, reach, slowest, quickest, hurried));
                     }
                     // Takeouts' 3: higher, as tennis's ball, thrown a little before its beat and caught a little after (the user).
+                    // Takeouts' 4 swiped a little sooner after the hand's 3, so the round after has the time it needs.
+                    if (throwTricks?.Contains(TakeoutHigh) == true)
+                        caught -= TakeoutHighSooner * T;
                     if (throwTricks?.Contains(TakeoutThrow) == true)
                     {
                         tennisShift = TakeoutLonger * T;
@@ -434,6 +437,8 @@ public sealed class Juggling
                     {
                         _takeoutNext = land + 2 < slots.Count && slots[land + 2].Seg is not null ? SlotSec(land + 2) : double.NegativeInfinity;
                         _takeoutNextOurs = land + 2 < slots.Count && slots[land + 2].Seg?.Tricks?.Contains("takeouts") == true;
+                        _takeoutAcross = land + 1 < slots.Count && slots[land + 1].Seg?.Tricks?.Contains("takeouts") == true
+                            ? SlotSec(land + 1) - TakeoutLonger * BeatSec(land + 1) : double.NegativeInfinity;
                     }
                     // (Caught for good at the end of the run: a plain catch, not Mills' middle.)
                     Swing(hand, to, t.Value, thrown, caught, T, throwTricks, catchTricks, _throwsBy[hand]++, ownThrown);
@@ -658,27 +663,31 @@ public sealed class Juggling
     /// <summary>Takeouts' throws from the hand's own side: this far out, this high (the 3), this far forward (the 3; the 4 further, in front of the 3s' way).</summary>
     private const double TakeoutOwnOut = 0.30, TakeoutOwnHigh = 0.04, TakeoutOwnAhead = 0.0, TakeoutHighAhead = 0.16;
     /// <summary>The 4 thrown from inside, near the middle, up from below after the round (the user); the 3 caught further out.</summary>
-    private const double TakeoutHighOut = 0.10, TakeoutCatchOut = 0.50;
+    private const double TakeoutHighOut = 0.0, TakeoutCatchOut = 0.50;
     /// <summary>The 3 thrown from well outside, this far out and this far forward (as tennis's), and this part of a beat sooner, caught as much later.</summary>
-    private const double TakeoutAcrossOut = 0.42, TakeoutAcrossAhead = 0.10, TakeoutLonger = 0.25;
+    private const double TakeoutAcrossOut = 0.42, TakeoutAcrossAhead = 0.10, TakeoutLonger = 0.25, TakeoutHighSooner = 0.3;
     /// <summary>A ball thrown before the takeouts and caught in them: caught out there too, clear of the hand's first 4.</summary>
     private const string TakeoutWide = "\u0000takeoutWide";
     /// <summary>Takeouts' 4 comes down near the middle, a little on the thrower's side, this high, this far forward (in close:
     /// the user, it falls on the inside), and is swiped there.</summary>
-    private const double TakeoutTakeAt = 0.02, TakeoutTakeHigh = 0.20, TakeoutTakeAhead = 0.04;
+    private const double TakeoutTakeAt = 0.0, TakeoutTakeHigh = 0.20, TakeoutTakeAhead = 0.04;
     /// <summary>The swipe carrying it on: how fast at the catch (m/s), how long to the far side (seconds), how far past the middle there.</summary>
-    private const double TakeoutSwipeCarry = 1.8, TakeoutCarry = 0.12, TakeoutCarryTo = 0.24;
+    private const double TakeoutSwipeCarry = 1.8, TakeoutCarry = 0.10, TakeoutCarryTo = 0.24;
     /// <summary>How fast the hand goes up with the 3 as it throws it (a part of the ball's speed), and in across on its swipe (m/s);
     /// at the 4's catch, how fast it goes down with it (a part of the ball's speed).</summary>
     private const double TakeoutLaunch = 0.6, TakeoutSwipeSpeed = 1.6, TakeoutArrive = 0.25;
     /// <summary>On the far side the hand stops once: for how long (seconds), how far below the catch (metres).</summary>
-    private const double TakeoutStopFor = 0.08, TakeoutStopDown = 0.04;
+    private const double TakeoutStopFor = 0.05, TakeoutStopDown = 0.04;
     /// <summary>Where and when each round came low and in, before the next 4: the hand, seconds.</summary>
     private readonly List<(int Hand, double T)> _takeoutRests = [];
     /// <summary>The round after the stop (out on the hand's own side, up, ahead from the juggling's middle): up the far side, the
     /// ball just before the forehead (the hand some 4 cm below it), out and down past its own side, below and in.</summary>
     private static readonly (double Out, double Up, double Ahead)[] TakeoutRound =
-        [(-0.16, 0.42, 0.04), (0.0, 0.60, 0.06), (0.24, 0.54, 0.04), (0.40, 0.28, 0.0), (0.38, 0.04, 0.10), (0.28, -0.06, 0.18)];
+        [(-0.16, 0.42, 0.04), (0.0, 0.60, 0.06), (0.26, 0.52, 0.04)];
+    /// <summary>After it is level with the other hand's 3 thrown from outside, the round's way on down below and in (the last its bottom).</summary>
+    private static readonly (double Out, double Up, double Ahead)[] TakeoutRoundLow = [(0.36, -0.16, 0.16)];
+    /// <summary>When the other hand throws its 3 from outside while this hand goes round (seconds).</summary>
+    private double _takeoutAcross;
     /// <summary>How fast the hand goes in along the bottom of the round (m/s).</summary>
     private const double TakeoutRoundIn = 1.6;
     /// <summary>Seconds at the least from the bottom of the round to the 4's throw.</summary>
@@ -860,19 +869,40 @@ public sealed class Juggling
             // Then a big round (the user): up the far side, the ball just before the forehead, out and down past its own
             // side, on down below and in, into the next 4 thrown up from inside. At an even speed all the way to that throw
             // (the time between two places as the way between them).
-            var way = new List<Vec3> { stop };
+            // Up over the top, then out and down its own side to where it is level with the other hand's 3 as that is thrown
+            // up from outside, at the moment it is thrown (the user: the two at one height at one time), then on down below
+            // and in, into the next throw. Each part at an even speed (the time between two places as the way between them).
+            var upper = new List<Vec3>();
             foreach (var (outward, up, ahead) in TakeoutRound)
-                way.Add(new Vec3(side * outward, up, ahead));
+                upper.Add(new Vec3(side * outward, up, ahead));
+            var level = new Vec3(side * TakeoutAcrossOut, TakeoutOwnHigh, TakeoutAcrossAhead);
+            var lower = new List<Vec3>();
+            foreach (var (outward, up, ahead) in TakeoutRoundLow)
+                lower.Add(new Vec3(side * outward, up, ahead));
             var throwAt = _takeoutNextOurs ? new Vec3(side * TakeoutHighOut, 0, TakeoutHighAhead) : Throws(to, 3, true);
-            double end = _takeoutNext > stopTo + 0.2 ? _takeoutNext : stopTo + 2 * beat, total = 0;
-            var run = new List<double> { 0 };
-            for (int i = 1; i < way.Count; i++)
-                run.Add(total += (way[i] - way[i - 1]).Length);
+            double end = _takeoutNext > stopTo + 0.2 ? _takeoutNext : stopTo + 2 * beat;
             // The bottom no later than TakeoutLowBefore before the throw, for the turn up into it (put by the way alone, it
-            // was 0.055 s before, and the hand turned up in a frame at 213 m/s²); the round before at an even speed.
-            double low = Math.Min(stopTo + (end - stopTo) * total / (total + (throwAt - way[^1]).Length), end - TakeoutLowBefore);
-            for (int i = 1; i < way.Count; i++)
-                AddSmooth(to, (stopTo + (low - stopTo) * run[i] / total, way[i], Still, Style.Own));
+            // was 0.055 s before, and the hand turned up in a frame at 213 m/s²).
+            double low = end - TakeoutLowBefore;
+            void Even(double from, double to2, Vec3 start, List<Vec3> places)
+            {
+                double total = 0, sum = 0;
+                for (int i = 0; i < places.Count; i++)
+                    total += (places[i] - (i == 0 ? start : places[i - 1])).Length;
+                for (int i = 0; i < places.Count; i++)
+                {
+                    sum += (places[i] - (i == 0 ? start : places[i - 1])).Length;
+                    AddSmooth(to, (from + (to2 - from) * sum / total, places[i], Still, Style.Own));
+                }
+            }
+            double levelAt = _takeoutAcross;
+            if (levelAt > stopTo + 0.2 && levelAt < low - 0.1)
+            {
+                Even(stopTo, levelAt, stop, [.. upper, level]);
+                Even(levelAt, low, level, lower);
+            }
+            else
+                Even(stopTo, low, stop, [.. upper, level, .. lower]);
             // Going in along the bottom, not stopped there, and up into the throw (stopped, it turned back 133 degrees).
             _arrive[(to, low)] = new Vec3(-side * TakeoutRoundIn, 0, 0);
             _takeoutRests.Add((to, low));

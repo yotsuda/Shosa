@@ -425,6 +425,14 @@ public class JuggleTests
             if (next < 4.95)
                 Assert.True(Out(hand, next) < 0.2, $"next 4 thrown {Out(hand, next):0.00} m out at {next:0.00} s");
             Assert.Contains(flights, g => (int)g[1] == 1 - hand && g[1] == g[2] && g[3] > f[4] && g[3] < f[4] + 0.4);
+            // As the other hand throws its 3 up from outside, this one is out on its own side at that height (the user: the
+            // two at one height at one time).
+            var across = flights.FirstOrDefault(g => (int)g[1] == 1 - hand && g[1] != g[2] && g[3] > f[4] && g[3] < next);
+            if (across is not null && across[4] < 5.0)
+            {
+                Assert.True(Out(hand, across[3]) > 0.3, $"out {Out(hand, across[3]):0.00} m as the other throws at {across[3]:0.00} s");
+                Assert.InRange(HandAt(hand, across[3]).Y - HandAt(1 - hand, across[3]).Y, -0.08, 0.08);
+            }
         }
         Assert.Contains("SH1010", Codes(Compile(Juggle("every 1/2  423:4@takeouts@halfShower |"))));
         Assert.Contains("SH1010", Codes(Compile(Juggle("every 1/2  423:4@takeouts@clawCatch |"))));
