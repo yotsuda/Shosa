@@ -75,6 +75,8 @@ public static class Solver
             solvers[dancer.Id] = new FigureSolver(dancer, ir, beatsPerFrame, id => solvers.GetValueOrDefault(id));
         foreach (var dancer in ir.Dancers)
             solvers[dancer.Id].Build();
+        foreach (var dancer in ir.Dancers)
+            solvers[dancer.Id].SolvedAt(beatOfFrame);
 
         // Head, chest and pelvis of every dancer at every frame, where they really are (before `inPlace`).
         var bodies = new Dictionary<string, List<Body>>();
@@ -2499,13 +2501,90 @@ internal sealed class FigureSolver
     /// <summary>Whether the shoulders get where their row says at a moment (null) or how far they get (SH2010).</summary>
     public (double Reached, double Wanted, double Lean)? ShouldersShortAt(double t) => TrunkAt(Clamp(t)).Short;
 
+    // ---- What is asked for again and again, kept (DESIGN.md 120). A clip is solved frame by frame, and at each
+    // frame the trunk is asked for by the pose, by every dancer that looks at this one or reaches for it, and —
+    // for the five frames the height is smoothed over — by the two frames either side: five times the work of
+    // one. The beats of the frames are told here (SolvedAt) and what is found at one of them is kept.
+    private double[]? _frameBeats;
+    private CoreState[] _coreOf = [];
+    private Trunk[] _trunkOf = [];
+    private bool[] _coreHas = [], _trunkHas = [];
+    private int _frameHint;
+
+    /// <summary>The beats of the frames the clip is solved at, in order. After <see cref="Build"/>: nothing changes what a moment is from then on.</summary>
+    public void SolvedAt(double[] beats)
+    {
+        _frameBeats = beats;
+        _coreOf = new CoreState[beats.Length];
+        _coreHas = new bool[beats.Length];
+        _trunkOf = new Trunk[beats.Length];
+        _trunkHas = new bool[beats.Length];
+        _frameHint = 0;
+    }
+
+    /// <summary>The frame at exactly this beat, or -1: a moment between frames, or before the frames were told.</summary>
+    private int FrameOf(double t)
+    {
+        if (_frameBeats is not { } beats)
+            return -1;
+        int hint = _frameHint;
+        if ((uint)hint < (uint)beats.Length && beats[hint] == t)
+            return hint;
+        if ((uint)(hint + 1) < (uint)beats.Length && beats[hint + 1] == t)
+            return _frameHint = hint + 1;
+        int found = Array.BinarySearch(beats, t);
+        if (found < 0)
+            return -1;
+        return _frameHint = found;
+    }
+
+    private CoreState CoreOf(int frame)
+    {
+        if (!_coreHas[frame])
+        {
+            _coreOf[frame] = Core(_frameBeats![frame]);
+            _coreHas[frame] = true;
+        }
+        return _coreOf[frame];
+    }
+
+    /// <summary>
+    /// What the feet take off the height `frames` frames from a moment. From a frame, the frame that many on, as it
+    /// was (or will be) found for itself, when it is that moment (a tempo that changes on the way puts the frames
+    /// elsewhere: then, and between frames, the moment itself).
+    /// </summary>
+    private double DeficitNear(double t, int frame, int frames)
+    {
+        double near = Clamp(t + frames * _dt);
+        if (frame >= 0)
+        {
+            int other = frame + frames;
+            if ((uint)other < (uint)_frameBeats!.Length && _frameBeats[other] == near)
+                return CoreOf(other).Deficit;
+        }
+        return Core(near).Deficit;
+    }
+
     private Trunk TrunkAt(double t)
     {
-        var c = Core(t);
+        int frame = FrameOf(t);
+        if (frame < 0)
+            return TrunkAt(t, -1);
+        if (!_trunkHas[frame])
+        {
+            _trunkOf[frame] = TrunkAt(t, frame);
+            _trunkHas[frame] = true;
+        }
+        return _trunkOf[frame];
+    }
+
+    private Trunk TrunkAt(double t, int frame)
+    {
+        var c = frame >= 0 ? CoreOf(frame) : Core(t);
 
         // Smooth over five frames what the feet take off the height: the reach limit has corners where
         // a foot lands. The height row itself is not smoothed again, so it starts and arrives on its beats.
-        double y = c.WantY + (Core(Clamp(t - 2 * _dt)).Deficit + Core(Clamp(t - _dt)).Deficit + c.Deficit + Core(Clamp(t + _dt)).Deficit + Core(Clamp(t + 2 * _dt)).Deficit) / 5;
+        double y = c.WantY + (DeficitNear(t, frame, -2) + DeficitNear(t, frame, -1) + c.Deficit + DeficitNear(t, frame, 1) + DeficitNear(t, frame, 2)) / 5;
         y = Math.Min(y, c.CeilingY);
         y += JumpOffset(t, c.Drop);
 

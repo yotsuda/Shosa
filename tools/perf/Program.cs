@@ -17,6 +17,10 @@ using Shosa.Lsp;
 // the first digit after the middle of the file. --messages: the shosa/clip messages of the file opened and of the
 // first two edits, as an editor that takes patches is sent them, for out\pv\harness-perf.html to give the preview's page.
 
+// Every number the solver gives, kept and compared (Corpus.cs).
+if (args.Length >= 3 && args[0] is "--dump" or "--compare")
+    return Corpus.Run(args);
+
 string file = Path.GetFullPath(args.FirstOrDefault(a => !a.StartsWith("--")) ?? @"samples\dance.shosa");
 string? Option(string name) => Array.IndexOf(args, name) is >= 0 and var i && i + 1 < args.Length ? args[i + 1] : null;
 int times = int.Parse(Option("--times") ?? "10");
