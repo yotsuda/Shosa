@@ -38,7 +38,24 @@ internal static class Allocations
     {
         string file = Path.GetFullPath(args[1]);
         int times = Array.IndexOf(args, "--times") is >= 0 and var i && i + 1 < args.Length ? int.Parse(args[i + 1]) : 20;
-        var score = Binder.Bind(SyntaxTree.Parse(File.ReadAllText(file)), null, SongReader.For(file)).Item1;
+        var tree = SyntaxTree.Parse(File.ReadAllText(file));
+        var songs = SongReader.For(file);
+        var score = Binder.Bind(tree, null, songs).Item1;
+        if (args.Contains("--binder"))
+        {
+            // The binder instead of the solver.
+            using var bound = new Ticks();
+            long start = GC.GetAllocatedBytesForCurrentThread();
+            bound.On = true;
+            for (int n = 0; n < times; n++)
+                Binder.Bind(tree, null, songs);
+            bound.On = false;
+            long total = GC.GetAllocatedBytesForCurrentThread() - start, told = bound.Bytes.Values.Sum();
+            Console.WriteLine(FormattableString.Invariant($"{Path.GetFileName(file)}: binding allocates {total / 1024.0 / 1024.0 / times:0.00} MB"));
+            foreach (var (name, bytes) in bound.Bytes.OrderByDescending(x => x.Value).Take(25))
+                Console.WriteLine(FormattableString.Invariant($"  {100.0 * bytes / Math.Max(1, told),5:0.0}%  {(double)bytes / told * total / times / 1024,7:0} KB  {name}"));
+            return 0;
+        }
         Solver.FramesAtOnce = int.MaxValue;   // on this thread: its allocations are the ones counted
         foreach (var ir in score.Clips)
             Solver.Solve(ir, []);

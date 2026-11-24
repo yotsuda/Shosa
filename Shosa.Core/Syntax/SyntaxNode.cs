@@ -79,23 +79,100 @@ public sealed class SyntaxNode
         return Interlocked.CompareExchange(ref _children, list, null) ?? list;
     }
 
-    public IEnumerable<SyntaxNode> ChildNodes() => Children().OfType<SyntaxNode>();
-    public IEnumerable<SyntaxNode> ChildNodes(SyntaxKind kind) => ChildNodes().Where(n => n.Kind == kind);
-    public IEnumerable<SyntaxToken> ChildTokens() => Children().OfType<SyntaxToken>();
+    // The children that are nodes, and those that are tokens, each in source order: found once. The binder asks
+    // for them at every word of every play of a section, and each asking made four objects to filter the children
+    // (DESIGN.md 120.13).
+    private SyntaxNode[]? _nodes;
+    private SyntaxToken[]? _tokens;
+
+    public IReadOnlyList<SyntaxNode> ChildNodes()
+    {
+        if (_nodes is { } existing)
+            return existing;
+        var children = Children();
+        int count = 0;
+        for (int i = 0; i < children.Count; i++)
+        {
+            if (children[i] is SyntaxNode)
+                count++;
+        }
+        var nodes = count == 0 ? [] : new SyntaxNode[count];
+        for (int i = 0, n = 0; i < children.Count; i++)
+        {
+            if (children[i] is SyntaxNode node)
+                nodes[n++] = node;
+        }
+        return Interlocked.CompareExchange(ref _nodes, nodes, null) ?? nodes;
+    }
+
+    public IEnumerable<SyntaxNode> ChildNodes(SyntaxKind kind)
+    {
+        var nodes = ChildNodes();
+        for (int i = 0; i < nodes.Count; i++)
+        {
+            if (nodes[i].Kind == kind)
+                yield return nodes[i];
+        }
+    }
+
+    public IReadOnlyList<SyntaxToken> ChildTokens()
+    {
+        if (_tokens is { } existing)
+            return existing;
+        var children = Children();
+        int count = 0;
+        for (int i = 0; i < children.Count; i++)
+        {
+            if (children[i] is SyntaxToken)
+                count++;
+        }
+        var tokens = count == 0 ? [] : new SyntaxToken[count];
+        for (int i = 0, n = 0; i < children.Count; i++)
+        {
+            if (children[i] is SyntaxToken token)
+                tokens[n++] = token;
+        }
+        return Interlocked.CompareExchange(ref _tokens, tokens, null) ?? tokens;
+    }
 
     /// <summary>The n-th child token of a kind that is really in the source, or null.</summary>
-    public SyntaxToken? Token(SyntaxKind kind, int nth = 0) =>
-        ChildTokens().Where(t => t.Kind == kind && !t.IsMissing).ElementAtOrDefault(nth);
+    public SyntaxToken? Token(SyntaxKind kind, int nth = 0)
+    {
+        if (nth < 0)
+            return null;
+        var tokens = ChildTokens();
+        for (int i = 0; i < tokens.Count; i++)
+        {
+            if (tokens[i].Kind == kind && !tokens[i].IsMissing && nth-- == 0)
+                return tokens[i];
+        }
+        return null;
+    }
 
-    public SyntaxNode? Child(SyntaxKind kind) => ChildNodes().FirstOrDefault(n => n.Kind == kind);
+    public SyntaxNode? Child(SyntaxKind kind)
+    {
+        var nodes = ChildNodes();
+        for (int i = 0; i < nodes.Count; i++)
+        {
+            if (nodes[i].Kind == kind)
+                return nodes[i];
+        }
+        return null;
+    }
 
     public IEnumerable<SyntaxNode> DescendantNodes()
     {
-        foreach (var child in ChildNodes())
+        // Each node before its own children, the children in order (one walk, not an iterator inside an iterator for every level).
+        var waiting = new Stack<(IReadOnlyList<SyntaxNode> Nodes, int Next)>();
+        waiting.Push((ChildNodes(), 0));
+        while (waiting.Count > 0)
         {
-            yield return child;
-            foreach (var nested in child.DescendantNodes())
-                yield return nested;
+            var (nodes, next) = waiting.Pop();
+            if (next >= nodes.Count)
+                continue;
+            waiting.Push((nodes, next + 1));
+            yield return nodes[next];
+            waiting.Push((nodes[next].ChildNodes(), 0));
         }
     }
 

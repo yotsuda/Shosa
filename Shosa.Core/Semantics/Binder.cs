@@ -370,8 +370,17 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         return read.Value;
     }
 
-    private static List<SyntaxToken> Tokens(SyntaxNode node, SyntaxKind kind) =>
-        node.ChildTokens().Where(t => t.Kind == kind && !t.IsMissing).ToList();
+    private static List<SyntaxToken> Tokens(SyntaxNode node, SyntaxKind kind)
+    {
+        var found = new List<SyntaxToken>();
+        var tokens = node.ChildTokens();
+        for (int i = 0; i < tokens.Count; i++)
+        {
+            if (tokens[i].Kind == kind && !tokens[i].IsMissing)
+                found.Add(tokens[i]);
+        }
+        return found;
+    }
 
     private static string Hint(string name, IEnumerable<string> candidates) =>
         Vocabulary.Nearest(name, candidates) is { } nearest ? $" Did you mean '{nearest}'?" : "";
@@ -2063,7 +2072,8 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
             int order = _order++;
             for (int i = 0; i < pieces.Count; i++)
             {
-                var piece = seg.Clone();
+                // (The word's own segment for its last piece: it is this channel's alone, and nothing reads it after.)
+                var piece = i == pieces.Count - 1 ? seg : seg.Clone();
                 (piece.T0, piece.T1) = (pieces[i].T0, pieces[i].T1);
                 double moved = pieces[i].Wrapped ? wrap : 0;
                 int[] priority = release ? [int.MinValue] : pieces[i].Wrapped ? [int.MaxValue, .. ctx.Priority.Skip(1)] : ctx.Priority;

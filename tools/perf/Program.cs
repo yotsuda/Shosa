@@ -22,6 +22,22 @@ using Shosa.Lsp;
 if (int.TryParse(Environment.GetEnvironmentVariable("SHOSA_FRAMES_AT_ONCE"), out int atOnce))
     Solver.FramesAtOnce = atOnce <= 0 ? int.MaxValue : atOnce;
 
+// The binder alone, again and again, for a profiler:  Shosa.Perf.exe --bind FILE.shosa [--times N]
+if (args.Length >= 2 && args[0] == "--bind")
+{
+    string bound = Path.GetFullPath(args[1]);
+    var boundTree = SyntaxTree.Parse(File.ReadAllText(bound));
+    SongSource boundSongs = SongReader.For(bound);
+    int count = Array.IndexOf(args, "--times") is >= 0 and var at0 && at0 + 1 < args.Length ? int.Parse(args[at0 + 1]) : 200;
+    Binder.Bind(boundTree, null, boundSongs);
+    long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+    var watch = Stopwatch.StartNew();
+    for (int n = 0; n < count; n++)
+        Binder.Bind(boundTree, null, boundSongs);
+    Console.WriteLine(FormattableString.Invariant($"bind: {watch.Elapsed.TotalMilliseconds / count:0.00} ms, {(GC.GetAllocatedBytesForCurrentThread() - allocatedBefore) / 1024.0 / 1024.0 / count:0.00} MB each ({count} times)"));
+    return 0;
+}
+
 // What the solver allocates, by type (DESIGN.md 120.12): the runtime tells of about every 100 KB allocated, and of what.
 //   Shosa.Perf.exe --allocations FILE.shosa [--times N]
 if (args.Length >= 2 && args[0] == "--allocations")
