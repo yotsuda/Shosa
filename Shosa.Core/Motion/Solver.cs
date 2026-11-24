@@ -156,8 +156,12 @@ public static class Solver
 
     /// <summary>Fewer frames of a figure than this (all the dancers' together) are found one by one: the solvers to make cost more than the processors save.</summary>
     private const int FewFrames = 600;
-    /// <summary>The frames (all the dancers' together) that are worth another processor, and the most processors used.</summary>
-    private const int FramesWorthAnother = 250, MostAtOnce = 16;
+    /// <summary>
+    /// The frames (all the dancers' together) that are worth another processor, and the most processors used: measured
+    /// on 24 processors, an edit of a two-minute duet took 73 ms on one, 58 on four, 57 on six, 61 on eight and 67 on
+    /// sixteen (DESIGN.md 120.10: the solver allocates much, and more threads wait more for the collector).
+    /// </summary>
+    private const int FramesWorthAnother = 250, MostAtOnce = 6;
 
     /// <summary>
     /// Every dancer at every frame, for a long clip, found on several processors at once (DESIGN.md 120.10); null for a
