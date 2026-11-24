@@ -3210,7 +3210,6 @@ internal sealed class FigureSolver
                     double through = Juggling.RoundThrough(isLeft ? 1 : 0, juggleSec);
                     double lateral = RoundElbowFrom + (RoundElbowTo - RoundElbowFrom) * through;
                     var outSide = juggleLeft * side;
-                    var aim = shoulder + outSide * (lateral - (shoulder - shoulder).Dot(outSide));
                     var want = new Vec3(0, 0, 0) + outSide * (shoulder.Dot(outSide) + lateral)
                         + Vec3.Up * (hand.Y - Rig.Forearm) + juggleFwd * (hand.Dot(juggleFwd) - RoundElbowBehind);
                     // (Across: out from the shoulder; up: a forearm below the hand; forward: as far as the hand, a little less.)
