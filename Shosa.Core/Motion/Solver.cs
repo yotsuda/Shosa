@@ -898,6 +898,8 @@ internal sealed class FigureSolver
     /// <summary>Takeouts' round: the elbow out from the shoulder at the round's start and its end (metres), and how much less
     /// far forward than the hand.</summary>
     private const double RoundElbowFrom = 0.04, RoundElbowTo = 0.14, RoundElbowBehind = 0.03;
+    /// <summary>Takeouts' swipe and round: the elbow's angle kept (degrees, 180 straight), and how far down beside out the elbow points.</summary>
+    private const double FixedElbowAngle = 95, FixedElbowDown = 0.7;
     /// <summary>How far off its place side to side Mills' elbow may be (metres) against how far round its circle it goes (radians).</summary>
     private const double MillsElbowSlack = 0.045, MillsElbowTurn = 0.25;
     /// <summary>How far the pelvis goes to the side with Mills' sway, per unit of the back's lean (against it, the hips out under a leaning back: with it, the body went away from the throws).</summary>
@@ -3219,6 +3221,21 @@ internal sealed class FigureSolver
                     toward -= axisLine * toward.Dot(axisLine);
                     var planePole = toward.Length > 1e-6 ? toward.Normalized() : (-Vec3.Up + juggleFwd * RoundElbowAhead).Normalized();
                     bend = Vec3.Slerp(bend.Length < 1e-6 ? pole.Normalized() : bend.Normalized(), planePole, round);
+                }
+                // Takeouts' swipe and round with the elbow kept at one angle (the user: about 90-100 degrees, the shoulder turning
+                // instead, the armpit opening and closing): the hand kept as far from the shoulder as that angle puts it, and the
+                // elbow out to its own side and down, so the upper arm rises out from the body as the hand goes up and round, and
+                // comes back in to the ribs as it comes down.
+                double fixedArm = Juggling.TakeoutAt(juggleSec) * juggleWeight;
+                if (fixedArm > 0)
+                {
+                    var fromShoulder = hand - shoulder;
+                    double fixedReach = Math.Sqrt(Rig.UpperArm * Rig.UpperArm + Rig.Forearm * Rig.Forearm
+                        - 2 * Rig.UpperArm * Rig.Forearm * Math.Cos(FixedElbowAngle * Math.PI / 180));
+                    if (fromShoulder.Length > 1e-6)
+                        hand = shoulder + fromShoulder.Normalized() * (fromShoulder.Length + (fixedReach - fromShoulder.Length) * fixedArm);
+                    var armPole = (juggleLeft * side - Vec3.Up * FixedElbowDown).Normalized();
+                    bend = Vec3.Slerp(bend.Length < 1e-6 ? pole.Normalized() : bend.Normalized(), armPole, fixedArm);
                 }
                 // The windmill's wheel: the elbow held where the wheel's axle is (DESIGN.md 118.34).
                 if (wheel is { Held: true } held2)

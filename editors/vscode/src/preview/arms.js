@@ -117,6 +117,15 @@ export function millsArms(vrm, body, size, figure, weight, angles = null, pull =
       }
     }
     if (wheeled > 0) target.lerp(elbowHeld.clone().addScaledVector(fw.clone().sub(fe).normalize(), l2), wheeled);
+    // Takeouts: the elbow kept at the figure's angle (the user: about 90-100 degrees, the shoulder turning instead): the wrist
+    // as far from the shoulder as the character's own arm puts it at that angle (brought forward for the trunk, the elbow
+    // opened to 115 degrees).
+    if (followed > 0) {
+      const bent = fs.clone().sub(fe).angleTo(fw.clone().sub(fe));
+      const reach = Math.sqrt(l1 * l1 + l2 * l2 - 2 * l1 * l2 * Math.cos(bent));
+      const fromShoulder = target.clone().sub(shoulder);
+      if (fromShoulder.lengthSq() > 1e-10) target.copy(shoulder).addScaledVector(fromShoulder.normalize(), reach);
+    }
     const wrist = wristNow.clone().lerp(target, weight);
 
     // The elbow: on its circle round the line from the shoulder to the wrist, side to side as near the solver's place
