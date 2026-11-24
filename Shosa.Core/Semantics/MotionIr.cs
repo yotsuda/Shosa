@@ -130,10 +130,11 @@ public static class TempoMap
     public static double BpmAt(IReadOnlyList<TempoIr> tempos, double beat)
     {
         double bpm = tempos[0].Bpm;
-        foreach (var tempo in tempos)
+        // (By index: asked many times a frame, and a `foreach` over the interface makes an enumerator each time.)
+        for (int i = 0; i < tempos.Count; i++)
         {
-            if (tempo.Beat <= beat + 1e-9)
-                bpm = tempo.Bpm;
+            if (tempos[i].Beat <= beat + 1e-9)
+                bpm = tempos[i].Bpm;
         }
         return bpm;
     }

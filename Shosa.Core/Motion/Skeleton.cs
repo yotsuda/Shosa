@@ -63,7 +63,15 @@ public static class Skeleton
     /// </summary>
     public static Quat[] Rotations(Vec3[] joints)
     {
-        var world = new Quat[Bones.Length];
+        var local = new Quat[Bones.Length];
+        Rotations(joints, local);
+        return local;
+    }
+
+    /// <summary>The same, into <paramref name="local"/> (one for each of <see cref="Bones"/>): a clip asks for every frame of every figure.</summary>
+    public static void Rotations(Vec3[] joints, Span<Quat> local)
+    {
+        Span<Quat> world = stackalloc Quat[Bones.Length];
 
         // Hips: level, facing square to the line between the hip sockets.
         var fwd = (joints[Rig.LHip] - joints[Rig.RHip]).Cross(Vec3.Up).Normalized();
@@ -177,10 +185,8 @@ public static class Skeleton
             world[leg + 2] = Quat.Between(FootRest.Normalized(), X, along, footLeft);
         }
 
-        var local = new Quat[Bones.Length];
         for (int i = 0; i < Bones.Length; i++)
             local[i] = Bones[i].Parent < 0 ? world[i] : world[Bones[i].Parent].Inverse * world[i];
-        return local;
     }
 
     private static double Smooth(double u) => u * u * (3 - 2 * u);

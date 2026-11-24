@@ -135,7 +135,8 @@ public static class Solver
             data[j * 3 + 2] = (float)Math.Round(pose[j].Z, 4);
         }
 
-        var rotations = Skeleton.Rotations(pose);
+        Span<Quat> rotations = stackalloc Quat[Skeleton.Bones.Length];
+        Skeleton.Rotations(pose, rotations);
         var turns = new float[rotations.Length * 4];
         for (int b = 0; b < rotations.Length; b++)
         {
@@ -615,10 +616,12 @@ public static class Solver
     private static double LegGap(Body p, Body q)
     {
         double gap = double.PositiveInfinity;
-        foreach (var mine in new[] { p.Left, p.Right })
+        for (int a = 0; a < 2; a++)
         {
-            foreach (var theirs in new[] { q.Left, q.Right })
+            var mine = a == 0 ? p.Left : p.Right;
+            for (int b = 0; b < 2; b++)
             {
+                var theirs = b == 0 ? q.Left : q.Right;
                 if (mine[2].Y > StandingAnkle || theirs[2].Y > StandingAnkle)
                     continue;
                 for (int i = 0; i < 2; i++)
@@ -649,17 +652,32 @@ public static class Solver
                 for (int f = 0; f < framesA.Count; f++)
                 {
                     var (p, q) = (framesA[f], framesB[f]);
-                    (double Gap, string What)[] pairs =
+                    // The nearest of five pairs, the first of them when two are as near. (Named only when they meet:
+                    // at every frame of every pair of dancers, the names were most of what a clip of two left behind.)
+                    Span<double> gaps =
                     [
-                        ((p.Head - q.Head).Length - 2 * HeadRadius, "heads"),
-                        (TrunkGap(p.Head, p.Head, q) - HeadRadius - TrunkRadius, $"{a.Id}'s head and {b.Id}'s body"),
-                        (TrunkGap(q.Head, q.Head, p) - HeadRadius - TrunkRadius, $"{b.Id}'s head and {a.Id}'s body"),
-                        (Math.Min(TrunkGap(p.Pelvis, p.Waist, q), TrunkGap(p.Waist, p.Chest, q)) - 2 * TrunkRadius, "bodies"),
-                        (LegGap(p, q), "legs"),
+                        (p.Head - q.Head).Length - 2 * HeadRadius,
+                        TrunkGap(p.Head, p.Head, q) - HeadRadius - TrunkRadius,
+                        TrunkGap(q.Head, q.Head, p) - HeadRadius - TrunkRadius,
+                        Math.Min(TrunkGap(p.Pelvis, p.Waist, q), TrunkGap(p.Waist, p.Chest, q)) - 2 * TrunkRadius,
+                        LegGap(p, q),
                     ];
-                    var worst = pairs.MinBy(x => x.Gap);
-                    if (worst.Gap >= 0)
+                    int nearest = 0;
+                    for (int k = 1; k < gaps.Length; k++)
+                    {
+                        if (gaps[k] < gaps[nearest])
+                            nearest = k;
+                    }
+                    if (gaps[nearest] >= 0)
                         continue;
+                    (double Gap, string What) worst = (gaps[nearest], nearest switch
+                    {
+                        0 => "heads",
+                        1 => $"{a.Id}'s head and {b.Id}'s body",
+                        2 => $"{b.Id}'s head and {a.Id}'s body",
+                        3 => "bodies",
+                        _ => "legs",
+                    });
 
                     double t = beatOfFrame[f];
                     var span = new[] { Channels.Torso, Channels.Support, Channels.Height }
@@ -703,8 +721,18 @@ public static class Solver
     {
         if (!dancer.Tracks.TryGetValue(channel, out var segs))
             return null;
-        return segs.LastOrDefault(s => s.Kind != SegKinds.Hold && s.T0 < t && t <= s.T1 + 1e-9)
-            ?? segs.LastOrDefault(s => s.T0 < t && t <= s.T1 + 1e-9);
+        // The last word that is going on then, one that is not a hold if there is one. (Asked at every frame.)
+        Seg? any = null;
+        for (int i = segs.Count - 1; i >= 0; i--)
+        {
+            var s = segs[i];
+            if (!(s.T0 < t && t <= s.T1 + 1e-9))
+                continue;
+            if (s.Kind != SegKinds.Hold)
+                return s;
+            any ??= s;
+        }
+        return any;
     }
 }
 
@@ -929,9 +957,9 @@ internal sealed class FigureSolver
     private double FeetStill(double t)
     {
         double ramp = 0.8 * PerSecond(t), nearest = double.MaxValue;
-        foreach (var moves in new[] { _leftMoves, _rightMoves })
+        for (int side = 0; side < 2; side++)
         {
-            foreach (var move in moves)
+            foreach (var move in side == 0 ? _leftMoves : _rightMoves)
             {
                 double d = t < move.T0 ? move.T0 - t : t > move.T1 ? t - move.T1 : 0;
                 nearest = Math.Min(nearest, d);
@@ -1135,7 +1163,7 @@ internal sealed class FigureSolver
                 if (_loop && (at < -1e-9 || at > _length + 1e-9))
                     continue;
                 double yaw = YawAt(at);
-                if (LegShape(legRow, at, Vec3.Left(yaw), Vec3.Forward(yaw), SomewhereBelow, Vec3.Up).Weight > 0.5)
+                if (LegShape(legRow, at, Vec3.Left(yaw), Vec3.Forward(yaw), ToePlace.Below, Vec3.Up).Weight > 0.5)
                     yield return (move.Seg, leg, at);
             }
         }
@@ -1255,7 +1283,7 @@ internal sealed class FigureSolver
                 if (seg.Kind is SegKinds.Hold or SegKinds.Release or SegKinds.Stay || seg.T0 >= up - 1e-9 || seg.T1 <= up + 1e-9 || seg.T1 > land + 1e-9)
                     continue;
                 // Only a leg that comes off the floor: one already held up was never pushing.
-                if (LegShape(legRow, seg.T0, Vec3.Left(_yawStart), Vec3.Forward(_yawStart), SomewhereBelow, Vec3.Up).Weight > 1e-6)
+                if (LegShape(legRow, seg.T0, Vec3.Left(_yawStart), Vec3.Forward(_yawStart), ToePlace.Below, Vec3.Up).Weight > 1e-6)
                     continue;
                 var late = seg.Clone();
                 late.T0 = up;
@@ -1617,7 +1645,7 @@ internal sealed class FigureSolver
                     bool fromBoth = false, sissonneLeft = false;
                     if (onto != "both" && s.On == 'B')
                     {
-                        bool Held(List<Seg> row) => LegShape(row, land, leftward, fwd, SomewhereBelow, Vec3.Up).Weight > 0.5;
+                        bool Held(List<Seg> row) => LegShape(row, land, leftward, fwd, ToePlace.Below, Vec3.Up).Weight > 0.5;
                         bool leftHeld = Held(_leftLeg), rightHeld = Held(_rightLeg);
                         if (onto == "same" && leftHeld != rightHeld)
                         {
@@ -1775,12 +1803,41 @@ internal sealed class FigureSolver
     /// part over — to its own target. A hold keeps the part where it was when the hold began.
     /// </summary>
 
+    /// <summary>
+    /// What a row's part is made of, for <see cref="Chain{T, TOps}"/>: where a word puts it, how it goes from one
+    /// place to the next, and how far that is. A struct, taken by reference: a row read a dozen times a frame makes
+    /// nothing on the heap for it (DESIGN.md 120.12; as delegates over the caller's locals, each reading made three objects).
+    /// </summary>
+    private interface IChain<T>
+    {
+        T Target(Seg? seg);
+        T Blend(T a, T b, double e);
+        /// <summary>Whether <see cref="Distance"/> says anything (without it a word passed through is passed at one speed either side).</summary>
+        bool Measures { get; }
+        double Distance(T a, T b);
+    }
+
+    /// <summary>A row read with delegates: for the readings made of a method's own locals.</summary>
+    private readonly struct ChainOf<T>(Func<Seg?, T> target, Func<T, T, double, T> blend, Func<T, T, double>? distance) : IChain<T>
+    {
+        public T Target(Seg? seg) => target(seg);
+        public T Blend(T a, T b, double e) => blend(a, b, e);
+        public bool Measures => distance is not null;
+        public double Distance(T a, T b) => distance!(a, b);
+    }
+
     private static T Chain<T>(List<Seg> segs, double t, Func<Seg?, T> target, Func<T, T, double, T> blend, Func<T, T, double>? distance = null)
+    {
+        var ops = new ChainOf<T>(target, blend, distance);
+        return Chain<T, ChainOf<T>>(segs, t, ref ops);
+    }
+
+    private static T Chain<T, TOps>(List<Seg> segs, double t, ref TOps ops) where TOps : struct, IChain<T>
     {
         int current = -1;
         for (int i = 0; i < segs.Count && segs[i].T0 <= t; i++)
             current = i;
-        return ChainAt(segs, current, t, target, blend, 0, distance);
+        return ChainAt<T, TOps>(segs, current, t, ref ops, 0);
     }
 
     private static double Dist(double a, double b) => Math.Abs(b - a);
@@ -1800,30 +1857,30 @@ internal sealed class FigureSolver
     /// so that the part goes through it at ONE speed: 1.5 times its mean speed over both segments, as one eased
     /// way over both would at its middle, but no more than either side can take without overshooting (slope 3).
     /// </summary>
-    private static (double End, double Start) ThroughSlopes<T>(List<Seg> segs, int k, Func<Seg?, T> target, Func<T, T, double, T> blend, int depth, Func<T, T, double>? distance)
+    private static (double End, double Start) ThroughSlopes<T, TOps>(List<Seg> segs, int k, ref TOps ops, int depth) where TOps : struct, IChain<T>
     {
         const double m = 1.5;
-        if (distance is null)
+        if (!ops.Measures)
             return (m, m);
         Seg a = segs[k], b = segs[k + 1];
-        T from = ChainAt(segs, k - 1, a.T0, target, blend, depth + 1, distance), at = target(a), to = target(b);
-        double da = distance(from, at), db = distance(at, to), ta = a.T1 - a.T0, tb = b.T1 - b.T0;
+        T from = ChainAt<T, TOps>(segs, k - 1, a.T0, ref ops, depth + 1), at = ops.Target(a), to = ops.Target(b);
+        double da = ops.Distance(from, at), db = ops.Distance(at, to), ta = a.T1 - a.T0, tb = b.T1 - b.T0;
         if (da < 1e-9 || db < 1e-9)
             return (0, 0);
         double v = Math.Min(m * (da + db) / (ta + tb), Math.Min(3 * da / ta, 3 * db / tb));
         return (v * ta / da, v * tb / db);
     }
 
-    private static T ChainAt<T>(List<Seg> segs, int index, double t, Func<Seg?, T> target, Func<T, T, double, T> blend, int depth, Func<T, T, double>? distance = null)
+    private static T ChainAt<T, TOps>(List<Seg> segs, int index, double t, ref TOps ops, int depth) where TOps : struct, IChain<T>
     {
         if (index < 0 || depth > 200)
-            return target(null);
+            return ops.Target(null);
         var seg = segs[index];
         if (seg.Kind == SegKinds.Hold)
-            return ChainAt(segs, index - 1, seg.T0, target, blend, depth + 1, distance);
+            return ChainAt<T, TOps>(segs, index - 1, seg.T0, ref ops, depth + 1);
         // A hand that stays (`stay`) is held where it was from the start of the word: nothing to go to.
         if (seg.Kind == SegKinds.Stay)
-            return target(seg);
+            return ops.Target(seg);
         double u = seg.T1 > seg.T0 ? Math.Clamp((t - seg.T0) / (seg.T1 - seg.T0), 0, 1) : 1;
         double e = Ease(seg.Ease, u);
         // A word passed through (`@through`, DESIGN.md 86.4, 87): the way to it arrives at speed, and the way on
@@ -1835,12 +1892,16 @@ internal sealed class FigureSolver
             bool fromThrough = index > 0 && segs[index - 1] is { Ease: "through" } before && Joined(before, seg);
             if ((through || fromThrough) && u > 0 && u < 1)
             {
-                double s0 = fromThrough ? ThroughSlopes(segs, index - 1, target, blend, depth, distance).Start : 0;
-                double s1 = through ? ThroughSlopes(segs, index, target, blend, depth, distance).End : 0;
+                double s0 = fromThrough ? ThroughSlopes<T, TOps>(segs, index - 1, ref ops, depth).Start : 0;
+                double s1 = through ? ThroughSlopes<T, TOps>(segs, index, ref ops, depth).End : 0;
                 e = (u * u * u - 2 * u * u + u) * s0 + (-2 * u * u * u + 3 * u * u) + (u * u * u - u * u) * s1;
             }
         }
-        return e >= 1 ? target(seg) : blend(ChainAt(segs, index - 1, seg.T0, target, blend, depth + 1, distance), target(seg), e);
+        if (e >= 1)
+            return ops.Target(seg);
+        // (The way so far first, then where this word puts it: as the arguments of the one call were worked out.)
+        T soFar = ChainAt<T, TOps>(segs, index - 1, seg.T0, ref ops, depth + 1);
+        return ops.Blend(soFar, ops.Target(seg), e);
     }
 
     /// <summary>From one offset to another: the direction swings, the length changes evenly.</summary>
@@ -1908,8 +1969,19 @@ internal sealed class FigureSolver
 
     private static Vec3 DirOf(Seg? seg, Vec3 neutral) => seg?.Dir is { } d ? new Vec3(d[0], d[1], d[2]) : neutral;
 
-    private static Vec3 Direction(List<Seg> targets, double t, Vec3 neutral, Vec3 via) =>
-        Chain(targets, t, seg => DirOf(seg, neutral), (a, b, e) => Blend(a, b, e, via), Dist).Normalized();
+    private static Vec3 Direction(List<Seg> targets, double t, Vec3 neutral, Vec3 via)
+    {
+        var ops = new DirectionOf(neutral, via);
+        return Chain<Vec3, DirectionOf>(targets, t, ref ops).Normalized();
+    }
+
+    private readonly struct DirectionOf(Vec3 neutral, Vec3 via) : IChain<Vec3>
+    {
+        public Vec3 Target(Seg? seg) => DirOf(seg, neutral);
+        public Vec3 Blend(Vec3 a, Vec3 b, double e) => FigureSolver.Blend(a, b, e, via);
+        public bool Measures => true;
+        public double Distance(Vec3 a, Vec3 b) => Dist(a, b);
+    }
 
     /// <summary>Which way the figure faces, radians: what its turns have made of where it began.</summary>
     public double FacingAt(double t) => YawAt(t);
@@ -2096,8 +2168,8 @@ internal sealed class FigureSolver
     private double Vault(double t)
     {
         double most = 0;
-        foreach (var moves in new[] { _leftMoves, _rightMoves })
-            foreach (var move in moves)
+        for (int side = 0; side < 2; side++)
+            foreach (var move in side == 0 ? _leftMoves : _rightMoves)
             {
                 if (t < move.T0 || t >= move.T1)
                     continue;
@@ -2252,15 +2324,21 @@ internal sealed class FigureSolver
     /// Which way the knee points is decided at the poses the text names and carried between them
     /// with the leg, as an elbow's is.
     /// </summary>
-    private static LegPose LegShape(List<Seg> targets, double t, Vec3 left, Vec3 fwd, Func<Seg, Vec3> place, Vec3 kneePole, (Vec3 Left, Vec3 Up, Vec3 Fwd)? torso = null)
+    private static LegPose LegShape(List<Seg> targets, double t, Vec3 left, Vec3 fwd, ToePlace place, Vec3 kneePole, (Vec3 Left, Vec3 Up, Vec3 Fwd)? torso = null)
     {
-        LegPose Target(Seg? seg)
+        var ops = new LegShapeOf(left, fwd, place, kneePole, torso);
+        return Chain<LegPose, LegShapeOf>(targets, t, ref ops);
+    }
+
+    private readonly struct LegShapeOf(Vec3 left, Vec3 fwd, ToePlace place, Vec3 kneePole, (Vec3 Left, Vec3 Up, Vec3 Fwd)? torso) : IChain<LegPose>
+    {
+        public LegPose Target(Seg? seg)
         {
             // The room's frame, or with `.body` the torso's.
             var (l, u, f) = seg is { Body: true } && torso is { } body ? body : (left, Vec3.Up, fwd);
             Vec3 offset;
             if (seg is { Kind: SegKinds.Anchor } or { Floor: true })
-                offset = place(seg);
+                offset = place.At(seg);
             else if (seg is null || IsDown(seg) && !seg.Body || seg.Dir is not { } d)
                 return default;
             else
@@ -2269,7 +2347,7 @@ internal sealed class FigureSolver
             return new LegPose(1, offset, bend, seg.Kind == SegKinds.Anchor || seg.Floor ? 1 : 0);
         }
 
-        return Chain(targets, t, Target, (a, b, e) =>
+        public LegPose Blend(LegPose a, LegPose b, double e)
         {
             double weight = a.Weight + (b.Weight - a.Weight) * e;
             double point = a.Point + (b.Point - a.Point) * e;
@@ -2282,11 +2360,15 @@ internal sealed class FigureSolver
             if (a.Bend is null && b.Bend is null)
                 return new LegPose(weight, offset, null, point);
             var axis = offset.Normalized();
-            Vec3 Own(Vec3? bend, Vec3 at) => bend ?? Across(kneePole, at.Normalized());
+            var pole = kneePole;
+            Vec3 Own(Vec3? bend, Vec3 at) => bend ?? Across(pole, at.Normalized());
             Vec3? from = Carry(Own(a.Bend, a.Offset), a.Offset.Normalized(), axis), to = Carry(Own(b.Bend, b.Offset), b.Offset.Normalized(), axis);
             var between = from is null || to is null ? from ?? to ?? kneePole : Vec3.Slerp(from.Value, to.Value, e);
             return new LegPose(weight, offset, Across(between, axis), point);
-        }, (a, b) => Dist(a.Offset, b.Offset) + Math.Abs(b.Weight - a.Weight));
+        }
+
+        public bool Measures => true;
+        public double Distance(LegPose a, LegPose b) => Dist(a.Offset, b.Offset) + Math.Abs(b.Weight - a.Weight);
     }
 
     /// <summary>
@@ -2337,8 +2419,8 @@ internal sealed class FigureSolver
         double turnout = TurnoutAt(t);
         c.LYaw += turnout;
         c.RYaw -= turnout;
-        c.GwL = LegShape(_leftLeg, t, c.Left, c.Fwd, SomewhereBelow, Vec3.Up).Weight;
-        c.GwR = LegShape(_rightLeg, t, c.Left, c.Fwd, SomewhereBelow, Vec3.Up).Weight;
+        c.GwL = LegShape(_leftLeg, t, c.Left, c.Fwd, ToePlace.Below, Vec3.Up).Weight;
+        c.GwR = LegShape(_rightLeg, t, c.Left, c.Fwd, ToePlace.Below, Vec3.Up).Weight;
         c.LRoll = RollShare(_leftMoves, t) * (1 - c.GwL);
         c.RRoll = RollShare(_rightMoves, t) * (1 - c.GwR);
         c.Float = _float.Eval(t);
@@ -2873,6 +2955,236 @@ internal sealed class FigureSolver
         }
     }
 
+    // ---- The rows a pose reads, each as a struct (IChain): what a word of the row means is made of the pose so far
+    // (the trunk, the head, the other leg), and written as lambdas over PoseCore's locals every pose made a dozen
+    // objects for them (DESIGN.md 120.12). The words are the same.
+
+    /// <summary>Where the face looks, in the room: a written direction from the way the feet face (with `.body`, the chest), or at another dancer; unwritten, along the chest.</summary>
+    private readonly struct GazeOf(FigureSolver solver, double t, Vec3 head, Vec3 lifted, Vec3 faceLeft, Vec3 torsoUp, Vec3 faceFwd, Vec3 left, Vec3 fwd) : IChain<Vec3>
+    {
+        public Vec3 Target(Seg? seg)
+        {
+            if (seg?.Kind == SegKinds.Reach && solver._others(seg.Target!) is { } other)
+                return (other.PlaceAt(seg.Part!, 1, t, solver) - (head + lifted)).Normalized();
+            if (seg?.Dir is { } d)
+                return seg.Body ? faceLeft * d[0] + torsoUp * d[1] + faceFwd * d[2] : left * d[0] + Vec3.Up * d[1] + fwd * d[2];
+            return faceFwd;
+        }
+
+        public Vec3 Blend(Vec3 a, Vec3 b, double e) => FigureSolver.Blend(a, b, e, faceFwd);
+        public bool Measures => true;
+        public double Distance(Vec3 a, Vec3 b) => Dist(a, b);
+    }
+
+    /// <summary>How far the line of the eyes is tilted (`tilt`), radians; unwritten, as the neck has it.</summary>
+    private readonly struct TiltOf(double square) : IChain<double>
+    {
+        public double Target(Seg? seg) => seg?.Tilt is { } d ? d * Math.PI / 180 : square;
+        public double Blend(double a, double b, double e) => a + (b - a) * e;
+        public bool Measures => true;
+        public double Distance(double a, double b) => Dist(a, b);
+    }
+
+    /// <summary>
+    /// An arm's row at a pose: where each word puts the hand from the shoulder and which way it sends the elbow, and
+    /// how the arm goes from one word to the next. Made of the pose so far (the trunk, the head, the gaze).
+    /// </summary>
+    private struct ArmOf(FigureSolver solver, double t, int side, Vec3 shoulder, Vec3 lifted, bool holdsMic, double swing, Vec3 pole, List<Seg> armSegs,
+        CoreState c, Vec3 pelvis, Vec3 chest, Vec3 head, Vec3 gaze, Vec3 neck, Vec3 torsoUp, Vec3 torsoLeft, Vec3 torsoFwd, Vec3 faceLeft, Vec3 faceFwd)
+        : IChain<(Vec3 Offset, Vec3 Bend)>
+    {
+        // An arm that hangs: the upper arm straight down, the elbow a little bent, so the hand
+        // is in front of the shoulder. The elbow bends back from the line to the hand; with
+        // the hand under the shoulder it is the elbow that goes behind the body, and on a
+        // character the whole arm reads as held back (and is hidden in the hip and the clothes).
+        // Swung about the shoulder's left-right line by `swing` radians (forward is positive), the elbow
+        // bending a little more as the arm comes in front.
+        private Vec3 Hang(Vec3 left, Vec3 up, Vec3 fwd, double swing = 0)
+        {
+            double bent = (Rig.RestElbow + SwingElbow * Math.Max(0, swing) / SwingMost) * Math.PI / 180;
+            double below = Rig.UpperArm + Rig.Forearm * Math.Cos(bent), front = Rig.Forearm * Math.Sin(bent);
+            double cos = Math.Cos(swing), sin = Math.Sin(swing);
+            return left * (0.06 * side) - up * (below * cos - front * sin) + fwd * (front * cos + below * sin);
+        }
+
+        private Vec3 Offset(Seg? seg)
+        {
+            // An arm nobody wrote hangs, and swings while the feet walk. One that holds a mic holds it before
+            // the belly, the elbow bent: a singer between phrases does not let it dangle.
+            if (seg is null)
+                return holdsMic
+                    ? chest + torsoFwd * 0.22 - torsoUp * 0.35 + torsoLeft * (0.10 * side) - shoulder
+                    : Hang(c.Left, Vec3.Up, c.Fwd, swing);
+            if (seg.Kind == SegKinds.Reach)
+                return solver._others(seg.Target!) is { } other ? other.PlaceAt(seg.Part!, side, t, solver, seg.Level) - (shoulder + lifted) : Offset(null);
+            if (seg.Kind == SegKinds.Anchor)
+            {
+                var place = seg.Anchor switch
+                {
+                    "hip" => pelvis + c.HipLeft * (0.17 * side) + Vec3.Up * 0.06 + c.HipFwd * 0.02,
+                    "chest" => chest + torsoFwd * 0.13 - torsoUp * 0.14 + torsoLeft * (0.04 * side),
+                    // The head and the belly are not turned with the chest on the hips: the head is over it, the belly under it.
+                    "head" => head + faceLeft * (0.13 * side) + torsoUp * 0.02,
+                    "chin" => head + faceFwd * 0.14 - torsoUp * 0.12 + faceLeft * (0.06 * side),
+                    // On the head as it is (looking up, tilted): in front of the brow, a little to its own side.
+                    "forehead" => head + gaze * 0.13 + neck.Normalized() * 0.07 + faceLeft * (0.04 * side),
+                    // The belly is on the hips: it goes round with them, and no further.
+                    "belly" => pelvis + torsoUp * 0.18
+                        + (faceFwd * Math.Cos(c.Hips) + faceLeft * Math.Sin(c.Hips)) * 0.13
+                        + (faceLeft * Math.Cos(c.Hips) - faceFwd * Math.Sin(c.Hips)) * (0.03 * side),
+                    "across.shoulder" => chest - torsoLeft * (Rig.ShoulderHalf * 0.8 * side) - torsoUp * Rig.ShoulderDrop + torsoFwd * 0.09,
+                    "clap" => chest + torsoFwd * 0.28 - torsoUp * 0.12 + torsoLeft * (0.025 * side),   // the wrists 5 cm apart: a hand is that thick (DESIGN.md 95)
+                    _ => shoulder + torsoUp * 0.06 + torsoFwd * 0.05,
+                };
+                return place - shoulder;
+            }
+            var d = seg.Dir!;
+            // `down` is the arm hanging, the same shape as an arm nobody wrote: on a body with
+            // flesh the hand is not under the shoulder joint. (`down.bent` is still the short arm straight down, and `down.bent(0)` the straight arm.)
+            if (d[1] < -0.9999 && seg.Bend is null && seg.Pole is null)
+                return seg.Body ? Hang(torsoLeft, torsoUp, torsoFwd) : Hang(c.Left, Vec3.Up, c.Fwd);
+            return Frame(seg, d) * Reach(seg, Rig.UpperArm, Rig.Forearm, 0.999);
+        }
+
+        // The room's frame by default (a notator's "standard cross": down is the floor
+        // even when the torso leans); the torso's own frame when the event says @body.
+        private Vec3 Frame(Seg seg, double[] d) => seg.Body
+            ? torsoLeft * d[0] + torsoUp * d[1] + torsoFwd * d[2]
+            : c.Left * d[0] + Vec3.Up * d[1] + c.Fwd * d[2];
+
+        // Where the elbow points is decided at the poses the text names, and carried between
+        // them with the arm (see where the pole is made, in PoseCore).
+        public (Vec3 Offset, Vec3 Bend) Target(Seg? seg)
+        {
+            if (seg?.Kind == SegKinds.Stay)
+            {
+                // The arm as the words before the `stay` have it (when its place is being found), or
+                // reaching for that place in the room; the elbow pointing as the word before sent it.
+                var before = armSegs.Take(armSegs.IndexOf(seg)).ToList();
+                if (solver._staying.Contains(seg))
+                {
+                    var again = this;
+                    return Chain<(Vec3 Offset, Vec3 Bend), ArmOf>(before, seg.T0, ref again);
+                }
+                var kept = StayHand(seg) - (shoulder + lifted);
+                var sent = before.LastOrDefault(s => s.Kind is not (SegKinds.Hold or SegKinds.Stay));
+                return (kept, Across(sent?.Pole is { } p ? Frame(sent, p) : pole, kept.Normalized()));
+            }
+            var offset = Offset(seg);
+            // A hand at the forehead holds its elbow out to the side (a salute), unless told otherwise.
+            var sentTo = seg?.Pole is { } towards ? Frame(seg, towards)
+                : seg is { Kind: SegKinds.Anchor, Anchor: "forehead" } ? torsoLeft * side : pole;
+            return (offset, Across(sentTo, offset.Normalized()));
+        }
+
+        public (Vec3 Offset, Vec3 Bend) Blend((Vec3 Offset, Vec3 Bend) a, (Vec3 Offset, Vec3 Bend) b, double e)
+        {
+            var offset = FigureSolver.Blend(a.Offset, b.Offset, e, c.Fwd);
+            // On the way to the forehead the hand comes in across late, rising on its own side, and the elbow goes
+            // out at once, so the hand does not cross the chest (DESIGN.md 87.4).
+            // Away from it the other way round: the hand goes out to its side at once and the elbow comes in last
+            // (trial 27: down from the salute the hand crossed 17 cm past the middle of the chest).
+            bool toBrow = solver._toForehead, fromBrow = solver._fromForehead;
+            if (toBrow || fromBrow)
+            {
+                double la = a.Offset.Dot(torsoLeft), lb = b.Offset.Dot(torsoLeft), now = offset.Dot(torsoLeft);
+                double sideways = toBrow ? e * e : 1 - (1 - e) * (1 - e);
+                offset += torsoLeft * ((la + (lb - la) * sideways) - now);
+            }
+            var axis = offset.Normalized();
+            Vec3? from = Carry(a.Bend, a.Offset.Normalized(), axis), to = Carry(b.Bend, b.Offset.Normalized(), axis);
+            double eb = toBrow ? Math.Min(1, 3 * e) : fromBrow ? Math.Max(0, 3 * e - 2) : e;
+            var between = from is null || to is null ? from ?? to ?? pole : AroundTheElbow(from.Value, to.Value, eb, axis);
+            return (offset, Across(between, axis));
+        }
+
+        public bool Measures => true;
+        public double Distance((Vec3 Offset, Vec3 Bend) a, (Vec3 Offset, Vec3 Bend) b) => Dist(a.Offset, b.Offset);
+
+        // From where the elbow points at one word to where it points at the next, both carried to the arm as it
+        // is now (square to it). The shorter way round can lead the elbow through pointing up and in, the way an
+        // elbow does not go, and where the two are opposite it picked one side and then the other: down from
+        // overhead to a clap, the elbow went from above the shoulder to below it in a frame (DESIGN.md 95). The
+        // angles are measured from where an elbow points by itself (the pole, square to the arm), so the way
+        // goes round that side, and never through its opposite.
+        private Vec3 AroundTheElbow(Vec3 a, Vec3 b, double e, Vec3 axis)
+        {
+            var natural = Across(pole, axis);
+            if (natural.Length < 1e-6 || a.Length < 1e-6 || b.Length < 1e-6)
+                return Vec3.Slerp(a, b, e);
+            a = a.Normalized();
+            b = b.Normalized();
+            var turned = axis.Cross(natural);
+            double Angle(Vec3 v) => Math.Atan2(v.Dot(turned), v.Dot(natural));
+            double angle = Angle(a) + (Angle(b) - Angle(a)) * e;
+            return natural * Math.Cos(angle) + turned * Math.Sin(angle);
+        }
+
+        // Where a `stay` keeps the hand: where the arm had it as the word began, in the room.
+        private Vec3 StayHand(Seg seg)
+        {
+            if (solver._stayHands.TryGetValue(seg, out var kept))
+                return kept;
+            solver._staying.Add(seg);
+            try
+            {
+                kept = solver.Pose(seg.T0, out _)[side == 1 ? Rig.LHand : Rig.RHand];
+            }
+            finally
+            {
+                solver._staying.Remove(seg);
+            }
+            solver._stayHands[seg] = kept;
+            return kept;
+        }
+    }
+
+    /// <summary>
+    /// Where a leg's word puts the toe when it is sent to the floor (`side.floor`) or to the other leg (`otherKnee`,
+    /// `otherAnkle`), as the ankle from the hip. <paramref name="mode"/>: 0 somewhere below (before the legs are solved:
+    /// only to say the leg is off the floor), 1 on the floor or somewhere below (the other leg is not solved yet),
+    /// 2 on the floor or at the other leg.
+    /// </summary>
+    private readonly struct ToePlace(int mode, Vec3 pelvis, CoreState c, int side, Vec3 otherKnee, Vec3 otherAnkle)
+    {
+        public static ToePlace Below => default;
+
+        public Vec3 At(Seg seg) => mode == 0 || !seg.Floor && mode == 1 ? SomewhereBelow(seg) : seg.Floor ? ToeOnTheFloor(seg) : ToeAt(seg);
+
+        // `side.floor`: the leg straight out its way, the foot pointed on along it, the toe on the
+        // floor (a tendu). How far down it slopes follows from how high the hip is: the leg and the
+        // foot together reach from the hip to the floor (DESIGN.md 85.5).
+        private Vec3 ToeOnTheFloor(Seg seg)
+        {
+            var hip = pelvis + c.HipLeft * (Rig.HipHalf * side);
+            var d = seg.Dir!;
+            var way = c.Left * d[0] + c.Fwd * d[2];
+            way = way.Length > 1e-6 ? way.Normalized() : c.Fwd;
+            double leg = Rig.StraightLeg * Rig.Leg, reach = leg + Rig.FootLength;
+            double sin = Math.Clamp((hip.Y - FloorToe) / reach, 0, 1), cos = Math.Sqrt(1 - sin * sin);
+            return (way * cos - Vec3.Up * sin) * leg;
+        }
+
+        // The toe of the leg on `side` at the other leg's knee or ankle. The foot is pointed on along
+        // the shin, so the ankle stands back from the place along the shin, and the shin depends on
+        // where the ankle is: a few rounds of solving the leg find the two together.
+        private Vec3 ToeAt(Seg seg)
+        {
+            var hip = pelvis + c.HipLeft * (Rig.HipHalf * side);
+            double ahead = seg.Anchor!.EndsWith(".back") ? -0.06 : 0.06;
+            var place = seg.Anchor.StartsWith("otherKnee") ? otherKnee + c.HipFwd * ahead : otherAnkle + c.HipFwd * ahead + Vec3.Up * 0.05;
+            double footYaw = side == 1 ? c.LYaw : c.RYaw;
+            var pole = seg.Pole is { } q ? c.Left * q[0] + Vec3.Up * q[1] + c.Fwd * q[2] : Rig.KneePole(Vec3.Left(footYaw), Vec3.Forward(footYaw), side);
+            var ankle = place + Vec3.Up * Rig.FootLength;
+            for (int round = 0; round < 6; round++)
+            {
+                var (knee, reached) = TwoBone(hip, ankle, Rig.Thigh, Rig.Shin, pole);
+                ankle = place - (reached - knee).Normalized() * Rig.FootLength;
+            }
+            return ankle - hip;
+        }
+    }
+
     private Vec3[] PoseCore(double t, out PoseProblems problems)
     {
         problems = default;
@@ -2887,16 +3199,8 @@ internal sealed class FigureSolver
         // Where the face looks, in the room. A written direction is measured as every part's is: from
         // the way the feet face, level (with `.body`, from the chest). A head nobody wrote looks
         // along the chest, so it bows with a bow; it is not turned with the shoulders.
-        Vec3 Gaze(Seg? seg)
-        {
-            if (seg?.Kind == SegKinds.Reach && _others(seg.Target!) is { } other)
-                return (other.PlaceAt(seg.Part!, 1, t, this) - (head + lifted)).Normalized();
-            if (seg?.Dir is { } d)
-                return seg.Body ? faceLeft * d[0] + torsoUp * d[1] + faceFwd * d[2] : c.Left * d[0] + Vec3.Up * d[1] + c.Fwd * d[2];
-            return faceFwd;
-        }
-
-        var gaze = Chain(_head, t, Gaze, (a, b, e) => Blend(a, b, e, faceFwd), Dist).Normalized();
+        var gazeOf = new GazeOf(this, t, head, lifted, faceLeft, torsoUp, faceFwd, c.Left, c.Fwd);
+        var gaze = Chain<Vec3, GazeOf>(_head, t, ref gazeOf).Normalized();
         if (_alive && _head.Count == 0)
         {
             // An unwritten head is not fixed on the chest either (DESIGN.md 94): it wanders a few degrees
@@ -2941,7 +3245,8 @@ internal sealed class FigureSolver
             return ears.Length < 1e-6 ? 0 : Math.Asin(Math.Clamp(-ears.Normalized().Dot(Vec3.Up), -1, 1));
         }
         double square = Roll(neck);
-        double roll = Chain(_head, t, seg => seg?.Tilt is { } d ? d * Math.PI / 180 : square, (a, b, e) => a + (b - a) * e, Dist);
+        var tiltOf = new TiltOf(square);
+        double roll = Chain<double, TiltOf>(_head, t, ref tiltOf);
         if (Math.Abs(roll - square) > 1e-9 && neck.Cross(g).Length > 1e-6)
         {
             // Turn the neck about the gaze by the angle that brings the ears to the roll: the ears go
@@ -2971,53 +3276,20 @@ internal sealed class FigureSolver
         // Legs. A toe sent to the other leg (`otherKnee`, `otherAnkle`) goes where that leg is, so a leg with
         // such a word is solved again once the other one has been.
         for (int side = 1; side >= -1; side -= 2)
-        {
-            int at = side;
-            Leg(side, seg => seg.Floor ? ToeOnTheFloor(seg, at) : SomewhereBelow(seg), ref problems);
-        }
+            Leg(side, new ToePlace(1, pelvis, c, side, default, default), ref problems);
         for (int side = 1; side >= -1; side -= 2)
         {
-            if ((side == 1 ? _leftLeg : _rightLeg).Any(s => s.Kind == SegKinds.Anchor))
+            bool sent = false;
+            foreach (var seg in side == 1 ? _leftLeg : _rightLeg)
+                sent |= seg.Kind == SegKinds.Anchor;
+            if (sent)
             {
-                int other = side == 1 ? Rig.RHip : Rig.LHip, at = side;
-                Leg(side, seg => seg.Floor ? ToeOnTheFloor(seg, at) : ToeAt(seg, at, joints[other + 1], joints[other + 2]), ref problems);
+                int other = side == 1 ? Rig.RHip : Rig.LHip;
+                Leg(side, new ToePlace(2, pelvis, c, side, joints[other + 1], joints[other + 2]), ref problems);
             }
         }
 
-        // `side.floor`: the leg straight out its way, the foot pointed on along it, the toe on the
-        // floor (a tendu). How far down it slopes follows from how high the hip is: the leg and the
-        // foot together reach from the hip to the floor (DESIGN.md 85.5).
-        Vec3 ToeOnTheFloor(Seg seg, int side)
-        {
-            var hip = pelvis + c.HipLeft * (Rig.HipHalf * side);
-            var d = seg.Dir!;
-            var way = c.Left * d[0] + c.Fwd * d[2];
-            way = way.Length > 1e-6 ? way.Normalized() : c.Fwd;
-            double leg = Rig.StraightLeg * Rig.Leg, reach = leg + Rig.FootLength;
-            double sin = Math.Clamp((hip.Y - FloorToe) / reach, 0, 1), cos = Math.Sqrt(1 - sin * sin);
-            return (way * cos - Vec3.Up * sin) * leg;
-        }
-
-        // The toe of the leg on `side` at the other leg's knee or ankle. The foot is pointed on along
-        // the shin, so the ankle stands back from the place along the shin, and the shin depends on
-        // where the ankle is: a few rounds of solving the leg find the two together.
-        Vec3 ToeAt(Seg seg, int side, Vec3 otherKnee, Vec3 otherAnkle)
-        {
-            var hip = pelvis + c.HipLeft * (Rig.HipHalf * side);
-            double ahead = seg.Anchor!.EndsWith(".back") ? -0.06 : 0.06;
-            var place = seg.Anchor.StartsWith("otherKnee") ? otherKnee + c.HipFwd * ahead : otherAnkle + c.HipFwd * ahead + Vec3.Up * 0.05;
-            double footYaw = side == 1 ? c.LYaw : c.RYaw;
-            var pole = seg.Pole is { } q ? c.Left * q[0] + Vec3.Up * q[1] + c.Fwd * q[2] : Rig.KneePole(Vec3.Left(footYaw), Vec3.Forward(footYaw), side);
-            var ankle = place + Vec3.Up * Rig.FootLength;
-            for (int round = 0; round < 6; round++)
-            {
-                var (knee, reached) = TwoBone(hip, ankle, Rig.Thigh, Rig.Shin, pole);
-                ankle = place - (reached - knee).Normalized() * Rig.FootLength;
-            }
-            return ankle - hip;
-        }
-
-        void Leg(int side, Func<Seg, Vec3> place, ref PoseProblems problems)
+        void Leg(int side, ToePlace place, ref PoseProblems problems)
         {
             bool isLeft = side == 1;
             var hip = pelvis + c.HipLeft * (Rig.HipHalf * side);
@@ -3163,20 +3435,6 @@ internal sealed class FigureSolver
             bool holdsMic = _dancer.Mic is { } micHand && (micHand == "left") == isLeft;
             bool helpsMic = _dancer.Mic == "both" && isLeft;
 
-            // An arm that hangs: the upper arm straight down, the elbow a little bent, so the hand
-            // is in front of the shoulder. The elbow bends back from the line to the hand; with
-            // the hand under the shoulder it is the elbow that goes behind the body, and on a
-            // character the whole arm reads as held back (and is hidden in the hip and the clothes).
-            // Swung about the shoulder's left-right line by `swing` radians (forward is positive), the elbow
-            // bending a little more as the arm comes in front.
-            Vec3 Hang(Vec3 left, Vec3 up, Vec3 fwd, double swing = 0)
-            {
-                double bent = (Rig.RestElbow + SwingElbow * Math.Max(0, swing) / SwingMost) * Math.PI / 180;
-                double below = Rig.UpperArm + Rig.Forearm * Math.Cos(bent), front = Rig.Forearm * Math.Sin(bent);
-                double cos = Math.Cos(swing), sin = Math.Sin(swing);
-                return left * (0.06 * side) - up * (below * cos - front * sin) + fwd * (front * cos + below * sin);
-            }
-
             // An arm nobody wrote swings against the legs while they walk (DESIGN.md 101): forward as the other
             // foot is ahead of the pelvis, back as it is behind, and only as much as the feet are moving. It is a
             // movement of a living body, so it goes with the rest of them (the tests of exact poses turn it off).
@@ -3196,51 +3454,6 @@ internal sealed class FigureSolver
                 swing = (Math.Clamp(ahead * SwingPerMetre, -SwingMost, SwingMost) - SwingBack) * (1 - FeetStill(t));
             }
 
-            Vec3 Offset(Seg? seg)
-            {
-                // An arm nobody wrote hangs, and swings while the feet walk. One that holds a mic holds it before
-                // the belly, the elbow bent: a singer between phrases does not let it dangle.
-                if (seg is null)
-                    return holdsMic
-                        ? chest + torsoFwd * 0.22 - torsoUp * 0.35 + torsoLeft * (0.10 * side) - shoulder
-                        : Hang(c.Left, Vec3.Up, c.Fwd, swing);
-                if (seg.Kind == SegKinds.Reach)
-                    return _others(seg.Target!) is { } other ? other.PlaceAt(seg.Part!, side, t, this, seg.Level) - (shoulder + lifted) : Offset(null);
-                if (seg.Kind == SegKinds.Anchor)
-                {
-                    var place = seg.Anchor switch
-                    {
-                        "hip" => pelvis + c.HipLeft * (0.17 * side) + Vec3.Up * 0.06 + c.HipFwd * 0.02,
-                        "chest" => chest + torsoFwd * 0.13 - torsoUp * 0.14 + torsoLeft * (0.04 * side),
-                        // The head and the belly are not turned with the chest on the hips: the head is over it, the belly under it.
-                        "head" => head + faceLeft * (0.13 * side) + torsoUp * 0.02,
-                        "chin" => head + faceFwd * 0.14 - torsoUp * 0.12 + faceLeft * (0.06 * side),
-                        // On the head as it is (looking up, tilted): in front of the brow, a little to its own side.
-                        "forehead" => head + gaze * 0.13 + neck.Normalized() * 0.07 + faceLeft * (0.04 * side),
-                        // The belly is on the hips: it goes round with them, and no further.
-                        "belly" => pelvis + torsoUp * 0.18
-                            + (faceFwd * Math.Cos(c.Hips) + faceLeft * Math.Sin(c.Hips)) * 0.13
-                            + (faceLeft * Math.Cos(c.Hips) - faceFwd * Math.Sin(c.Hips)) * (0.03 * side),
-                        "across.shoulder" => chest - torsoLeft * (Rig.ShoulderHalf * 0.8 * side) - torsoUp * Rig.ShoulderDrop + torsoFwd * 0.09,
-                        "clap" => chest + torsoFwd * 0.28 - torsoUp * 0.12 + torsoLeft * (0.025 * side),   // the wrists 5 cm apart: a hand is that thick (DESIGN.md 95)
-                        _ => shoulder + torsoUp * 0.06 + torsoFwd * 0.05,
-                    };
-                    return place - shoulder;
-                }
-                var d = seg.Dir!;
-                // `down` is the arm hanging, the same shape as an arm nobody wrote: on a body with
-                // flesh the hand is not under the shoulder joint. (`down.bent` is still the short arm straight down, and `down.bent(0)` the straight arm.)
-                if (d[1] < -0.9999 && seg.Bend is null && seg.Pole is null)
-                    return seg.Body ? Hang(torsoLeft, torsoUp, torsoFwd) : Hang(c.Left, Vec3.Up, c.Fwd);
-                return Frame(seg, d) * Reach(seg, Rig.UpperArm, Rig.Forearm, 0.999);
-            }
-
-            // The room's frame by default (a notator's "standard cross": down is the floor
-            // even when the torso leans); the torso's own frame when the event says @body.
-            Vec3 Frame(Seg seg, double[] d) => seg.Body
-                ? torsoLeft * d[0] + torsoUp * d[1] + torsoFwd * d[2]
-                : c.Left * d[0] + Vec3.Up * d[1] + c.Fwd * d[2];
-
             // Where the elbow points is decided at the poses the text names, and carried between
             // them with the arm. Read off the pole at every instant instead, it spins half a turn
             // in a frame when the hand passes the one direction that lies along the pole
@@ -3248,85 +3461,9 @@ internal sealed class FigureSolver
             // its own way.
             var pole = Rig.ElbowPole(c.Left, c.Fwd, side);
             var armSegs = isLeft ? _leftArm : _rightArm;
-            (Vec3 Offset, Vec3 Bend) Posed(Seg? seg)
-            {
-                if (seg?.Kind == SegKinds.Stay)
-                {
-                    // The arm as the words before the `stay` have it (when its place is being found), or
-                    // reaching for that place in the room; the elbow pointing as the word before sent it.
-                    var before = armSegs.Take(armSegs.IndexOf(seg)).ToList();
-                    if (_staying.Contains(seg))
-                        return Chain(before, seg.T0, Posed, ArmBlend, (a, b) => Dist(a.Offset, b.Offset));
-                    var kept = StayHand(seg) - (shoulder + lifted);
-                    var sent = before.LastOrDefault(s => s.Kind is not (SegKinds.Hold or SegKinds.Stay));
-                    return (kept, Across(sent?.Pole is { } p ? Frame(sent, p) : pole, kept.Normalized()));
-                }
-                var offset = Offset(seg);
-                // A hand at the forehead holds its elbow out to the side (a salute), unless told otherwise.
-                var sentTo = seg?.Pole is { } towards ? Frame(seg, towards)
-                    : seg is { Kind: SegKinds.Anchor, Anchor: "forehead" } ? torsoLeft * side : pole;
-                return (offset, Across(sentTo, offset.Normalized()));
-            }
-
-            (Vec3 Offset, Vec3 Bend) ArmBlend((Vec3 Offset, Vec3 Bend) a, (Vec3 Offset, Vec3 Bend) b, double e)
-            {
-                var offset = Blend(a.Offset, b.Offset, e, c.Fwd);
-                // On the way to the forehead the hand comes in across late, rising on its own side, and the elbow goes
-                // out at once, so the hand does not cross the chest (DESIGN.md 87.4).
-                // Away from it the other way round: the hand goes out to its side at once and the elbow comes in last
-                // (trial 27: down from the salute the hand crossed 17 cm past the middle of the chest).
-                bool toBrow = _toForehead, fromBrow = _fromForehead;
-                if (toBrow || fromBrow)
-                {
-                    double la = a.Offset.Dot(torsoLeft), lb = b.Offset.Dot(torsoLeft), now = offset.Dot(torsoLeft);
-                    double side = toBrow ? e * e : 1 - (1 - e) * (1 - e);
-                    offset += torsoLeft * ((la + (lb - la) * side) - now);
-                }
-                var axis = offset.Normalized();
-                Vec3? from = Carry(a.Bend, a.Offset.Normalized(), axis), to = Carry(b.Bend, b.Offset.Normalized(), axis);
-                double eb = toBrow ? Math.Min(1, 3 * e) : fromBrow ? Math.Max(0, 3 * e - 2) : e;
-                var between = from is null || to is null ? from ?? to ?? pole : AroundTheElbow(from.Value, to.Value, eb, axis);
-                return (offset, Across(between, axis));
-            }
-
-            // From where the elbow points at one word to where it points at the next, both carried to the arm as it
-            // is now (square to it). The shorter way round can lead the elbow through pointing up and in, the way an
-            // elbow does not go, and where the two are opposite it picked one side and then the other: down from
-            // overhead to a clap, the elbow went from above the shoulder to below it in a frame (DESIGN.md 95). The
-            // angles are measured from where an elbow points by itself (the pole, square to the arm), so the way
-            // goes round that side, and never through its opposite.
-            Vec3 AroundTheElbow(Vec3 a, Vec3 b, double e, Vec3 axis)
-            {
-                var natural = Across(pole, axis);
-                if (natural.Length < 1e-6 || a.Length < 1e-6 || b.Length < 1e-6)
-                    return Vec3.Slerp(a, b, e);
-                a = a.Normalized();
-                b = b.Normalized();
-                var turned = axis.Cross(natural);
-                double Angle(Vec3 v) => Math.Atan2(v.Dot(turned), v.Dot(natural));
-                double angle = Angle(a) + (Angle(b) - Angle(a)) * e;
-                return natural * Math.Cos(angle) + turned * Math.Sin(angle);
-            }
-
-            // Where a `stay` keeps the hand: where the arm had it as the word began, in the room.
-            Vec3 StayHand(Seg seg)
-            {
-                if (_stayHands.TryGetValue(seg, out var kept))
-                    return kept;
-                _staying.Add(seg);
-                try
-                {
-                    kept = Pose(seg.T0, out _)[isLeft ? Rig.LHand : Rig.RHand];
-                }
-                finally
-                {
-                    _staying.Remove(seg);
-                }
-                _stayHands[seg] = kept;
-                return kept;
-            }
-
-            int going = armSegs.FindLastIndex(s => s.T0 <= t);
+            int going = armSegs.Count - 1;
+            while (going >= 0 && !(armSegs[going].T0 <= t))
+                going--;
             bool moving = going >= 0 && t < armSegs[going].T1;
             static bool Brow(Seg s) => s is { Kind: SegKinds.Anchor, Anchor: "forehead" };
             int came = going - 1;
@@ -3334,9 +3471,13 @@ internal sealed class FigureSolver
                 came--;
             _toForehead = moving && Brow(armSegs[going]);
             _fromForehead = moving && !_toForehead && armSegs[going].Kind != SegKinds.Hold && came >= 0 && Brow(armSegs[came]);
-            var (reach, bend) = Chain(armSegs, t, Posed, ArmBlend, (a, b) => Dist(a.Offset, b.Offset));
+            var armOf = new ArmOf(this, t, side, shoulder, lifted, holdsMic, swing, pole, armSegs, c, pelvis, chest, head, gaze, neck, torsoUp, torsoLeft, torsoFwd, faceLeft, faceFwd);
+            var (reach, bend) = Chain<(Vec3 Offset, Vec3 Bend), ArmOf>(armSegs, t, ref armOf);
             _toForehead = _fromForehead = false;
-            if (armSegs.LastOrDefault(s => s.T0 <= t + 1e-9) is { Kind: SegKinds.Stay } staying && !_staying.Contains(staying)
+            int last = armSegs.Count - 1;
+            while (last >= 0 && !(armSegs[last].T0 <= t + 1e-9))
+                last--;
+            if (last >= 0 && armSegs[last] is { Kind: SegKinds.Stay } staying && !_staying.Contains(staying)
                 && reach.Length > Rig.UpperArm + Rig.Forearm + 0.01)
                 problems.HandShort = isLeft ? Channels.LeftArm : Channels.RightArm;
             var hand = shoulder + reach;

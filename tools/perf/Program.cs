@@ -22,6 +22,11 @@ using Shosa.Lsp;
 if (int.TryParse(Environment.GetEnvironmentVariable("SHOSA_FRAMES_AT_ONCE"), out int atOnce))
     Solver.FramesAtOnce = atOnce <= 0 ? int.MaxValue : atOnce;
 
+// What the solver allocates, by type (DESIGN.md 120.12): the runtime tells of about every 100 KB allocated, and of what.
+//   Shosa.Perf.exe --allocations FILE.shosa [--times N]
+if (args.Length >= 2 && args[0] == "--allocations")
+    return Allocations.Run(args);
+
 // Every number the solver gives, kept and compared (Corpus.cs).
 if (args.Length >= 3 && args[0] is "--dump" or "--compare")
     return Corpus.Run(args);
