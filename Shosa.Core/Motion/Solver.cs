@@ -895,6 +895,9 @@ internal sealed class FigureSolver
     private const double SwipeElbowSide = 0.12;
     /// <summary>Takeouts' round (DESIGN.md 118.49): the elbow's way, down and this much forward.</summary>
     private const double RoundElbowAhead = 0.6;
+    /// <summary>Takeouts' round: the elbow out from the shoulder at the round's start and its end (metres), and how much less
+    /// far forward than the hand.</summary>
+    private const double RoundElbowFrom = 0.04, RoundElbowTo = 0.14, RoundElbowBehind = 0.03;
     /// <summary>How far off its place side to side Mills' elbow may be (metres) against how far round its circle it goes (radians).</summary>
     private const double MillsElbowSlack = 0.045, MillsElbowTurn = 0.25;
     /// <summary>How far the pelvis goes to the side with Mills' sway, per unit of the back's lean (against it, the hips out under a leaning back: with it, the body went away from the throws).</summary>
@@ -3200,7 +3203,22 @@ internal sealed class FigureSolver
                 {
                     // (One way, not sought on the elbow's circle as ElbowOut does: with the swipe's and the throw's holds coming and
                     // going, two places on it came out about as good and the elbow leapt 20 cm from one to the other in a frame.)
-                    var planePole = (-Vec3.Up + juggleFwd * RoundElbowAhead).Normalized();
+                    // The elbow goes slowly out to its own side all through the round, never back in (the user: the shoulder
+                    // looked to turn right round, not a person's; in, out and in again, the upper arm drew a circle): toward a
+                    // place out from the shoulder by an amount that grows with the time through the round, below the hand and
+                    // as far forward. The pole is to the nearest place on the elbow's circle, so it changes smoothly.
+                    double through = Juggling.RoundThrough(isLeft ? 1 : 0, juggleSec);
+                    double lateral = RoundElbowFrom + (RoundElbowTo - RoundElbowFrom) * through;
+                    var outSide = juggleLeft * side;
+                    var aim = shoulder + outSide * (lateral - (shoulder - shoulder).Dot(outSide));
+                    var want = new Vec3(0, 0, 0) + outSide * (shoulder.Dot(outSide) + lateral)
+                        + Vec3.Up * (hand.Y - Rig.Forearm) + juggleFwd * (hand.Dot(juggleFwd) - RoundElbowBehind);
+                    // (Across: out from the shoulder; up: a forearm below the hand; forward: as far as the hand, a little less.)
+                    var mid = (shoulder + hand) * 0.5;
+                    var axisLine = (hand - shoulder).Normalized();
+                    var toward = want - mid;
+                    toward -= axisLine * toward.Dot(axisLine);
+                    var planePole = toward.Length > 1e-6 ? toward.Normalized() : (-Vec3.Up + juggleFwd * RoundElbowAhead).Normalized();
                     bend = Vec3.Slerp(bend.Length < 1e-6 ? pole.Normalized() : bend.Normalized(), planePole, round);
                 }
                 // The windmill's wheel: the elbow held where the wheel's axle is (DESIGN.md 118.34).

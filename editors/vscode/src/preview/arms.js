@@ -20,7 +20,7 @@ const ELBOW_CLEAR = 0.01;
 /** How far in front of the trunk's front the hand is at the least, metres (scaled): room for the forearm to go round. */
 const HAND_CLEAR = 0.08;
 /** Takeouts' round: how far the elbow may be behind or before the wrist for the cost of a miss (metres, scaled). */
-const PLANE_SLACK = 0.03;
+const PLANE_SLACK = 0.05, PLANE_SIDE_SLACK = 0.015;
 const TRUNK_PARTS = new Set(['spine', 'chest', 'upperChest']);const qa = new THREE.Quaternion(), qb = new THREE.Quaternion();
 
 /**
@@ -135,6 +135,7 @@ export function millsArms(vrm, body, size, figure, weight, angles = null, pull =
     const middleOut = trunkAt ? trunkAt.dot(outward) : 0;
     const wanted = Math.max(shoulder.dot(outward) + (globalThis.shosaElbowSide ?? ELBOW_SIDE) * k, middleOut + rx + armRadius + ELBOW_CLEAR * k);
     const c0 = shoulder.dot(outward) + axis.dot(outward) * along, a = height * u.dot(outward), b = height * v.dot(outward);
+    const figureOut = shoulder.dot(outward) + fe.clone().sub(fs).dot(outward) * (l1 / Math.max(1e-6, f1));
     // Inside the trunk (its cross-section an ellipse, the arm's thickness added) costs a great deal: the elbow goes to its
     // side or in front of it, whichever is less far.
     const centre = shoulder.clone().addScaledVector(axis, along), at = new THREE.Vector3();
@@ -151,6 +152,9 @@ export function millsArms(vrm, body, size, figure, weight, angles = null, pull =
       if (planed > 0) {
         at.copy(centre).addScaledVector(u, height * Math.cos(t)).addScaledVector(v, height * Math.sin(t));
         c += planed * ((at.dot(forward) - wrist.dot(forward)) / (PLANE_SLACK * k)) ** 2;
+        // And out from the shoulder as far as the figure's (scaled), first: the elbow goes slowly out all round, never in
+        // (the user: the shoulder looked to turn right round; drawn forward alone, the elbow went in 8 cm and leapt out).
+        c += planed * ((c0 + a * Math.cos(t) + b * Math.sin(t) - figureOut) / (PLANE_SIDE_SLACK * k)) ** 2;
       }
       if (trunkAt) {
         at.copy(centre).addScaledVector(u, height * Math.cos(t)).addScaledVector(v, height * Math.sin(t)).sub(trunkAt);

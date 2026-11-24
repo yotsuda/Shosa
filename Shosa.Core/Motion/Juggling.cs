@@ -1922,6 +1922,18 @@ public sealed class Juggling
         return most;
     }
 
+    /// <summary>How far through its round a hand is at a time, 0..1 (eased at both ends), or 0 outside one.</summary>
+    public double RoundThrough(int hand, double sec)
+    {
+        foreach (var (h, from, to) in _roundPlanes)
+            if (h == hand && sec >= from && sec <= to)
+            {
+                double u = (sec - from) / Math.Max(1e-6, to - from);
+                return u * u * (3 - 2 * u);
+            }
+        return 0;
+    }
+
     /// <summary>The takeouts words, seconds: their hands are softened (<see cref="Hand"/>).</summary>
     private readonly List<(double From, double To)> _takeouts = [];
 
