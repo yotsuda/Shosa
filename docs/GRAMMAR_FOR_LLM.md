@@ -1397,6 +1397,7 @@ section Show {
   `@penguinCatch` (caught behind the hip, the arm straight and the palm turned back, and thrown in front, palm up, above the shoulders: at tempo 120 `every 1`, else SH2020), `@clawCatch` (the palm down, the
   ball thrown up to the face and snatched from above there near its top; at `every 1/2` it suits a tempo
   of about 113 to 197, else SH2023 says the tempo it suits), `@reverse` (thrown from outside over the top, caught inside),
+  `@tennis` (one ball thrown from outside over the top of the others, to and fro like a tennis ball over the net; the rest a cascade),
   `@backThrow` (thrown from behind the back over the other shoulder), `@backCatch` (caught behind the
   back, the ball come down over the shoulder it was thrown on), `@underThrow` (from under the thigh of the
   throwing hand's side); behind the back, the shoulders turn well round, that hand's side back.

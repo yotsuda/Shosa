@@ -388,7 +388,7 @@ public sealed class Seg
     public double? Every { get; set; }
     /// <summary>Juggle (`@mirror`): the left hand throws the first plain beat, or the first number of a pair.</summary>
     public bool LeftFirst { get; set; }
-    /// <summary>Juggle: the tricks the hands throw it with (`@mills`, `@penguinCatch`, `@clawCatch`, `@reverse`, `@backThrow`, `@backCatch`, `@underThrow`); null for none.</summary>
+    /// <summary>Juggle: the tricks the hands throw it with (`@mills`, `@penguinCatch`, `@clawCatch`, `@reverse`, `@tennis`, `@backThrow`, `@backCatch`, `@underThrow`); null for none.</summary>
     public List<string>? Tricks { get; set; }
 
     /// <summary>smooth | sharp | linear.</summary>

@@ -286,6 +286,33 @@ public class JuggleTests
     }
 
     [Fact]
+    public void Tennis_throws_one_ball_from_outside_and_the_others_from_inside()
+    {
+        // The same throws as the cascade; one ball (the word's first across) leaves from outside the hand's own catch, every
+        // throw of it in the word, and the other two from inside (DESIGN.md 118.45).
+        var plain = Compile(Juggle("every 1/2  3:4 | 3:4 |"));
+        var c = Compile(Juggle("every 1/2  3:4@tennis | 3:4@tennis |"));
+        Assert.Empty(c.Diagnostics);
+        var was = plain.Clip.Figures[0].Juggle!.Flights;
+        var now = c.Clip.Figures[0].Juggle!.Flights;
+        Assert.Equal(was.Select(f => (f[0], f[1], f[2], f[3])), now.Select(f => (f[0], f[1], f[2], f[3])));
+        var clip = c.Clip;
+        var fig = clip.Figures[0];
+        int tennis = (int)now[0][0];
+        // Off the pelvis, to the throwing hand's own side: + outward.
+        double Out(float[] f)
+        {
+            int at = (int)Math.Round(f[3] * clip.Fps);
+            var hand = fig.Joint(at, f[1] == 0 ? Rig.RHand : Rig.LHand);
+            return (f[1] == 0 ? -1 : 1) * (hand.X - fig.Joint(at, Rig.Pelvis).X);
+        }
+        var inWord = now.Where(f => f[3] > 0.3 && f[3] < 3.6).ToList();
+        Assert.True(inWord.Count(f => (int)f[0] == tennis) >= 3);
+        Assert.All(inWord.Where(f => (int)f[0] == tennis), f => Assert.True(Out(f) > 0.25, $"tennis ball thrown {Out(f):0.00} m out at {f[3]:0.00} s"));
+        Assert.All(inWord.Where(f => (int)f[0] != tennis), f => Assert.True(Out(f) < 0.2, $"cascade ball thrown {Out(f):0.00} m out at {f[3]:0.00} s"));
+    }
+
+    [Fact]
     public void A_claw_is_thrown_up_to_the_face_and_caught_there_near_its_top()
     {
         // At tempo 120 every 1/2: caught at the face, no more than 5 cm down from its top, from above (the palm down).
@@ -316,6 +343,8 @@ public class JuggleTests
     [InlineData("every 1/3  5:4 | 645:4 | 744:4 | 97531:10/3 5:2/3 | 75751:10/3 5:2/3 |", 0.10)]
     // Changes of pattern and of pace (DESIGN.md 118.43): a ball thrown in one comes down as it was thrown.
     [InlineData("every 1/2  3:4 | 3:4@mills | 3:4@reverse | 3:4 | every 1  3:2 3:1@backThrow 3:1 | every 1/2  3:4@windmill | 3:4 |", 0.08)]
+    // Tennis: one ball over the top of the others, to and fro (DESIGN.md 118.45).
+    [InlineData("every 1/2  3:4 | 3:4@tennis | 3:4@tennis | 3:4 |", 0.10)]
     public void Balls_in_the_air_keep_well_apart_in_four_and_five_ball_patterns(string row, double apart)
     {
         // The fountain thrown inside and caught outside, the one going up in front; higher throws across wider (DESIGN.md
