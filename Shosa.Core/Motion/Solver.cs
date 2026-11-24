@@ -428,8 +428,7 @@ public static class Solver
             // and the fingers out (118.18): as the others', so the preview, which puts the ball on the character's own palm
             // and adds only how far this is from that, does not push it behind the hand.
             var style = juggling.StyleAt(hand, sec);
-            // Shown to the front (takeouts' carry back), the ball is before the palm, which the preview finds on the hand itself.
-            double up = style == Juggling.Style.Claw ? -0.05 : style == Juggling.Style.Show ? 0 : 0.04;
+            double up = style == Juggling.Style.Claw ? -0.05 : 0.04;
             return w + (w - e).Normalized() * along + Vec3.Up * up;
         }
         int Stacked(int ball, double sec)

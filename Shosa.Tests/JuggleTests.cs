@@ -375,12 +375,12 @@ public class JuggleTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void Takeouts_swipe_the_own_4_across_as_it_falls_and_carry_it_back_round_a_wide_arc_showing_it(bool mirror)
+    public void Takeouts_swipe_the_own_4_across_as_it_falls_and_carry_it_round_past_the_forehead_into_the_next_throw(bool mirror)
     {
         // 423 (DESIGN.md 118.49, the user): a hand throws its 3 from its own side as it sets off on its swipe (the other hand
         // catches it), takes its own 4 from above near the middle as it falls and carries it straight across to the far side,
-        // stops once there and carries it back round a wide arc out past its own side, the palm to the front (the 2), while
-        // the other hand throws its own 4 under it.
+        // stops once there and carries it round a big circle, the ball past the forehead, out past its own side and below
+        // (the 2), up into its next 4 from inside, while the other hand throws its own 4 under it.
         string m = mirror ? "@mirror" : "";
         var c = Compile(Juggle($"every 1/2  3:4{m} | 423:4~@takeouts{m} | :2 3:2{m} |"));
         Assert.Empty(c.Diagnostics);
@@ -412,7 +412,12 @@ public class JuggleTests
             var back = Enumerable.Range(1, 12).Select(k => f[4] + 0.6 * k / 12).ToList();
             Assert.True(back.Max(s => HandAt(hand, s).Y) > HandAt(hand, f[4]).Y + 0.1, $"up round an arc after {f[4]:0.00} s");
             Assert.True(back.Max(s => Out(hand, s)) > 0.3, $"out past its own side after {f[4]:0.00} s");
-            Assert.Contains(back, s => styles[(int)Math.Round(s * clip.Fps)][hand] == (int)Juggling.Style.Show);
+            // Round past the forehead (the user: the ball just before it), and the next 4 thrown up from inside.
+            int nose = Array.IndexOf(clip.Joints, "nose");
+            double top = back.Max(s => fig.Joint((int)Math.Round(s * clip.Fps), hand == 0 ? Rig.RHand : Rig.LHand).Y);
+            Assert.True(top > fig.Frames[(int)Math.Round(f[4] * clip.Fps)][nose * 3 + 1] - 0.12, $"up to {top:0.00} m, the nose at {fig.Frames[(int)Math.Round(f[4] * clip.Fps)][nose * 3 + 1]:0.00}");
+            if (next < 4.95)
+                Assert.True(Out(hand, next) < 0.2, $"next 4 thrown {Out(hand, next):0.00} m out at {next:0.00} s");
             Assert.Contains(flights, g => (int)g[1] == 1 - hand && g[1] == g[2] && g[3] > f[4] && g[3] < f[4] + 0.4);
         }
         Assert.Contains("SH1010", Codes(Compile(Juggle("every 1/2  423:4@takeouts@halfShower |"))));

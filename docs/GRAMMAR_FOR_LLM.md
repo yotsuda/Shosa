@@ -1413,7 +1413,7 @@ section Show {
   of about 113 to 197, else SH2023 says the tempo it suits), `@reverse` (thrown from outside over the top, caught inside),
   `@tennis` (one ball thrown from well outside and higher, over the top of the others, to and fro like a tennis ball over the net; the rest a lower cascade nearer the middle),
   `@halfShower` (the first hand always throws from well outside, higher, over the top; the other always from inside, lower, under it),
-  `423:4~@takeouts | :2 …` (a hand throws its 3 to the other as it sets off on a quick swipe across in front, takes its own 4 from above near the middle as it falls and carries it to the far side, stops once and carries it back round a wide arc about the elbow, the palm to the front showing the ball, as the 2, while the other hand throws its own 4 under the arc),
+  `423:4~@takeouts | :2 …` (a hand throws its 3 to the other as it sets off on a quick swipe across in front, takes its own 4 from above near the middle as it falls and carries it to the far side, stops once and carries it round a big circle, the ball just before the forehead, out past its own side and below, up into its next 4 from inside, as the 2, while the other hand throws its own 4 under it),
   `@backThrow` (thrown from behind the back over the other shoulder), `@backCatch` (caught behind the
   back, the ball come down over the shoulder it was thrown on), `@underThrow` (from under the thigh of the
   throwing hand's side); behind the back, the shoulders turn well round, that hand's side back.
