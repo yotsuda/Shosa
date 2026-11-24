@@ -405,7 +405,10 @@ public class JuggleTests
             var three = flights.Where(g => (int)g[1] == hand && g[3] < f[4]).MaxBy(g => g[3])!;
             Assert.Equal(1, (int)three[0]);   // the one thrown across from outside, never swiped: ball 1 (blue)
             Assert.True(three[2] != hand && f[4] - three[3] < 0.25, $"its 3 just before, at {three[3]:0.00} s");
-            Assert.True(Out(hand, three[3]) > 0.2, $"3 thrown {Out(hand, three[3]):0.00} m out at {three[3]:0.00} s");
+            // From well outside to well outside, high, as tennis's ball (the user).
+            Assert.True(Out(hand, three[3]) > 0.35, $"3 thrown {Out(hand, three[3]):0.00} m out at {three[3]:0.00} s");
+            Assert.True(Out(1 - hand, three[4]) > 0.35, $"3 caught {Out(1 - hand, three[4]):0.00} m out at {three[4]:0.00} s");
+            Assert.True(three[4] - three[3] > 0.5, $"3 in the air {three[4] - three[3]:0.00} s");
             // Not thrown on: held, stopped once, then back round an arc up over the top and out past its own side, the palm
             // to the front, while the other hand throws its 4.
             double next = flights.Where(g => (int)g[1] == hand && g[3] > f[4]).Min(g => (double)g[3]);

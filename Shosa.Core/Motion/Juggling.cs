@@ -356,6 +356,12 @@ public sealed class Juggling
                         if (air > longest || hurried)
                             ClawTiming.Add((landingSeg, air, longest, reach, slowest, quickest, hurried));
                     }
+                    // Takeouts' 3: higher, as tennis's ball, thrown a little before its beat and caught a little after (the user).
+                    if (throwTricks?.Contains(TakeoutThrow) == true)
+                    {
+                        tennisShift = TakeoutLonger * T;
+                        caught = Math.Min(caught + tennisShift, SlotSec(land) - TennisLeastHold * Dwell * BeatSec(Math.Min(land, slots.Count - 1)));
+                    }
                     double thrown = slotThrown - tennisShift;
                     // Mills' second throw (and its mirror, the fifth) goes higher (the user): longer in the air, thrown a
                     // little before the beat.
@@ -652,7 +658,9 @@ public sealed class Juggling
     /// <summary>Takeouts' throws from the hand's own side: this far out, this high (the 3), this far forward (the 3; the 4 further, in front of the 3s' way).</summary>
     private const double TakeoutOwnOut = 0.30, TakeoutOwnHigh = 0.04, TakeoutOwnAhead = 0.0, TakeoutHighAhead = 0.16;
     /// <summary>The 4 thrown from inside, near the middle, up from below after the round (the user); the 3 caught further out.</summary>
-    private const double TakeoutHighOut = 0.14, TakeoutCatchOut = 0.44;
+    private const double TakeoutHighOut = 0.10, TakeoutCatchOut = 0.50;
+    /// <summary>The 3 thrown from well outside, this far out and this far forward (as tennis's), and this part of a beat sooner, caught as much later.</summary>
+    private const double TakeoutAcrossOut = 0.42, TakeoutAcrossAhead = 0.10, TakeoutLonger = 0.25;
     /// <summary>A ball thrown before the takeouts and caught in them: caught out there too, clear of the hand's first 4.</summary>
     private const string TakeoutWide = "\u0000takeoutWide";
     /// <summary>Takeouts' 4 comes down near the middle, a little on the thrower's side, this high, this far forward (in close:
@@ -1090,8 +1098,9 @@ public sealed class Juggling
         // above a little past the middle (the user).
         if (Has(throwTricks, TakeoutThrow))
         {
-            from = new Vec3(s * TakeoutOwnOut, TakeoutOwnHigh, TakeoutOwnAhead);
-            into = new Vec3(c * TakeoutCatchOut, into.Y, into.Z);
+            // From well outside to well outside, high, as tennis's ball goes (the user), a little in front.
+            from = new Vec3(s * TakeoutAcrossOut, TakeoutOwnHigh, TakeoutAcrossAhead);
+            into = new Vec3(c * TakeoutCatchOut, into.Y, TakeoutAcrossAhead);
         }
         else if (Has(catchTricks, TakeoutWide))
             into = new Vec3(c * TakeoutCatchOut, into.Y, into.Z);
