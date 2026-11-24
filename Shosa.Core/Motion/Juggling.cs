@@ -695,8 +695,12 @@ public sealed class Juggling
     /// <summary>Seconds either side of such a throw the lean comes and goes over (as long as from one hand's 4 to the other's at 120, every 1/2).</summary>
     private const double TakeoutLeanSpan = 0.75;
     /// <summary>After the 4's throw from under the other arm: how fast the hand goes up with the ball (a part of its speed), and
-    /// where it is this part of the way to its next catch: this far out on its own side, this much above the throw.</summary>
-    private const double TakeoutUnderLaunch = 0.4, TakeoutUnderOutAt = 0.4, TakeoutUnderOut = 0.30, TakeoutUnderOutUp = 0.12;
+    /// where it is this part of the way to its next catch: this far out on its own side, this much above the throw (the user:
+    /// the arm goes up in the throw, as the other arm sets off up round its arc at nearly the same time).</summary>
+    private const double TakeoutUnderLaunch = 0.8, TakeoutUnderOutAt = 0.5, TakeoutUnderOut = 0.40, TakeoutUnderOutUp = 0.30;
+    /// <summary>How fast the hand holding the swiped 4 sets off up its round from where the swipe ends (m/s; the user: it goes
+    /// up at nearly the same time as the other arm throws from under it).</summary>
+    private const double TakeoutRoundStartSpeed = 2.0;
     /// <summary>The 4s' throws from under the other arm: when, and which way the back leans (+ the right shoulder up).</summary>
     private readonly List<(double T, double Sign)> _takeoutLeans = [];
     /// <summary>The 3 thrown from well outside, this far out and this far forward (as tennis's), and this part of a beat sooner, caught as much later.</summary>
@@ -717,7 +721,7 @@ public sealed class Juggling
     /// at the 4's catch, how fast it goes down with it (a part of the ball's speed).</summary>
     private const double TakeoutLaunch = 0.6, TakeoutSwipeSpeed = 1.6, TakeoutArrive = 0.25;
     /// <summary>On the far side the hand stops once: for how long (seconds), how far below the catch (metres).</summary>
-    private const double TakeoutStopFor = 0.0, TakeoutStopDown = -0.04;
+    private const double TakeoutStopFor = 0.0, TakeoutStopDown = -0.08;
     /// <summary>Where and when each round came low and in, before the next 4: the hand, seconds.</summary>
     private readonly List<(int Hand, double T)> _takeoutRests = [];
     /// <summary>The swipes' catches of the 4s: the hand, seconds.</summary>
@@ -977,8 +981,10 @@ public sealed class Juggling
             double stopFrom = caught + TakeoutCarry, stopTo = stopFrom + TakeoutStopFor;
             // Drawn in to the body as it is carried across (the user: just after the swipe's catch, the hand nearer the body).
             var stop = new Vec3(-side * TakeoutCarryTo, TakeoutTakeHigh + TakeoutTakeRaise - TakeoutStopDown, into.Z - TakeoutStopIn);
+            bool stops = stopTo > stopFrom + 1e-6;
+            int stopKey = _keys[to].Count;
             _keys[to].Add((stopFrom, stop, Still, catchStyle));
-            if (stopTo > stopFrom + 1e-6)
+            if (stops)
                 _keys[to].Add((stopTo, stop, Still, catchStyle));
             // Then a big round (the user): up the far side, the ball just before the forehead, out and down past its own side,
             // level with the other hand's 3 just as that is thrown up from outside (the two at one height at one time), on down
@@ -1037,6 +1043,13 @@ public sealed class Juggling
             knots.Add((end, length));
             var slopes = new double[knots.Count];
             slopes[^1] = TakeoutRoundEndSpeed;
+            // Not from rest: the hand turns from the swipe straight up into the round (no faster than keeps the way going on).
+            if (!stops)
+            {
+                double start = Math.Min(TakeoutRoundStartSpeed, 2 * (knots[1].S - knots[0].S) / (knots[1].T - knots[0].T));
+                slopes[0] = start;
+                _keys[to][stopKey] = _keys[to][stopKey] with { Velocity = (way[1] - way[0]).Normalized() * start };
+            }
             for (int k = 1; k + 1 < knots.Count; k++)
             {
                 double d0 = (knots[k].S - knots[k - 1].S) / (knots[k].T - knots[k - 1].T), d1 = (knots[k + 1].S - knots[k].S) / (knots[k + 1].T - knots[k].T);
