@@ -690,7 +690,19 @@ public sealed class Juggling
             AddSmooth(hand, (thrown, from, Still, throwStyle));
             _launch[(hand, thrown)] = leaves.Y * TrickLaunch;
             _launchAcross[(hand, thrown)] = leaves.X * TrickLaunch;
-            AddSmooth(hand, (thrown + follow, from + leaves * (follow * TrickFollow), Still, throwStyle));
+            if (throwStyle == Style.Back)
+            {
+                // After a throw from behind the back the arm straightens and hangs, the hand pointing down below the body
+                // a little behind its own side, then turns forward, the elbow bending, past the hip low to the front (the
+                // user: it went on up behind the back and came round to the front at the shoulders with the elbow folded
+                // to 35 degrees, the hand at an angle no one has). A short flick on up with the ball first.
+                double gap = (2 - Dwell) * beat;
+                AddSmooth(hand, (thrown + 0.5 * follow, from + leaves * (0.5 * follow * TrickFollow), Still, throwStyle));
+                AddSmooth(hand, (thrown + BackHangAt * gap, new Vec3(Side(hand) * BackHangOut, BackHangHigh, BackHangAhead), Still, Style.Own));
+                AddSmooth(hand, (thrown + BackForwardAt * gap, new Vec3(Side(hand) * BackForwardOut, BackForwardHigh, BackForwardAhead), Still, Style.Own));
+            }
+            else
+                AddSmooth(hand, (thrown + follow, from + leaves * (follow * TrickFollow), Still, throwStyle));
         }
         else if (SoftBalls && throwStyle == Style.Own)
         {
@@ -937,6 +949,11 @@ public sealed class Juggling
         return turn;
     }
 
+    /// <summary>After a throw from behind the back: when the arm hangs straight, as a part of the time to the hand's next catch,
+    /// and where (out, up, ahead in the juggling's frame: below the shoulder, a little behind it); then when and where it has
+    /// come forward past the hip, low, the elbow bending (DESIGN.md 118.44).</summary>
+    private const double BackHangAt = 0.45, BackHangOut = 0.24, BackHangHigh = -0.32, BackHangAhead = -0.36;
+    private const double BackForwardAt = 0.78, BackForwardOut = 0.32, BackForwardHigh = -0.02, BackForwardAhead = -0.06;
     /// <summary>On its way behind the back, where the hand goes by its own hip (in the juggling's frame: out, up, ahead).</summary>
     private const double BackBySide = 0.30, BackBySideHigh = -0.10, BackBySideAhead = -0.28;
     /// <summary>The throws behind the back: the hand and when (seconds).</summary>
