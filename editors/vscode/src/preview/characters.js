@@ -21,6 +21,8 @@ const EYES_SOFTEN = 0.3;
 const EYES_ABOVE = 0.3;
 /** How far a club's handle lies from the middle of the hand toward the thumb, metres (on the figure's 0.31 m forearm). */
 const CLUB_TOWARD_THUMB = 0.025;
+/** Takeouts' gripped ball: how much further toward the fingertips than before, metres (the user: 2 cm). */
+const GRIP_FURTHER = 0.02;
 
 export function createCharacters(scene, changed) {
   const loader = new GLTFLoader();
@@ -246,8 +248,12 @@ export function createCharacters(scene, changed) {
       // A claw's palm is down: the ball under it (DESIGN.md 118.12).
       const up = style === 1 ? -0.05 : 0.04;
       const onPalm = w.clone().addScaledVector(along, palmAlong(prop) * k).add(new THREE.Vector3(0, up * k, 0));
-      // Turned out (takeouts' swipe and round): the ball against the palm, as much as the hand is turned so.
-      const inPalm = w.clone().addScaledVector(fingers, 0.07 * k).addScaledVector(palm, 0.04 * k);
+      // Turned out (takeouts' swipe and round): the ball against the palm, as much as the hand is turned so; and 2 cm further
+      // toward the fingertips on the line from the wrist to the middle finger (the user, DESIGN.md 118.49).
+      const middle = vrm.humanoid.getNormalizedBoneNode(side + 'MiddleProximal');
+      const toMiddle = middle ? middle.getWorldPosition(new THREE.Vector3()).sub(w) : null;
+      const gripWay = toMiddle && toMiddle.lengthSq() > 1e-8 ? toMiddle.normalize() : fingers;
+      const inPalm = w.clone().addScaledVector(fingers, 0.07 * k).addScaledVector(palm, 0.04 * k).addScaledVector(gripWay, GRIP_FURTHER);
       palms.push(onPalm.lerp(inPenguin, share).lerp(inPalm, outs ? outs[palms.length] : (style === 5 ? 1 : 0)));
       forearms.push(along);
     }
