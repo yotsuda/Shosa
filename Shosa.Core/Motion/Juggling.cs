@@ -777,12 +777,12 @@ public sealed class Juggling
     /// <summary>Where the swipe stops on the far side: this much nearer the body than the catch (the user).</summary>
     private const double TakeoutStopIn = 0.12;
     /// <summary>The swipe carrying it on: how fast at the catch (m/s), how long to the far side (seconds), how far past the middle there.</summary>
-    private const double TakeoutSwipeCarry = 1.8, TakeoutCarry = 0.12, TakeoutCarryTo = 0.20;
+    private const double TakeoutSwipeCarry = 1.8, TakeoutCarry = 0.14, TakeoutCarryTo = 0.30;
     /// <summary>How fast the hand goes up with the 3 as it throws it (a part of the ball's speed), and in across on its swipe (m/s);
     /// at the 4's catch, how fast it goes down with it (a part of the ball's speed).</summary>
     private const double TakeoutLaunch = 0.6, TakeoutSwipeSpeed = 1.6, TakeoutArrive = 0.25;
     /// <summary>On the far side the hand stops once: for how long (seconds), how far below the catch (metres).</summary>
-    private const double TakeoutStopFor = 0.0, TakeoutStopDown = -0.28;
+    private const double TakeoutStopFor = 0.0, TakeoutStopDown = -0.20;
     /// <summary>Where and when each round came low and in, before the next 4: the hand, seconds.</summary>
     private readonly List<(int Hand, double T)> _takeoutRests = [];
     /// <summary>The swipes' catches of the 4s: the hand, seconds.</summary>
@@ -1999,7 +1999,7 @@ public sealed class Juggling
     /// <summary>Takeouts' rounds' arc out past the face: the hand, the stop it rises from, the top (before the face) and where it is out (seconds).</summary>
     private readonly List<(int Hand, double Stop, double Top, double Out)> _arcOuts = [];
     /// <summary>How long the arc out from before the face to out on the own side takes, and how long it takes to give way after (seconds).</summary>
-    private const double ArcOutFor = 0.25, ArcOutRelease = 0.36, ArcOpenFor = 0.10, ArcRampFor = 0.14;
+    private const double ArcOutFor = 0.27, ArcOutRelease = 0.36, ArcOpenFor = 0.10, ArcRampFor = 0.16;
     /// <summary>
     /// Takeouts' arc out past the face (the user, 2026-11-24): how much the arm is in its own shape, 0..1 (coming on as the
     /// hand rises from the stop to before the face, going after it is out), and how far round, 0 before the face to 1 out on
