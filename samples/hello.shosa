@@ -1,11 +1,12 @@
 // Hello, Shosa: two dancers introduce themselves, to a Lily# song.
 // A word stands on the beat the body is THERE; the way to it is the compiler's.
-music "Zunda-to-Metan-no-Jikoshokai.lys"
+// The characters are not in the repository: models/README.md says where they come from.
+music "hello.lys"
 
 role zunda
 role metan
-dancer zundamon humanoid sings zunda on zunda at -0.8 0
-dancer metan    humanoid sings metan on metan at  0.8 0
+dancer zundamon humanoid "models/zundamon.vrm" sings zunda on zunda at -0.8 0
+dancer zunko    humanoid "models/zunko.vrm"    sings metan on metan at  0.8 0
 
 // ---- one bar each, written for zunda; metan dances them @mirror ----
 
@@ -124,6 +125,5 @@ section Coda {
   }
 }
 
-// The song has more (two verses, a bridge): this is a cut of thirty seconds.
-form { Intro Chorus Coda }
-score { dancer zundamon  dancer metan }
+// The order of the sections is the song's (hello.lys: Intro, Chorus, Coda).
+score { dancer zundamon  dancer zunko }

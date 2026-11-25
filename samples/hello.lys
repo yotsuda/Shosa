@@ -1,3 +1,4 @@
+// The song samples/hello.shosa is danced to: a cut (see `form`) of "Zunda-to-Metan-no-Jikoshokai.lys".
 // Composed in Copilot's chat (Claude Sonnet 5.5), 2026-11-10
 // Asked: Write a pop song in which Zundamon and Metan cheerfully introduce themselves, trading lines.
 // The AI: A bright pop song in B-flat major at 128. Zundamon and Metan introduce themselves in turn, two bars each, and sing the chorus together ("jikoshoukai hajimaru yo" - the introductions begin). The last chorus repeats its last line to lift the ending.
@@ -334,7 +335,9 @@ phrase dHalf {
   { bd4 r4 sn4 r4 | }
 }
 
-form { Intro Verse1 Chorus Verse2 Chorus Bridge Final Coda }
+// The whole song: form { Intro Verse1 Chorus Verse2 Chorus Bridge Final Coda }
+// (in Lily#'s gallery, https://yotsuda.github.io/LilySharp/). Here, a cut of thirty seconds for hello.shosa.
+form { Intro Chorus Coda }
 
 score {
   staff zunda

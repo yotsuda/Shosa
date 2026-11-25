@@ -9,3 +9,4 @@ artifacts/
 *.vsix
 __pycache__/
 trials/*/*/scratch/*.json
+samples/models/*.vrm
