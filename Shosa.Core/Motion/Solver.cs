@@ -253,9 +253,11 @@ public static class Solver
                 clipFigure.Mic = new ClipMic(micHand, beatOfFrame.Select(b => (float)Math.Round(solver.MicUp(b), 3)).ToList());
             // The hands at places of the dancer's own body (DESIGN.md 122), for the preview to put a character's there.
             clipFigure.Touch = solver.Touches(beatOfFrame);
+            // A word of a move is told of at that word, once, with the beats it comes at (DESIGN.md 123.5).
+            var moves = new InMoves(ir.Dancers.Count > 1 ? dancer.Id : null);
             foreach (var (seg, channel) in solver.MicHidden())
-                diagnostics.Add(new Diagnostic("SH2018", DiagnosticSeverity.Warning, new TextSpan(seg.Src, seg.Len),
-                    $"The mic is at the mouth here ({dancer.Id} is singing), and the hand that holds it wins: this word of the {channel} row is not seen. Move it to where {dancer.Id} does not sing, or give it to the other arm{(dancer.Mic == "both" ? " (with mic both, both hands are on the mic while singing; mic right frees the left)" : "")}."));
+                moves.Say(diagnostics, "SH2018", DiagnosticSeverity.Warning, seg,
+                    $"The mic is at the mouth here ({dancer.Id} is singing), and the hand that holds it wins: this word of the {channel} row is not seen. Move it to where {dancer.Id} does not sing, or give it to the other arm{(dancer.Mic == "both" ? " (with mic both, both hands are on the mic while singing; mic right frees the left)" : "")}.");
             if (solver.Juggling is { } juggle)
                 JuggleProblems(dancer, juggle, clip, diagnostics, solver);
             var flagged = new HashSet<(Seg, string)>();
@@ -275,8 +277,8 @@ public static class Solver
                         continue;
                     double shortfall = solver.ReachShortfall(seg, side);
                     if (shortfall > 0.03 && unreached.Add(seg.Src))
-                        diagnostics.Add(new Diagnostic("SH2006", DiagnosticSeverity.Warning, new TextSpan(seg.Src, seg.Len), FormattableString.Invariant(
-                            $"The hand does not get there: {seg.Target}'s {seg.Part} is about {shortfall:0.00} m farther than the arm reaches. Start the two closer together (`at`), step toward it first, or lean (`torso`).")));
+                        moves.Say(diagnostics, "SH2006", DiagnosticSeverity.Warning, seg, FormattableString.Invariant(
+                            $"The hand does not get there: {seg.Target}'s {seg.Part} is about {shortfall:0.00} m farther than the arm reaches. Start the two closer together (`at`), step toward it first, or lean (`torso`)."));
                 }
             }
 
@@ -285,18 +287,18 @@ public static class Solver
             // What the feet were asked to do that the way they stood does not allow (a hop from both feet).
             foreach (var (seg, code, message) in solver.SupportProblems)
                 if (flagged.Add((seg, code)))
-                    diagnostics.Add(new Diagnostic(code, code == "SH2016" ? DiagnosticSeverity.Warning : DiagnosticSeverity.Error, new TextSpan(seg.Src, seg.Len), message));
+                    moves.Say(diagnostics, code, code == "SH2016" ? DiagnosticSeverity.Warning : DiagnosticSeverity.Error, seg, message);
             // A foot the steps put down and its leg's row holds up: the leg row wins, and the foot stays in the air.
             foreach (var (seg, leg, at) in solver.FeetHeldUp())
                 if (flagged.Add((seg, "SH2013")))
-                    diagnostics.Add(new Diagnostic("SH2013", DiagnosticSeverity.Warning, new TextSpan(seg.Src, seg.Len), FormattableString.Invariant(
-                        $"This puts the {(leg == Channels.LeftLeg ? "left" : "right")} foot on the floor at beat {at:0.##}, but the {leg} row still holds that leg up, and a leg's own row wins: the foot stays in the air. Put the leg down in its row by then (`down`, beside the other foot), or let it go to the steps (`skip`, landing where they put it){(seg.Kind == SegKinds.Jump ? ": the leg a jump lands on, shaped in the air, needs it" : "")}.")));
+                    moves.Say(diagnostics, "SH2013", DiagnosticSeverity.Warning, seg, FormattableString.Invariant(
+                        $"This puts the {(leg == Channels.LeftLeg ? "left" : "right")} foot on the floor at beat {at:0.##}, but the {leg} row still holds that leg up, and a leg's own row wins: the foot stays in the air. Put the leg down in its row by then (`down`, beside the other foot), or let it go to the steps (`skip`, landing where they put it){(seg.Kind == SegKinds.Jump ? ": the leg a jump lands on, shaped in the air, needs it" : "")}."));
 
             // A foot moved while the body sits: the seat is where the feet are, so it would slide with them.
             // (Said once for a dancer, at the first such word: the others are the same mistake.)
             if (solver.MovedSeated().OrderBy(s => s.T1).FirstOrDefault() is { } seated && flagged.Add((seated, "SH2024")))
-                diagnostics.Add(new Diagnostic("SH2024", DiagnosticSeverity.Warning, new TextSpan(seated.Src, seated.Len),
-                        "The feet move here while the body is on a seat, or on its way down to it or up from it (`sit` in the height row), and the seat is measured from the feet: it would slide with them. A height moves through ALL of the word before it, so hold it until the feet stand, and stand up before they go: `steps { leftFoot.fwd rightFoot.fwd stand:1 then:9 leftFoot.fwd }` with `height { mid:2 then:2 sit(0.45m):4 then:2 mid:2 }` walks, sits down over beats 2 to 4, sits, and is up over beats 8 to 10 for the step at 12."));
+                moves.Say(diagnostics, "SH2024", DiagnosticSeverity.Warning, seated,
+                        "The feet move here while the body is on a seat, or on its way down to it or up from it (`sit` in the height row), and the seat is measured from the feet: it would slide with them. A height moves through ALL of the word before it, so hold it until the feet stand, and stand up before they go: `steps { leftFoot.fwd rightFoot.fwd stand:1 then:9 leftFoot.fwd }` with `height { mid:2 then:2 sit(0.45m):4 then:2 mid:2 }` walks, sits down over beats 2 to 4, sits, and is up over beats 8 to 10 for the step at 12.");
             // `inPlace`: the even part of the travel is taken out and handed to the engine as a velocity.
             clipFigure.Facing = [solver.FacingAt(0), solver.FacingAt(ir.TotalBeats)];
             var travel = ir.Inplace && ir.TotalBeats > 0 ? solver.Travel : default;
@@ -315,7 +317,7 @@ public static class Solver
                     message = message.Replace("Give it more time, or lower the tempo.",
                         "A @sharp word goes in 0.15 s at any tempo: write a target nearer to it before it, or take the @sharp off.");
                 if (seg is not null && (evenIfFree || !seg.Free) && flagged.Add((seg, code)))
-                    diagnostics.Add(new Diagnostic(code, severity, new TextSpan(seg.Src, seg.Len), message));
+                    moves.Say(diagnostics, code, severity, seg, message);
             }
 
             for (int f = 0; f < frames; f++)
@@ -388,6 +390,7 @@ public static class Solver
             // The balls (DESIGN.md 118): drawn from the hands as they are, at the throw and at the catch.
             if (solver.Juggling is { } juggling)
                 clipFigure.Juggle = JuggleFrames(juggling, clipFigure.Frames, fps);
+            moves.Finish(diagnostics);
             clip.Figures.Add(clipFigure);
         }
 

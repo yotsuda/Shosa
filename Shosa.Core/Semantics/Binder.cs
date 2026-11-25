@@ -124,7 +124,8 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         TextSpan? Src = null,
         double Since = double.NegativeInfinity,    // where the word before the next one in the row begins: the next sets out no earlier
         bool After = false,                        // done again by a `%`, the first word has another word before it than where it was written: Since is that one's
-        (int Group, int Row)[]? Rows = null);      // the `&` groups the walk is inside, and the row of each
+        (int Group, int Row)[]? Rows = null,       // the `&` groups the walk is inside, and the row of each
+        string? Within = null);                    // the pose or move being laid out (`move run`): its words say what is wrong at themselves (DESIGN.md 123.5)
 
     private readonly List<Diagnostic> _diagnostics = [];
     private readonly HashSet<(string, int, int)> _reported = [];
@@ -2136,6 +2137,8 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                 continue;
             seg.Src = src.Start;
             seg.Len = src.Length;
+            if (ctx.Within is not null)
+                (seg.Word, seg.WordLen, seg.Within) = (ev.Span.Start, ev.Span.Length, ctx.Within);
             seg.Free = free;
             seg.Ease = ease ?? "smooth";
 
@@ -2337,6 +2340,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
             {
                 Channels = shared, Priority = [.. ctx.Priority, Channels.All.Length - channels.Length], Depth = ctx.Depth + 1,
                 CheckBars = false, ForcedLength = null, EaseOverride = null, Stance = false,
+                Within = $"{(isPose ? "pose" : "move")} {name.Text}",
             };
             double time = t0, bar = t0;
             if (!isPose)
@@ -2444,7 +2448,9 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
     /// </summary>
     private void CheckThrough(DancerIr ir, MotionIr clip)
     {
-        var said = new HashSet<int>();
+        var said = new HashSet<(int, int?)>();
+        var moves = new InMoves();
+        var found = new List<Diagnostic>();
         foreach (var (channel, segs) in ir.Tracks)
         {
             if (channel == Channels.Support)
@@ -2453,11 +2459,20 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
             {
                 bool goesOn = segs.Any(next => next != seg && next.Kind is not (SegKinds.Hold or SegKinds.Stay or SegKinds.Release)
                     && (Math.Abs(next.T0 - seg.T1) < Epsilon || clip.Loop && Math.Abs(next.T0 + clip.TotalBeats - seg.T1) < Epsilon) && next.T1 > next.T0 + Epsilon);
-                if (!goesOn && seg.Src >= 0 && said.Add(seg.Src))
-                    Report("SH2017", DiagnosticSeverity.Warning, new TextSpan(seg.Src, seg.Len),
+                if (!goesOn && seg.Src >= 0 && said.Add((seg.Src, seg.Word)))
+                    moves.Say(found, "SH2017", DiagnosticSeverity.Warning, seg,
                         "'@through' passes a word on to the next one without stopping, and nothing goes on from this one at once (it is the last word, or `then` or `skip` follows): the part stops here all the same. Leave the mark off, or let the next word start here.");
             }
         }
+        ReportAll(moves, found);
+    }
+
+    /// <summary>What a check found, with the beats of a word of a move put on it, each said once.</summary>
+    private void ReportAll(InMoves moves, List<Diagnostic> found)
+    {
+        moves.Finish(found);
+        foreach (var d in found)
+            Report(d.Code, d.Severity, d.Span, d.Message);
     }
 
     private static List<Seg> Resolve(string channel, List<Raw> raws, MotionIr clip, double origin)
@@ -3460,6 +3475,8 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
     /// </summary>
     private void CheckOppositeTargets(DancerIr dancer, bool loop)
     {
+        var moves = new InMoves();
+        var found = new List<Diagnostic>();
         foreach (var (channel, segs) in dancer.Tracks)
         {
             if (channel is Channels.Support or Channels.Height)
@@ -3485,12 +3502,13 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                     // The pose a score starts in (`:0`) is not gone to: there is no way round to write.
                     if (seg.T1 - seg.T0 > Epsilon && previous is not null && previous[0] * dir[0] + previous[1] * dir[1] + previous[2] * dir[2] < -0.98)
                     {
-                        Report("SH2001", DiagnosticSeverity.Warning, new TextSpan(seg.Src, seg.Len),
+                        moves.Say(found, "SH2001", DiagnosticSeverity.Warning, seg,
                             $"This target is the exact opposite of where the part is ({channel}), so the way round is not written. Add a target in between: one that is neither end (fwd or side between down and up; up or down between fwd and back).");
                     }
                     previous = dir;
                 }
             }
         }
+        ReportAll(moves, found);
     }
 }

@@ -404,5 +404,17 @@ public sealed class Seg
     public int Src { get; set; }
     public int Len { get; set; }
 
+    /// <summary>
+    /// A word of a pose or a move: where that word is written (Src is where the pose or the move is used), and
+    /// which it is in (`move run`). What is wrong with it is said there, once, with the beats it comes at (DESIGN.md 123.5).
+    /// Null for a word written where it is danced.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public int? Word { get; set; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public int? WordLen { get; set; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public string? Within { get; set; }
+
     public Seg Clone() => (Seg)MemberwiseClone();
 }

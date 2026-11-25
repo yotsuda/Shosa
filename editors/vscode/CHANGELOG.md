@@ -8,6 +8,7 @@ The first release, for Windows (x64).
 
 - The Shosa language for `.shosa` files: diagnostics, completion and hover for every word, from the same table the compiler checks against.
 - **File > New File... > Shosa File** starts from a file that already compiles.
+- A problem with a word of a `move` or a `pose` is shown once, at that word inside it, with the beats where it happens; it used to be shown at every place the move is used.
 - **Sitting**: `height { sit(0.45m) }` sits down on a seat that high (a chair, a sofa, a stool), the feet on the floor, and any other height stands up again. Seated, the arms, the torso and the head say what they say standing.
 - **Juggling**: `dancer … juggles balls` (or `clubs`, `rings`) and a `juggle` row in siteswap as jugglers write it: `juggle { every 1/2  3:4 | 531531 3 3 | }`. A pattern that cannot be juggled, or cannot follow the one before it, is said where it goes wrong. Tricks go on a pattern with `@`: `3:4@mills`, `@windmill`, `@tennis`, `@halfShower`, `423:4@takeouts`, catches behind the back and throws under the leg. The legs, the torso and the head dance their own rows meanwhile.
 - Parts of the body you do not write are not frozen: breathing, the weight shifting from foot to foot, the trunk and head following the arms, and the arms swinging with a walk.

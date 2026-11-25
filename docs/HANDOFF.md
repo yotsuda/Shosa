@@ -11,10 +11,11 @@
 
 - **`shosa song FILE [--score NAME]`** (`SongReport.cs`) と AI の道具 `shosa_song` (`#shosaSong`、サーバー `shosa/songReport`): セクション (小節・拍・秒、繰り返しは `Chorus, verse 2`)、歌うパート、歌詞を小節ごとに `bar 2 (beat 20)  zunda+metan: 1い 1.5は … 3.5よ~1.5`。
 - 文法書「Dancing to a song」に **「Choreographing the words」** (GrammarDoc.cs)。`check` が `X sings N syllables, from beat A to B` を言う。
-- **Add a Dance…** (`.lys` の右クリック、`addDance.ts`・`danceText.ts`): score・歌うパートごとのキャラクター・どんな踊りかを聞き、`SONG.shosa` の骨組み (music・dancer … sings・score) を書いてプレビューを開き、Copilot のチャットに振り付けを頼む。**実際の VS Code で通して使っていない** (ユーザーの手で: 拡張を入れ直し、`.lys` を右クリック)。
-- 書き手の試験 (123.4): サブエージェントが文法書と `shosa song` だけで Spring Breeze Bicycle に振りを付け、言葉に置いた 8 か所はみな狙った拍。指摘 5 つを直した。残りの指摘は 123.4 の「まだ」。踊りは `out\choreo\bicycle.shosa` (曲 `out\choreo\bicycle.lys` は Lily# の site の写し): ユーザーの目で見る候補。
-- 試験 C# 564 件、拡張 32 件。**`tools\test-extension-host.ps1` は変更前から動かない** (31 秒で報告なし、VS Code 1.147.0): 調べていない。
-- この日、ほかのリポジトリにも手を入れた (未コミット): Lily# の New File を 1 項目に (`Lily# Score (.lys)…` → Blank / Compose with AI… / Recording / Scan / MusicXML)、Compose with Copilot… → Compose with AI…、Sound Font と Cantoria に `extensionDependencies: yotsuda.lilysharp`。
+- **Add a Dance…** (`.lys` の右クリック、`addDance.ts`・`danceText.ts`): score・歌うパートごとのキャラクター・どんな踊りかを聞き、`SONG.shosa` の骨組み (music・dancer … sings・score) を書いてプレビューを開き、Copilot のチャットに振り付けを頼む。曲のフォルダーがワークスペースの外なら先に足す・開く (チャットが編集ごとに止まるのを避ける、`92190b3`)。**ユーザーが実際の VS Code で通した**: Orecchiante の `We're An American Band.lys` に zunko で、チャットが 13 セクション全部を書き `check` は no problems。
+- 書き手の試験 (123.4): サブエージェントが文法書と `shosa song` だけで Spring Breeze Bicycle に振りを付け、言葉に置いた 8 か所はみな狙った拍。指摘 5 つを直し、続けて 6 つ目 (move の中の語の誤りが使った所ごとに出る) も直した (123.5: その語に 1 回、`at beats 2, 6 and 10`。`InMoves.cs`)。残りの指摘は 123.4 の「まだ」。踊りは `out\choreo\bicycle.shosa` (曲 `out\choreo\bicycle.lys` は Lily# の site の写し): ユーザーの目で見る候補。
+- 試験 C# 567 件、拡張 32 件。**`tools\test-extension-host.ps1` は変更前から動かない** (31 秒で報告なし、VS Code 1.147.0): 調べていない。
+- この日、ほかのリポジトリにも手を入れた (コミット済み、push はユーザー): Lily# の New File を 1 項目に (`Lily# Score (.lys)…` → Blank / Compose with AI… / Recording / Scan / MusicXML)、Compose with Copilot… → Compose with AI… (`fbaf1ff63`)、Sound Font (`f5bebb00f`、出すには版を 1.0.1 に) と Cantoria (`85020cb`) に `extensionDependencies: yotsuda.lilysharp`。
+- **次 (ユーザーが決めた、2026-11-26)**: 第 2 段 Write a Song over These Chords… は **同じ `.lys` に歌のパートを足す** (ユーザー)。伴奏はまず元の録音 (私の既定。コードから作る伴奏は第 4 段)。Lily# 側の仕事。
 
 ## 最初のリリース 0.3.0 の準備 (2026-11-25 の 7 つ目のセッション)
 

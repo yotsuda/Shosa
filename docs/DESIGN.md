@@ -7654,7 +7654,7 @@ Bamen (撮影の言語) の M3 は部屋の中の会話の場面で、椅子や�
 - **それから**: 踊りを開き、プレビューを開き、Copilot のチャット (agent モード) に頼む: 踊りのファイル (開いているので直す、書いてある行は残す)、文法 (`shosa_grammar`)、曲 (`shosa_song`、score つき)、「Choreographing the words」のとおり、`shosa_check` で問題なしまで、`shosa_sheet` で見る、どんな踊りか。Lily# の Compose with AI と同じ渡し方 (`workbench.action.chat.open` の `query` と `mode: 'agent'`)。
 - 試験: `test\danceText.test.mjs` 4 件 (2 人の骨組みの全文、歌のない曲・score、名前の直し、頼む文)。サーバーの `shosa/songReport` は `scores` と `parts` も返す (LanguageServerTests)。
 - **曲のフォルダーがワークスペースの外なら、先に開く** (ユーザーの報告 2026-11-26: Copilot のチャットが踊りの最初の編集で「Allow Edits to SONG.shosa in this Session / Allow Edits in source …」と聞いて止まった。ワークスペースの外のファイルの編集は確認が要る)。曲を決めた直後に、外なら尋ねる: フォルダーが開いていれば **ワークスペースに足す** (`updateWorkspaceFolders` を末尾に: 最初のフォルダーが変わらないので拡張は再起動しない)、何も開いていなければ **開く** (`vscode.openFolder`、ウィンドウが読み込み直される。曲を `globalState` に置き、読み込み直した後 2 分以内でその曲がワークスペースの中なら Add a Dance… を続ける)、または「Continue Without」。VS Code の設定 `chat.tools.edits.autoApprove` (glob → true) でも止められるが、説明は「ワークスペースの中のパス」とだけ言い、外のファイルに効くかは書いていない (公式の説明で確かめた範囲)。
-- **まだ**: 実際の VS Code で通して使っていない (コマンド → 選ぶ画面 → チャット)。
+- **ユーザーが実際の VS Code で通した (2026-11-26)**: Orecchiante で作った `We're An American Band.lys` (録音の曲、105 小節、歌なし) に、キャラクター zunko.vrm で。Copilot のチャットが `move` 7 つと 13 セクション全部を書き、`check` は no problems (420 拍、197 秒)。
 ### 123.4 書き手の試験 (2026-11-26): 文法書と `shosa song` だけで Spring Breeze Bicycle に振りを付ける
 
 - 同じモデルのサブエージェント 1 体に、文法書だけで言語を学び (ほかの `.shosa` と `.lys` は開かない)、`shosa song … --score japanese`・`check`・`sheet` で、歌う 1 人の踊りを曲全体に付けさせた。結果 `out\choreo\bicycle.shosa`: `check` は no problems (52 小節、104 秒)。サビの「はしれはしれ」に `move run` (その場で走り、伸ばす「れ」で拳を上げる) をサビ 3 回と Bridge・Outro で使い回し、Verse は歌詞の身ぶり (日の出、ペダルの膝、手をかざす)、Verse 2 は `verse 2 { }` で首の傾きだけ違う。**言葉に置いた 8 か所はどれも sheet で狙った拍にあった** (例: Chorus 1 小節目の `4れ~1` に拳 = 拍 51)。sheet は `out\choreo\sheet-*.png`。
@@ -7664,5 +7664,12 @@ Bamen (撮影の言語) の M3 は部屋の中の会話の場面で、椅子や�
   3. 文法書の「繰り返すセクションは `move` を使い回す」が、同じ名前のセクションは 1 つの文で踊るという規則と食い違って読めた → 「もう一度演奏されるセクション (`Chorus, verse 2`) は同じ文、違う所は `verse 2 { }`」と「使い回すのは素材 (`move`・`pose`)。move は覆う段ごとに使える (`steps { run:4 }` と `arms { run:4 }`)」に分けた。
   4. 伸ばす音で形を保つには `then` が要る (腕は着いたらすぐ次へ向かう) のに、曲の手順の中で言っていなかった → 「伸ばす音の形の後に `then`: `up:3/2 then:1 side`」と、セクションの終わりの形を次のセクションまで保つなら次の行を `then` で始める、を足した。
   5. `sings vox` が効いているか何も言わない → **`check` に 1 行**: `zundamon sings 42 syllables, from beat 16.5 to 46` (試験 `SingingTests.Check_says_what_a_singing_dancer_sings`)。
-- **まだ (書き手の指摘、直していない)**: move の中の語の誤り (SH2001・SH2003) が move を使った所に、使った回数だけ出て、move の中のどの語かを言わない。`sheet --from/--to` の床の図が範囲でなく曲全体の道に見える (セクションごとの移動を確かめられない)。踊りが全体で 0.75 m 前へずれたことを、セクションごとには言わない。左右の片腕の段と `arms` を混ぜたときの動きが読みにくい (書き手は片腕の段だけで書いた)。
+- **まだ (書き手の指摘、直していない)**: (move の中の語の誤りは 123.5 で直した。) `sheet --from/--to` の床の図が範囲でなく曲全体の道に見える (セクションごとの移動を確かめられない)。踊りが全体で 0.75 m 前へずれたことを、セクションごとには言わない。左右の片腕の段と `arms` を混ぜたときの動きが読みにくい (書き手は片腕の段だけで書いた)。
 - `tools\test-extension-host.ps1` (実際の VS Code で道具を試す) は、**この変更の前の試験ファイルでも** 31 秒で終わって報告を書かない (VS Code 1.147.0)。今回の `shosa_song` の試験は足したが、走らせて確かめられていない。
+
+### 123.5 move の中の語の誤りは、その語に 1 回、拍の一覧つきで (2026-11-26)
+
+- **前**: move (と pose) の語は、使った所の場所 (`Seg.Src` = セクションに書いた `run:4`) しか持たなかったので、中の語の誤りは使った所ごとに、使った回数だけ出て、どの語かを言わなかった (書き手の指摘 123.4)。曲に振りを付けると move をサビごとに使い回すので、1 つの誤りが 5 つ 6 つに見える。
+- **今**: 展開した語の Seg が `Word`・`WordLen` (move の中のその語の場所) と `Within` (`move run`) を持つ (`Binder` の `Ctx.Within`、入れ子なら一番内側)。誤りは **その語に 1 回**、文の終わりに `This word is in `move flip`; it is so where it comes, at beats 2, 6 and 10.`。2 人以上の踊りでは `where alice does it`。まとめるのは `InMoves` (`Shosa.Core\Semantics\InMoves.cs`): Solver は踊り手ごと (SH2002・SH2003・SH2004・SH2006・SH2010・SH2013・SH2015・SH2016・SH2018・SH2024 など、`Flag` と `SupportProblems` を通るもの全部)、Binder は SH2001・SH2017 を踊り手ごとに。ジャグリングの語 (SH2020 など) は今までどおり使った所に。
+- 解いた結果の使い回し (`SolvedClip`、120.8): `Word`・`WordLen` も場所なので鍵から外し、言ったことを新しい場所へ移すときに `Src` と同じく対応させる。`Within` (名前) は鍵に入る。
+- 試験 `MoveWordsTests` 3 件 (3 回使った move の語に 1 回・拍 2, 6, 10、セクションに書いた語は今までどおり、move の上に 1 行足しても解き直さず場所が移る)。567 件通る。前は同じ踊りで SH2001 が使った所ごとに 3 つ出ていた (`shosa check` で確かめた)。

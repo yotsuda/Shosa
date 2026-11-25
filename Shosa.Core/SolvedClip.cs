@@ -47,7 +47,7 @@ internal sealed class SolvedClip(MotionIr ir, MotionClip clip, List<Diagnostic> 
             return;
         for (int i = info.Properties.Count - 1; i >= 0; i--)
         {
-            if (info.Properties[i].Name is nameof(Seg.Src) or nameof(Seg.Len))
+            if (info.Properties[i].Name is nameof(Seg.Src) or nameof(Seg.Len) or nameof(Seg.Word) or nameof(Seg.WordLen))
                 info.Properties.RemoveAt(i);
         }
     }
@@ -115,6 +115,10 @@ internal sealed class SolvedClip(MotionIr ir, MotionClip clip, List<Diagnostic> 
                 for (int i = 0; i < segs.Count; i++)
                 {
                     if (!Went(segs[i].Src, segs[i].Len, nextSegs[i].Src, nextSegs[i].Len))
+                        return null;
+                    // A word of a move, where what is wrong with it is said (DESIGN.md 123.5).
+                    if (segs[i].Word is { } word && (nextSegs[i].Word is not { } nextWord
+                        || !Went(word, segs[i].WordLen ?? 0, nextWord, nextSegs[i].WordLen ?? 0)))
                         return null;
                 }
             }
