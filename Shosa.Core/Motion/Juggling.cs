@@ -501,7 +501,14 @@ public sealed class Juggling
                     // Takeouts' 4: when its hand throws again after holding it (two beats on), where its round ends.
                     if (throwTricks?.Contains(TakeoutHeld) == true)
                     {
-                        _takeoutNext = land + 2 < slots.Count && slots[land + 2].Seg is not null ? SlotSec(land + 2) : double.NegativeInfinity;
+                        // (Nothing thrown then, the run over or a rest: the round still takes as long as the others, to when that
+                        // throw would have been. Left to a round of two beats from the stop, half the time, the last hand whirled
+                        // its ball round at 5.6 m/s as the takeouts ended; the user, 2026-11-25.)
+                        int nextSlot = Math.Min(land + 2, slots.Count - 1);
+                        _takeoutNext = SlotSec(nextSlot) + (land + 2 - nextSlot) * BeatSec(nextSlot);
+                        // (And as late as a takeouts' own 4 would leave, when nothing is thrown there at all.)
+                        if (land + 2 >= slots.Count || slots[land + 2].Seg is null)
+                            _takeoutNext += TakeoutHighLater * BeatSec(nextSlot);
                         _takeoutNextOurs = land + 2 < slots.Count && slots[land + 2].Seg?.Tricks?.Contains("takeouts") == true;
                         // (Its next 4 leaves late, TakeoutHighLater: the round goes on till then.)
                         if (_takeoutNextOurs)

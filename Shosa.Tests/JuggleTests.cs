@@ -460,6 +460,26 @@ public class JuggleTests
     }
 
     [Fact]
+    public void Takeouts_that_end_the_row_carry_the_last_ball_round_no_faster_than_the_others()
+    {
+        // With nothing thrown after the last swipe, the last round was given two beats from its stop, half the others' time,
+        // and the hand whirled its ball round at 5.6 m/s (the user, 2026-11-25: written one after another, the right hand
+        // spun round in the bar the takeouts ended in).
+        var c = Compile(Juggle("every 1/2  3:4 423:3@takeouts 423:3@takeouts 423:3@takeouts"));
+        Assert.Empty(c.Diagnostics);
+        var clip = c.Clip;
+        var fig = clip.Figures[0];
+        double Fastest(double from, double to) => Enumerable.Range((int)(from * clip.Fps), (int)((to - from) * clip.Fps))
+            .Where(k => k + 1 < fig.Frames.Count)
+            .Max(k => Math.Max(
+                ((fig.Joint(k + 1, Rig.RHand) - fig.Joint(k + 1, Rig.Pelvis)) - (fig.Joint(k, Rig.RHand) - fig.Joint(k, Rig.Pelvis))).Length,
+                ((fig.Joint(k + 1, Rig.LHand) - fig.Joint(k + 1, Rig.Pelvis)) - (fig.Joint(k, Rig.LHand) - fig.Joint(k, Rig.Pelvis))).Length) * clip.Fps);
+        // The rounds in the middle (3.5 to 5 s) and the last ones (5 s to the end, 6.5 s).
+        double middle = Fastest(3.5, 5.0), last = Fastest(5.0, 6.5);
+        Assert.True(last < middle + 0.3, $"the last rounds' hands go {last:0.00} m/s at the most, the others' {middle:0.00}");
+    }
+
+    [Fact]
     public void Tennis_throws_one_ball_from_outside_and_the_others_from_inside()
     {
         // The same throws as the cascade; one ball (the word's first across) leaves from outside the hand's own catch, every
