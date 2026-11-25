@@ -563,6 +563,8 @@ export function createCharacters(scene, changed) {
 
     /** The figures of the clip shown, and where each character's file is (`models`: as written -> file). */
     dress(figures, models) {
+      // Figures the clip no longer has (two dancers' file, then a file of one: the second stood on in the scene, the user).
+      dressed.slice(figures.length).forEach(undress);
       dressed = figures.map((figure, i) => {
         const file = figure.model ? models[figure.model] : null;
         // `height 1.5m` on the dancer line: how tall the character is drawn, to the top of its hair (DESIGN.md 115).
@@ -578,7 +580,6 @@ export function createCharacters(scene, changed) {
         load(entry);
         return entry;
       });
-      // Figures the clip no longer has.
       changed();
     },
 
