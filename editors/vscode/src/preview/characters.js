@@ -165,11 +165,37 @@ export function createCharacters(scene, changed) {
     if (juggled && juggled.length) {
       const w0 = juggled[Math.min(juggled.length - 1, f0)], w1 = juggled[Math.min(juggled.length - 1, f0 + 1)];
       const clubs = data.juggle.prop === 'clubs';
-      palmsUp(vrm, w0 + (w1 - w0) * k, data.juggle.prop === 'rings', data.juggle.styles ? data.juggle.styles[Math.min(data.juggle.styles.length - 1, Math.round(frame))] : [0, 0], clubs,
+      // At a whole frame, what was worked out for it once (handsOf): the passes over the clip all ask there.
+      const told = frame === f0 ? handsOf(clip, data)[f0] : null;
+      if (told) palmsUp(vrm, w0 + (w1 - w0) * k, data.juggle.prop === 'rings', told.styles, clubs, told.catching, told.penguin, told.outward);
+      else palmsUp(vrm, w0 + (w1 - w0) * k, data.juggle.prop === 'rings', data.juggle.styles ? data.juggle.styles[Math.min(data.juggle.styles.length - 1, Math.round(frame))] : [0, 0], clubs,
         clubs && data.juggle.flights ? clubCatching(data.juggle.flights, frame / clip.fps) : [0, 0], penguinShares(data.juggle.styles, frame, data.juggle.flights, clip.fps),
         styleShares(data.juggle.styles, frame, clip.fps, 5));
     }
     return size;
+  }
+
+  /**
+   * What a juggler's hands are told at each whole frame besides the rows (palmsUp's and measure's arguments: the style, how
+   * much a club's catch, a penguin's, the palm turned out), worked out once per figure: every pass over the clip asks at
+   * the same frames, and after an edit they say in which frames the hands are told otherwise (DESIGN.md 120.15).
+   */
+  const handsCache = new WeakMap();
+  function handsOf(clip, data) {
+    const got = handsCache.get(data);
+    if (got && got.fps === clip.fps) return got.at;
+    const juggle = data.juggle, clubs = juggle.prop === 'clubs', at = [];
+    const count = Math.max(data.turns.length, data.frames.length);
+    for (let f = 0; f < count; f++) {
+      at.push({
+        styles: juggle.styles ? juggle.styles[Math.min(juggle.styles.length - 1, f)] : [0, 0],
+        catching: clubs && juggle.flights ? clubCatching(juggle.flights, f / clip.fps) : [0, 0],
+        penguin: penguinShares(juggle.styles, f, juggle.flights, clip.fps),
+        outward: styleShares(juggle.styles, f, clip.fps, 5),
+      });
+    }
+    handsCache.set(data, { fps: clip.fps, at });
+    return at;
   }
 
   /** The elbows' swings for a clip's figure at every frame, worked out once per movement (clearance.js elbowSwings). */
@@ -177,25 +203,36 @@ export function createCharacters(scene, changed) {
     const size = entry.height && entry.ownHeight ? entry.height / entry.ownHeight : 1;
     if (entry.swings?.data === data && entry.swings.size === size) return entry.swings;
     const count = data.turns.length;
-    millsOf(entry, clip, data, size);
     // After an edit, only the frames it moved (DESIGN.md 120).
     // (A test page works every frame out again with globalThis.shosaSwingsWhole, to compare.)
     const was = entry.swings && entry.swings.size === size && entry.swings.vrm === entry.vrm && !globalThis.shosaSwingsWhole ? entry.swings : null;
-    const dirty = was ? movedFrames(clip, data, was.clip, was.data) : null;
-    entry.swings = { data, clip, size, vrm: entry.vrm, ...elbowSwings(entry.vrm, entry.body, size, count, f => place(entry, clip, data, f, false), was, dirty) };
+    // A juggler's arms are solved again first (millsOf): a frame whose elbow came out at another angle is posed otherwise too.
+    const dirty = millsOf(entry, clip, data, size, was, was ? movedFrames(clip, data, was.clip, was.data) : null);
+    const swings = elbowSwings(entry.vrm, entry.body, size, count, f => place(entry, clip, data, f, false), was, dirty);
+    // Where the arms are otherwise than before the edit, kept out and all (`place` at a whole frame): a juggler's palms
+    // are measured again there (trackPalms). Null when every frame may be; `from` is the figure before the edit.
+    let moved = null;
+    if (dirty) {
+      moved = dirty.slice();
+      for (let f = 0; f < count; f++) {
+        if (swings.left[f] !== was.left[f] || swings.right[f] !== was.right[f] || !swings.out.left[f].equals(was.out.left[f]) || !swings.out.right[f].equals(was.out.right[f])) moved[f] = 1;
+      }
+    }
+    entry.swings = { data, clip, size, vrm: entry.vrm, ...swings, moved, from: dirty ? was.data : null };
     return entry.swings;
   }
 
   /**
    * Which frames of a figure are posed otherwise than those of the figure it was before an edit (`place` at a whole
-   * frame: the bones' turns and where the pelvis is), 1 for each; null when every frame may be, so nothing of the old
-   * one can be kept: another count of frames, another skeleton, another start (the hips are placed from the first
-   * frame), or juggling (its arms are solved again over the whole clip, arms.js).
+   * frame, before the arms are solved again or kept out: the bones' turns and where the pelvis is; for a juggler the
+   * figure's joints too, and what the frame says of the juggling), 1 for each; null when every frame may be, so nothing
+   * of the old one can be kept: another count of frames, another skeleton, another start (the hips are placed from the
+   * first frame), a juggler where there was none.
    */
   function movedFrames(clip, data, wasClip, wasData) {
     const turns = data.turns, frames = data.frames, wasTurns = wasData.turns, wasFrames = wasData.frames;
     const count = turns.length;
-    if (data.juggle || wasData.juggle || wasTurns.length !== count || frames.length !== wasFrames.length || frames.length < count) return null;
+    if (!data.juggle !== !wasData.juggle || wasTurns.length !== count || frames.length !== wasFrames.length || frames.length < count) return null;
     if (clip.hipsHeight !== wasClip.hipsHeight || (clip.skeletonBones ?? []).join() !== (wasClip.skeletonBones ?? []).join()) return null;
     const pelvis = clip.joints.indexOf('pelvis') * 3;
     if (pelvis < 0 || pelvis !== wasClip.joints.indexOf('pelvis') * 3) return null;
@@ -204,28 +241,74 @@ export function createCharacters(scene, changed) {
       return true;
     };
     if (!same(frames[0], wasFrames[0], pelvis, pelvis + 3)) return null;
+    const juggled = data.juggle ? juggledOtherwise(clip, data, wasClip, wasData) : null;
+    if (data.juggle && !juggled) return null;
     const dirty = new Uint8Array(count);
     for (let f = 0; f < count; f++) {
       // (A row that is the same array is a row a patch left as it was.)
       const a = turns[f], b = wasTurns[f], p = frames[f], q = wasFrames[f];
-      if ((a !== b && (a.length !== b.length || !same(a, b, 0, a.length))) || (p !== q && !same(p, q, pelvis, pelvis + 3))) dirty[f] = 1;
+      // A juggler's arms are solved again from where the figure's shoulders, elbows and hands are (arms.js): the whole row.
+      const joints = juggled ? p.length === q.length && same(p, q, 0, p.length) : same(p, q, pelvis, pelvis + 3);
+      if ((a !== b && (a.length !== b.length || !same(a, b, 0, a.length))) || (p !== q && !joints) || (juggled && juggled(f))) dirty[f] = 1;
     }
     return dirty;
   }
 
-  /** Mills' elbow angles for a clip's figure at every frame, worked out once per movement (arms.js millsAngles). */
-  function millsOf(entry, clip, data, size) {
-    if (entry.mills?.data === data && entry.mills.size === size) return;
-    entry.mills = null;
-    if (!(data.juggle && (data.juggle.mills?.some(w => w > 0) || data.juggle.follow?.some(w => w > 0)))) return;
-    const found = [];
-    for (let f = 0; f < data.turns.length; f++) place(entry, clip, data, f, false, found);
-    entry.mills = { data, size, ...millsAngles(data.turns.length, f => found[f]) };
+  /**
+   * For a juggler after an edit: `f => whether what the frame says of the juggling is otherwise than it was` (what `place`
+   * and `measure` read at a whole frame: how much Mills' Mess or takeouts have the arms, the forearm drawn in, the elbow
+   * held, the plane, the palms' weight, and what the hands are told, handsOf). Null when every frame may be: another
+   * prop, other joints, lists of another length.
+   */
+  function juggledOtherwise(clip, data, wasClip, wasData) {
+    const now = data.juggle, was = wasData.juggle;
+    if (now.prop !== was.prop || clip.fps !== wasClip.fps || clip.joints.join() !== wasClip.joints.join() || data.frames.length !== data.turns.length) return null;
+    const amounts = ['mills', 'follow', 'weight'], sides = ['pull', 'wheel', 'plane'];
+    for (const key of [...amounts, ...sides, 'styles']) if ((now[key]?.length ?? -1) !== (was[key]?.length ?? -1)) return null;
+    const hands = handsOf(clip, data), wasHands = handsOf(wasClip, wasData);
+    const at = (list, f) => list && list.length ? list[Math.min(list.length - 1, f)] : undefined;
+    const pair = (a, b) => a === b || (!!a && !!b && a[0] === b[0] && a[1] === b[1]);
+    return f => {
+      for (const key of amounts) if (at(now[key], f) !== at(was[key], f)) return true;
+      // (`place` takes a pair only when the next frame has one too.)
+      for (const key of sides) if (!pair(at(now[key], f), at(was[key], f)) || !at(now[key], f + 1) !== !at(was[key], f + 1)) return true;
+      const a = hands[f], b = wasHands[f];
+      return !(pair(a.styles, b.styles) && pair(a.catching, b.catching) && pair(a.penguin, b.penguin) && pair(a.penguin.relax, b.penguin.relax) && pair(a.outward, b.outward));
+    };
+  }
+
+  /**
+   * Mills' elbow angles for a clip's figure at every frame, worked out once per movement (arms.js millsAngles).
+   *
+   * After an edit (`was`: the swings before it; `dirty[f]`: 1 where frame f is posed otherwise, movedFrames) an elbow's
+   * place is found again only in those frames: what a frame finds alone is the frame's own. The smoothing is done whole
+   * (arithmetic). Returns `dirty` with the frames whose smoothed angle came out otherwise, or null when every frame was
+   * worked out.
+   */
+  function millsOf(entry, clip, data, size, was = null, dirty = null) {
+    const before = was && dirty && entry.mills && entry.mills.data === was.data && entry.mills.size === size ? entry.mills : null;
+    if (!before) dirty = null;
+    const count = data.turns.length;
+    // (`found` null: neither Mills' Mess nor takeouts has the arms anywhere.)
+    entry.mills = { data, size, found: null, left: null, right: null };
+    if (data.juggle && (data.juggle.mills?.some(w => w > 0) || data.juggle.follow?.some(w => w > 0))) {
+      const found = [];
+      for (let f = 0; f < count; f++) {
+        if (dirty && !dirty[f]) found.push(before.found ? before.found[f] : null);
+        else place(entry, clip, data, f, false, found);
+      }
+      Object.assign(entry.mills, { found }, millsAngles(count, f => found[f]));
+    }
+    if (!dirty) return null;
+    const moved = dirty.slice();
+    const other = (a, b, f) => !Object.is(a ? a[f] : NaN, b ? b[f] : NaN);
+    for (let f = 0; f < count; f++) if (other(entry.mills.left, before.left, f) || other(entry.mills.right, before.right, f)) moved[f] = 1;
+    return moved;
   }
 
   /** Mills' elbow angles at a frame (between two frames, blended), or null to find them in the frame itself. */
   function millsAt(entry, data, frame) {
-    const mills = entry.mills?.data === data ? entry.mills : null;
+    const mills = entry.mills?.data === data && entry.mills.left ? entry.mills : null;
     if (!mills || globalThis.shosaMillsEachFrame) return null;   // a test page compares with the angles found frame by frame
     const count = mills.left.length, x = Math.max(0, Math.min(count - 1, frame)), f = Math.floor(x), g = Math.min(count - 1, f + 1), k = x - f;
     const at = list => Number.isFinite(list[f]) && Number.isFinite(list[g]) ? list[f] + (list[g] - list[f]) * k : Number.isFinite(list[f]) ? list[f] : list[g];
@@ -388,14 +471,29 @@ export function createCharacters(scene, changed) {
     return runs;
   }
 
-  function trackPalms(entry, clip, data) {
+  /**
+   * After an edit only the frames it moved are posed and measured again (DESIGN.md 120.15): `was` is the track of the
+   * figure before the edit (the same character and size) and `moved[f]` is 1 where frame f is posed otherwise than it was
+   * (swingsOf). The points of the other frames are the same objects as before (nothing changes them: they are read copied).
+   */
+  function trackPalms(entry, clip, data, was = null, moved = null) {
     const count = data.frames.length;
-    const at = { data, fps: clip.fps, palms: [[], []], forearms: [[], []], hips: [] };
+    if (!was || !moved || moved.length !== count || was.hips.length !== count || was.fps !== clip.fps) was = moved = null;
+    const at = { data, fps: clip.fps, size: entry.height && entry.ownHeight ? entry.height / entry.ownHeight : 1, vrm: entry.vrm, palms: [[], []], forearms: [[], []], hips: [] };
     const hipsBone = entry.vrm.humanoid.getNormalizedBoneNode('hips');
+    const hands = handsOf(clip, data);
     for (let f = 0; f < count; f++) {
+      if (was && !moved[f]) {
+        at.hips.push(was.hips[f]);
+        for (const hand of [0, 1]) {
+          at.palms[hand].push(was.palms[hand][f]);
+          at.forearms[hand].push(was.forearms[hand][f]);
+        }
+        continue;
+      }
       place(entry, clip, data, f);
       refresh(entry.vrm);
-      const { palms, forearms } = measure(entry.vrm, data.juggle.prop, data.juggle.styles?.[f], penguinShares(data.juggle.styles, f, data.juggle.flights, clip.fps), styleShares(data.juggle.styles, f, clip.fps, 5));
+      const { palms, forearms } = measure(entry.vrm, data.juggle.prop, data.juggle.styles?.[f], hands[f].penguin, hands[f].outward);
       at.hips.push(hipsBone ? hipsBone.getWorldPosition(new THREE.Vector3()) : new THREE.Vector3());
       for (const hand of [0, 1]) {
         at.palms[hand].push(palms[hand] ?? new THREE.Vector3());
@@ -418,6 +516,13 @@ export function createCharacters(scene, changed) {
     /** The elbows' swings of figure i's character as last worked out (harness-perf.html), or null. */
     swings(i) {
       return dressed[i] ? dressed[i].swings ?? null : null;
+    },
+    /** A juggler's palms at every frame and its elbows' angles as last worked out (harness-perf.html), or null. */
+    tracked(i) {
+      return dressed[i] ? dressed[i].track ?? null : null;
+    },
+    mills(i) {
+      return dressed[i] ? dressed[i].mills ?? null : null;
     },
     joint(i, name) {
       const entry = dressed[i];
@@ -508,8 +613,17 @@ export function createCharacters(scene, changed) {
         // The elbows' swings round the body at every frame, then a juggler's palms (posed with them): the balls fly
         // between those (juggle.js).
         const swings = entry.body && !globalThis.shosaArmsAsSolved ? entry.swings : null;
-        if (entry.body && !globalThis.shosaArmsAsSolved && swingsOf(entry, clip, data) !== swings) entry.track = null;   // the palms move with the elbows
-        if (data.juggle && entry.track?.data !== data) entry.track = trackPalms(entry, clip, data);
+        let tracked = null;
+        if (entry.body && !globalThis.shosaArmsAsSolved && swingsOf(entry, clip, data) !== swings) {   // the palms move with the elbows
+          tracked = entry.track;
+          entry.track = null;
+        }
+        if (data.juggle && entry.track?.data !== data) {
+          // After an edit, from the track before it, where the swings say the arms are as they were.
+          const now = entry.swings?.data === data ? entry.swings : null;
+          const keep = tracked && now && now.moved && tracked.data === now.from && tracked.size === now.size && tracked.vrm === entry.vrm;
+          entry.track = trackPalms(entry, clip, data, keep ? tracked : null, keep ? now.moved : null);
+        }
         const f0 = Math.max(0, Math.min(turns.length - 1, Math.floor(frame))), f1 = Math.min(turns.length - 1, f0 + 1), k = Math.max(0, frame - f0);
         const size = place(entry, clip, data, frame);
         // A hand holding a ball or a ring is a fist; an empty one opens to catch (the user).
