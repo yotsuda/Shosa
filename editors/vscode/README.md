@@ -58,6 +58,8 @@ These work, but are new and may still change.
   A hand a word puts at the head (`head`, `chin`, `forehead`) goes to that place on the character's own head.
   Set `shosa.models.folder` to the folder you keep your models in; with the cursor on the file of a dancer line,
   **Ctrl+Shift+Up / Ctrl+Shift+Down** put the model before or after it there, and the preview changes with it.
+  A dancer's file is looked for in the dance's own folder first, then in that folder: the keys write the short name
+  (`"girl.vrm"`), so a dance does not say where on your machine the models are.
 - **Singing**: `dancer alice humanoid "girl.vrm" sings melody on lead` moves the character's mouth to the words
   that part of the Lily# song sings (the `.vrma` export carries it). `mic right` puts a mic in the hand: at the mouth
   while the dancer sings, dancing with the arm between phrases.

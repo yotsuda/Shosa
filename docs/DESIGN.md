@@ -6398,6 +6398,14 @@ dancer alice humanoid "girl.vrm" sings melody on solo
 - **フォルダーのダイアログ** (ユーザーの依頼、同じ日。Lily# の設定画面と体裁を揃える): 説明の最後の段に `**[Choose a folder…](command:shosa.chooseModelsFolder)**` (Lily# の `playback.soundFont` の `**[Choose a file…](command:…)**` と同じ形。設定画面では説明が編集ボックスの直前に出る)。本文にも「(also the **Shosa: Choose Models Folder…** command)」と、Lily# の「(also the **Lily#: Choose Sound Font…** command)」に倣って書く。選んだフォルダーはユーザーの設定 (Global) へ絶対パスで。選んだあとに `.vrm` の数をステータスバーに、0 なら警告。ホストの試験: リンクのコマンドが登録されていること。
 - 試験: `editors\vscode\hosttest\index.cjs` (`tools\test-extension-host.ps1`) に 3 つ: 順に進む (下位フォルダー、両端で止まる、上)、カーソルが名前に残る、パスの外では何もしない。キーの割り当て自体は package.json の宣言で、試験はコマンドを呼ぶ。
 - まだ: ユーザーが VS Code で押して、プレビューの着せ替えを見ること。
+- **書く形を替えた (2026-11-25、ユーザーの指摘)**: 「Ctrl+Shift+Up/Down で出てくるモデルは、設定のフォルダーからの相対パスであるべき」。`.shosa` からの相対で書くと `"../out/vrm/sample.vrm"` のように、その PC のフォルダーの並びが譜に入り、譜を移すと切れた。
+  - **探し方** (`models.ts` の `resolveModel`、プレビューへ渡す所 `extension.ts` とキーの両方が使う): まず `.shosa` のフォルダーから、なければ `shosa.models.folder` から。絶対パスはそのまま。無題のファイル (フォルダーがない) は設定のフォルダーだけ。設定のフォルダーだけにはしない: 譜と一緒に配るモデル (`samples\hello.shosa` の `"models/zundamon.vrm"`) は設定なしで開けるべき。
+  - **キーが書く形**: 設定のフォルダーからの相対パス (`"zunko.vrm"`、`"sub/c.vrm"`)。同じ名前のファイルが `.shosa` の側にあってそちらが先に見つかってしまうときだけ、絶対パス。古い書き方 (`.shosa` からの相対) の行も、解いた先が一覧にあればそこから続く。
+  - **見つからないとき**: プレビューの知らせは探した場所を全部言う (「A and B were not found.」)。
+  - 言語サーバーとコンパイラは変えていない: パスは書かれたまま IR に載るだけで、ファイルを開くのは拡張だけ。文法書の 1 行は「.shosa のフォルダーから、なければエディターのモデルのフォルダーから」に。
+  - 代償: 短い名前の譜は、設定のない人の所では棒の人形になる (動きは同じ)。
+  - していないこと: 設定を替えた瞬間のプレビューの引き直し (次の編集か開き直しで反映)。
+  - 試験 (ホスト): 一覧を進むと `a.vrm b.vrm sub/c.vrm`、古い書き方 `models/a.vrm` から次が `b.vrm`、`.shosa` の隣に `a.vrm` があると絶対パス。
 
 
 ## 115. キャラクターの背丈 `height 1.5m` (2026-11-22)

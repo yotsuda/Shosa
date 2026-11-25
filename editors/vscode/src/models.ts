@@ -8,6 +8,9 @@ import * as vscode from 'vscode';
 // (`dancer alice humanoid "girl.vrm"`), Ctrl+Shift+Up/Down puts the one before or after it there,
 // and the preview, following the edit, shows the dancer in it.
 //
+// A dancer's file is looked for from the dance's own folder, then from that folder (resolveModel):
+// the keys write it from the models folder, so a dance does not carry the layout of one machine.
+//
 // The key is ours only on that file: the context key `shosa.onModelPath` says so, so elsewhere
 // Ctrl+Shift+Up/Down keep whatever VS Code or the user gave them.
 
@@ -37,8 +40,8 @@ function modelAt(document: vscode.TextDocument, position: vscode.Position): { ra
 }
 
 /** The folder of the setting as a full path, or undefined when none is set. `~` is the home folder; a relative path is from the workspace folder. */
-function modelsFolder(document: vscode.TextDocument): string | undefined {
-  const named = (vscode.workspace.getConfiguration('shosa', document.uri).get<string>('models.folder') ?? '').trim();
+function modelsFolder(uri: vscode.Uri): string | undefined {
+  const named = (vscode.workspace.getConfiguration('shosa', uri).get<string>('models.folder') ?? '').trim();
   if (!named) {
     return undefined;
   }
@@ -46,8 +49,8 @@ function modelsFolder(document: vscode.TextDocument): string | undefined {
   if (path.isAbsolute(expanded)) {
     return expanded;
   }
-  const workspace = vscode.workspace.getWorkspaceFolder(document.uri) ?? vscode.workspace.workspaceFolders?.[0];
-  return path.resolve(workspace ? workspace.uri.fsPath : path.dirname(document.uri.fsPath), expanded);
+  const workspace = vscode.workspace.getWorkspaceFolder(uri) ?? vscode.workspace.workspaceFolders?.[0];
+  return path.resolve(workspace ? workspace.uri.fsPath : path.dirname(uri.fsPath), expanded);
 }
 
 /** Every .vrm file in the folder and the folders below it, in the order of their paths. */
@@ -74,11 +77,37 @@ async function modelFiles(folder: string): Promise<string[]> {
   return found.sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0));
 }
 
-/** How the file is written in the dance: from the dance's folder when it can be (the way the server reads it), with forward slashes. */
-function written(file: string, document: vscode.TextDocument): string {
-  const relative = path.relative(path.dirname(document.uri.fsPath), file);
-  const usable = relative && !path.isAbsolute(relative);   // another drive gives an absolute path
-  return (usable ? relative : file).replace(/\\/g, '/');
+/**
+ * The file a dancer line names. It is looked for from the dance's own folder first (a character kept with the
+ * dance needs no setting), then from the models folder (the short name Ctrl+Shift+Up/Down write).
+ * `tried` is every place looked in; `file` is the first of them when it is in none.
+ */
+export function resolveModel(named: string, uri: vscode.Uri): { file: string; tried: string[] } {
+  const tried: string[] = [];
+  if (path.isAbsolute(named)) {
+    tried.push(path.normalize(named));
+  } else {
+    if (uri.scheme === 'file') {   // an untitled file has no folder
+      tried.push(path.resolve(path.dirname(uri.fsPath), named));
+    }
+    const folder = modelsFolder(uri);
+    if (folder && !tried.some(file => samePath(file, path.resolve(folder, named)))) {
+      tried.push(path.resolve(folder, named));
+    }
+  }
+  if (tried.length === 0) {
+    tried.push(named);
+  }
+  return { file: tried.find(file => fs.existsSync(file)) ?? tried[0], tried };
+}
+
+/**
+ * How the file is written in the dance: from the models folder, with forward slashes, so the dance does not say
+ * where on this machine it is. In full when a file of that name beside the dance would be found first.
+ */
+function written(file: string, folder: string, document: vscode.TextDocument): string {
+  const short = path.relative(folder, file).replace(/\\/g, '/');
+  return samePath(resolveModel(short, document.uri).file, file) ? short : file.replace(/\\/g, '/');
 }
 
 function samePath(a: string, b: string): boolean {
@@ -95,7 +124,7 @@ async function step(by: 1 | -1): Promise<void> {
   if (!at) {
     return;
   }
-  const folder = modelsFolder(document);
+  const folder = modelsFolder(document.uri);
   if (!folder) {
     const choice = await vscode.window.showInformationMessage(
       'Shosa: set the folder of your VRM models (shosa.models.folder) to switch a dancer\'s character with Ctrl+Shift+Up/Down.',
@@ -112,8 +141,7 @@ async function step(by: 1 | -1): Promise<void> {
     void vscode.window.showWarningMessage(`Shosa: there is no .vrm file in ${folder} (shosa.models.folder).`);
     return;
   }
-  // Untitled files have no folder: the path is written in full.
-  const current = at.file && !document.isUntitled ? path.resolve(path.dirname(document.uri.fsPath), at.file) : at.file;
+  const current = at.file ? resolveModel(at.file, document.uri).file : '';
   const index = files.findIndex(file => samePath(file, current));
   // The list has ends (the user asked): past the last or the first, nothing changes.
   const next = index < 0 ? (by > 0 ? 0 : files.length - 1) : index + by;
@@ -121,7 +149,7 @@ async function step(by: 1 | -1): Promise<void> {
     vscode.window.setStatusBarMessage(`Shosa: ${path.relative(folder, files[index])} is the ${by > 0 ? 'last' : 'first'} of ${files.length} characters`, 3000);
     return;
   }
-  const text = document.isUntitled ? files[next].replace(/\\/g, '/') : written(files[next], document);
+  const text = written(files[next], folder, document);
   const range = at.range;
   // The cursor stays in the string, as far from its end as it was (on the name, usually), so the key can be pressed again.
   const was = Math.min(Math.max(editor.selection.active.character, range.start.character), range.end.character);
@@ -139,7 +167,7 @@ async function step(by: 1 | -1): Promise<void> {
 /** `shosa.models.folder` through the folder dialog: the link at the end of the setting's description, and the command palette. */
 async function chooseFolder(): Promise<void> {
   const document = vscode.window.activeTextEditor?.document;
-  const current = document ? modelsFolder(document) : undefined;
+  const current = document ? modelsFolder(document.uri) : undefined;
   const picked = await vscode.window.showOpenDialog({
     title: 'Shosa: the folder your VRM models (.vrm) are kept in',
     openLabel: 'Choose Folder',

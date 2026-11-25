@@ -166,7 +166,17 @@ exports.run = async function run() {
     }
     // The list has ends: past the last or the first, the file stays (no wrapping round).
     check('Next/Previous Character go through the models folder and stop at its ends',
-      seen.join(' ') === 'models/a.vrm models/b.vrm models/sub/c.vrm models/sub/c.vrm models/b.vrm models/a.vrm models/a.vrm', seen);
+      seen.join(' ') === 'a.vrm b.vrm sub/c.vrm sub/c.vrm b.vrm a.vrm a.vrm', seen);
+    // A file written the old way, from the dance's own folder, is still found in the list and gone on from.
+    await dressed.edit(edit => edit.replace(new vscode.Range(1, 0, 1, dressedDoc.lineAt(1).text.length), 'dancer solo humanoid "models/a.vrm" on solo'));
+    dressed.selection = new vscode.Selection(onName, onName);
+    await vscode.commands.executeCommand('shosa.nextModel');
+    check('a model written from the dance\'s folder is gone on from, and the next is written from the models folder', named() === 'b.vrm', named());
+    // A file of the same name beside the dance would be found first: then the one of the models folder is written in full.
+    fs.writeFileSync(path.join(folder, 'a.vrm'), '');
+    await vscode.commands.executeCommand('shosa.previousModel');
+    check('a name a file beside the dance has is written in full', named() === path.join(models, 'a.vrm').replace(/\\/g, '/'), named());
+    fs.rmSync(path.join(folder, 'a.vrm'));
     check('the cursor stays in the file name', dressed.selection.active.line === 1 && /"[^"]*$/.test(dressedDoc.lineAt(1).text.slice(0, dressed.selection.active.character)),
       dressed.selection.active);
     // Off the file name the commands do nothing (and the keys are not ours there: shosa.onModelPath).

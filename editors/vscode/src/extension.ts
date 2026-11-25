@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { LanguageClient, ServerOptions, State, TransportKind } from 'vscode-languageclient/node';
 import { registerExport } from './export';
-import { registerModels } from './models';
+import { registerModels, resolveModel } from './models';
 import { applyClipPatch } from './preview/patch.js';
 import { ClipMusic, createStems } from './stems';
 import { registerTools } from './tools';
@@ -136,8 +136,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const post = (message: ClipMessage, reset: boolean, patch?: { patch: unknown; base: number }) => {
     const editor = editorFor(message.uri);
     const shown = message.clips ?? (message.clip ? [message.clip] : []);
-    // The characters the dancers are dressed in (`dancer alice humanoid "girl.vrm"`), from the file's own folder.
-    const folder = path.dirname(vscode.Uri.parse(message.uri).fsPath);
+    // The characters the dancers are dressed in (`dancer alice humanoid "girl.vrm"`): from the file's own folder,
+    // or else from the models folder (models.ts).
     const models: Record<string, string> = {};
     // The recordings the songs keep time with (`X.orecchiante.json` beside `X.lys`: the server gives the full path).
     const recordings = new Set<string>();
@@ -149,7 +149,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       }
       for (const figure of clip.figures ?? []) {
         if (figure.model && !(figure.model in models)) {
-          models[figure.model] = path.resolve(folder, figure.model);
+          const found = resolveModel(figure.model, vscode.Uri.parse(message.uri));
+          models[figure.model] = found.file;
+          lookedIn.set(found.file, found.tried);
         }
       }
       if (clip.music?.recording?.audio) {
@@ -175,6 +177,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   // A character file or a recording is read here and its bytes handed to the page, which parses it: the page
   // need not be let read the folder it is in. Sent again when the file changes (it is checked at every edit of the dance).
   const sentModels = new Map<string, number>();   // type and file -> the time it was last written, as sent
+  const lookedIn = new Map<string, string[]>();   // a character's file -> every place it was looked for in
   const sendFile = async (type: 'model' | 'recording' | 'stem', file: string) => {
     let written = -1;
     try {
@@ -187,7 +190,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }
     sentModels.set(type + '|' + file, written);
     if (written < 0) {
-      void panel?.webview.postMessage({ type, file, error: `${file} was not found.` });
+      const places = (type === 'model' && lookedIn.get(file)) || [file];
+      void panel?.webview.postMessage({ type, file, error: `${places.join(' and ')} ${places.length > 1 ? 'were' : 'was'} not found.` });
       return;
     }
     try {

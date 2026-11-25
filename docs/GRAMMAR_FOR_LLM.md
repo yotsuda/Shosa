@@ -1338,7 +1338,8 @@ score { dancer alice  dancer bob  dancer carol }
   in the other sections the dancer is still on the floor, standing as they were left).
 - Not written, a dancer stands at the origin (`at 0 0`) and faces the audience (`facing front`).
 - A character for the preview: a VRM file in quotes right after `humanoid`,
-  `dancer alice humanoid "girl.vrm" on lead` (from the folder of the .shosa file). The preview
+  `dancer alice humanoid "girl.vrm" on lead` (from the folder of the .shosa file, or else from the editor's
+  models folder, `shosa.models.folder`). The preview
   shows the dancer as that character instead of sticks; it changes nothing of the movement or
   of what is exported. Without it, the dancer is drawn as sticks.
 - `height N m`: how tall the character is drawn, from the floor to the top of its hair, ears and all
