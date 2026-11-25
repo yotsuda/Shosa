@@ -3429,8 +3429,24 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
             }
             return new Seg { Kind = SegKinds.Level, Level = -drop / Rig.LowDrop };
         }
+        if (parts is [{ Text: "sit" } sit])
+        {
+            double seat = Rig.Chair;
+            if (sit.Bracket is { } bracket)
+            {
+                if (Metres(bracket, "How high the seat is above the floor, in centimetres or metres: sit(0.45m) is a chair, sit(0.35m) a sofa, sit(0.7m) a bar stool.") is not { } metres)
+                    return null;
+                if (metres < Rig.LowestSeat - 1e-9 || metres > Rig.HighestSeat + 1e-9)
+                {
+                    Error("SH1013", bracket.Span, "A seat is from 0.1 m (a low step) to 0.8 m (a high stool) above the floor: the feet stay on the floor. A chair is sit(0.45m).");
+                    return null;
+                }
+                seat = metres;
+            }
+            return new Seg { Kind = SegKinds.Level, Level = 0, Seat = seat };
+        }
         var known = Vocabulary.Levels.Select(w => w.Name).Append(Vocabulary.Hold).Append(Vocabulary.Skip).Concat(_defs.Keys);
-        Error("SH1012", parts[0].Word.Span, $"'{string.Join('.', parts.Select(p => p.Text))}' is not a height. {Form}{Hint(parts[0].Text, known)}");
+        Error("SH1012", parts[0].Word.Span, $"'{string.Join('.', parts.Select(p => p.Text))}' is not a height. {Form} Sitting is sit(0.45m), the height of the seat.{Hint(parts[0].Text, known)}");
         return null;
     }
 

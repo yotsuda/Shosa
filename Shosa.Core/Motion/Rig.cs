@@ -33,6 +33,21 @@ public static class Rig
     public const double RestElbow = 15;
     /// <summary>How far the hips come down at the level `low`, in metres.</summary>
     public const double LowDrop = 0.16;
+    /// <summary>A seat nobody measured (`sit`): a chair, metres from the floor to the seat.</summary>
+    public const double Chair = 0.45;
+    /// <summary>The lowest and the highest seat that is sat on with the feet on the floor, metres.</summary>
+    public const double LowestSeat = 0.1, HighestSeat = 0.8;
+    /// <summary>How far the hip joints are above the seat they sit on, metres: half the thigh and the flesh under it.</summary>
+    public const double SeatHip = 0.09;
+    /// <summary>
+    /// How far behind the ankles the hips are, sitting on a seat `seat` metres high with the feet flat and the shins
+    /// upright: what the thigh reaches level from the knee (0.45 m on a chair, 0.43 m on a seat of 0.3 m, 0.42 m on one of 0.6 m).
+    /// </summary>
+    public static double SeatBack(double seat)
+    {
+        double rise = seat + SeatHip - (AnkleHeight + Shin);
+        return Math.Sqrt(Math.Max(0.01, Thigh * Thigh - rise * rise));
+    }
     /// <summary>Degrees each half of a rounded back (`@round`) turns from the line between the pelvis and the chest.</summary>
     public const double RoundAngle = 15;
     public const double HeadUp = 0.24;

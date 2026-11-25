@@ -8,6 +8,7 @@ The first release, for Windows (x64).
 
 - The Shosa language for `.shosa` files: diagnostics, completion and hover for every word, from the same table the compiler checks against.
 - **File > New File... > Shosa File** starts from a file that already compiles.
+- **Sitting**: `height { sit(0.45m) }` sits down on a seat that high (a chair, a sofa, a stool), the feet on the floor, and any other height stands up again. Seated, the arms, the torso and the head say what they say standing.
 - Parts of the body you do not write are not frozen: breathing, the weight shifting from foot to foot, and the trunk and head following the arms.
 
 ### Preview

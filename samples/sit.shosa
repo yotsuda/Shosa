@@ -1,0 +1,25 @@
+// Sitting down on a chair, talking, and getting up again (DESIGN.md 121).
+// The chair is not here: `sit(0.45m)` says how high its seat is, and whoever sets the scene
+// puts a chair under the hips (0.45 m behind the ankles on a seat this high).
+title "Sit"
+tempo 90
+
+role guest
+dancer guest humanoid on guest
+
+section Visit {
+  guest {
+    // Two steps to the chair, the feet closed by beat 2.
+    steps  { leftFoot.fwd rightFoot.fwd stand:2 | then:4 | then:4 | then:4 | }
+    // Standing until beat 2, down onto the seat over beats 2-4, sitting until 12, up over beats 12-14.
+    // (A height moves through the word before it: the `then` before `sit` is the way down, the last `then` before `mid` the way up.)
+    height { mid:2 then:2 | sit(0.45m):4 | then:4 | then:2 mid:2 | }
+    // Sitting, the body says what it says standing: a lean toward the other, a nod, a hand that points.
+    torso    { up:4 | up:1 then:1 up.fwd(15):2 | then:1 up:3 | up:4 | }
+    head     { fwd:4 | fwd:2 fwd.down(20):1/2 fwd:3/2 | fwd.left(25):2 fwd:2 | fwd:4 | }
+    rightArm { skip:4 | skip:2 then:1 fwd.down(20).bent(40):1 | then:1 down:3 | skip:4 | }
+  }
+}
+
+form { Visit }
+score { dancer guest }

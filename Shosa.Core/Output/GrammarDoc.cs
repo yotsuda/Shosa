@@ -1043,6 +1043,15 @@ public static class GrammarDoc
               kept until it is changed — a walk in a low stance is a walk with `height { low }` beside it.
             - `leftFoot.fwd@turn(left(90))` turns DURING the step: the standing foot swivels, and the
               step lands where it would after the turn. `@turn(SIDE(DEGREES))`.
+            - **A walk along a curve is a walk whose every step turns a little**:
+              `steps { stand:2 { leftFoot.fwd@turn(left(15)) rightFoot.fwd@turn(left(15)) } q q q q stand:2 }`
+              is ten steps round an arc to the left, 150° in all. The arc's radius is the stride over the
+              turn of one step in radians: 0.5 m steps of 15° go round a circle of 1.9 m, of 30° one of
+              about 1 m (a table), of 5° one of 5.7 m (a wide bend). Fewer degrees on the first and the
+              last steps ease into the bend and out of it. To end at a place (in front of someone, at a
+              door) count it out: `check` says where the dancer ends and how far it has turned
+              (`ends 0.46 m forward and 3.68 m to its left of where it began, turned 150° to its left`),
+              and a last straight step or two, or a shorter stride (`fwd(0.3m)`), makes up the rest.
             - The same foot twice in a row is allowed (it moves again from the other foot).
 
             **Other things the feet do:**
@@ -1212,6 +1221,43 @@ public static class GrammarDoc
               changes only how high it stands.
             - A row nobody wrote is `mid` (soft knees). A pose may hold a height (`pose guard { … height { low(8cm) } }`),
               and a pose's name in the row is that pose's height.
+
+            ### Sitting: `sit(0.45m)`
+
+            `sit` is a height too: the hips on a seat, the feet on the floor. The bracket is **how high
+            the seat is above the floor** (a chair 0.45 m, which is what `sit` alone means; a sofa about
+            0.35 m, a bar stool 0.7 m; from 0.1 m to 0.8 m). The seat itself is not in the language: whoever
+            sets the scene puts a chair there.
+
+            ```shosa
+            steps  { leftFoot.fwd rightFoot.fwd stand:2 | then:4 | then:4 | then:4 | }      // two steps to the chair, the feet closed by beat 2
+            height { mid:2 then:2 | sit(0.45m):4 | then:4 | then:2 mid:2 | }                 // down over beats 2-4, sitting until 12, up over beats 12-14
+            torso  { up:4 | up:2 up.fwd(15):2 | then:1 up:3 | up:4 | }                       // sitting, a lean toward the other
+            ```
+
+            - **It moves as every height does: through all of the word before.** The `then:2` before
+              `sit` is the two beats of sitting down; the last `then` before `mid` is getting up
+              (`sit(0.45m):4 then:4 then:2 mid` sits for eight beats and rises in two). Without a
+              `then`, `mid:4 sit(0.45m)` sinks slowly through all four beats. A second or so each way reads as a person.
+            - **The feet stay where they stand**, and the hips go back and down from over them: the
+              shins end upright, the knees over the ankles, the thighs level on a chair. On the way
+              down and up the torso leans forward over the feet by itself (up to 28°, on top of what
+              its row says) and is back as its row says when seated.
+            - **Where the seat has to be**: seated, the hips (the `pelvis` joint of `shosa clip`) are
+              0.09 m above the seat and behind the ankles — behind the dancer's place, which is the middle
+              of the feet — by 0.45 m on a chair (seat 0.45 m), 0.44 m on seats of 0.35 m and 0.5 m,
+              0.43 m at 0.3 m, 0.42 m at 0.6 m, 0.38 m at 0.7 m. The back of the body is about 0.12 m
+              behind that joint. So to sit on a chair, stand with the ankles about 0.45 m in front of
+              the middle of where the hips are to be, the back to the chair.
+            - **Sitting, every other row says what it says standing**: `torso`, `head`, `shoulders`,
+              the arms (a hand to the other's hand, `b.hand`; a point; `chin`). An arm nobody wrote, or
+              sent `down`, rests its hand on the thigh instead of hanging; the weight does not drift from foot to foot.
+            - **Do not move the feet while seated** (a step, a jump, `stand`: warning SH2024): the seat is
+              measured from the feet and would slide with them. Stand up first. A free leg may still take a
+              shape in its row (`rightLeg { fwd.down(30) }` stretches it out).
+            - `sit` is kept until another height is written: `mid`, `straight` or `low` stands up again.
+              `check --at` reads the knees about 89° on a chair. Not said: leaning on the back of the
+              chair or an armrest, crossed legs, feet off the floor on a high stool.
 
             ## Annotations
 
@@ -1474,9 +1520,11 @@ public static class GrammarDoc
             - Hands and fingers, the face, the shoulders on their own (a shrug).
             - "As far as it goes" (write the limit: 45 for the hips; the shoulders say when they do not get there, SH2010), a place on the other dancer's face (`b.chin`), the way an elbow travels in a hook.
             - Holding an object, but a mic (`mic` on the dancer line). Contact other than a hand reaching a place.
-            - Walking along a curve.
-            - Sitting, kneeling, lying down, or anything else where a part other than the feet
-              carries weight. Standing on one leg is possible (a leg gesture).
+            - Walking to a place by naming it ("to the door", "up to b"): the steps are written and counted
+              (a curve is steps that turn, see "The feet"; `check` says where they end).
+            - Kneeling, lying down, sitting on the floor, or anything else where a part other than the feet
+              carries weight — but sitting on a seat, which is `height { sit(0.45m) }` (leaning on its back, crossed
+              legs: not). Standing on one leg is possible (a leg gesture).
             - A change of tempo or of time in the middle of a section (a section says them where it begins; a dance to a song follows its song).
             - A toe at any place on the other leg but its knee and its ankle; a hand on a leg (the thigh, the knee).
             - A foot that points or flexes when you choose (it points by itself in the air of a jump, and with its toe on the other leg or on the floor, `side.floor`; a leg lifted while standing keeps its foot square); standing on pointe; one foot on its toes (demi-pointe) while the other is flat — `height { high }` puts both up.
@@ -1581,7 +1629,7 @@ public static class GrammarDoc
             SH2010 shoulders the chest cannot turn to on the hips, SH2011 an elbow or a knee pointed
             along its own limb, SH2012 a hop (with no leg thrown out) or a leap from both feet, SH2013 a foot that `steps` puts
             down while its leg's row still holds it up, SH2014 a bend or a knee written on a leg sent
-            down, which stands on the floor). The message says what to change.
+            down, which stands on the floor, SH2024 a foot moved while the body sits). The message says what to change.
 
             The sheet shows poses numbered by beat from 0, read left to right, then down. How far
             apart they are depends on the length shown: every half beat up to 8 beats, every beat up

@@ -260,7 +260,7 @@ internal static class Words
         definitions ??= [];
         figures ??= [];
         if (before.Count > 0 && figures.Any(f => f.Name == before[0]))
-            return before.Count == 1 ? Vocabulary.Parts : before.Count == 2 && before[1] == "hand" ? Vocabulary.Levels : [];
+            return before.Count == 1 ? Vocabulary.Parts : before.Count == 2 && before[1] == "hand" ? [.. Vocabulary.Levels.Where(w => w.Name != "sit")] : [];
 
         if (track == "body")
             return before.Count == 0 ? [.. definitions, Hold, Skip, Again] : [];

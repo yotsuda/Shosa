@@ -91,7 +91,7 @@
     { "name": "keyword.operator.together.shosa", "match": "&" },
     { "name": "keyword.operator.times.shosa", "match": "\\*" },
     { "name": "comment.block.hold.shosa", "match": "(?<![.@!\\w])(then|stay|skip)\\b(?!\\.)" },
-    { "comment": "A height: height { low(8cm) mid straight high }, b.hand.high.", "name": "support.constant.level.shosa", "match": "(?<![\\w])(low|mid|straight|high)\\b(?![\\w.])" }
+    { "comment": "A height: height { low(8cm) mid straight high sit(0.45m) }, b.hand.high.", "name": "support.constant.level.shosa", "match": "(?<![\\w])(low|mid|straight|high|sit)\\b(?![\\w.])" }
   ],
   "repository": {
     "comment": { "name": "comment.line.double-slash.shosa", "match": "//.*$" },

@@ -14,7 +14,7 @@ public static class Vocabulary
     [
         new("body", "The whole body. Takes the poses and moves you have defined, `then` and `skip`; a narrower track written beside it wins for its own part."),
         new("steps", "The feet on the floor: steps, turns, jumps. Where the weight is."),
-        new("height", "How high the body stands on its feet: `low` (the knees bent), `low(30cm)`, `mid`, `high` (on the toes). Kept until it is changed."),
+        new("height", "How high the body stands on its feet: `low` (the knees bent), `low(30cm)`, `mid`, `high` (on the toes); and `sit(0.45m)`, on a seat that high. Kept until it is changed."),
         new("arms", "Both arms at once, mirrored: `side` is away from the midline for each."),
         new("leftArm", "The left arm: where the hand points from the shoulder, or a place on the body it goes to."),
         new("rightArm", "The right arm."),
@@ -77,6 +77,7 @@ public static class Vocabulary
         new("mid", "Standing, the knees soft (bent 12°): the height a row nobody wrote stands at."),
         new("straight", "Standing on straight legs (a ballet dancer's, a soldier at attention): the hips half a centimetre higher than `mid`."),
         new("high", "On the toes, the legs straight."),
+        new("sit", "Sitting on a seat, the feet on the floor: `sit(0.45m)` on a seat 0.45 m above the floor (a chair, and what `sit` alone means; a sofa about 0.35 m, a bar stool 0.7 m; 0.1 m to 0.8 m). The hips go back and down onto it and carry the weight there; any other height stands up again."),
     ];
 
     public static readonly Word[] Poles =

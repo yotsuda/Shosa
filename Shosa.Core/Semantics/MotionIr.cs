@@ -362,6 +362,9 @@ public sealed class Seg
     public double? Level { get; set; }
     /// <summary>Level: standing on straight legs (`straight`, and `high` on the toes) rather than the soft knees of `mid`.</summary>
     public bool Straight { get; set; }
+    /// <summary>Level (`sit(0.45m)`): sitting on a seat this many metres above the floor, the feet on the floor; null: standing.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public double? Seat { get; set; }
     /// <summary>Turn: degrees, positive to the left. Step and Jump: the turn made during it. Turned: how far the line of the hips or the shoulders is turned from the feet.</summary>
     public double TurnDeg { get; set; }
     /// <summary>Jump: distance between the feet on landing; null keeps it, -1 touching (as `together` closes). Together: null touching, else the width (`stand`).</summary>

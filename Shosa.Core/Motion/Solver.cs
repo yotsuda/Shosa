@@ -290,6 +290,11 @@ public static class Solver
                     diagnostics.Add(new Diagnostic("SH2013", DiagnosticSeverity.Warning, new TextSpan(seg.Src, seg.Len), FormattableString.Invariant(
                         $"This puts the {(leg == Channels.LeftLeg ? "left" : "right")} foot on the floor at beat {at:0.##}, but the {leg} row still holds that leg up, and a leg's own row wins: the foot stays in the air. Put the leg down in its row by then (`down`, beside the other foot), or let it go to the steps (`skip`, landing where they put it){(seg.Kind == SegKinds.Jump ? ": the leg a jump lands on, shaped in the air, needs it" : "")}.")));
 
+            // A foot moved while the body sits: the seat is where the feet are, so it would slide with them.
+            // (Said once for a dancer, at the first such word: the others are the same mistake.)
+            if (solver.MovedSeated().OrderBy(s => s.T1).FirstOrDefault() is { } seated && flagged.Add((seated, "SH2024")))
+                diagnostics.Add(new Diagnostic("SH2024", DiagnosticSeverity.Warning, new TextSpan(seated.Src, seated.Len),
+                        "The feet move here while the body is on a seat, or on its way down to it or up from it (`sit` in the height row), and the seat is measured from the feet: it would slide with them. A height moves through ALL of the word before it, so hold it until the feet stand, and stand up before they go: `steps { leftFoot.fwd rightFoot.fwd stand:1 then:9 leftFoot.fwd }` with `height { mid:2 then:2 sit(0.45m):4 then:2 mid:2 }` walks, sits down over beats 2 to 4, sits, and is up over beats 8 to 10 for the step at 12."));
             // `inPlace`: the even part of the travel is taken out and handed to the engine as a velocity.
             clipFigure.Facing = [solver.FacingAt(0), solver.FacingAt(ir.TotalBeats)];
             var travel = ir.Inplace && ir.TotalBeats > 0 ? solver.Travel : default;
@@ -867,6 +872,8 @@ internal sealed class FigureSolver
         public double WantY, Deficit, CeilingY, Raise, Float;
         /// <summary>How far the height row stands below standing straight (soft knees, a plié).</summary>
         public double Drop;
+        /// <summary>How far the body is on a seat (`sit(0.45m)`): 0 standing, 1 sitting; and how high that seat is, metres.</summary>
+        public double Sit, Seat;
     }
 
     /// <summary>The spine and what hangs on it, before arms and legs.</summary>
@@ -1000,6 +1007,7 @@ internal sealed class FigureSolver
         _shoulders = Row(Channels.Shoulders);
         _hips = Row(Channels.Hips);
         _head = Row(Channels.Head);
+        _sits = _height.Any(seg => seg.Seat is not null);
         SetUpLife();
         SetUpMic();
         Juggling = Juggling.Build(dancer, _tempos);
@@ -1139,6 +1147,44 @@ internal sealed class FigureSolver
                where seg.Kind is not (SegKinds.Hold or SegKinds.Stay)
                where full.Any(p => seg.At > p.From + 1e-6 && seg.At < p.To - 1e-6)
                select (seg, channel);
+    }
+
+    // ---- Sitting (DESIGN.md 121). `height { sit(0.45m) }`: the hips go back and down onto a seat that high and
+    // carry the weight there, the feet where they stood. The row says how far the body is on the seat (0 standing,
+    // 1 sitting) as it says any height: through all of the word before.
+    private readonly bool _sits;
+    /// <summary>Degrees the torso leans forward, over the feet, half-way down to the seat and half-way up from it: a body gets its weight over its feet to leave a seat.</summary>
+    private const double SitLean = 28;
+
+    /// <summary>How far the body is on a seat at a moment (0 standing, 1 sitting), and how high the seat is.</summary>
+    private (double Share, double Seat) SitAt(double t)
+    {
+        if (!_sits)
+            return default;
+        // The seat's height weighted by the share, so that the way down from standing is to THIS seat (a standing word has none).
+        var (share, sum) = Chain(_height, t, seg => seg?.Seat is { } h ? (1.0, h) : (0.0, 0.0),
+            (a, b, e) => (a.Item1 + (b.Item1 - a.Item1) * e, a.Item2 + (b.Item2 - a.Item2) * e));
+        return share > 1e-9 ? (Math.Min(1, share), sum / share) : default;
+    }
+
+    /// <summary>
+    /// Words of the support track that move a foot while the body is on a seat or on its way to it or from it
+    /// (SH2024): the seat is where the feet are, so it would slide with them.
+    /// </summary>
+    public IEnumerable<Seg> MovedSeated()
+    {
+        if (!_sits)
+            yield break;
+        foreach (var moves in new[] { _leftMoves, _rightMoves })
+        {
+            foreach (var move in moves)
+            {
+                if (move.Seg is null || move.T1 <= move.T0 + 1e-9 || _loop && (move.T1 < -1e-9 || move.T1 > _length + 1e-9))
+                    continue;
+                if (SitAt(move.T1).Share > 0.05 || SitAt((move.T0 + move.T1) / 2).Share > 0.05)
+                    yield return move.Seg;
+            }
+        }
     }
 
     /// <summary>What has to hold for a loop and does not, in words for the author; null when it joins.</summary>
@@ -2424,12 +2470,16 @@ internal sealed class FigureSolver
         c.LRoll = RollShare(_leftMoves, t) * (1 - c.GwL);
         c.RRoll = RollShare(_rightMoves, t) * (1 - c.GwR);
         c.Float = _float.Eval(t);
+        (c.Sit, c.Seat) = SitAt(t);
 
         // The weight goes over the standing foot as far as the other leg is off the floor
         // (a body that hangs in the air has no weight to shift).
         var p = new Vec3(_weightX.Eval(t), 0, _weightZ.Eval(t));
         // Standing still on both feet, the weight drifts from one to the other and back (DESIGN.md 94).
         double still = _alive && c.Float < 0.01 && !c.LAir && !c.RAir ? FeetStill(t) * (1 - c.GwL) * (1 - c.GwR) : 0;
+        // On a seat the weight is on the seat: it does not drift from foot to foot.
+        if (c.Sit > 0)
+            still *= 1 - c.Sit;
         double drift = Wave(t, _sway) * still;
         if (still > 0)
         {
@@ -2467,6 +2517,13 @@ internal sealed class FigureSolver
         // sway, which set it afresh and had undone this.
         if (_torso.Count == 0 && Juggling is { } swaying && swaying.SideLean(Seconds(t)) is var sway && sway != 0)
             torso = new Vec3(torso.X + sway, torso.Y, torso.Z).Normalized();
+        // Down to a seat and up from it, the torso leans forward over the feet, most half-way (DESIGN.md 121): on top of
+        // what its row says, as a jump bends the knees whatever the height row says.
+        if (c.Sit > 0 && c.Sit < 1)
+        {
+            double over = SitLean * Math.PI / 180 * Math.Sin(Math.PI * c.Sit), overCos = Math.Cos(over), overSin = Math.Sin(over);
+            torso = new Vec3(torso.X, torso.Y * overCos - torso.Z * overSin, torso.Z * overCos + torso.Y * overSin);
+        }
         c.TorsoUp = (c.Left * torso.X + Vec3.Up * torso.Y + c.Fwd * torso.Z).Normalized();
         c.Round = Chain(_torso, t, seg => seg is { Round: true } ? 1.0 : 0.0, (a, b, e) => a + (b - a) * e, Dist);
         c.Shoulders = Chain(_shoulders, t, seg => (seg?.TurnDeg ?? 0) * Math.PI / 180, (a, b, e) => a + (b - a) * e, Dist);
@@ -2496,7 +2553,8 @@ internal sealed class FigureSolver
         // side bend written on straight legs (writing trial 22). A real body tilts its pelvis there; this one
         // keeps the hip sockets level, so it keeps the hips over the feet instead.
         bool freeL = c.LAir || c.GwL > 0.05, freeR = c.RAir || c.GwR > 0.05;
-        var lean = new Vec3(c.TorsoUp.X, 0, c.TorsoUp.Z) * 0.18;
+        // (Not on a seat: the seat holds the hips where they are.)
+        var lean = new Vec3(c.TorsoUp.X, 0, c.TorsoUp.Z) * (0.18 * (1 - c.Sit));
         var aside = c.Left * lean.Dot(c.Left);
         p -= lean - aside;
         if (aside.Length > 1e-6 && !freeL && !freeR)
@@ -2524,6 +2582,11 @@ internal sealed class FigureSolver
         }
         p -= aside;
         c.P = p;
+        // Sitting, the hips are behind the feet as far as the thighs reach back from the knees, which stand over the
+        // ankles; on the way they go there evenly, back as they go down (TrunkAt). What follows is how the body
+        // stands, from where it stands (p): that is the other end of the way.
+        if (c.Sit > 0)
+            c.P = Vec3.Lerp(p, (c.LPos + c.RPos) * 0.5 - c.Fwd * Rig.SeatBack(c.Seat), c.Sit);
 
         // The height is a row of its own, read like a gesture: it can be taken over half-way.
         double level = Chain(_height, t, seg => seg?.Level ?? 0, (a, b, e) => a + (b - a) * e, Dist);
@@ -2794,6 +2857,9 @@ internal sealed class FigureSolver
         double y = c.WantY + (DeficitNear(t, frame, -2) + DeficitNear(t, frame, -1) + c.Deficit + DeficitNear(t, frame, 1) + DeficitNear(t, frame, 2)) / 5;
         y = Math.Min(y, c.CeilingY);
         y += JumpOffset(t, c.Drop);
+        // On a seat the hips are as high as the seat has them (DESIGN.md 121).
+        if (c.Sit > 0)
+            y += (c.Seat + Rig.SeatHip - y) * c.Sit;
 
         // The torso's word says the line from the pelvis to the chest. A rounded back bows
         // behind that line: the lower half stands up from it, the upper half (and with it the
@@ -2990,7 +3056,7 @@ internal sealed class FigureSolver
     /// how the arm goes from one word to the next. Made of the pose so far (the trunk, the head, the gaze).
     /// </summary>
     private struct ArmOf(FigureSolver solver, double t, int side, Vec3 shoulder, Vec3 lifted, bool holdsMic, double swing, Vec3 pole, List<Seg> armSegs,
-        CoreState c, Vec3 pelvis, Vec3 chest, Vec3 head, Vec3 gaze, Vec3 neck, Vec3 torsoUp, Vec3 torsoLeft, Vec3 torsoFwd, Vec3 faceLeft, Vec3 faceFwd)
+        CoreState c, Vec3 pelvis, Vec3 chest, Vec3 head, Vec3 gaze, Vec3 neck, Vec3 torsoUp, Vec3 torsoLeft, Vec3 torsoFwd, Vec3 faceLeft, Vec3 faceFwd, Vec3 lap)
         : IChain<(Vec3 Offset, Vec3 Bend)>
     {
         // An arm that hangs: the upper arm straight down, the elbow a little bent, so the hand
@@ -3007,6 +3073,9 @@ internal sealed class FigureSolver
             return left * (0.06 * side) - up * (below * cos - front * sin) + fwd * (front * cos + below * sin);
         }
 
+        // Sitting, an arm that would hang rests its hand on the thigh instead (hanging, it went into the seat).
+        private Vec3 Rest(Vec3 hang) => c.Sit > 0 ? Vec3.Lerp(hang, lap - shoulder, c.Sit) : hang;
+
         private Vec3 Offset(Seg? seg)
         {
             // An arm nobody wrote hangs, and swings while the feet walk. One that holds a mic holds it before
@@ -3014,7 +3083,7 @@ internal sealed class FigureSolver
             if (seg is null)
                 return holdsMic
                     ? chest + torsoFwd * 0.22 - torsoUp * 0.35 + torsoLeft * (0.10 * side) - shoulder
-                    : Hang(c.Left, Vec3.Up, c.Fwd, swing);
+                    : Rest(Hang(c.Left, Vec3.Up, c.Fwd, swing));
             if (seg.Kind == SegKinds.Reach)
                 return solver._others(seg.Target!) is { } other ? other.PlaceAt(seg.Part!, side, t, solver, seg.Level) - (shoulder + lifted) : Offset(null);
             if (seg.Kind == SegKinds.Anchor)
@@ -3042,7 +3111,7 @@ internal sealed class FigureSolver
             // `down` is the arm hanging, the same shape as an arm nobody wrote: on a body with
             // flesh the hand is not under the shoulder joint. (`down.bent` is still the short arm straight down, and `down.bent(0)` the straight arm.)
             if (d[1] < -0.9999 && seg.Bend is null && seg.Pole is null)
-                return seg.Body ? Hang(torsoLeft, torsoUp, torsoFwd) : Hang(c.Left, Vec3.Up, c.Fwd);
+                return seg.Body ? Hang(torsoLeft, torsoUp, torsoFwd) : Rest(Hang(c.Left, Vec3.Up, c.Fwd));
             return Frame(seg, d) * Reach(seg, Rig.UpperArm, Rig.Forearm, 0.999);
         }
 
@@ -3471,7 +3540,10 @@ internal sealed class FigureSolver
                 came--;
             _toForehead = moving && Brow(armSegs[going]);
             _fromForehead = moving && !_toForehead && armSegs[going].Kind != SegKinds.Hold && came >= 0 && Brow(armSegs[came]);
-            var armOf = new ArmOf(this, t, side, shoulder, lifted, holdsMic, swing, pole, armSegs, c, pelvis, chest, head, gaze, neck, torsoUp, torsoLeft, torsoFwd, faceLeft, faceFwd);
+            // Where a hand rests on the thigh of its side, sitting: half-way along it, on top, a little to the outside.
+            int thigh = isLeft ? Rig.LHip : Rig.RHip;
+            var lap = c.Sit > 0 ? Vec3.Lerp(joints[thigh], joints[thigh + 1], 0.5) + Vec3.Up * 0.08 + c.HipLeft * (0.03 * side) : default;
+            var armOf = new ArmOf(this, t, side, shoulder, lifted, holdsMic, swing, pole, armSegs, c, pelvis, chest, head, gaze, neck, torsoUp, torsoLeft, torsoFwd, faceLeft, faceFwd, lap);
             var (reach, bend) = Chain<(Vec3 Offset, Vec3 Bend), ArmOf>(armSegs, t, ref armOf);
             _toForehead = _fromForehead = false;
             int last = armSegs.Count - 1;
