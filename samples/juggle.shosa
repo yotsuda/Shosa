@@ -1,0 +1,25 @@
+// Juggling, in siteswap as jugglers write it: each digit is a throw, and how long
+// until that ball is thrown again. A trick goes on a pattern with `@`.
+// The character is not in the repository: models/README.md says where it comes from.
+title "Juggle"
+tempo 110
+
+role solo
+dancer zunko humanoid "models/zunko.vrm" juggles balls on solo
+
+section Show {
+  solo {
+    juggle { every 1/2
+             3:4 | 3:4 |                    // a cascade of three
+             531:3 3:1 |                    // one high, one low, one handed across
+             3:4@mills | 3:4@mills |        // Mills' Mess: the arms cross and uncross
+             3:4 |
+             423:4@takeouts | 423:4@takeouts | 423:4@takeouts |
+             3:4 | 3:2 skip:2 | }
+    steps  { then:4 | leftFoot.side together rightFoot.side together | }
+    torso  { skip:10bar | up:2 up.fwd(30):1 up:1 | }
+  }
+}
+
+form { Show }
+score { dancer zunko }

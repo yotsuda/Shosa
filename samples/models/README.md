@@ -1,6 +1,6 @@
 # Characters for the samples
 
-`hello.shosa` dresses its dancers in two VRM models that are **not in this repository**
+`hello.shosa` and `juggle.shosa` dress their dancers in two VRM models that are **not in this repository**
 (a `.vrm` here is ignored by git). Without them the dancers are drawn as sticks, and the
 preview says which file it did not find; everything else works.
 

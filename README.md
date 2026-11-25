@@ -4,7 +4,9 @@ Write human movement as text, compile it, and watch a figure perform it beside t
 Shosa is to movement what [Lily#](https://yotsuda.github.io/LilySharp/) is to music: a small language
 you can read, diff and mend, which compiles to animation files a game engine loads.
 
-<!-- VIDEO: samples/hello.shosa in VS Code. Drop the .mp4 here in GitHub's editor; it writes the link. -->
+<!-- VIDEO 1: samples/hello.shosa in VS Code (a dance to a song). Drop the .mp4 here in GitHub's editor; it writes the link. -->
+
+<!-- VIDEO 2: samples/juggle.shosa in VS Code (juggling in siteswap). Drop the .mp4 here. -->
 
 ```
 tempo 120
@@ -63,6 +65,7 @@ The compiler `shosa` comes with it and is on the PATH of VS Code's terminals. Se
 Install **Shosa** from the Extensions view (Windows x64), open [samples/hello.shosa](samples/hello.shosa)
 — the dance in the video above — and press Ctrl+K V. It is danced to a song, so it also wants the
 [Lily#](https://marketplace.visualstudio.com/items?itemName=yotsuda.lilysharp) extension; `samples/wave.shosa` needs nothing.
+[samples/juggle.shosa](samples/juggle.shosa) is the juggling of the second video: a cascade, 531, Mills' Mess and takeouts, written in siteswap.
 The characters of the video (Zundamon and Tohoku Zunko, © SSS LLC.) are not in the repository:
 [samples/models/README.md](samples/models/README.md) says where they come from and on what terms. Without them the
 dancers are drawn as sticks. The voices are NEUTRINO's, sung through Lily#.
