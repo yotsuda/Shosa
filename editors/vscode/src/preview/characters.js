@@ -215,6 +215,7 @@ export function createCharacters(scene, changed) {
     if (dirty) {
       moved = dirty.slice();
       for (let f = 0; f < count; f++) {
+        if (moved[f]) continue;   // (and the frames past the old end, which have nothing to compare with)
         if (swings.left[f] !== was.left[f] || swings.right[f] !== was.right[f] || !swings.out.left[f].equals(was.out.left[f]) || !swings.out.right[f].equals(was.out.right[f])) moved[f] = 1;
       }
     }
@@ -226,13 +227,13 @@ export function createCharacters(scene, changed) {
    * Which frames of a figure are posed otherwise than those of the figure it was before an edit (`place` at a whole
    * frame, before the arms are solved again or kept out: the bones' turns and where the pelvis is; for a juggler the
    * figure's joints too, and what the frame says of the juggling), 1 for each; null when every frame may be, so nothing
-   * of the old one can be kept: another count of frames, another skeleton, another start (the hips are placed from the
-   * first frame), a juggler where there was none.
+   * of the old one can be kept: another skeleton, another start (the hips are placed from the first frame), a juggler
+   * where there was none. A figure with more frames than it had (a bar added at the end) is posed otherwise in those.
    */
   function movedFrames(clip, data, wasClip, wasData) {
     const turns = data.turns, frames = data.frames, wasTurns = wasData.turns, wasFrames = wasData.frames;
-    const count = turns.length;
-    if (!data.juggle !== !wasData.juggle || wasTurns.length !== count || frames.length !== wasFrames.length || frames.length < count) return null;
+    const count = turns.length, had = wasTurns.length;
+    if (!data.juggle !== !wasData.juggle || frames.length < count || wasFrames.length < had || !count || !had) return null;
     if (clip.hipsHeight !== wasClip.hipsHeight || (clip.skeletonBones ?? []).join() !== (wasClip.skeletonBones ?? []).join()) return null;
     const pelvis = clip.joints.indexOf('pelvis') * 3;
     if (pelvis < 0 || pelvis !== wasClip.joints.indexOf('pelvis') * 3) return null;
@@ -245,6 +246,10 @@ export function createCharacters(scene, changed) {
     if (data.juggle && !juggled) return null;
     const dirty = new Uint8Array(count);
     for (let f = 0; f < count; f++) {
+      if (f >= had) {
+        dirty[f] = 1;
+        continue;
+      }
       // (A row that is the same array is a row a patch left as it was.)
       const a = turns[f], b = wasTurns[f], p = frames[f], q = wasFrames[f];
       // A juggler's arms are solved again from where the figure's shoulders, elbows and hands are (arms.js): the whole row.
@@ -257,14 +262,19 @@ export function createCharacters(scene, changed) {
   /**
    * For a juggler after an edit: `f => whether what the frame says of the juggling is otherwise than it was` (what `place`
    * and `measure` read at a whole frame: how much Mills' Mess or takeouts have the arms, the forearm drawn in, the elbow
-   * held, the plane, the palms' weight, and what the hands are told, handsOf). Null when every frame may be: another
-   * prop, other joints, lists of another length.
+   * held, the plane, the palms' weight, and what the hands are told, handsOf), for the frames both have. Null when every
+   * frame may be: another prop, other joints, a list that is not one entry per frame.
    */
   function juggledOtherwise(clip, data, wasClip, wasData) {
     const now = data.juggle, was = wasData.juggle;
-    if (now.prop !== was.prop || clip.fps !== wasClip.fps || clip.joints.join() !== wasClip.joints.join() || data.frames.length !== data.turns.length) return null;
+    const count = data.turns.length, had = wasData.turns.length;
+    if (now.prop !== was.prop || clip.fps !== wasClip.fps || clip.joints.join() !== wasClip.joints.join() || data.frames.length !== count || wasData.frames.length !== had) return null;
     const amounts = ['mills', 'follow', 'weight'], sides = ['pull', 'wheel', 'plane'];
-    for (const key of [...amounts, ...sides, 'styles']) if ((now[key]?.length ?? -1) !== (was[key]?.length ?? -1)) return null;
+    // (A list is read at the frame, or at its last entry past its end: the same frame of both only when both go to the end.)
+    for (const key of [...amounts, ...sides, 'styles']) {
+      const a = now[key]?.length ?? -1, b = was[key]?.length ?? -1;
+      if (!(a === b && a <= 0) && !(a === count && b === had)) return null;
+    }
     const hands = handsOf(clip, data), wasHands = handsOf(wasClip, wasData);
     const at = (list, f) => list && list.length ? list[Math.min(list.length - 1, f)] : undefined;
     const pair = (a, b) => a === b || (!!a && !!b && a[0] === b[0] && a[1] === b[1]);
@@ -478,7 +488,7 @@ export function createCharacters(scene, changed) {
    */
   function trackPalms(entry, clip, data, was = null, moved = null) {
     const count = data.frames.length;
-    if (!was || !moved || moved.length !== count || was.hips.length !== count || was.fps !== clip.fps) was = moved = null;
+    if (!was || !moved || moved.length !== count || was.fps !== clip.fps) was = moved = null;
     const at = { data, fps: clip.fps, size: entry.height && entry.ownHeight ? entry.height / entry.ownHeight : 1, vrm: entry.vrm, palms: [[], []], forearms: [[], []], hips: [] };
     const hipsBone = entry.vrm.humanoid.getNormalizedBoneNode('hips');
     const hands = handsOf(clip, data);

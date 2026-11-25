@@ -37,6 +37,18 @@ test('several runs of rows, in several lists', () => {
   assert.deepEqual(now[0].figures[0].turns, [[10], [11], [32], [33]]);
 });
 
+test('a list of rows grows and shrinks, the rows before its end the same objects', () => {
+  const was = clips();
+  const longer = applyClipPatch(was, { clips: [{ from: 0, figures: [{ rows: { frames: [[3, [23], [4], [5]]], turns: [[4, [14], [15]]] }, counts: { frames: 6, turns: 6 } }, null] }, { from: 1 }] });
+  assert.deepEqual(longer[0].figures[0].frames, [[0], [1], [2], [23], [4], [5]]);
+  assert.deepEqual(longer[0].figures[0].turns, [[10], [11], [12], [13], [14], [15]]);
+  assert.equal(longer[0].figures[0].frames[2], was[0].figures[0].frames[2]);
+  const shorter = applyClipPatch(was, { clips: [{ from: 0, figures: [{ rows: { frames: [[1, [21]]] }, counts: { frames: 2, turns: 3 } }, null] }, { from: 1 }] });
+  assert.deepEqual(shorter[0].figures[0].frames, [[0], [21]]);
+  assert.deepEqual(shorter[0].figures[0].turns, [[10], [11], [12]]);
+  assert.deepEqual(was, clips());
+});
+
 test('a head is the clip without its figures, whole: what it has no more is gone', () => {
   const was = clips();
   const now = applyClipPatch(was, { clips: [{ from: 0, head: { name: 'Long', totalBeats: 8, marks: [] } }, { from: 1 }] });

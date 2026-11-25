@@ -304,8 +304,8 @@ export function elbowSwing(vrm, body, size, side, before, posed = null) {
  * side and eased in and out, so an elbow moves round the body in one sweep and does not flap. { left, right } per frame.
  *
  * After an edit only the frames it moved are worked out again (DESIGN.md 120): `was` is what this gave for the movement
- * before the edit (the same character, size and count of frames) and `dirty[f]` is 1 where frame f is posed otherwise
- * than it was. A frame is posed and tested again where it is dirty, or where what it depends on came out otherwise
+ * before the edit (the same character and size; of however many frames: a frame it had not is dirty) and `dirty[f]`
+ * is 1 where frame f is posed otherwise than it was. A frame is posed and tested again where it is dirty, or where what it depends on came out otherwise
  * (the swing of the frame before, its own eased swing); everything else is taken from `was`. What comes out is what
  * working it all out gives (harness-perf.html compares). The smoothing is done whole: it is arithmetic.
  */

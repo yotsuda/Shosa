@@ -146,6 +146,12 @@ public class ClipPatchTests
                             if (before[key] is { } kept)
                                 figure[key] = kept.DeepClone();
                         }
+                        foreach (var (key, count) in change["counts"]?.AsObject() ?? [])
+                        {
+                            var rows = figure[key]!.AsArray();
+                            while (rows.Count > count!.GetValue<int>())
+                                rows.RemoveAt(rows.Count - 1);
+                        }
                         foreach (var (key, runs) in change["rows"]?.AsObject() ?? [])
                         {
                             var rows = figure[key]!.AsArray();
@@ -153,7 +159,12 @@ public class ClipPatchTests
                             {
                                 int first = run![0]!.GetValue<int>();
                                 for (int i = 1; i < run.AsArray().Count; i++)
-                                    rows[first + i - 1] = run[i]!.DeepClone();
+                                {
+                                    if (first + i - 1 < rows.Count)
+                                        rows[first + i - 1] = run[i]!.DeepClone();
+                                    else
+                                        rows.Add(run[i]!.DeepClone());
+                                }
                             }
                         }
                         foreach (string key in new[] { "mic", "juggle" })
@@ -233,6 +244,33 @@ public class ClipPatchTests
         Edit("rightArm { down:4 |", "rightArm { down:4 oops |");         // an error, and out of it
         Edit("down:4 oops |", "down:4 |");
         Edit("form F { A B }", "form F { A B A }");                      // longer
+    }
+
+    [Fact]
+    public void A_dance_made_longer_or_shorter_is_patched_too_and_keeps_the_rows_before_its_end()
+    {
+        var editor = new Editor(Duet);
+        int Frames() => editor.Clips[0]!["figures"]![0]!["frames"]!.AsArray().Count;
+        int was = Frames();
+
+        // A section more at the end: the rows of the sections before it are not sent again.
+        editor.Replace("form F { A B }", "form F { A B B }");
+        Assert.Equal("patch", editor.Taken[^1].Kind);
+        AssertSame(editor.Whole(), editor.Clips);
+        int longer = Frames();
+        Assert.True(longer > was);
+        var figure = editor.LastPatch!["clips"]![0]!["figures"]![0]!;
+        Assert.Equal(longer, figure["counts"]!["frames"]!.GetValue<int>());
+        Assert.Equal(longer, figure["counts"]!["turns"]!.GetValue<int>());
+        int sent = figure["rows"]!["frames"]!.AsArray().Sum(run => run!.AsArray().Count - 1);
+        Assert.True(sent < longer - was / 2, $"{sent} of {longer} frames were sent for {longer - was} more.");
+
+        // And taken away again.
+        editor.Replace("form F { A B B }", "form F { A B }");
+        Assert.Equal("patch", editor.Taken[^1].Kind);
+        AssertSame(editor.Whole(), editor.Clips);
+        Assert.Equal(was, Frames());
+        Assert.Equal(was, editor.LastPatch!["clips"]![0]!["figures"]![0]!["counts"]!["frames"]!.GetValue<int>());
     }
 
     [Fact]

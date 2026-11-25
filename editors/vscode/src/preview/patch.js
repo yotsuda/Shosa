@@ -29,10 +29,11 @@ function patched(was, change) {
     if (change.head && was[key] !== undefined) figure[key] = was[key];
   }
   for (const key of ROWS) {
-    const runs = change.rows && change.rows[key];
-    if (!runs) continue;
-    const rows = was[key].slice();
-    for (const run of runs) {
+    const runs = change.rows && change.rows[key], count = change.counts ? change.counts[key] : undefined;
+    if (!runs && count === undefined) continue;
+    // (`counts`: the list is shorter or longer now; the rows past its old end are a run.)
+    const rows = count === undefined ? was[key].slice() : was[key].slice(0, count);
+    for (const run of runs ?? []) {
       for (let i = 1; i < run.length; i++) rows[run[0] + i - 1] = run[i];
     }
     figure[key] = rows;
