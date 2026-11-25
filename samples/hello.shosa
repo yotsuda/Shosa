@@ -5,8 +5,8 @@ music "hello.lys"
 
 role zunda
 role metan
-dancer zundamon humanoid "models/zundamon.vrm" sings zunda on zunda at -0.8 0
-dancer zunko    humanoid "models/zunko.vrm"    sings metan on metan at  0.8 0
+dancer zundamon humanoid "models/zundamon.vrm" height 150cm sings zunda on zunda at -0.8 0
+dancer zunko    humanoid "models/zunko.vrm"    height 150cm sings metan on metan at  0.8 0
 
 // ---- one bar each, written for zunda; metan dances them @mirror ----
 
@@ -51,7 +51,7 @@ move together2 {
 // "kiite ne": a hand at the ear, leaning into it.
 move listen {
   steps    { rightFoot.side(0.45m) together then:2 }
-  rightArm { side.down(40):1/2 then:1/2 head:2 then:1 }
+  rightArm { side.down(40):1/2 then:1/2 side.up(60).bent(130):2 then:1 }
   leftArm  { side.down(40) hip:3 }
   torso    { up up.right(10):2 then:1 }
   head     { fwd fwd.tilt(right(15)):2 then:1 }
