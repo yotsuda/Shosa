@@ -291,6 +291,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
     private List<DancerSpec> _active = [];
 
     private static readonly DancerSpec Nobody = new();
+    private static readonly List<SyntaxNode> NoAnnotations = [];   // never added to
 
     private void Report(string code, DiagnosticSeverity severity, TextSpan span, string message)
     {
@@ -1453,7 +1454,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
 
         double rest = time - barStart;
         var meter = MeterAt(ctx, barStart);
-        if (BarsKnown && track.DescendantNodes().Any(n => n.Kind == SyntaxKind.BarLine) && rest > Epsilon && Math.Abs(rest - meter.BeatsPerBar) > Epsilon)
+        if (BarsKnown && rest > Epsilon && Math.Abs(rest - meter.BeatsPerBar) > Epsilon && track.DescendantNodes().Any(n => n.Kind == SyntaxKind.BarLine))
         {
             Report("SH1002", DiagnosticSeverity.Warning, name.Span,
                 $"The last bar of this track has {Format(rest)} beats; time {meter.BeatsPerBar}/{meter.BeatUnit} has {meter.BeatsPerBar}.");
@@ -1483,7 +1484,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
             var across = _barEvents.FirstOrDefault(e => e.T0 < barEnd - Epsilon && e.T1 > barEnd + Epsilon);
             string hint = beats < perBar ? ""
                 : across.Word is null ? " An event that runs across a bar line is tied over it, as in kick:1~ | :2"
-                : TieHint(across.Word, (barEnd - across.T0) / ctx.Scale, (across.T1 - barEnd) / ctx.Scale, MeterAt(ctx, barEnd).BeatsPerBar);
+                : TieHint(across.Word.ToString().Trim(), (barEnd - across.T0) / ctx.Scale, (across.T1 - barEnd) / ctx.Scale, MeterAt(ctx, barEnd).BeatsPerBar);
             string changed = meter == _meters[0] ? "" : $" (the {(_music is null ? "time changes" : "song changes time")} on the way: `shosa check` says where)";
             // A section that counts in another time than the file's says so itself: the one before it does not say it for it.
             var section = _sections.FirstOrDefault(s => s.Value.Span.Start <= line.Span.Start && line.Span.Start < s.Value.Span.End).Key;
@@ -1520,7 +1521,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
     }
 
     /// <summary>The events since the last bar line, for the hint of SH1002.</summary>
-    private readonly List<(string? Word, double T0, double T1)> _barEvents = [];
+    private readonly List<(SyntaxNode? Word, double T0, double T1)> _barEvents = [];   // (the target as it is in the tree: its text is made only for a hint)
 
     /// <summary>Which plays of its section a `verse` is for: 2, 1,3 or 1-2 (the lexer reads -2 as one number).</summary>
     private static HashSet<int> VerseNumbers(SyntaxNode verse)
@@ -1568,9 +1569,15 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
     private double Walk(SyntaxNode parent, Ctx ctx, ref double time, ref double barStart,
         List<(double T0, double T1, Func<double, Ctx, double> Play)>? before = null, double? beganAt = null)
     {
-        var items = parent.ChildNodes().ToList();
-        // What this row has done so far, so that `%` can do a bar of it again.
-        var done = before ?? [];
+        var items = parent.ChildNodes();
+        // What this row has done so far, so that `%` can do a bar of it again: kept only in a row that has a `%` or a
+        // `verse` (whose rows are given what was done before them), the only ones that read it.
+        List<(double T0, double T1, Func<double, Ctx, double> Play)>? done = before;
+        for (int i = 0; done is null && i < items.Count; i++)
+        {
+            if (items[i].Kind is SyntaxKind.BarRepeat or SyntaxKind.Verse)
+                done = [];
+        }
         double rowStart = beganAt ?? time, written = 0;   // written: the length of the last bar a line closed in this row
         double since = ctx.Since;                         // where the word before the next one begins
         var given = ctx;
@@ -1578,7 +1585,8 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         for (int i = 0; i < items.Count; i++)
         {
             var item = items[i];
-            ctx = given with { Since = since };
+            if (!ctx.Since.Equals(since))
+                ctx = given with { Since = since };
             switch (item.Kind)
             {
                 case SyntaxKind.BarLine:
@@ -1591,7 +1599,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                         // A bar with nothing in it is a bar in which this row says nothing (as in Lily#):
                         // `| |`, the line a row begins with.
                         double empty = !BarsKnown && written > 0 ? written : MeterAt(ctx, time).BeatsPerBar * ctx.Scale;
-                        done.Add((time, time + empty, (start, c) => start + MeterAt(c, start).BeatsPerBar * c.Scale));
+                        done?.Add((time, time + empty, (start, c) => start + MeterAt(c, start).BeatsPerBar * c.Scale));
                         since = time;
                         time += empty;
                     }
@@ -1606,7 +1614,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                     // Where the song could not be read its time is not known: a bar is then as long as the one written before.
                     double bar = !BarsKnown && written > 0 ? written : MeterAt(ctx, time).BeatsPerBar * ctx.Scale;
                     double span = bars * bar, from = time - span;
-                    var again = done.Where(e => e.T1 > from + Epsilon && e.T1 - e.T0 > Epsilon).ToList();
+                    var again = done!.Where(e => e.T1 > from + Epsilon && e.T1 - e.T0 > Epsilon).ToList();
                     if (Math.Abs(time - barStart) > Epsilon)
                         Error("SH1027", item.Span, "'%' stands alone between bar lines: a b | % | % |");
                     else if (from < rowStart - Epsilon || again.Count == 0)
@@ -1635,8 +1643,10 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                     int lastVerse = i;
                     while (lastVerse + 1 < items.Count && items[lastVerse + 1].Kind == SyntaxKind.Verse)
                         lastVerse++;
-                    var run = items.GetRange(i, lastVerse - i + 1);
-                    var soFar = done.ToList();
+                    var run = new List<SyntaxNode>(lastVerse - i + 1);
+                    for (int k = i; k <= lastVerse; k++)
+                        run.Add(items[k]);
+                    var soFar = done!.ToList();
                     double t0 = time, row0 = rowStart, lag = t0 - since;
                     (time, barStart) = Verses(run, ctx, t0, barStart, soFar, rowStart);
                     // Done again by a `%`, it is the verse of the play then, with the bars before it moved along.
@@ -1667,7 +1677,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                 {
                     double t0 = time, lag = t0 - since;
                     since = Overlay(item, ctx, ref time, ref barStart);
-                    done.Add((t0, time, (start, c) => { double t = start, b = start; Overlay(item, Again(c, start - lag), ref t, ref b); return t; }));
+                    done?.Add((t0, time, OverlayAgain(item, lag)));
                     break;
                 }
 
@@ -1683,19 +1693,19 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
 
                     // kick:1~ | :2 is one event of three beats; the bar lines inside it are checked where they fall.
                     double extra = 0;
-                    var inside = new List<(SyntaxNode? Line, double Length)>();
+                    List<(SyntaxNode? Line, double Length)>? inside = null;
                     int last = i;
                     bool tied = item.Token(SyntaxKind.Tilde) is not null;
                     for (int j = i + 1; tied && j < items.Count; j++)
                     {
                         if (items[j].Kind == SyntaxKind.BarLine)
                         {
-                            inside.Add((items[j], 0));
+                            (inside ??= []).Add((items[j], 0));
                         }
                         else if (items[j].Kind == SyntaxKind.Event && items[j].Child(SyntaxKind.Target) is null)
                         {
                             double more = items[j].Child(SyntaxKind.Duration) is { } d ? WrittenLength(d) ?? 0 : 0;
-                            inside.Add((null, more));
+                            (inside ??= []).Add((null, more));
                             extra += more;
                             last = j;
                             tied = items[j].Token(SyntaxKind.Tilde) is not null;
@@ -1714,7 +1724,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                     double innerSince = _inner;
                     _inner = double.NaN;
                     if (ctx.CheckBars && last == i)
-                        _barEvents.Add((item.Child(SyntaxKind.Target)!.ToString().Trim(), t0, time));
+                        _barEvents.Add((item.Child(SyntaxKind.Target)!, t0, time));
                     if (last > i)
                     {
                         // Walk the pieces again for their bar lines.
@@ -1731,7 +1741,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                         i = last;
                     }
                     double lag = t0 - since;
-                    done.Add((t0, time, (start, c) => { double t = start, b = start; BindEvent(item, Again(c, start - lag), ref t, ref b, extra); return t; }));
+                    done?.Add((t0, time, EventAgain(item, lag, extra)));
                     // After a move, the word before the next one is the move's last word, not all of the move.
                     since = double.IsNaN(innerSince) ? t0 : Math.Max(t0, innerSince);
                     break;
@@ -1740,6 +1750,14 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         }
         return since;
     }
+
+    // An item of a row, for a `%` to do again at another beat. (Made here and not in Walk, where what they keep
+    // would be made for every item of every row, whether a `%` follows or not.)
+    private Func<double, Ctx, double> EventAgain(SyntaxNode item, double lag, double extra) =>
+        (start, c) => { double t = start, b = start; BindEvent(item, Again(c, start - lag), ref t, ref b, extra); return t; };
+
+    private Func<double, Ctx, double> OverlayAgain(SyntaxNode item, double lag) =>
+        (start, c) => { double t = start, b = start; Overlay(item, Again(c, start - lag), ref t, ref b); return t; };
 
     /// <summary>
     /// What an item is bound in when a `%` does it again at another beat: the word before it begins as
@@ -1769,13 +1787,18 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
     }
 
     /// <summary>The group `q` stands for: the nearest one in braces written before it in the same track.</summary>
-    private static SyntaxNode? GroupBefore(SyntaxNode ev)
+    private SyntaxNode? GroupBefore(SyntaxNode ev)
     {
+        // (Found once for each `q`: it is asked every time its row is walked, and the answer is the tree's. DESIGN.md 120.14.)
+        if (_groupBefore.TryGetValue(ev, out var known))
+            return known;
         var track = ev.Parent;
         while (track is not null && !(track.Kind == SyntaxKind.Track))
             track = track.Parent;
-        return track?.DescendantNodes().Where(n => n.Kind == SyntaxKind.Overlay && n.Span.End <= ev.Span.Start).MaxBy(n => n.Span.End);
+        return _groupBefore[ev] = track?.DescendantNodes().Where(n => n.Kind == SyntaxKind.Overlay && n.Span.End <= ev.Span.Start).MaxBy(n => n.Span.End);
     }
+
+    private readonly Dictionary<SyntaxNode, SyntaxNode?> _groupBefore = new(ReferenceEqualityComparer.Instance);
 
     /// <summary>`q`: the group before it again, stretched to the length written, mirrored if it says so.</summary>
     private void BindAgain(SyntaxNode ev, SyntaxToken word, Ctx ctx, ref double time, ref double barStart, double extra)
@@ -1857,7 +1880,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
 
     /// <summary>`:3bar`: a length counted in bars, which only a `skip` or a `then` at the start of a bar has.</summary>
     private static bool InBars(SyntaxNode? duration) =>
-        duration is not null && Tokens(duration, SyntaxKind.Identifier).FirstOrDefault()?.Text == "bar";
+        duration?.Token(SyntaxKind.Identifier)?.Text == "bar";
 
     /// <summary>The beats of so many bars from a place: each bar is as long as the time it is in.</summary>
     private double BarsFrom(double bars, Ctx? ctx, double time, out double lastBar)
@@ -1876,19 +1899,18 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
 
     private double? WrittenLength(SyntaxNode duration, Ctx? ctx = null, double time = 0)
     {
-        var numbers = Tokens(duration, SyntaxKind.Number);
-        if (numbers.Count == 0)
+        if (duration.Token(SyntaxKind.Number) is not { } number)
             return null;
-        double value = Number(numbers[0]);
-        if (numbers.Count >= 2)
-            value = Number(numbers[1]) != 0 ? value / Number(numbers[1]) : -1;
+        double value = Number(number);
+        if (duration.Token(SyntaxKind.Number, 1) is { } under)
+            value = Number(under) != 0 ? value / Number(under) : -1;
         if (value < 0)
         {
             Error("SH1009", duration.Span, "A length is a number of beats, seconds or frames: :2, :1/2, :0.3s, :12f.");
             return 1;
         }
         // Seconds and frames become beats here, so bars are still checked.
-        return Tokens(duration, SyntaxKind.Identifier).FirstOrDefault()?.Text switch
+        return duration.Token(SyntaxKind.Identifier)?.Text switch
         {
             "s" => value * _unitTempo / 60,
             "f" => value / _fps * _unitTempo / 60,
@@ -1900,9 +1922,28 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
     private void BindEvent(SyntaxNode ev, Ctx ctx, ref double time, ref double barStart, double extra = 0)
     {
         var target = ev.Child(SyntaxKind.Target);
-        var words = target is null ? [] : target.ChildTokens().Where(t => t.Kind is SyntaxKind.Identifier or SyntaxKind.Number && !t.IsMissing).ToList();
-        var parts = Parts(target);
-        bool bracketed = parts.Any(p => p.Bracket is not null);
+        // The words of the target, and whether one of them has a bracket after it. (By hand, and the parts only once
+        // they are wanted: this is asked of every word of every row, every time it is walked. DESIGN.md 120.14.)
+        var words = new List<SyntaxToken>();
+        bool bracketed = false, missing = false;
+        if (target is not null)
+        {
+            var inTarget = target.Children();
+            for (int i = 0, before = 0; i < inTarget.Count; i++)
+            {
+                if (inTarget[i] is SyntaxToken token)
+                {
+                    missing |= token.IsMissing;
+                    if (token.Kind is SyntaxKind.Identifier or SyntaxKind.Number && !token.IsMissing)
+                    {
+                        words.Add(token);
+                        before++;
+                    }
+                }
+                else if (inTarget[i] is SyntaxNode { Kind: SyntaxKind.Arguments } && before > 0)
+                    bracketed = true;
+            }
+        }
         bool juggle = ctx.TrackName == Channels.Juggle;
         SyntaxNode? definition = words.Count == 1 && !bracketed && !juggle ? _defs.GetValueOrDefault(words[0].Text) : null;
         if (words.Count == 1 && !bracketed && words[0].Text == Vocabulary.Again && ctx.ForcedLength is null)
@@ -1942,14 +1983,27 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         if (lastBar is { } closing)
             barStart = t1 - closing;   // the line after it closes one bar, as after `%3`
 
-        if (target is null || words.Count == 0 || target.ChildTokens().Any(t => t.IsMissing))
+        if (target is null || words.Count == 0 || missing)
             return;   // the parser has already said what is missing
+
+        // Walked only for how long it is (a section's length, a move's, a group's, where a first bar ends), the word
+        // has said all it has to say: nothing below is kept, and nothing below is said (DESIGN.md 120.14).
+        // A move is still asked its own length here, as it is where it is laid out: asked first in another place, a move
+        // that uses itself by way of another would be given another length.
+        if (_mute > 0)
+        {
+            if (definition is { Kind: SyntaxKind.MoveDecl } && !_expanding.Contains(words[0].Text))
+                Natural(words[0].Text);
+            return;
+        }
 
         // The parts of a word in one order, so that the same word is always written the same way:
         // the target, its length, how it gets there, its mark. kick:2@mirror!hit
         int rank = 0;
-        foreach (var part in ev.ChildNodes())
+        var said = ev.ChildNodes();
+        for (int i = 0; i < said.Count; i++)
         {
+            var part = said[i];
             int own = part.Kind switch { SyntaxKind.Duration => 1, SyntaxKind.Annotation => 2, SyntaxKind.Mark => 3, _ => 0 };
             if (own == 0)
                 continue;
@@ -1967,20 +2021,29 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
             return;
         }
 
-        var annotations = new List<SyntaxNode>();
-        foreach (var annotation in ev.ChildNodes(SyntaxKind.Annotation))
+        var annotations = NoAnnotations;   // (most words have none)
+        for (int i = 0; i < said.Count; i++)
         {
-            if (annotation.Token(SyntaxKind.Identifier) is not { } name)
+            var annotation = said[i];
+            if (annotation.Kind != SyntaxKind.Annotation || annotation.Token(SyntaxKind.Identifier) is not { } name)
                 continue;
             if (Vocabulary.Has(Vocabulary.Annotations, name.Text))
-                annotations.Add(annotation);
+                (annotations = annotations.Count == 0 ? [] : annotations).Add(annotation);
             else if (Vocabulary.Has(Vocabulary.Shapes, name.Text))
                 // The shape a part arrives in is the target's own: `@` is only how it gets there.
                 Error("SH1010", name.Span, $"'{name.Text}' is a word of the target, after the direction: {ShapeExample(name.Text)}. '@' says how a part gets to its word (@sharp, @linear), not the shape it arrives in.");
             else
                 Error("SH1010", name.Span, $"There is no '@{name.Text}'.{Hint(name.Text, Vocabulary.Annotations.Select(w => w.Name))}");
         }
-        bool Has(string name) => annotations.Any(a => a.Token(SyntaxKind.Identifier)!.Text == name);
+        bool Has(string name)
+        {
+            for (int i = 0; i < annotations.Count; i++)
+            {
+                if (annotations[i].Token(SyntaxKind.Identifier)!.Text == name)
+                    return true;
+            }
+            return false;
+        }
         if (!ctx.Channels.Contains(Channels.Support))
         {
             foreach (var annotation in annotations)
@@ -1993,12 +2056,19 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         else if (ctx.Channels.Length == 1)
         {
             // A foot is put down where it goes: it does not pass a place on the floor on its way (DESIGN.md 86.4).
-            foreach (var annotation in annotations.Where(a => a.Token(SyntaxKind.Identifier)!.Text == "through"))
-                Error("SH1010", annotation.Token(SyntaxKind.Identifier)!.Span, "'@through' is for the shape of a part (an arm, a leg, the torso, the head, the height), not a step: a foot lands where it goes.");
+            foreach (var annotation in annotations)
+                if (annotation.Token(SyntaxKind.Identifier)!.Text == "through")
+                    Error("SH1010", annotation.Token(SyntaxKind.Identifier)!.Span, "'@through' is for the shape of a part (an arm, a leg, the torso, the head, the height), not a step: a foot lands where it goes.");
         }
 
         bool mirror = ctx.Mirror ^ Has("mirror"), free = ctx.Free || Has("free");
-        string? ease = ctx.EaseOverride ?? annotations.Select(a => a.Token(SyntaxKind.Identifier)!.Text).LastOrDefault(a => a is "smooth" or "sharp" or "linear" or "through");
+        string? ease = ctx.EaseOverride;
+        for (int i = annotations.Count - 1; ease is null && i >= 0; i--)
+        {
+            string how = annotations[i].Token(SyntaxKind.Identifier)!.Text;
+            if (how is "smooth" or "sharp" or "linear" or "through")
+                ease = how;   // the last one written
+        }
         var src = ctx.Src ?? ev.Span;
         var mark = ev.Child(SyntaxKind.Mark)?.Token(SyntaxKind.Identifier);
 
@@ -2031,35 +2101,35 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         // Where the feet stand (steps), and how high the body stands on them (height): two rows.
         Seg? feet = null, height = null;
         if (!isHold && ctx.Channels.Contains(Channels.Support))
-            feet = BindSupport(parts, annotations, mirror, free, ctx);
+            feet = Meant(ev, Channels.Support, target, annotations, mirror, free, ctx);
         if (!isHold && ctx.Channels.Contains(Channels.Height))
-            height = BindHeight(parts);
+            height = Meant(ev, Channels.Height, target, annotations, mirror, free, ctx);
 
         // The word's own time, in the clip. What is before beat 0 (an upbeat the score starts with) is
         // over the end of a loop, where it takes the part from the last play as it would from the one
         // before it; in any other score it is before anything is seen, and is not there.
-        var pieces = new List<(double T0, double T1, bool Wrapped)>();
+        (double T0, double T1, bool Wrapped) first = default, second = default;   // (two at most: no list for them)
+        int pieces = 0;
         if (ctx.Clip is null)
-            pieces.Add((t0, t1, false));
+            (first, pieces) = ((t0, t1, false), 1);
         else if (wrap > 0)
         {
-            pieces.Add((t0 + wrap, Math.Min(t1, 0) + wrap, true));
+            (first, pieces) = ((t0 + wrap, Math.Min(t1, 0) + wrap, true), 1);
             if (t1 > Epsilon)
-                pieces.Add((0, t1, false));
+                (second, pieces) = ((0, t1, false), 2);
         }
         else if (t1 > Epsilon)
-            pieces.Add((Math.Max(0, t0), t1, false));
+            (first, pieces) = ((Math.Max(0, t0), t1, false), 1);
 
-        var raws = new List<(string Channel, Raw Raw)>();
+        // What a mark of this word names: kept only for a word that has one.
+        List<(string Channel, Raw Raw)>? raws = mark is not null && ctx.Clip is not null && t0 + wrap > -Epsilon ? [] : null;
         foreach (string channel in ctx.Channels)
         {
             var seg = release ? new Seg { Kind = SegKinds.Release }
                 : isHold ? new Seg { Kind = SegKinds.Hold }
                 : channel == Channels.Support ? feet
                 : channel == Channels.Height ? height
-                : channel is Channels.Shoulders or Channels.Hips ? BindTurned(channel, parts, mirror)
-                : channel == Channels.Turnout ? BindTurnout(parts)
-                : BindGesture(channel, parts, annotations, mirror, ctx);
+                : Meant(ev, channel, target, annotations, mirror, free, ctx);
             if (seg is null)
                 continue;
             seg.Src = src.Start;
@@ -2070,22 +2140,46 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
             if (!ctx.Sink.TryGetValue(channel, out var list))
                 ctx.Sink[channel] = list = [];
             int order = _order++;
-            for (int i = 0; i < pieces.Count; i++)
+            for (int i = 0; i < pieces; i++)
             {
+                var at = i == 0 ? first : second;
                 // (The word's own segment for its last piece: it is this channel's alone, and nothing reads it after.)
-                var piece = i == pieces.Count - 1 ? seg : seg.Clone();
-                (piece.T0, piece.T1) = (pieces[i].T0, pieces[i].T1);
-                double moved = pieces[i].Wrapped ? wrap : 0;
-                int[] priority = release ? [int.MinValue] : pieces[i].Wrapped ? [int.MaxValue, .. ctx.Priority.Skip(1)] : ctx.Priority;
+                var piece = i == pieces - 1 ? seg : seg.Clone();
+                (piece.T0, piece.T1) = (at.T0, at.T1);
+                double moved = at.Wrapped ? wrap : 0;
+                int[] priority = release ? [int.MinValue] : at.Wrapped ? [int.MaxValue, .. ctx.Priority.Skip(1)] : ctx.Priority;
                 list.Add(new Raw(piece, priority, order, t0 + moved, ctx.Since + moved, ctx.Stance, ctx.Rows));
                 if (i == 0)
-                    raws.Add((channel, list[^1]));
+                    raws?.Add((channel, list[^1]));
             }
         }
         // The moment a mark names is the beat its word is written at: the hand is there, the foot lands, the jump comes down.
-        if (mark is not null && ctx.Clip is not null && t0 + wrap > -Epsilon)
-            _marks.Add((new MarkIr(Math.Max(0, t0 + wrap), mark.Text, ctx.Dancer.Id, src.Start, src.Length, _playing, _verse), raws));
+        if (raws is not null)
+            _marks.Add((new MarkIr(Math.Max(0, t0 + wrap), mark!.Text, ctx.Dancer.Id, src.Start, src.Length, _playing, _verse), raws));
     }
+
+    /// <summary>
+    /// What a word means on a channel: where the part goes, and how. It is the word's own — the same wherever its row is
+    /// played, whatever the beat, for the same body and the same way round — so it is found once in a run and a copy of it
+    /// given each time after (a section played three times by two dancers asked six times; DESIGN.md 120.14). What is
+    /// wrong with the word is said the first time, which is the only time it was ever kept (<see cref="Report"/>).
+    /// </summary>
+    private Seg? Meant(SyntaxNode ev, string channel, SyntaxNode target, List<SyntaxNode> annotations, bool mirror, bool free, Ctx ctx)
+    {
+        var key = (ev, channel, mirror, free, ctx.Stance, ctx.Dancer);
+        if (!_meant.TryGetValue(key, out var seg))
+        {
+            var parts = Parts(target);
+            _meant[key] = seg = channel == Channels.Support ? BindSupport(parts, annotations, mirror, free, ctx)
+                : channel == Channels.Height ? BindHeight(parts)
+                : channel is Channels.Shoulders or Channels.Hips ? BindTurned(channel, parts, mirror)
+                : channel == Channels.Turnout ? BindTurnout(parts)
+                : BindGesture(channel, parts, annotations, mirror, ctx);
+        }
+        return seg?.Clone();
+    }
+
+    private readonly Dictionary<(SyntaxNode Event, string Channel, bool Mirror, bool Free, bool Stance, DancerSpec Dancer), Seg?> _meant = [];
 
     private double _every = double.NaN;   // the juggle row's beats from one throw to the next, as its `every` says
 
@@ -2374,7 +2468,13 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         var tempos = TempoMap.Of(clip.Tempos, clip.Tempo);
 
         var spans = raws.Where(r => r.Seg.T1 - r.Seg.T0 > Epsilon).ToList();
-        var bounds = spans.SelectMany(r => new[] { r.Seg.T0, r.Seg.T1 }).OrderBy(t => t).ToList();
+        var ends = new List<double>(spans.Count * 2);
+        foreach (var raw in spans)
+        {
+            ends.Add(raw.Seg.T0);
+            ends.Add(raw.Seg.T1);
+        }
+        var bounds = ends.OrderBy(t => t).ToList();
         for (int i = bounds.Count - 1; i > 0; i--)
         {
             if (bounds[i] - bounds[i - 1] <= Epsilon)
@@ -2382,14 +2482,36 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         }
 
         var runs = new List<(Raw Raw, double Start, double End)>();
+        // The words that have the part at a moment, in the order they were written (`having`). The moments go forward,
+        // so a word comes in once, when its time has begun, and goes out once, when it is over: every word is not
+        // asked at every moment (DESIGN.md 120.14). The winner is found among them as it was among all.
+        var byStart = new int[spans.Count];
+        var began = new double[spans.Count];
+        for (int k = 0; k < spans.Count; k++)
+            (byStart[k], began[k]) = (k, spans[k].Seg.T0);
+        Array.Sort(began, byStart);
+        var having = new List<int>();
+        int coming = 0;
         for (int i = 0; i + 1 < bounds.Count; i++)
         {
             double middle = (bounds[i] + bounds[i + 1]) / 2;
-            Raw? winner = null;
-            foreach (var raw in spans)
+            while (coming < byStart.Length && began[coming] < middle)
             {
-                if (raw.Seg.T0 < middle && middle < raw.Seg.T1 && (winner is null || Beats(raw, winner)))
-                    winner = raw;
+                int k = byStart[coming++];
+                having.Insert(~having.BinarySearch(k), k);
+            }
+            int kept = 0;
+            for (int h = 0; h < having.Count; h++)
+            {
+                if (middle < spans[having[h]].Seg.T1)
+                    having[kept++] = having[h];
+            }
+            having.RemoveRange(kept, having.Count - kept);
+            Raw? winner = null;
+            foreach (int k in having)
+            {
+                if (winner is null || Beats(spans[k], winner))
+                    winner = spans[k];
             }
             if (winner is null)
                 continue;

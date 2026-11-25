@@ -22,19 +22,36 @@ using Shosa.Lsp;
 if (int.TryParse(Environment.GetEnvironmentVariable("SHOSA_FRAMES_AT_ONCE"), out int atOnce))
     Solver.FramesAtOnce = atOnce <= 0 ? int.MaxValue : atOnce;
 
-// The binder alone, again and again, for a profiler:  Shosa.Perf.exe --bind FILE.shosa [--times N]
+// The binder alone, again and again:  Shosa.Perf.exe --bind FILE.shosa [--times N] [--cold]
+// It is first bound for two seconds and not timed: the runtime compiles a method again once it has been called often,
+// and until it has, a bind takes about three times as long (300 binds from a cold start average 5 ms where the server,
+// which binds the same file all day, takes 2: DESIGN.md 120.14). --cold times from the first bind, for a profiler that
+// is to see the same work each time, and for seeing how long the warming takes.
 if (args.Length >= 2 && args[0] == "--bind")
 {
     string bound = Path.GetFullPath(args[1]);
     var boundTree = SyntaxTree.Parse(File.ReadAllText(bound));
     SongSource boundSongs = SongReader.For(bound);
-    int count = Array.IndexOf(args, "--times") is >= 0 and var at0 && at0 + 1 < args.Length ? int.Parse(args[at0 + 1]) : 200;
-    Binder.Bind(boundTree, null, boundSongs);
+    int count = Array.IndexOf(args, "--times") is >= 0 and var at0 && at0 + 1 < args.Length ? int.Parse(args[at0 + 1]) : 1000;
+    Binder.Bind(boundTree, null, boundSongs);   // the song is read once
+    int warmed = 0;
+    if (!args.Contains("--cold"))
+    {
+        for (var warming = Stopwatch.StartNew(); warming.Elapsed.TotalSeconds < 2; warmed++)
+            Binder.Bind(boundTree, null, boundSongs);
+    }
     long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+    var each = new List<double>(count);
     var watch = Stopwatch.StartNew();
     for (int n = 0; n < count; n++)
+    {
+        long began = Stopwatch.GetTimestamp();
         Binder.Bind(boundTree, null, boundSongs);
-    Console.WriteLine(FormattableString.Invariant($"bind: {watch.Elapsed.TotalMilliseconds / count:0.00} ms, {(GC.GetAllocatedBytesForCurrentThread() - allocatedBefore) / 1024.0 / 1024.0 / count:0.00} MB each ({count} times)"));
+        each.Add(Stopwatch.GetElapsedTime(began).TotalMilliseconds);
+    }
+    double mean = watch.Elapsed.TotalMilliseconds / count;
+    each.Sort();
+    Console.WriteLine(FormattableString.Invariant($"bind: median {each[count / 2]:0.00} ms, min {each[0]:0.00}, mean {mean:0.00}; {(GC.GetAllocatedBytesForCurrentThread() - allocatedBefore) / 1024.0 / 1024.0 / count:0.00} MB each ({count} times after {warmed} to warm)"));
     return 0;
 }
 
@@ -90,7 +107,16 @@ static string Stats(List<double> ms)
 var json = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 SongSource songs = SongReader.For(file);
 var usings = UsingSource.For(file);
-ShosaCompilation.Compile(text, null, songs, usings);   // warm: the JIT, and the song is read once
+ShosaCompilation.Compile(text, null, songs, usings);   // the song is read once
+// Warm: the runtime compiles a method again once it has been called often, and until it has, everything takes two or
+// three times as long as it does in a server that has been running for a minute (DESIGN.md 120.14). --cold leaves this
+// out; so does --messages, whose messages are to be the first ones after the file is opened.
+bool cold = args.Contains("--cold") || args.Contains("--messages");
+if (!cold)
+{
+    for (var warming = Stopwatch.StartNew(); warming.Elapsed.TotalSeconds < 3;)
+        ShosaCompilation.Compile(text, null, songs, usings);
+}
 
 var parse = new List<double>();
 var bind = new List<double>();
@@ -162,6 +188,22 @@ foreach (bool patches in new[] { false, true })
 
     var edits = new List<double>();
     int version = 1;
+    // (Warm: the same edits, an even number of them so that the text is as it was, for two seconds and not timed.)
+    int warming = 0;
+    for (var clock = Stopwatch.StartNew(); !cold && (clock.Elapsed.TotalSeconds < 2 || warming % 2 != 0); warming++)
+    {
+        string typed = (warming % 2 == 0 ? (char.IsAsciiDigit(original) ? (char)('0' + (original - '0' + 1) % 10) : original) : original).ToString();
+        Send(new
+        {
+            jsonrpc = "2.0",
+            method = "textDocument/didChange",
+            @params = new
+            {
+                textDocument = new { uri, version = ++version },
+                contentChanges = new[] { new { range = new { start = new { line, character }, end = new { line, character = character + 1 } }, text = typed } },
+            },
+        });
+    }
     for (int i = 0; i < times; i++)
     {
         // The character typed over: another digit, and back.
@@ -198,17 +240,19 @@ foreach (bool patches in new[] { false, true })
     // An edit that changes no movement, only where the words are: a blank line put in at the top, and taken out
     // (as a comment written above the dance is). No clip is solved again (DESIGN.md 120.8).
     var moves = new List<double>();
-    for (int i = 0; i < times; i++)
+    for (int i = cold ? 0 : -40; i < times; i++)   // (the ones before 0 to warm, not timed)
     {
         sent = 0;
         messages = 0;
-        var range = new { start = new { line = 0, character = 0 }, end = new { line = i % 2, character = 0 } };
-        moves.Add(Ms(() => Send(new
+        var range = new { start = new { line = 0, character = 0 }, end = new { line = Math.Abs(i % 2), character = 0 } };
+        double took = Ms(() => Send(new
         {
             jsonrpc = "2.0",
             method = "textDocument/didChange",
             @params = new { textDocument = new { uri, version = ++version }, contentChanges = new[] { new { range, text = i % 2 == 0 ? "\n" : "" } } },
-        })));
+        }));
+        if (i >= 0)
+            moves.Add(took);
     }
     Console.WriteLine($"    a line above {Stats(moves)}   ({sent / 1024.0:0.0} KB sent in {messages} messages)");
 }

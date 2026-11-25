@@ -21,14 +21,15 @@ internal static class Corpus
         foreach (string file in args.Skip(2).Select(Path.GetFullPath))
         {
             string name = Path.GetFileName(Path.GetDirectoryName(file)) + "." + Path.GetFileNameWithoutExtension(file);
-            var (numbers, said) = Solve(file);
-            string bin = Path.Combine(folder, name + ".bin"), txt = Path.Combine(folder, name + ".txt");
+            var (numbers, said, bound) = Solve(file);
+            string bin = Path.Combine(folder, name + ".bin"), txt = Path.Combine(folder, name + ".txt"), ir = Path.Combine(folder, name + ".ir.json");
             if (dump)
             {
                 var bytes = new byte[numbers.Count * sizeof(double)];
                 Buffer.BlockCopy(numbers.ToArray(), 0, bytes, 0, bytes.Length);
                 File.WriteAllBytes(bin, bytes);
                 File.WriteAllText(txt, said);
+                File.WriteAllText(ir, bound);
                 Console.WriteLine($"{name}: {numbers.Count} numbers kept");
                 continue;
             }
@@ -51,16 +52,18 @@ internal static class Corpus
                 most = Math.Max(most, Math.Abs(kept[i] - numbers[i]));
             }
             bool sameText = File.ReadAllText(txt) == said;
-            bool same = differ == 0 && kept.Length == numbers.Count && sameText;
+            // What the binder gave (kept since DESIGN.md 120.14: a folder kept before it has none, and says so).
+            bool sameBound = File.Exists(ir) && File.ReadAllText(ir) == bound;
+            bool same = differ == 0 && kept.Length == numbers.Count && sameText && sameBound;
             if (!same)
                 different++;
             Console.WriteLine(same ? $"{name}: the same ({numbers.Count} numbers)"
-                : string.Create(CultureInfo.InvariantCulture, $"{name}: DIFFERENT: {differ} of {numbers.Count} numbers (kept {kept.Length}), the most by {most:0.######}{(sameText ? "" : "; the diagnostics too")}"));
+                : string.Create(CultureInfo.InvariantCulture, $"{name}: DIFFERENT: {differ} of {numbers.Count} numbers (kept {kept.Length}), the most by {most:0.######}{(sameText ? "" : "; the diagnostics too")}{(sameBound ? "" : File.Exists(ir) ? "; what the binder gave too" : "; nothing kept of what the binder gave")}"));
         }
         return different == 0 ? 0 : 1;
     }
 
-    private static (List<double> Numbers, string Said) Solve(string file)
+    private static (List<double> Numbers, string Said, string Bound) Solve(string file)
     {
         var compilation = ShosaCompilation.Compile(File.ReadAllText(file), null, SongReader.For(file), UsingSource.For(file));
         var numbers = new List<double>();
@@ -96,6 +99,12 @@ internal static class Corpus
             }
         }
         string said = string.Join("\n", compilation.Diagnostics.Select(d => $"{d.Code} {d.Severity} {d.Span.Start}+{d.Span.Length} {d.Message}"));
-        return (numbers, said);
+        // Everything the binder gave, with where in the text each word is: for a change that is meant to make the binder quicker.
+        string bound = System.Text.Json.JsonSerializer.Serialize(compilation.Score, new System.Text.Json.JsonSerializerOptions
+        {
+            WriteIndented = true,
+            NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowNamedFloatingPointLiterals,
+        });
+        return (numbers, said, bound);
     }
 }
