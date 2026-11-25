@@ -1022,6 +1022,8 @@ internal sealed class FigureSolver
     private const double JuggleReach = 0.575;
     /// <summary>Where a juggling hand's reach starts to be held in, metres: beyond, it comes ever more slowly up to <see cref="JuggleReach"/>.</summary>
     private const double JuggleReachSoft = 0.50;
+    /// <summary>How far forward of the pelvis the shoulders lean, metres, before the juggling hands go forward with them.</summary>
+    private const double JuggleLeanFree = 0.04;
 
     /// <summary>
     /// A juggling hand's way out from the shoulder, held in softly: as far as <see cref="JuggleReachSoft"/> as it is, and beyond
@@ -3558,6 +3560,15 @@ internal sealed class FigureSolver
             juggleFwd = c.Fwd;
         var juggleLeft = Vec3.Up.Cross(juggleFwd);
         var juggleOrigin = pelvis + Vec3.Up * 0.15 + juggleFwd * 0.30;
+        // Leaning forward (a bow while the last balls come down), the hands go forward with the shoulders: left before the
+        // pelvis, the shoulders came over them, a hand passed 0.17 m from its shoulder and the elbow leapt from outside to
+        // inside in a frame (the upper arm turned 48 degrees). Not for the little a standing juggler's back moves.
+        if (juggleWeight > 0)
+        {
+            double lean = ((trunk.Shoulder(1) + trunk.Shoulder(-1)) * 0.5 - pelvis).Dot(juggleFwd) - JuggleLeanFree;
+            if (lean > 0)
+                juggleOrigin += juggleFwd * (lean * lean / (lean + JuggleLeanFree));
+        }
         // Mills' Mess: the hands' places are measured across from between the feet, not from the pelvis, which sways
         // from side to side (it took the throws in with it: the user, throw from further out).
         if (Juggling?.MillsAt(juggleSec) is { } millsOrigin && millsOrigin > 0)
