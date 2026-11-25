@@ -1614,7 +1614,8 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                     // Where the song could not be read its time is not known: a bar is then as long as the one written before.
                     double bar = !BarsKnown && written > 0 ? written : MeterAt(ctx, time).BeatsPerBar * ctx.Scale;
                     double span = bars * bar, from = time - span;
-                    var again = done!.Where(e => e.T1 > from + Epsilon && e.T1 - e.T0 > Epsilon).ToList();
+                    done ??= [];   // never null here: the row has a `%`, so the loop above made it
+                    var again = done.Where(e => e.T1 > from + Epsilon && e.T1 - e.T0 > Epsilon).ToList();
                     if (Math.Abs(time - barStart) > Epsilon)
                         Error("SH1027", item.Span, "'%' stands alone between bar lines: a b | % | % |");
                     else if (from < rowStart - Epsilon || again.Count == 0)
@@ -1646,7 +1647,8 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                     var run = new List<SyntaxNode>(lastVerse - i + 1);
                     for (int k = i; k <= lastVerse; k++)
                         run.Add(items[k]);
-                    var soFar = done!.ToList();
+                    done ??= [];   // never null here: the row has a `verse`, so the loop above made it
+                    var soFar = done.ToList();
                     double t0 = time, row0 = rowStart, lag = t0 - since;
                     (time, barStart) = Verses(run, ctx, t0, barStart, soFar, rowStart);
                     // Done again by a `%`, it is the verse of the play then, with the bars before it moved along.
@@ -1732,7 +1734,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                         barStart = bars0;
                         for (int j = i + 1; j <= last; j++)
                         {
-                            var piece = inside[j - i - 1];
+                            var piece = inside![j - i - 1];   // last > i: a piece was added for each item up to it
                             if (piece.Line is not null)
                                 CloseBar(piece.Line, ctx, t, ref barStart);
                             else
