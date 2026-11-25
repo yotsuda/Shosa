@@ -775,7 +775,7 @@ public sealed class Juggling
     /// at the 4's catch, how fast it goes down with it (a part of the ball's speed).</summary>
     private const double TakeoutLaunch = 0.6, TakeoutSwipeSpeed = 1.6, TakeoutArrive = 0.25;
     /// <summary>On the far side the hand stops once: for how long (seconds), how far below the catch (metres).</summary>
-    private const double TakeoutStopFor = 0.0, TakeoutStopDown = -0.24;
+    private const double TakeoutStopFor = 0.0, TakeoutStopDown = -0.28;
     /// <summary>Where and when each round came low and in, before the next 4: the hand, seconds.</summary>
     private readonly List<(int Hand, double T)> _takeoutRests = [];
     /// <summary>The swipes' catches of the 4s: the hand, seconds.</summary>
@@ -1998,24 +1998,41 @@ public sealed class Juggling
     /// hand rises from the stop to before the face, going after it is out), and how far round, 0 before the face to 1 out on
     /// its own side: the upper arm level, turning out round the shoulder, the forearm upright on it, the elbow at 90 degrees.
     /// </summary>
-    public (double Weight, double Round) ArcOut(int hand, double sec)
+    public (double Weight, double Turn, double Open, double Lower) ArcOut(int hand, double sec)
     {
         foreach (var (h, stop, top, outAt) in _arcOuts)
         {
-            // (Then, out, 1 to 2: the forearm opens out round the elbow, the elbow staying where it is, pointing down; then the
-            // arm gives way to its way down.)
+            // (Then, out: the forearm opens out round the elbow, the elbow staying where it is, pointing down; then the arm
+            // gives way to its way down.)
             double opened = outAt + ArcOpenFor;
             if (h != hand || sec < stop || sec > opened + ArcOutRelease)
                 continue;
             double w = sec < top ? (sec - stop) / Math.Max(1e-6, top - stop) : sec <= opened ? 1 : 1 - (sec - opened) / ArcOutRelease;
             // (Round from the stop at one speed, the shape coming on over the first part; then the forearm opens.)
-            double u = Math.Clamp((sec - stop) / Math.Max(1e-6, outAt - stop), 0, 1), v = Math.Clamp((sec - outAt) / ArcOpenFor, 0, 1);
-            // (Both at one speed; then, giving way, 2 to 3, the opened arm goes on down round the shoulder: still there, the hand
+            // (Both at one speed; then, giving way, the opened arm goes on down round the shoulder: still there, the hand
             // stopped where the forearm had opened, 1.2 m/s, and then shot down at 4.6.)
-            double down = sec > opened ? (sec - opened) / ArcOutRelease : 0;
-            return (w * w * (3 - 2 * w), u + v + down);
+            // Each part slows to its end as the next sets off (the user, 2026-11-25: the hand's depth hopped where it was
+            // out: the turn stopped in a frame with the hand going back at 0.9 m/s, and the opening took it forward at once).
+            double turn = EasedRamp(sec, stop, Math.Max(1e-6, outAt - stop), ArcEase), open = EasedRamp(sec, outAt, ArcOpenFor, ArcEase),
+                lower = EasedRamp(sec, opened, ArcOutRelease, ArcEase);
+            return (w * w * (3 - 2 * w), turn, open, lower);
         }
-        return (0, 0);
+        return (0, 0, 0, 0);
+    }
+
+    /// <summary>How long before and after its end a part of the arc out slows, the next setting off meanwhile (seconds).</summary>
+    private const double ArcEase = 0.06;
+
+    /// <summary>A ramp from 0 at <paramref name="from"/> to 1 after <paramref name="lasting"/>, its two corners round: the
+    /// straight ramp's mean over <paramref name="ease"/> either side of the time.</summary>
+    private static double EasedRamp(double t, double from, double lasting, double ease)
+    {
+        double Under(double x)
+        {
+            x -= from;
+            return x <= 0 ? 0 : x < lasting ? x * x / (2 * lasting) : x - lasting / 2;
+        }
+        return (Under(t + ease) - Under(t - ease)) / (2 * ease);
     }
 
     /// <summary>Takeouts' rounds' way down: the hand, from out on its own side to its next throw (seconds).</summary>

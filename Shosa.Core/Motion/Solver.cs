@@ -1068,10 +1068,17 @@ internal sealed class FigureSolver
     private const double RoundElbowAside = 0.18;
     /// <summary>Takeouts' arc out: the upper arm's turn from straight forward (degrees, + out to its own side) before the face
     /// and out, and how far below level it is.</summary>
-    private const double ArcFrom = -40, ArcTo = 70, ArcDrop = 0, ArcOpen = 60, ArcLower = 60;
+    private const double ArcFrom = -40, ArcTo = 70, ArcDrop = -8, ArcOpen = 60, ArcLower = 60;
     /// <summary>Takeouts: the arms, off the shoulders, softened over time by a Gaussian of this spread (seconds), so the
     /// corners where the swipe, the arc out, the opening and the way down meet are round (the user: the whole arm smooth).</summary>
     private const double TakeoutArmSoften = 0.05;
+    /// <summary>Takeouts: how far forward the elbows and hands are, softened over longer than the rest (seconds; the same
+    /// poses, two spreads of <see cref="TakeoutArmSoften"/> either way). The hand's way round is drawn as seen from the
+    /// front, and its depth comes of whichever part has the arm: drawn in after the swipe, back as the upper arm turns out,
+    /// forward again to the throw, it hopped where they met (the user, 2026-11-25).</summary>
+    private const double TakeoutDepthSoften = 0.08;
+    /// <summary>Seconds between the poses the takeouts' arms are softened from.</summary>
+    private const double TakeoutSoftenStep = 1.0 / 30;
     /// <summary>Takeouts' round's way down: the opened elbow points back, this much out and this much down beside it (not straight down: with the hand below the shoulder, down lay along the arm and the elbow flipped out and back in a frame), and opens to this angle (degrees).</summary>
     private const double LowElbowOut = 0.6, LowElbowBack = 0.0, LowElbowDown = 1.0, LowElbowAhead = 2.5, LowElbowAngle = 120;
     /// <summary>How far off its place side to side Mills' elbow may be (metres) against how far round its circle it goes (radians).</summary>
@@ -2991,21 +2998,30 @@ internal sealed class FigureSolver
         double sec = Seconds(t), weight = juggling.TakeoutAt(sec) * juggling.Weight(sec);
         if (weight <= 0)
             return;
-        // Nine samples half a spread apart, two spreads either way.
+        // Nine samples, two thirds of a spread apart (half a spread, two spreads either way, until the depth was softened
+        // over longer: the same nine now reach 0.13 s either way, 1.7 of the depth's spreads).
         const int Reach = 4;
-        double step = TakeoutArmSoften / 2 * PerSecond(t);
+        double step = TakeoutSoftenStep * PerSecond(t);
         var sums = new Vec3[4];
-        double total = 0;
+        // How far forward they are, softened over longer (TakeoutDepthSoften) from the same poses.
+        var depths = new double[4];
+        var across = pose[Rig.LShoulder] - pose[Rig.RShoulder];
+        var forward = new Vec3(across.X, 0, across.Z).Cross(Vec3.Up);
+        forward = forward.Length > 1e-6 ? forward.Normalized() : new Vec3(0, 0, 0);
+        double total = 0, depthTotal = 0, steps = TakeoutArmSoften / TakeoutSoftenStep, depthSteps = TakeoutDepthSoften / TakeoutSoftenStep;
         for (int k = -Reach; k <= Reach; k++)
         {
             var near = k == 0 ? pose : PoseCore(Math.Max(0, t + k * step), out _);
-            double w = Math.Exp(-0.5 * (k / 2.0) * (k / 2.0));
+            double w = Math.Exp(-0.5 * (k / steps) * (k / steps)), deep = Math.Exp(-0.5 * (k / depthSteps) * (k / depthSteps));
             total += w;
+            depthTotal += deep;
             for (int s = 0; s < 2; s++)
             {
                 int first = s == 0 ? Rig.LShoulder : Rig.RShoulder;
                 sums[s * 2] += (near[first + 1] - near[first]) * w;
                 sums[s * 2 + 1] += (near[first + 2] - near[first]) * w;
+                depths[s * 2] += (near[first + 1] - near[first]).Dot(forward) * deep;
+                depths[s * 2 + 1] += (near[first + 2] - near[first]).Dot(forward) * deep;
             }
         }
         for (int s = 0; s < 2; s++)
@@ -3013,6 +3029,8 @@ internal sealed class FigureSolver
             int first = s == 0 ? Rig.LShoulder : Rig.RShoulder;
             var shoulder = pose[first];
             Vec3 elbowOff = sums[s * 2] * (1 / total), handOff = sums[s * 2 + 1] * (1 / total);
+            elbowOff += forward * (depths[s * 2] / depthTotal - elbowOff.Dot(forward));
+            handOff += forward * (depths[s * 2 + 1] / depthTotal - handOff.Dot(forward));
             var hand = Vec3.Lerp(pose[first + 2], shoulder + handOff, weight);
             var bendWay = Vec3.Lerp(pose[first + 1] - shoulder, elbowOff, weight);
             var (elbow, reached) = TwoBone(shoulder, hand, Rig.UpperArm, Rig.Forearm, bendWay);
@@ -3785,21 +3803,21 @@ internal sealed class FigureSolver
                 // as far forward as the elbow, the elbow kept at 90 degrees and not rising as the hand goes out; it did not do so
                 // put by the hand's way): the upper arm a little below level, turning round the shoulder from forward and in
                 // (before the face) to out on its own side; the forearm straight up from the elbow.
-                var (arcWeight, arcRound) = Juggling.ArcOut(isLeft ? 1 : 0, juggleSec);
+                var (arcWeight, arcTurn, arcOpen, arcLower) = Juggling.ArcOut(isLeft ? 1 : 0, juggleSec);
                 arcWeight *= juggleWeight;
                 if (arcWeight > 0)
                 {
-                    double turn = (ArcFrom + (ArcTo - ArcFrom) * Math.Min(1, arcRound)) * Math.PI / 180, drop = ArcDrop * Math.PI / 180;
+                    double turn = (ArcFrom + (ArcTo - ArcFrom) * arcTurn) * Math.PI / 180, drop = ArcDrop * Math.PI / 180;
                     var level = juggleFwd * Math.Cos(turn) + juggleLeft * (side * Math.Sin(turn));
                     var elbowAt = shoulder + level * (Rig.UpperArm * Math.Cos(drop)) - Vec3.Up * (Rig.UpperArm * Math.Sin(drop));
                     // (Out, the forearm opens out round the elbow toward the upper arm's own way, the elbow pointing down.)
-                    double open = ArcOpen * Math.Clamp(arcRound - 1, 0, 1) * Math.PI / 180;
+                    double open = ArcOpen * arcOpen * Math.PI / 180;
                     var forearmWay = Vec3.Up * Math.Cos(open) + level * Math.Sin(open);
                     // (Round the shoulder, the way and the length each between the two: straight between them, the hand cut in
                     // toward the shoulder, 0.52 and 0.58 m out to 0.40, and the opened elbow folded to 80 degrees on the way down.)
                     var shaped = elbowAt + forearmWay * (Rig.Forearm - 0.002) - shoulder;
                     // (Giving way, the opened arm turns on down round the shoulder, out to down, on the upright plane.)
-                    double lower = ArcLower * Math.Clamp(arcRound - 2, 0, 1) * Math.PI / 180;
+                    double lower = ArcLower * arcLower * Math.PI / 180;
                     if (lower > 0)
                     {
                         var axis = (juggleLeft * side).Cross(-Vec3.Up).Normalized();

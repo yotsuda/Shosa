@@ -20,6 +20,8 @@ const ELBOW_SIDE = -0.05, ELBOW_SLACK = 0.045, ELBOW_TURN = 0.6;
 const ELBOW_CLEAR = 0.01;
 /** How far in front of the trunk's front the hand is at the least, metres (scaled): room for the forearm to go round. */
 const HAND_CLEAR = 0.08;
+/** How far out past the trunk's side the hand is let back from in front of it, metres (scaled). */
+const BEFORE_TRUNK = 0.45;
 /** Takeouts' round: how far the elbow may be behind or before the wrist for the cost of a miss (metres, scaled). */
 const PLANE_SLACK = 0.05, PLANE_SIDE_SLACK = 0.015;
 const TRUNK_PARTS = new Set(['spine', 'chest', 'upperChest']);const qa = new THREE.Quaternion(), qb = new THREE.Quaternion();
@@ -97,7 +99,9 @@ export function millsArms(vrm, body, size, figure, weight, angles = null, pull =
       // (Only while the hand is before the trunk side to side: out beside it, takeouts' arc out kept the wrist 4-10 cm ahead
       // of the elbow, where the user wants the forearm upright, DESIGN.md 118.49.)
       const beside = Math.abs(target.clone().sub(trunkAt).dot(left)) - (rx + armRadius);
-      const before = Math.max(0, Math.min(1, 1 - beside / (0.06 * k)));
+      // (Let go little by little as it goes out: over 6 cm, a hand going out at 2.5 m/s past the trunk's side went 4.5 cm back
+      // in one frame, the ball with it; the user, 2026-11-25: its depth hopped.)
+      const inFront = Math.max(0, Math.min(1, 1 - beside / (BEFORE_TRUNK * k))), before = inFront * inFront * (3 - 2 * inFront);
       const short = (rz + armRadius + HAND_CLEAR * (1 - pulled) * k - target.clone().sub(trunkAt).dot(forward)) * before;
       if (short > 0) target.addScaledVector(forward, short);
     }
