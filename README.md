@@ -10,7 +10,7 @@ https://github.com/user-attachments/assets/d7ae6452-aa83-461f-b32f-29bd82b1691d
 
 **Juggling, written in siteswap** (52 s) — [samples/juggle.shosa](samples/juggle.shosa)
 
-https://github.com/user-attachments/assets/977dd988-b508-4b8a-a7c7-a2c0a3888361
+https://github.com/user-attachments/assets/0feaac58-2745-4985-ac92-d5753ad17819
 
 ```
 tempo 120

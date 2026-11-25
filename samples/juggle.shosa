@@ -13,7 +13,7 @@ role clubs
 role rings
 dancer zunko humanoid "../out/vrm/zunko.vrm" juggles balls on five
 dancer zundamon humanoid "../out/vrm/zundamon.vrm" juggles balls on three at -1.7 0
-dancer clubber humanoid "../out/vrm/sample.vrm" juggles clubs on clubs at 1.7 0
+dancer clubber humanoid "../out/vrm/shino.vrm" juggles clubs on clubs at 1.7 0
 dancer ringer humanoid "../out/vrm/sample.vrm"  juggles rings on rings at 0.5 -2.2
 
 section Show {
