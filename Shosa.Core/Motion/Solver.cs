@@ -1081,7 +1081,7 @@ internal sealed class FigureSolver
         RoundElbowAside * (1 - Smooth(Math.Clamp(((hand - shoulder).Dot(outSide) - RoundElbowAsideFrom) / (RoundElbowAsideTo - RoundElbowAsideFrom), 0, 1)));
     /// <summary>Takeouts' arc out: the upper arm's turn from straight forward (degrees, + out to its own side) before the face
     /// and out, and how far below level it is.</summary>
-    private const double ArcFrom = -40, ArcTo = 70, ArcDrop = -8, ArcOpen = 60, ArcLower = 60;
+    private const double ArcFrom = -50, ArcTo = 70, ArcDrop = -8, ArcOpen = 60, ArcLower = 60;
     /// <summary>Takeouts: the arms, off the shoulders, softened over time by a Gaussian of this spread (seconds), so the
     /// corners where the swipe, the arc out, the opening and the way down meet are round (the user: the whole arm smooth).</summary>
     private const double TakeoutArmSoften = 0.05;

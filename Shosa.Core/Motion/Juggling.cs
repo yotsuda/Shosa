@@ -745,12 +745,12 @@ public sealed class Juggling
     /// to the far side, where the same hand takes it at the end of its swipe and holds it (TakeoutHigh).</summary>
     private const string TakeoutThrow = "\u0000takeoutThrow", TakeoutHigh = "\u0000takeoutHigh", TakeoutHeld = "\u0000takeoutHeld", TakeoutCaughtOut = "\u0000takeoutCaughtOut";
     /// <summary>Takeouts' throws from the hand's own side: this far out, this high (the 3), this far forward (the 3; the 4 further, in front of the 3s' way).</summary>
-    private const double TakeoutOwnOut = 0.30, TakeoutOwnHigh = 0.0, TakeoutOwnAhead = 0.0, TakeoutHighAhead = 0.24;
+    private const double TakeoutOwnOut = 0.30, TakeoutOwnHigh = 0.0, TakeoutOwnAhead = 0.0, TakeoutHighAhead = 0.14;
     /// <summary>The 4 thrown from inside, near the middle, up from below after the round (the user); the 3 caught further out.</summary>
     private const double TakeoutHighOut = 0.0, TakeoutCatchOut = 0.50, TakeoutHighUp = 0.04;
     /// <summary>The 4 thrown from under the other arm, crossed (the user): this far over on the other hand's side, this high
     /// (low, from below after the round).</summary>
-    private const double TakeoutUnderCross = 0.12, TakeoutUnderHigh = -0.06;
+    private const double TakeoutUnderCross = 0.28, TakeoutUnderHigh = 0.0;
     /// <summary>The first 4, with no round before it: this part of the way from its own throwing place to the crossed one.</summary>
     private const double TakeoutFirstCross = 0.5;
     /// <summary>The last 4, caught as a cascade's: this much further forward (metres).</summary>
@@ -777,7 +777,7 @@ public sealed class Juggling
     /// <summary>Where the swipe stops on the far side: this much nearer the body than the catch (the user).</summary>
     private const double TakeoutStopIn = 0.12;
     /// <summary>The swipe carrying it on: how fast at the catch (m/s), how long to the far side (seconds), how far past the middle there.</summary>
-    private const double TakeoutSwipeCarry = 1.8, TakeoutCarry = 0.12, TakeoutCarryTo = 0.0;
+    private const double TakeoutSwipeCarry = 1.8, TakeoutCarry = 0.12, TakeoutCarryTo = 0.20;
     /// <summary>How fast the hand goes up with the 3 as it throws it (a part of the ball's speed), and in across on its swipe (m/s);
     /// at the 4's catch, how fast it goes down with it (a part of the ball's speed).</summary>
     private const double TakeoutLaunch = 0.6, TakeoutSwipeSpeed = 1.6, TakeoutArrive = 0.25;
