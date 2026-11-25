@@ -414,8 +414,12 @@ public class JuggleTests
             Assert.True(three[2] != hand && f[4] - three[3] < 0.25, $"its 3 just before, at {three[3]:0.00} s");
             // From well outside to well outside, high, as tennis's ball (the user).
             Assert.True(Out(hand, three[3]) > 0.35, $"3 thrown {Out(hand, three[3]):0.00} m out at {three[3]:0.00} s");
-            Assert.True(Out(1 - hand, three[4]) > 0.35, $"3 caught {Out(1 - hand, three[4]):0.00} m out at {three[4]:0.00} s");
+            // (The catching hand has let its own 4 go a little after its beat, TakeoutHighLater, and is a centimetre less far out.)
+            Assert.True(Out(1 - hand, three[4]) > 0.33, $"3 caught {Out(1 - hand, three[4]):0.00} m out at {three[4]:0.00} s");
             Assert.True(three[4] - three[3] > 0.5, $"3 in the air {three[4] - three[3]:0.00} s");
+            // The 4 less long in the air than the 3 over it, let go a little after its beat (the user, 2026-11-25: the 4 not
+            // so high, lower than the 3 and than the ball the other hand carries round before the face).
+            Assert.True(f[4] - f[3] < three[4] - three[3], $"4 in the air {f[4] - f[3]:0.000} s, the 3 {three[4] - three[3]:0.000} s");
             // The round's top about when the 3 thrown just before is at its top (the user: the two at their tops at one time).
             if (three[4] < 5.0)
             {

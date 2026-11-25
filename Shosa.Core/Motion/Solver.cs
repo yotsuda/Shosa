@@ -1066,6 +1066,19 @@ internal sealed class FigureSolver
     /// <summary>Takeouts' round: the place the elbow is turned toward is a forearm below the hand and this far out on its own side
     /// (metres: straight below, the elbow came in under the shoulder, inside a character's thicker trunk, and shook).</summary>
     private const double RoundElbowAside = 0.18;
+    /// <summary>How far out from the shoulder the hand is where that begins to go, and where it is gone (metres).</summary>
+    private const double RoundElbowAsideFrom = 0.05, RoundElbowAsideTo = 0.30;
+
+    /// <summary>
+    /// Takeouts' round: how far out to its own side of straight below the hand the elbow is turned toward
+    /// (<see cref="RoundElbowAside"/>), less as the hand itself goes out past the shoulder, none well out. Out there the arm
+    /// lies out and down, nearly the way out and down beside the hand points, and what was left of that across the arm
+    /// pointed straight back: as the hand came down round the outside the elbow went from below the arm to behind it and
+    /// out again, the upper arm turning about itself at 600 degrees a second (the user, 2026-11-25: the arm's axis turned
+    /// violently). Straight below, it stays under the arm all the way down.
+    /// </summary>
+    private static double ElbowAside(Vec3 hand, Vec3 shoulder, Vec3 outSide) =>
+        RoundElbowAside * (1 - Smooth(Math.Clamp(((hand - shoulder).Dot(outSide) - RoundElbowAsideFrom) / (RoundElbowAsideTo - RoundElbowAsideFrom), 0, 1)));
     /// <summary>Takeouts' arc out: the upper arm's turn from straight forward (degrees, + out to its own side) before the face
     /// and out, and how far below level it is.</summary>
     private const double ArcFrom = -40, ArcTo = 70, ArcDrop = -8, ArcOpen = 60, ArcLower = 60;
@@ -3791,7 +3804,7 @@ internal sealed class FigureSolver
                     double onPlane = Math.Max(Juggling.RoundPlane(isLeft ? 1 : 0, juggleSec) * juggleWeight, low / Math.Max(1e-9, fixedArm + low));
                     if (onPlane > 0)
                     {
-                        var toward = hand - Vec3.Up * Rig.Forearm + juggleLeft * (side * RoundElbowAside) - (shoulder + hand) * 0.5;
+                        var toward = hand - Vec3.Up * Rig.Forearm + juggleLeft * (side * ElbowAside(hand, shoulder, juggleLeft * side) * (1 - low)) - (shoulder + hand) * 0.5;
                         toward -= along * toward.Dot(along);
                         if (toward.Length > 1e-6)
                             bend = Vec3.Slerp(bend, toward.Normalized(), onPlane);
@@ -3830,7 +3843,7 @@ internal sealed class FigureSolver
                         hand = shoulder + Vec3.Slerp(ownWay.Normalized(), shaped.Normalized(), arcWeight) * (ownWay.Length + (shaped.Length - ownWay.Length) * arcWeight);
                     // (The elbow toward its place in the arm's shape, or, as that gives way, toward the way down's place, a
                     // forearm below the hand and out: turned at once between the two, the elbow leapt up and down at 120-190.)
-                    var below = hand - Vec3.Up * Rig.Forearm + juggleLeft * (side * RoundElbowAside);
+                    var below = hand - Vec3.Up * Rig.Forearm + juggleLeft * (side * ElbowAside(hand, shoulder, juggleLeft * side) * (1 - low));
                     var toward = Vec3.Lerp(below, elbowAt, arcWeight) - (shoulder + hand) * 0.5;
                     var along2 = (hand - shoulder).Normalized();
                     toward -= along2 * toward.Dot(along2);

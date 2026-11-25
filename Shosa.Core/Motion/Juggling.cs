@@ -428,6 +428,10 @@ public sealed class Juggling
                             caught = TakeoutAcrossCaught(caught, SlotSec(Math.Min(land, slots.Count - 1)), BeatSec(Math.Min(land, slots.Count - 1)));
                     }
                     double thrown = slotThrown - tennisShift;
+                    // Takeouts' 4 leaves the hand a little after its beat (the user, 2026-11-25: not so high; it rose as high as
+                    // the ball the other hand carries round before the face, and as the 3 over it): less long in the air.
+                    if (throwTricks?.Contains(TakeoutHigh) == true)
+                        thrown += TakeoutHighLater * T;
                     // Mills' second throw (and its mirror, the fifth) goes higher (the user): longer in the air, thrown a
                     // little before the beat.
                     // Thrown and caught round the body (Mills' Mess or the windmill, the same one at both ends): its ball in
@@ -499,6 +503,9 @@ public sealed class Juggling
                     {
                         _takeoutNext = land + 2 < slots.Count && slots[land + 2].Seg is not null ? SlotSec(land + 2) : double.NegativeInfinity;
                         _takeoutNextOurs = land + 2 < slots.Count && slots[land + 2].Seg?.Tricks?.Contains("takeouts") == true;
+                        // (Its next 4 leaves late, TakeoutHighLater: the round goes on till then.)
+                        if (_takeoutNextOurs)
+                            _takeoutNext += TakeoutHighLater * BeatSec(land + 2);
                         _takeoutAcross = land + 1 < slots.Count && slots[land + 1].Seg?.Tricks?.Contains("takeouts") == true
                             ? SlotSec(land + 1) - TakeoutLonger * BeatSec(land + 1) : double.NegativeInfinity;
                         // And the top of this hand's own 3 thrown just before the swipe (two throwing beats before the 4 comes
@@ -758,7 +765,7 @@ public sealed class Juggling
     /// <summary>How far back along the swipe the round's way is guided from (metres): it sets off as the swipe went.</summary>
     private const double TakeoutRoundLeadIn = 0.3;
     /// <summary>The 3 thrown from well outside, this far out and this far forward (as tennis's), and this part of a beat sooner, caught as much later.</summary>
-    private const double TakeoutAcrossOut = 0.52, TakeoutAcrossAhead = 0.32, TakeoutLonger = 0.0, TakeoutHighSooner = 0.0;
+    private const double TakeoutAcrossOut = 0.52, TakeoutAcrossAhead = 0.32, TakeoutLonger = 0.0, TakeoutHighSooner = 0.0, TakeoutHighLater = 0.3;
     /// <summary>A ball thrown before the takeouts and caught in them: caught out there too, clear of the hand's first 4.</summary>
     private const string TakeoutWide = "\u0000takeoutWide";
     /// <summary>Takeouts' 4 comes down near the middle, a little on the thrower's side, this high, this far forward (in close:
