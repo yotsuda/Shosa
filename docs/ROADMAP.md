@@ -178,6 +178,7 @@ Kimodo を動かした記事を読んだ (2026-11-14。ユーザーが見つけ�
   `editors\vscode\CHANGELOG.md` を書いた (パッケージに入る)。VRM のキャラクターと録音で踊るのは *Preview* と書いた。
   Lily# の API で音を 1 本ずつ受け取るミキサーと MP3／WAV の書き出しを入れた (2026-11-20、DESIGN.md 98)。本物の Lily# で動き、行の並びもオーナーが確かめた (依頼 4・5 は done)。**リリースの条件はそろった**。README に「Preview features」の節 (VRM・録音・Mixer・Audio) を足した (ユーザーが「書いて」)。要る Lily# は 0.17.0 以上と書いた (ユーザー: 0.17.0 をリリース準備中)。残りは Lily# 0.17.0 を先に出すことと、Shosa の公開。
   **曲を読むところを Lily# の `lysc` に移す** (2026-11-20、ユーザー決定。DESIGN.md 92 節): 済み (2026-11-20、DESIGN.md 92.1): Shosa は `shosa-music` をやめ、全部 MIT になった。Lily# はゆるい依存 (曲に合わせる機能だけが要る)。リポジトリは `https://github.com/yotsuda/Shosa` (public、2026-11-20)。
+  **0.3.0 の準備をした (2026-11-25)**: CHANGELOG に日付とジャグリング・歌う口とマイク、README の Status、README の動画用の譜 `samples\hello.shosa`、パッケージ `artifacts\extension\shosa-win32-x64-0.3.0.vsix`。残りはユーザーの手: 録画、push、`vsce publish`、タグと GitHub のリリース (HANDOFF の一覧)。
   CLI (`shosa`) も拡張に入れ、VS Code のターミナルの PATH に足す (2026-11-15。DESIGN.md 43.4。拡張だけで配る弱みもそこに)。
 - Blender と Godot 向けに、`.shosa` を保存すると動きが更新される読み込み機能。
   Godot は読み込みスクリプトが印をシグナルにするところまで (`ShosaMarks.mark_reached`。2026-11-15、DESIGN.md 43.3)。`.shosa` を直接読むのはまだ。

@@ -5,6 +5,15 @@
 下のパスはリポジトリの根から。
 - ★ **開始時に `C:\MyProj\Bamen\docs\repro\REQUESTS.md` の `open` を見る** (2026-11-23〜)。Bamen (撮影の言語。`shosa clip` を読んでカメラを解く) からの依頼の 1 枚。使い方は Shosa → Lily# の `docs/repro/REQUESTS.md` と同じ (入れたら `fixed <commit>`、入れないなら `won't`、聞くなら `question`)。2026-11-25: 1 (座る) は `fixed f9ae160`、2 (曲がった道) は `question` (曲線は `@turn` の歩でもう書けた。「この点まで歩く」の語が要るかを Bamen に聞いている)。`open` は無い。
 
+## 最初のリリース 0.3.0 の準備 (2026-11-25 の 7 つ目のセッション)
+
+ユーザー: 「最初のリリースの準備をして。GitHub の README に動画をのせたい。ふさわしい .shosa を書いて。私が VS Code で確認して動画にする」。
+
+- **動画の譜 `samples\hello.shosa`**: 2 人 (2 人目は `mirror`)、8 小節 16 秒のループ。手拍子のステップ・指差し・歩いて蹴る・戻る・回転ジャンプ・お辞儀を 1 小節ずつの `move` にし、セクションは `body` の 1 段。動画で読めるように 1 行 60 桁以内、棒人形のまま (VRM の行はユーザーが足すかどうか決める: ずんだもん等は規約の確認が要る)。`check` は no problems、連続写真で見た。回転ジャンプは `jump.up(25cm)` (15 cm では空中の回転が 1 コマ 48 度で `No_bone_flips` の 45 度に掛かった)。**ユーザーの目と録画はこれから**。
+- **文書**: CHANGELOG 0.3.0 に日付 (2026-11-25。出す日が変われば直す)、ジャグリング・歌う口とマイクを足した。拡張の README にも。根の README は Status を「0.3.0 が最初のリリース」にし、冒頭に動画を置く場所のコメント (`<!-- VIDEO: … -->`)、`samples/hello.shosa` への案内。FOR_AGENTS の「まだ公開していない」を直した。
+- **確かめた**: `dotnet test` 543 件、`npm test` 28 件、`tools\pack-extension.ps1` → `artifacts\extension\shosa-win32-x64-0.3.0.vsix` (36 MB)、それをこの PC に入れた (`deploy-extension.ps1 -NoPack`)。
+- **残り (ユーザーの手)**: (1) `samples\hello.shosa` を見て録画 → GitHub の README の編集画面で `<!-- VIDEO -->` の所へ mp4 を落とす (GitHub がリンクを書く)。(2) push。(3) `vsce publish --packagePath artifacts\extension\shosa-win32-x64-0.3.0.vsix` (publisher `yotsuda`)。(4) タグ `v0.3.0` と GitHub のリリース (本文は CHANGELOG の 0.3.0、.vsix を添付)。README や CHANGELOG を直したら、出す前に `tools\pack-extension.ps1` をもう一度 (パッケージに入る)。
+
 ## 座る: `height { sit(0.45m) }` (2026-11-25 の 5 つ目のセッション、DESIGN.md 121、Bamen の依頼 1)
 
 - **語**: 高さの段の `sit(0.45m)` (かっこは床から座面まで。`sit` だけなら 0.45 m。0.1〜0.8 m)。ほかの高さ (`mid` など) で立つ。移りは高さの決まりどおり前の語の時間: `mid:2 then:2 sit(0.45m):4 then:4 then:2 mid`。

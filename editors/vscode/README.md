@@ -27,6 +27,9 @@ score { dancer solo  loop }
 - **Dancing to a song**: `music "song.lys"` takes tempo, time and the order of the sections from a [Lily#](https://yotsuda.github.io/LilySharp/) song,
   and the preview plays the song with the dance — through the sound font Lily# plays with, when one is installed.
   The song is read by the Lily# extension, which is needed only for this: without it, everything else works.
+- **More than steps and arms**: `height { sit(0.45m) }` sits on a chair; `dancer … juggles balls` with
+  `juggle { every 1/2  3:4 | 531531 3 3 | }` juggles in siteswap, with tricks (`3:4@mills`, `@windmill`, `423:4@takeouts`).
+  Parts you do not write are not frozen: the body breathes, shifts its weight, and swings its arms as it walks.
 - Marks for a game engine (`!hit`) are shown as they arrive. A score without a song is heard too: a click on every beat and a clap at every mark, so its timing can be judged.
 - **Export** from the preview (the buttons at its top right, or *Shosa: Export…* in the command palette), the score shown:
   **Model** writes it for an engine — glTF (`.glb`), VRM Animation (`.vrma`) or BVH (`.bvh`), by the type picked in the save dialog;
@@ -54,6 +57,9 @@ These work, but are new and may still change.
   own body (its trunk and head are measured from the model): the elbow goes round, and the hand stays where the words put it.
   Set `shosa.models.folder` to the folder you keep your models in; with the cursor on the file of a dancer line,
   **Ctrl+Shift+Up / Ctrl+Shift+Down** put the model before or after it there, and the preview changes with it.
+- **Singing**: `dancer alice humanoid "girl.vrm" sings melody on lead` moves the character's mouth to the words
+  that part of the Lily# song sings (the `.vrma` export carries it). `mic right` puts a mic in the hand: at the mouth
+  while the dancer sings, dancing with the arm between phrases.
 - **Dancing to a recording**: when a song made from a recording has its `NAME.orecchiante.json` beside it,
   the dance keeps the recording's beat, and the preview and the MP4 play the recording.
 - **Mixer** (the button at the bottom of the preview): each part of the score, each singing voice and the recording

@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.0 — Unreleased
+## 0.3.0 — 2026-11-25
 
 The first release, for Windows (x64).
 
@@ -9,7 +9,8 @@ The first release, for Windows (x64).
 - The Shosa language for `.shosa` files: diagnostics, completion and hover for every word, from the same table the compiler checks against.
 - **File > New File... > Shosa File** starts from a file that already compiles.
 - **Sitting**: `height { sit(0.45m) }` sits down on a seat that high (a chair, a sofa, a stool), the feet on the floor, and any other height stands up again. Seated, the arms, the torso and the head say what they say standing.
-- Parts of the body you do not write are not frozen: breathing, the weight shifting from foot to foot, and the trunk and head following the arms.
+- **Juggling**: `dancer … juggles balls` (or `clubs`, `rings`) and a `juggle` row in siteswap as jugglers write it: `juggle { every 1/2  3:4 | 531531 3 3 | }`. A pattern that cannot be juggled, or cannot follow the one before it, is said where it goes wrong. Tricks go on a pattern with `@`: `3:4@mills`, `@windmill`, `@tennis`, `@halfShower`, `423:4@takeouts`, catches behind the back and throws under the leg. The legs, the torso and the head dance their own rows meanwhile.
+- Parts of the body you do not write are not frozen: breathing, the weight shifting from foot to foot, the trunk and head following the arms, and the arms swinging with a walk.
 
 ### Preview
 
@@ -18,6 +19,7 @@ The first release, for Windows (x64).
 - A score without a song is heard as a click on every beat and a clap at every mark (`!hit`).
 - **Camera** (the button at the bottom of the preview): **Fit** (or F) frames the whole score, every dancer and everything they juggle from start to end, as close as it fits; **Zoom**, **Height** and **Angle** move the view by hand, and **Reset** puts it back. The view is kept, and the MP4 is filmed from it.
 - *Preview:* **A VRM character for a dancer**: `dancer alice humanoid "girl.vrm" on lead` dresses the dancer in a VRM model in the preview and its MP4. The export of the movement does not change. `height 1.5m` draws the character that tall, to the top of its hair, so models made at different sizes stand side by side as you want them. A character's arms are kept out of its own body, which is not the shape the movement was solved on: the elbow finds its way round first, so a hand stays where the words put it. Set `shosa.models.folder` to the folder of your models, and with the cursor on the file of a dancer line, Ctrl+Shift+Up/Down switch to the model before or after it.
+- *Preview:* **Singing**: `dancer alice humanoid "girl.vrm" sings melody on lead` moves the character's mouth to the words that part of the Lily# song sings, and the `.vrma` export carries it. `mic right` puts a mic in the hand: it is at the mouth while the dancer sings, and dances with the arm between phrases.
 - *Preview:* **Dancing to a recording**: when a song made from a recording has its `NAME.orecchiante.json` beside it, the dance keeps the recording's beat, and the preview and the MP4 play the recording.
 - *Preview:* **Mixer**: with the Lily# extension 0.17.0 or later, which hands out a song one part at a time, the preview plays each part of the score, each singing voice and the recording (or its separated parts) at the level you give it, and the MP4 has the same mix.
 

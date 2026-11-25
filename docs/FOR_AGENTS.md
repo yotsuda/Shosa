@@ -17,7 +17,7 @@ animation; for a stock walk or run, an asset library is the better source.
 
 The compiler is the program `shosa`. It comes with the Shosa extension for VS Code, which
 puts it on the PATH of VS Code's terminals: in one, `shosa` runs by its name. (The
-extension is not published yet. Until it is, or outside VS Code, build it from the
+extension is published for Windows x64. On another platform, or outside VS Code, build it from the
 repository with the .NET 10 SDK: `dotnet build Shosa.Cli` →
 `Shosa.Cli/bin/Debug/net10.0/shosa(.exe)`.)
 

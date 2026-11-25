@@ -1,0 +1,50 @@
+// Hello, Shosa: eight bars for two, the second dancer a mirror of the first.
+// A word stands on the beat the body is THERE; the way to it is the compiler's.
+title "Hello, Shosa"
+tempo 120
+
+role pair
+dancer ann humanoid on pair at -1 0
+dancer ben humanoid on pair at  1 0  mirror
+
+move stepClap {
+  steps { leftFoot.side together rightFoot.side together }
+  arms  { side.down clap@sharp!clap side.down clap@sharp!clap }
+}
+
+move point {
+  rightArm { down:1/2 then:1/2 side.up then down }
+  leftArm  { down hip@sharp then down }
+  head     { fwd fwd.right(30)@sharp then fwd }
+}
+
+move advance {
+  steps    { leftFoot.fwd rightFoot.fwd leftFoot.fwd then }
+  rightLeg { skip:2 then:1/2 fwd.down.bent:1/2
+             fwd:1/2@sharp!kick skip:1/2 }
+}
+
+move retreat {
+  steps { rightFoot.back leftFoot.back rightFoot.back stand }
+}
+
+move spin {
+  steps { then:2 jump.up(25cm):2@turn(left(360))!land }
+  arms  { down then side.up:2 }
+}
+
+move bow {
+  torso    { up up.fwd(40):2 up }
+  rightArm { side.down belly:2 down }
+  leftArm  { side.down side.down(20):2 down }
+}
+
+section Hello {
+  pair {
+    body { stepClap:4 | % | point:4 | point:4@mirror |
+           advance:4 | retreat:4 | spin:4 | bow:4 | }
+  }
+}
+
+form { Hello }
+score { dancer ann  dancer ben  loop }

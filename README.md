@@ -4,6 +4,8 @@ Write human movement as text, compile it, and watch a figure perform it beside t
 Shosa is to movement what [Lily#](https://yotsuda.github.io/LilySharp/) is to music: a small language
 you can read, diff and mend, which compiles to animation files a game engine loads.
 
+<!-- VIDEO: samples/hello.shosa in VS Code. Drop the .mp4 here in GitHub's editor; it writes the link. -->
+
 ```
 tempo 120
 
@@ -46,8 +48,10 @@ rest alone, readable diffs, and the same result every time.
 
 ## Status
 
-Early, and not yet on the Visual Studio Marketplace. Tried on Windows x64; packages for Linux x64 and macOS
-arm64 are built but have not been run. The design notes and the plan are in Japanese.
+Early: 0.3.0 is the first release, as a
+[VS Code extension](https://marketplace.visualstudio.com/items?itemName=yotsuda.shosa) for Windows x64.
+Packages for Linux x64 and macOS arm64 can be built but have not been run, and are not published yet.
+The design notes and the plan are in Japanese.
 
 ## The VS Code extension
 
@@ -55,6 +59,9 @@ A side preview that moves as you type, diagnostics, completion and hover for eve
 above, and tools that let Copilot Chat's agent write Shosa (`#shosaGrammar`, `#shosaCheck`, `#shosaSheet`).
 The compiler `shosa` comes with it and is on the PATH of VS Code's terminals. See
 [editors/vscode/README.md](editors/vscode/README.md).
+
+Install **Shosa** from the Extensions view (Windows x64), open [samples/hello.shosa](samples/hello.shosa)
+— the dance in the video above — and press Ctrl+K V.
 
 To build and install it on this PC (Windows): `tools\deploy-extension.ps1`, then *Developer: Reload Window*.
 
