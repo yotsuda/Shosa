@@ -796,7 +796,7 @@ public sealed class Juggling
     private const double TakeoutSwipeCarry = 1.8, TakeoutCarry = 0.14, TakeoutCarryTo = 0.30;
     /// <summary>How fast the hand goes up with the 3 as it throws it (a part of the ball's speed), and in across on its swipe (m/s);
     /// at the 4's catch, how fast it goes down with it (a part of the ball's speed).</summary>
-    private const double TakeoutLaunch = 0.6, TakeoutSwipeSpeed = 1.6, TakeoutArrive = 0.25;
+    private const double TakeoutLaunch = 0.8, TakeoutSwipeSpeed = 1.6, TakeoutArrive = 0.25;
     /// <summary>On the far side the hand stops once: for how long (seconds), how far below the catch (metres).</summary>
     private const double TakeoutStopFor = 0.0, TakeoutStopDown = -0.20;
     /// <summary>Where and when each round came low and in, before the next 4: the hand, seconds.</summary>
@@ -836,10 +836,10 @@ public sealed class Juggling
     private double _takeoutTopAt = double.NaN, _takeoutTopHigh;
     /// <summary>The 3's catch: this many throwing beats later than the pattern says (the user: its top at the round's top), but
     /// leaving the catching hand this much before it throws it again (a little before its beat).</summary>
-    private const double TakeoutAcrossHold = 0.55;
+    private const double TakeoutAcrossHold = 0.7;
     /// <summary>The 3 caught this high (metres above its throw), so that caught sooner (TakeoutAcrossHold) it still goes as high
     /// and comes to its top as late; the hand carries it down round a bottom this far below the throw and swings it up (the user).</summary>
-    private const double TakeoutCatchHigh = 0.16, TakeoutThrowDip = 0.05, TakeoutThrowDipOut = 0.06;
+    private const double TakeoutCatchHigh = 0.20, TakeoutThrowDip = 0.11, TakeoutThrowDipOut = 0.06, TakeoutThrowDipAt = 0.38;
     /// <summary>After the 3's throw the hand goes on up round the top of an arc and swipes down slanting onto its 4 (the user): the
     /// top this part of the way through that time, this part of the way in to the 4's catch, this high above the throw; and how
     /// fast it comes down at the catch (m/s).</summary>
@@ -851,7 +851,7 @@ public sealed class Juggling
     /// the 3's throw it starts from (a part of its average from there to the catch), and how high it rises over the middle of
     /// that (metres, going up with the ball and down onto the 4). Angles are from straight out on the own side, round forward.</summary>
     private const double SwipeCentreOut = 0.22, SwipeCentreAhead = -0.18;
-    private const double SwipeThrowTurn = 0.7, SwipeRise = 0.08;
+    private const double SwipeThrowTurn = 0.7, SwipeRise = 0.12;
     /// <summary>The arc's turning speed at the catch, as a part more than its average from there to the stop, and at the stop, as a part of it.</summary>
     private const double SwipeCatchTurn = 1.2, SwipeStopTurn = 0.6;
     /// <summary>The swipes' arcs, from each catch of the 4 on: the hand and the catch's time → the catch's angle (radians),
@@ -1075,9 +1075,10 @@ public sealed class Juggling
                     var last = _keys[hand][latest];
                     // (The bottom a little further out: a small loop down and out, then in and up into the throw. Straight
                     // below, the hand came down and went back up the same way, 146 degrees in a frame.)
-                    AddSmooth(hand, ((last.T + thrown) / 2, new Vec3((last.At.X + from.X) / 2 + side * TakeoutThrowDipOut, from.Y - TakeoutThrowDip, from.Z), Still, throwStyle));
+                    AddSmooth(hand, (last.T + TakeoutThrowDipAt * (thrown - last.T), new Vec3((last.At.X + from.X) / 2 + side * TakeoutThrowDipOut, from.Y - TakeoutThrowDip, from.Z), Still, throwStyle));
                 }
                 AddSmooth(hand, (thrown, from, Still, throwStyle));
+                _takeoutCrisps.Add((hand, latest >= 0 && thrown - _keys[hand][latest].T < 0.4 ? _keys[hand][latest].T : thrown - 0.15, thrown + TakeoutCrispAfter));
                 _launch[(hand, thrown)] = leaves.Y * TakeoutLaunch;
                 _launchAcross[(hand, thrown)] = -side * TakeoutSwipeSpeed;
                 // On up with it, round the top of the arc, high and in (the user), then the swipe comes down from there
@@ -2096,6 +2097,31 @@ public sealed class Juggling
     /// <summary>The takeouts words, seconds: their hands are softened (<see cref="Hand"/>).</summary>
     private readonly List<(double From, double To)> _takeouts = [];
 
+    /// <summary>Takeouts' 3s: the hand, from its catch of the ball to a little after it throws it on (seconds).</summary>
+    private readonly List<(int Hand, double From, double To)> _takeoutCrisps = [];
+    /// <summary>How long after the 3's throw its hand is still left as it is, how long that comes and goes over (seconds), and how much of the softening it takes away.</summary>
+    private const double TakeoutCrispAfter = 0.05, TakeoutCrispRamp = 0.08;
+    public const double TakeoutCrispShare = 0.85;
+
+    /// <summary>
+    /// How much a takeouts' hand is left as its places put it, not softened over time, 0..1: while it holds its 3, caught
+    /// and thrown on within a beat. Softened as the rest of the takeouts are, the swing down and up into that throw was
+    /// worn flat: the hand all but stood still (0.1 m/s upward) as the ball left it at 2.9 m/s (the user, 2026-11-25: the
+    /// ball flew out by itself, with no throwing of the hand).
+    /// </summary>
+    public double TakeoutCrisp(int hand, double sec)
+    {
+        double most = 0;
+        foreach (var (h, from, to) in _takeoutCrisps)
+        {
+            if (h != hand || sec < from - TakeoutCrispRamp || sec > to + TakeoutCrispRamp)
+                continue;
+            double w = sec < from ? (sec - from + TakeoutCrispRamp) / TakeoutCrispRamp : sec > to ? (to + TakeoutCrispRamp - sec) / TakeoutCrispRamp : 1;
+            most = Math.Max(most, w * w * (3 - 2 * w));
+        }
+        return most;
+    }
+
     /// <summary>How much takeouts have the hands at a time (seconds), 0..1.</summary>
     public double TakeoutAt(double sec) => TakeoutWeight(sec);
 
@@ -2298,6 +2324,9 @@ public sealed class Juggling
         if (w <= 0)
             return RawHand(hand, sec);
         double spread = wm >= wt ? MillsSoften : TakeoutSoften;
+        // (Less while a takeouts' hand swings its 3 down and up into the throw: TakeoutCrisp.)
+        if (wt > wm)
+            w *= 1 - TakeoutCrispShare * TakeoutCrisp(hand, sec);
         Vec3 sum = new(0, 0, 0);
         double total = 0;
         for (int i = -12; i <= 12; i++)

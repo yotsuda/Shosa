@@ -3044,8 +3044,10 @@ internal sealed class FigureSolver
             Vec3 elbowOff = sums[s * 2] * (1 / total), handOff = sums[s * 2 + 1] * (1 / total);
             elbowOff += forward * (depths[s * 2] / depthTotal - elbowOff.Dot(forward));
             handOff += forward * (depths[s * 2 + 1] / depthTotal - handOff.Dot(forward));
-            var hand = Vec3.Lerp(pose[first + 2], shoulder + handOff, weight);
-            var bendWay = Vec3.Lerp(pose[first + 1] - shoulder, elbowOff, weight);
+            // (Less while the hand swings its 3 down and up into the throw: Juggling.TakeoutCrisp.)
+            double soft = weight * (1 - Juggling.TakeoutCrispShare * juggling.TakeoutCrisp(s == 0 ? 1 : 0, sec));
+            var hand = Vec3.Lerp(pose[first + 2], shoulder + handOff, soft);
+            var bendWay = Vec3.Lerp(pose[first + 1] - shoulder, elbowOff, soft);
             var (elbow, reached) = TwoBone(shoulder, hand, Rig.UpperArm, Rig.Forearm, bendWay);
             pose[first + 1] = elbow;
             pose[first + 2] = reached;

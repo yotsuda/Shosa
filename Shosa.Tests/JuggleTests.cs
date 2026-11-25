@@ -419,7 +419,16 @@ public class JuggleTests
             Assert.True(three[4] - three[3] > 0.5, $"3 in the air {three[4] - three[3]:0.00} s");
             // The 4 less long in the air than the 3 over it, let go a little after its beat (the user, 2026-11-25: the 4 not
             // so high, lower than the 3 and than the ball the other hand carries round before the face).
-            Assert.True(f[4] - f[3] < three[4] - three[3], $"4 in the air {f[4] - f[3]:0.000} s, the 3 {three[4] - three[3]:0.000} s");
+            // (By the balls' tops: the 3 is caught sooner and higher since, to give its hand the time to swing it down and up.)
+            var balls = clip.Figures[0].Juggle!.Frames;
+            double Top(float[] flight) => Enumerable.Range((int)Math.Ceiling(flight[3] * clip.Fps), Math.Max(1, (int)((flight[4] - flight[3]) * clip.Fps)))
+                .Where(k => k < balls.Count).Max(k => (double)balls[k][(int)flight[0] * 7 + 1]);
+            Assert.True(Top(f) < Top(three), $"4 up to {Top(f):0.00} m, the 3 to {Top(three):0.00} m");
+            // The hand goes up with its 3 as it lets it go, swung down and up from the catch (the user, 2026-11-25: the ball
+            // flew out of a hand that stood still). Not the word's first 3, which comes from the hands as they were.
+            if (three[3] > 2.6)
+                Assert.True(HandAt(hand, three[3]).Y - HandAt(hand, three[3] - 0.1).Y > 0.02 && HandAt(hand, three[3] + 0.05).Y > HandAt(hand, three[3]).Y,
+                    $"the hand going up with its 3 at {three[3]:0.00} s: {HandAt(hand, three[3]).Y - HandAt(hand, three[3] - 0.1).Y:0.000} m in the 0.1 s before");
             // The round's top about when the 3 thrown just before is at its top (the user: the two at their tops at one time).
             if (three[4] < 5.0)
             {
