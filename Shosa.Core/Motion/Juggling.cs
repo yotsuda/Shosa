@@ -205,7 +205,7 @@ public sealed class Juggling
         int index = 0;
         double every = run[0].Seg.Every ?? 0.5;
         Seg? before = null;
-        int roundCount = 0;
+        int roundCount = 0, patternFrom = 0;
         // The throws go on one after another through the run, each word's from where the one before left off, not from the
         // word's own start (DESIGN.md 118.47; 118.11: `every 3/4` in words of 4 beats squeezed the throws at each word's start).
         double next = run[0].Seg.T0;
@@ -218,6 +218,14 @@ public sealed class Juggling
             if (!(before is not null && Round(before.Tricks) && Round(seg.Tricks) && Windmill(before.Tricks) == Windmill(seg.Tricks)
                   && before.LeftFirst == seg.LeftFirst && before.Every == seg.Every && Math.Abs(before.T1 - seg.T0) < 1e-6))
                 roundCount = 0;
+            // Takeouts written on in another word of the same pattern go on through it too, not from its first throw again
+            // (the user, 2026-11-25: `423:4@takeouts 423:4@takeouts`, eight throws a word, began 423 again at each word,
+            // which is 42342342, a pattern of its own: no error, but the balls changed parts, the one thrown over swiped
+            // and a swiped one thrown over, and the right hand whirled round).
+            bool goesOn = before is not null && before.Tricks?.Contains("takeouts") == true && seg.Tricks?.Contains("takeouts") == true
+                && before.Pattern == seg.Pattern && before.LeftFirst == seg.LeftFirst && before.Every == seg.Every && Math.Abs(before.T1 - seg.T0) < 1e-6;
+            if (!goesOn)
+                patternFrom = 0;
             double from = Math.Max(next, seg.T0);
             int k = 0;
             for (; ; k++)
@@ -225,9 +233,10 @@ public sealed class Juggling
                 double beat = from + k * every;
                 if (beat >= seg.T1 - 1e-6)
                     break;
-                slots.Add(new Slot(beat, seg, pattern, k, index++, roundCount++));
+                slots.Add(new Slot(beat, seg, pattern, patternFrom + k, index++, roundCount++));
             }
             next = from + k * every;
+            patternFrom += k;
             before = seg;
         }
         if (slots.Count == 0)

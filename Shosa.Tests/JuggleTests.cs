@@ -480,6 +480,22 @@ public class JuggleTests
     }
 
     [Fact]
+    public void Takeouts_written_on_in_more_words_go_on_through_the_pattern()
+    {
+        // Eight throws a word: begun again at each word, 423 was 42342342, a pattern of its own (no error), and the balls
+        // changed parts (the user, 2026-11-25). The words go on through 423 as one word of their length does.
+        var words = Compile(Juggle("every 1/2  423:4@takeouts 423:4@takeouts 423:4@takeouts 3:4"));
+        var one = Compile(Juggle("every 1/2  423:12@takeouts 3:4"));
+        Assert.Empty(words.Diagnostics);
+        Assert.Equal(one.Clip.Figures[0].Juggle!.Flights.Select(f => (f[0], f[1], f[2], f[3], f[4])),
+            words.Clip.Figures[0].Juggle!.Flights.Select(f => (f[0], f[1], f[2], f[3], f[4])));
+        // A word of another pattern, or mirrored, begins its own.
+        var other = Compile(Juggle("every 1/2  423:4@takeouts 423:4@takeouts@mirror 3:4"));
+        Assert.NotEqual(one.Clip.Figures[0].Juggle!.Flights.Take(12).Select(f => (f[0], f[1], f[2])),
+            other.Clip.Figures[0].Juggle!.Flights.Take(12).Select(f => (f[0], f[1], f[2])));
+    }
+
+    [Fact]
     public void Tennis_throws_one_ball_from_outside_and_the_others_from_inside()
     {
         // The same throws as the cascade; one ball (the word's first across) leaves from outside the hand's own catch, every
