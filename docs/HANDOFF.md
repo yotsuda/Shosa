@@ -9,7 +9,7 @@
 
 ユーザー: 「最初のリリースの準備をして。GitHub の README に動画をのせたい。ふさわしい .shosa を書いて。私が VS Code で確認して動画にする」。
 
-- **動画の譜 `samples\hello.shosa`**: 2 人 (2 人目は `mirror`)、8 小節 16 秒のループ。手拍子のステップ・指差し・歩いて蹴る・戻る・回転ジャンプ・お辞儀を 1 小節ずつの `move` にし、セクションは `body` の 1 段。動画で読めるように 1 行 60 桁以内、棒人形のまま (VRM の行はユーザーが足すかどうか決める: ずんだもん等は規約の確認が要る)。`check` は no problems、連続写真で見た。回転ジャンプは `jump.up(25cm)` (15 cm では空中の回転が 1 コマ 48 度で `No_bone_flips` の 45 度に掛かった)。**ユーザーの目と録画はこれから**。
+- **動画の譜 `samples\hello.shosa`**: 最初は曲なしの 8 小節のループを書いたが、ユーザー: 「Shosa の大きな特徴は音楽に合わせて figure を動かせるところだから、音楽があった方が良い」→ **ずんだもんとめたんの自己紹介の 30 秒の切り出し** (`form { Intro Chorus Coda }`、16 小節)。曲は Lily# の `site\songs\` の写しを `samples\Zunda-to-Metan-no-Jikoshokai.lys` に。振りは `scratch\` の試作のサビを英語の名前とコメントに直したもの (1 小節 1 語の `move`、セクションは `body` の段)。棒人形のまま、`sings` は書いてある (VRM の行はユーザーが足すかどうか決める: ずんだもん等を README に載せるなら規約の確認が要る)。`check` は no problems、連続写真で見た。**ユーザーの目と録画はこれから**。
 - **文書**: CHANGELOG 0.3.0 に日付 (2026-11-25。出す日が変われば直す)、ジャグリング・歌う口とマイクを足した。拡張の README にも。根の README は Status を「0.3.0 が最初のリリース」にし、冒頭に動画を置く場所のコメント (`<!-- VIDEO: … -->`)、`samples/hello.shosa` への案内。FOR_AGENTS の「まだ公開していない」を直した。
 - **確かめた**: `dotnet test` 543 件、`npm test` 28 件、`tools\pack-extension.ps1` → `artifacts\extension\shosa-win32-x64-0.3.0.vsix` (36 MB)、それをこの PC に入れた (`deploy-extension.ps1 -NoPack`)。
 - **残り (ユーザーの手)**: (1) `samples\hello.shosa` を見て録画 → GitHub の README の編集画面で `<!-- VIDEO -->` の所へ mp4 を落とす (GitHub がリンクを書く)。(2) push。(3) `vsce publish --packagePath artifacts\extension\shosa-win32-x64-0.3.0.vsix` (publisher `yotsuda`)。(4) タグ `v0.3.0` と GitHub のリリース (本文は CHANGELOG の 0.3.0、.vsix を添付)。README や CHANGELOG を直したら、出す前に `tools\pack-extension.ps1` をもう一度 (パッケージに入る)。

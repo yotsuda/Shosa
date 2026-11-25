@@ -61,7 +61,8 @@ The compiler `shosa` comes with it and is on the PATH of VS Code's terminals. Se
 [editors/vscode/README.md](editors/vscode/README.md).
 
 Install **Shosa** from the Extensions view (Windows x64), open [samples/hello.shosa](samples/hello.shosa)
-— the dance in the video above — and press Ctrl+K V.
+— the dance in the video above — and press Ctrl+K V. It is danced to a song, so it also wants the
+[Lily#](https://marketplace.visualstudio.com/items?itemName=yotsuda.lilysharp) extension; `samples/wave.shosa` needs nothing.
 
 To build and install it on this PC (Windows): `tools\deploy-extension.ps1`, then *Developer: Reload Window*.
 
@@ -92,7 +93,7 @@ for `lysc` in `SHOSA_LYSC`, then on the PATH, then in the Lily# extension instal
 | `Shosa.Lsp` | The language server the extension runs |
 | `Shosa.Tests` | The tests |
 | `editors/vscode` | The VS Code extension |
-| `samples` | Example files, among them dances to two Lily# songs |
+| `samples` | Example files, among them dances to Lily# songs |
 | `docs` | The plan (`ROADMAP.md`), the design and its trials (`DESIGN.md`), the language for an AI (`GRAMMAR_FOR_LLM.md`), the guide for agents (`FOR_AGENTS.md`) |
 | `trials` | Files AI agents wrote from the grammar alone, kept as evidence of what the language lets them write |
 | `tools` | Packing, installing and checking (Blender, Godot, the extension host) |

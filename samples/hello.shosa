@@ -1,50 +1,129 @@
-// Hello, Shosa: eight bars for two, the second dancer a mirror of the first.
+// Hello, Shosa: two dancers introduce themselves, to a Lily# song.
 // A word stands on the beat the body is THERE; the way to it is the compiler's.
-title "Hello, Shosa"
-tempo 120
+music "Zunda-to-Metan-no-Jikoshokai.lys"
 
-role pair
-dancer ann humanoid on pair at -1 0
-dancer ben humanoid on pair at  1 0  mirror
+role zunda
+role metan
+dancer zundamon humanoid sings zunda on zunda at -0.8 0
+dancer metan    humanoid sings metan on metan at  0.8 0
 
-move stepClap {
-  steps { leftFoot.side together rightFoot.side together }
-  arms  { side.down clap@sharp!clap side.down clap@sharp!clap }
+// ---- one bar each, written for zunda; metan dances them @mirror ----
+
+// Step out and close, both ways: the hands meet as the feet do.
+move touchClap {
+  steps  { rightFoot.side(0.45m) together leftFoot.side(0.45m) together }
+  arms   { side.down(40) clap@sharp side.down(40) clap@sharp }
+  height { { low(6cm):1/2 mid:1/2 } q q q }
 }
 
+// "hajimaru YO": the hand points up and out on "yo".
 move point {
-  rightArm { down:1/2 then:1/2 side.up then down }
-  leftArm  { down hip@sharp then down }
-  head     { fwd fwd.right(30)@sharp then fwd }
+  steps    { rightFoot.side(0.45m) together then:2 }
+  rightArm { side.down(40):2 then:1/2 fwd.side.up(30):1 then:1/2 }
+  leftArm  { side.down(40):5/2 hip:3/2@sharp }
+  head     { fwd:5/2 fwd.right(25):3/2@sharp }
 }
 
-move advance {
-  steps    { leftFoot.fwd rightFoot.fwd leftFoot.fwd then }
-  rightLeg { skip:2 then:1/2 fwd.down.bent:1/2
-             fwd:1/2@sharp!kick skip:1/2 }
+// "Zundamon to Me-": a hand on my chest, then out to my partner.
+move meAndYou {
+  steps    { leftFoot.side(0.45m) together then:2 }
+  rightArm { chest:5/2 then:1/2 hip:1 }
+  leftArm  { hip:5/2 then:1/2 side.up(10):1 }
+  head     { fwd:3 fwd.left(35):1@sharp }
 }
 
-move retreat {
-  steps { rightFoot.back leftFoot.back rightFoot.back stand }
+// The same words from the other side: my partner first, then me.
+move youAndMe {
+  steps    { rightFoot.side(0.45m) together then:2 }
+  rightArm { side.up(10):5/2 then:1/2 chest:1 }
+  leftArm  { hip:4 }
+  head     { fwd.right(35):3 fwd:1@sharp }
 }
 
-move spin {
-  steps { then:2 jump.up(25cm):2@turn(left(360))!land }
-  arms  { down then side.up:2 }
+// "futari de": a jump, the arms in a V.
+move together2 {
+  steps { then:2 jump.up(10cm):2 }
+  arms  { then:3/2 then:1/2 side.up(50):2 }
+  head  { then:2 fwd:2 }
 }
 
+// "kiite ne": a hand at the ear, leaning into it.
+move listen {
+  steps    { rightFoot.side(0.45m) together then:2 }
+  rightArm { side.down(40):1/2 then:1/2 head:2 then:1 }
+  leftArm  { side.down(40) hip:3 }
+  torso    { up up.right(10):2 then:1 }
+  head     { fwd fwd.tilt(right(15)):2 then:1 }
+}
+
+// "yoroshiku ne": a bow, stepping back to where the bar before left from.
 move bow {
-  torso    { up up.fwd(40):2 up }
-  rightArm { side.down belly:2 down }
-  leftArm  { side.down side.down(20):2 down }
+  steps { leftFoot.side(0.45m) together:3 }
+  arms  { side.down(40) then fwd.across(25).down(75) then }
+  torso { up then up.fwd(35) then }
+  head  { fwd then fwd.body then }
 }
 
-section Hello {
-  pair {
-    body { stepClap:4 | % | point:4 | point:4@mirror |
-           advance:4 | retreat:4 | spin:4 | bow:4 | }
+// "na no da!": zunda jumps, the arms up, the head to one side.
+move nanoda {
+  steps { then jump.up(10cm):3 }
+  arms  { then:1/2 then:1/2 side.up(45):3 }
+  torso { up:4 }
+  head  { fwd fwd.tilt(left(15)):3@sharp }
+}
+
+// "desu wa": metan laughs behind her hand, the other on her hip.
+move desuwa {
+  rightArm { then:1/2 then:1/2 chin.elbow(side):3 }
+  leftArm  { then hip:3 }
+  torso    { up up.back(8):3 }
+  head     { fwd fwd.up(15).tilt(left(10)):3 }
+}
+
+// The last picture: the outer arm up, leaning toward the partner.
+pose finale {
+  rightArm { side.up(50) }
+  leftArm  { hip }
+  torso    { up.left(8) }
+  head     { fwd.left(10).tilt(left(15)) }
+}
+
+// ---- the song's sections ----
+
+section Intro {
+  zunda {
+    body { then:4 | then:4 | touchClap:4 | touchClap:4 | }
+    head { fwd.down(30):3 then:1 | metan.head:2 fwd:2 | skip:2bar | }
+  }
+  metan {
+    body { then:4 | then:4 | touchClap:4@mirror | touchClap:4@mirror | }
+    head { fwd.down(30):3 then:1 | zunda.head:2 fwd:2 | skip:2bar | }
   }
 }
 
-form { Hello }
-score { dancer ann  dancer ben  loop }
+section Chorus {
+  zunda {
+    body { touchClap:4 | point:4 | meAndYou:4 | together2:4 |
+           touchClap:4 | listen:4 | bow:4 | nanoda:4 | }
+  }
+  metan {
+    body { touchClap:4@mirror | point:4@mirror | youAndMe:4 |
+           together2:4@mirror | touchClap:4@mirror | listen:4@mirror |
+           bow:4@mirror | desuwa:4 | }
+  }
+}
+
+section Coda {
+  zunda {
+    body  { touchClap:4 | touchClap:4 | then:4 | finale:4 | }
+    steps { skip:2bar | then:1 then:2 turn.right(360):1 | }
+  }
+  metan {
+    body  { touchClap:4@mirror | touchClap:4@mirror | then:4 | finale:4@mirror | }
+    steps { skip:2bar | then:1 then:2 turn.left(360):1 | }
+  }
+}
+
+// The song has more (two verses, a bridge): this is a cut of thirty seconds.
+form { Intro Chorus Coda }
+score { dancer zundamon  dancer metan }
