@@ -21,9 +21,12 @@
   - **長いクリップは並列に解く** (120.10): `Solver.PosedAhead`、`Solver.FramesAtOnce` (環境変数 `SHOSA_FRAMES_AT_ONCE` は `tools\perf` 用)。出力はどう切っても同じ (試験 `FramesAtOnceTests`)。静かな窓で測って上限を 6 本に決めた (ずんだもんとめたんの編集 1 回 73 → 56 ms。4〜6 本が一番速く、増やすと GC 待ちで遅くなる)。
   - **ソルバーの割り当てを減らした** (120.12): 段の読み取りを構造体に (`IChain<T>`、`ArmOf`・`LegShapeOf`・`GazeOf`…)。1 回解くのに 60 → 17 MB、ソルバー 1 本 68 → 47 ms、6 本 40 → 25 ms、編集 1 回 57 → 約 50 ms。型ごとの割り当ては `tools\perf --allocations FILE.shosa`。残りの半分はソルバーの外 (束縛、パッチと JSON)。
   - **束縛の割り当てを減らした** (120.13): 構文木の子の配列をノードごとに 1 回だけ作る (`SyntaxNode.ChildNodes` `ChildTokens`)、語の `Seg` の余分な写しをやめる。18.8 → 9 MB、束縛 15.7 → 6.4 ms、編集 1 回 51 → 43 ms。`tools\perf --allocations FILE.shosa --binder`、`--bind`。残りの根はセクションを何度も束縛すること (差分にするには設計が要る)。
+  - **束縛のどこが重いかを調べて直した** (120.14、2026-11-25 の 3 つ目のセッション): 束縛の 45% は「セクションの長さを知るためだけの歩き」だった → 長さだけの歩き (`_mute > 0`) では語の中身を作らない。語の意味は語のノード・チャンネル・鏡写し・踊り手ごとに 1 回だけ求めて写しを渡す (`Meant`)。`Resolve` の勝者探しを掃き出しに。`q` の指す `{ }` を覚える。歩く仕組みの割り当てを減らす。束縛 2.78 → **1.10 ms**、8.7 → 3.1 MB、編集 1 回 41.7 → 36.9 ms、動きの変わらない編集 10.6 → **3.8 ms**。出力は 60 譜と壊した 503 譜で IR まで同じ。**束縛はもう固まりの原因ではない** (残り 1 ms。差分にしても得るのは最大それだけ)。
+  - ★ **速さは温めてから測る** (120.14): 300 回の平均は JIT の温まり途中で、本当の数の 2〜3 倍だった (120.13 の「束縛 6.4 ms」は 2.8 ms)。`tools\perf` は 2〜3 秒温めてから測る (`--cold` で温めない)。プロファイル (`dotnet-trace`) は安全点でしか取れず割り当てる所に偏る: 木は使えるが、関数の中は `Stopwatch` を仮に入れて測る。
+  - **束縛を速くする変更の確かめ方** (120.14): `--dump`/`--compare` が束縛の出力 (IR 全部) も `NAME.ir.json` に控えて比べる。加えて `python tools\perf\mutate.py FOLDER` で壊した譜を作り (samples などの写しの中に)、直す前の束縛で `--dump`、後で `--compare` (40 譜ずつ渡す)。
   - ★ **速さを測る前に、ユーザーに静かな窓を頼み、静かだと確かめてから始める** (ユーザー、2026-11-25)。出力の照合 (`--compare`) や試験には要らない。
-- **ユーザーが見るのはこれから** (拡張は入れ直した: 各ウィンドウで Reload Window)。残りは 120.11 と 120.13: 束縛の差分 (セクションを何度も束縛している)、長いジャグリングの譜のプレビュー。ソルバーを時間の窓で差分にするのは、いまの作りでは正しさの根拠が取れないのでしていない。
-- Bamen の依頼 1 (座る)・2 (曲がった道) は `open` のまま (この 2 つのセッションは速さだけ)。
+- **ユーザーが見るのはこれから**。120.13 までは拡張に入っている (各ウィンドウで Reload Window)。**120.14 (束縛) はまだ拡張に入れていない**: C# を変えたので `tools\deploy-extension.ps1` (`-SkipPublish` なし) で入れ直す。残り: 編集 1 回 約 37 ms の大半はソルバー (6 本で約 28 ms) とパッチ、長いジャグリングの譜のプレビュー (120.3)。束縛の差分はもう要らない (120.14)。ソルバーを時間の窓で差分にするのは、いまの作りでは正しさの根拠が取れないのでしていない。
+- Bamen の依頼 1 (座る)・2 (曲がった道) は `open` のまま (この 3 つのセッションは速さだけ)。
 
 ## 現在地 (2026-11-22 の終わり)
 
@@ -132,7 +135,8 @@ code --extensionDevelopmentPath=C:\MyProj\Shosa\editors\vscode C:\MyProj\Shosa\s
 tools\deploy-extension.ps1   # 拡張をパッケージにして、この PC の VS Code に入れる (-SkipPublish: サーバーは前回のまま。C# を変えたコミットの後には使わない: 古いサーバーが入る。DESIGN.md 97.5。-NoPack: 入れるだけ)。あとは各ウィンドウで Reload Window
 tools\test-extension-host.ps1   # 入れた拡張を実際の VS Code (空のプロファイル、窓が数秒開く) で試す: Copilot 向けの道具 3 つ、保存前の編集、ターミナルの shosa。-Repository で editors\vscode の拡張。DESIGN.md 45 節
 dotnet run -c Release --project tools\perf -- scratch\Zunda-to-Metan-no-Jikoshokai.shosa --find "up.fwd(15"   # 編集 1 回のコストを段ごとに (サーバー側。DESIGN.md 120.1)
-tools\perf\bin\Release\net10.0\Shosa.Perf.exe --compare out\pv\corpus @(Get-ChildItem samples\*.shosa, scratch\*.shosa, out\juggle\*.shosa, out\vrm\*.shosa, out\mic\*.shosa, out\walkfeet\*.shosa, out\sing6\*.shosa | % FullName)   # ソルバーの出力が控えと同じか (速くする変更の前に --dump で控える。DESIGN.md 120.6)
+tools\perf\bin\Release\net10.0\Shosa.Perf.exe --compare out\pv\corpus @(Get-ChildItem samples\*.shosa, scratch\*.shosa, out\juggle\*.shosa, out\vrm\*.shosa, out\mic\*.shosa, out\walkfeet\*.shosa, out\sing6\*.shosa | % FullName)   # ソルバーと束縛の出力が控えと同じか (速くする変更の前に --dump で控える。DESIGN.md 120.6、120.14)
+tools\perf\bin\Release\net10.0\Shosa.Perf.exe --bind scratch\Zunda-to-Metan-no-Jikoshokai.shosa   # 束縛だけ、2 秒温めてから 1000 回 (中央値・最小・割り当て。DESIGN.md 120.14)。型ごとの割り当ては --allocations FILE --binder
 out\pv\run-perf.ps1 [-Messages]   # プレビューのページで編集 1 回のコスト (窓なしの Chrome)。-Messages はサーバーの本物のパッチで (先に dotnet build -c Release tools\perf)
 tools\pack-extension.ps1     # パッケージだけ: artifacts\extension\shosa-win32-x64-<版>.vsix (サーバーと shosa を .NET ごと同梱。Lily# は入れない。DESIGN.md 24 節。THIRD-PARTY-NOTICES.txt は tools\third-party-notices.ps1 が毎回作る。87.7)
 ```
