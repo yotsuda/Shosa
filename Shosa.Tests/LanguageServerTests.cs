@@ -127,6 +127,12 @@ public class LanguageServerTests
         Assert.Equal(Shosa.Core.Output.Bvh.Render(walk, walk.Figures[0]), System.Text.Encoding.UTF8.GetString(Exported("bvh")));
         Assert.Empty(session.Request("shosa/export", new { uri = Uri, score = "Nope", format = "glb" }).GetProperty("files").EnumerateArray());
 
+        // The song a dance is written to, as `shosa song` says it (DESIGN.md 123): a dance with no `music` is told to give the song.
+        var song = session.Request("shosa/songReport", new { uri = Uri });
+        Assert.Contains("is danced to no song", song.GetProperty("text").GetString());
+        Assert.Equal(song.GetProperty("text").GetString(), song.GetProperty("error").GetString());
+        Assert.Empty(song.GetProperty("parts").EnumerateArray());
+
         Assert.Equal(JsonValueKind.Null, session.Request("shosa/check", new { uri = "file:///nobody.shosa" }).ValueKind);
     }
 

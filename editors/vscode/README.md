@@ -1,6 +1,7 @@
 # Shosa
 
-Write human movement as text and watch it performed beside the source.
+Write movement as text, or have an AI write it, and watch characters dance, sing and juggle to a song beside the source.
+Film it as an MP4, or export it for a game engine.
 
 ```
 tempo 120
@@ -40,7 +41,11 @@ score { dancer solo  loop }
   every dancer and everything they juggle, from start to end, with no more floor than that. **Zoom**, **Height** and **Angle**
   move it by hand (so do a drag, the wheel and a right drag), **Reset** puts it back. The view is kept, and the MP4 is filmed from it.
 - **An AI assistant can write it**: in Copilot Chat's agent mode, ask for a movement in Shosa. The extension gives the assistant
-  the language (`#shosaGrammar`), the compiler's verdict (`#shosaCheck`) and a picture of the movement to look at (`#shosaSheet`).
+  the language (`#shosaGrammar`), the compiler's verdict (`#shosaCheck`), a picture of the movement to look at (`#shosaSheet`)
+  and the song a dance is written to (`#shosaSong`: its sections with their bars, who sings, and the words bar by bar on their beats).
+- **Add a Dance…** (right-click a Lily# song, `.lys`): asks which of the song's scores, a character for each part that sings,
+  and what the dance should be like; writes `SONG.shosa` beside the song with a dancer for each singing part, opens it with the preview,
+  and asks Copilot's chat to choreograph it to the words. The same is `shosa song SONG.lys` in a terminal.
 
 The compiler (`shosa`) writes the movement as BVH, glTF and VRM Animation. It comes with the extension and is on the
 PATH of VS Code's terminals: `shosa check FILE`, `shosa sheet FILE -o X.png`, `shosa gltf FILE --combined -o X.glb`

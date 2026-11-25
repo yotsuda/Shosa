@@ -1514,6 +1514,53 @@ public static class GrammarDoc
             - Do not write `music` unless you were given the song: without its file the line is an
               error (`SH1901`).
 
+            ### Choreographing the words
+
+            **Before writing a dance to a song, read the song with `shosa song song.lys`** (in the
+            editor, the tool `shosa_song`). It prints the sections as played, who sings, and the
+            words bar by bar:
+            ```
+            song hello.lys: 4/4 at 128 (a beat is a crotchet), 16 bars, 64 beats, 30 s
+              sections as played (…):
+                Intro    bars 1-4     4 bars   beats 0-16    0-7.5 s
+                Chorus   bars 5-12    8 bars   beats 16-48   7.5-22.5 s
+              sung by: zunda (Zundamon), metan (Metan). …
+                Intro: no words
+                Chorus
+                  bar 2 (beat 20)  zunda+metan: 1い 1.5は 2じ 2.5ま 3る 3.5よ~1.5   "いはじまるよ"
+                  bar 7 (beat 40)  zunda+metan: / 1.5よ 2ろ 2.5し 3く 3.5ね~1.5   "よろしくね"
+                  bar 8 (beat 44)  zunda: 1な 1.5の 2だ~1   "なのだ"
+                  bar 8 (beat 44)  metan: 1で 1.5す 2わ~1   "ですわ"
+            ```
+            - Write one `section` for each section it lists, under the same name, as many bars long.
+              A section the song plays again (`Chorus, verse 2`) is danced from the same text: what
+              the second time does differently is a `verse 2 { … }` (see "Doing it again").
+            - `bar 2` is the second bar of that section, and `(beat 20)` the song's beat its bar line
+              is on — the beats `check`, the sheet and `--from`/`--to` count, so the よ at 3.5 of
+              that bar is beat 20 + 3.5 − 1 = 22.5 (`shosa sheet … --from 22 --to 23 --step 0.25`).
+              The number before a syllable is the beat of the bar it is sung on, from 1; `~1.5`
+              holds it a beat and a half; a `/` before a syllable says there is a rest of a beat or
+              more before it (counted from where the last syllable ended, which may be in the bar before).
+            - **A word stands where the body arrives, so a gesture for a syllable is a word placed
+              on its beat.** The words before it in the bar add up to its beat less 1: for the arm
+              up on the よ above (beat 3.5 of bar 2), `rightArm { … | side:5/2 up:3/2 | }` — `side`
+              stands on beat 1, `up` on 1 + 5/2 = 3.5.
+            - **An arm leaves a shape for the next word as soon as it gets there**, so a shape for
+              a held syllable drifts through the hold unless a `then` follows it (see `then` above):
+              `up:3/2 then:1 side` is up on the syllable, stays the beat and a half it is held, and
+              goes to `side` in the beat of the `then`. The last word of a section is left for the
+              next section's first word; to hold a last pose over the section's end, begin the
+              next section's row with `then` (its first word then lands that much later).
+            - What reads as dancing to the words: the big shapes on the held syllables (`~`) and on
+              the first syllable after a rest (`/`); the steps and the travelling in the bars without
+              words; a sung line's last syllable as a pose to hold. Material used again — a step, a
+              gesture on a word that comes back — is a `move` (or `pose`), and a move can be used in
+              each row it covers (`steps { run:4 | … }` and `arms { run:4 | … }`).
+            - The dancer who sings a part is given `sings PART` (the part names it lists), so the
+              mouth moves to the words. Parts joined with `+` sing together: two dancers on them
+              suit a mirrored unison (`@mirror`). Where one part sings alone (bar 8 above), its
+              dancer leads, and the other answers it or turns the head to it (`head { zunda.head }`).
+
             ## What the language cannot say (yet)
 
             Do not try to express these; mention them as a limitation instead.

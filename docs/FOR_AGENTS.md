@@ -32,9 +32,10 @@ table the compiler checks against, so the two cannot disagree. Dancing to a Lily
 everything but dancing to a song works, and a `music` line says Lily# is needed.
 
 **In VS Code, an assistant that uses the editor's tools (Copilot Chat in agent mode) needs
-none of this file's setup**: the extension gives it three tools — `shosa_grammar` (the
+none of this file's setup**: the extension gives it four tools — `shosa_grammar` (the
 language), `shosa_check` (what `shosa check` prints, for the text as the editor has it; `score` and
-`at` as `--score` and `--at`)
+`at` as `--score` and `--at`), `shosa_song` (what `shosa song` prints: the song a dance is
+written to, its sections and its words on their beats)
 and `shosa_sheet` (the sheet as an image). The rest of this file is for an agent that
 works through the command line.
 
@@ -69,6 +70,12 @@ Movement is written in `anim/*.shosa` and compiled; never edit the `.glb` files.
    with a diagnostic.
 2. **Write**, starting from "A complete file" in the grammar. A character's file has one
    `score` per movement (`Idle`, `Walk`, `Attack` …).
+   To dance to a song, first **`shosa song SONG.lys`** (`--score NAME` for one of its scores):
+   its sections as played with their bars and seconds, the parts that sing, and the words bar
+   by bar, each syllable after the beat of its bar (`2.5しょ~1.5`: on the second half of beat 2,
+   held a beat and a half; `/` a breath). Write a `section` for each, as many bars long, and
+   put the moves on the words by bar and beat, as "Choreographing the words" in the grammar says.
+   Given a `.shosa`, it reports the song that file names.
 3. **`shosa check FILE`** prints `FILE(line,column): severity CODE: message` for each
    problem — the message says what to change — or `no problems`, then every score with
    its length and each section's beats, bars, seconds, tempo and time, then every mark

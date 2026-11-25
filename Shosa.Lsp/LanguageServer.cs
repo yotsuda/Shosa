@@ -360,6 +360,32 @@ public sealed class LanguageServer(Action<string> send)
                 break;
             }
 
+            case "shosa/songReport":
+            {
+                // What `shosa song FILE [--score NAME]` prints: the song a dance is written to, for choreographing
+                // it — a .lys itself, or the song a .shosa names (its text as the editor has it). DESIGN.md 123.
+                string uri = parameters.TryGetProperty("uri", out var u) ? u.GetString() ?? "" : "";
+                string? Said(string key) => parameters.TryGetProperty(key, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
+                if (PathOf(uri) is not { } path)
+                {
+                    Reply(id, new { text = "Only a song that is a file can be read: give the path of the .lys (or of the .shosa danced to it)." });
+                    break;
+                }
+                string text = Said("text") ?? (_documents.TryGetValue(uri, out var open) ? open.Tree.Text : File.Exists(path) ? File.ReadAllText(path) : "");
+                // With the text, what Add a Dance… builds a file from: the song's scores and the parts that sing.
+                var found = SongReport.Read(path, text, Said("score"), out string? why);
+                Reply(id, found is { } song
+                    ? new
+                    {
+                        text = string.Join("\n", SongReport.Lines(song.Song, song.Label)),
+                        scores = song.Song.Scores,
+                        parts = (song.Song.Sung ?? []).Where(s => s.Read().Any()).Select(s => s.Part).Distinct().ToList(),
+                        error = (string?)null,
+                    }
+                    : new { text = why ?? "", scores = new List<string>(), parts = new List<string>(), error = why });
+                break;
+            }
+
             case "shosa/sheet":
             {
                 // What `shosa sheet FILE` draws: for each score (or the one named) a PNG, as base64.

@@ -53,6 +53,19 @@ function modelsFolder(uri: vscode.Uri): string | undefined {
   return path.resolve(workspace ? workspace.uri.fsPath : path.dirname(uri.fsPath), expanded);
 }
 
+/**
+ * The characters on offer for a dance at `uri`: the models folder and its VRM files, each with the
+ * short name a dancer line writes (from that folder, with '/'). Undefined when no folder is set.
+ */
+export async function modelsOnOffer(uri: vscode.Uri): Promise<{ folder: string; models: { file: string; name: string }[] } | undefined> {
+  const folder = modelsFolder(uri);
+  if (!folder) {
+    return undefined;
+  }
+  const files = await modelFiles(folder);
+  return { folder, models: files.map(file => ({ file, name: path.relative(folder, file).replace(/\\/g, '/') })) };
+}
+
 /** Every .vrm file in the folder and the folders below it, in the order of their paths. */
 async function modelFiles(folder: string): Promise<string[]> {
   const found: string[] = [];

@@ -60,9 +60,9 @@ exports.run = async function run() {
     await vscode.window.showTextDocument(document);
 
     // Registered: the declarations of package.json, and an implementation behind each.
-    const names = ['shosa_grammar', 'shosa_check', 'shosa_sheet'];
+    const names = ['shosa_grammar', 'shosa_check', 'shosa_song', 'shosa_sheet'];
     await until('the tools', () => names.every(n => vscode.lm.tools.some(t => t.name === n)));
-    check('the three tools are listed', true, vscode.lm.tools.filter(t => t.name.startsWith('shosa_')).map(t => t.name));
+    check('the four tools are listed', true, vscode.lm.tools.filter(t => t.name.startsWith('shosa_')).map(t => t.name));
 
     // The grammar. The first call also waits for the language server to start.
     const grammar = await until('the grammar', async () => {
@@ -109,6 +109,14 @@ exports.run = async function run() {
       all.filter(p => p.kind === 'data').length);
     const none = await invoke('shosa_sheet', { file, score: 'Nope' });
     check('shosa_sheet says when there is no such score', none.length === 1 && /no movement to draw/.test(none[0].value), none);
+
+    // The song a dance is written to (DESIGN.md 123): the .lys itself, and the song a .shosa names.
+    // (This needs Lily#'s lysc; without it the tool says so, which is reported as a failure here.)
+    const song =(await invoke('shosa_song', { file: path.join(folder, 'song.lys') })).map(p => p.value).join('');
+    check('shosa_song reads a .lys: its sections as played', /^song song\.lys: 4\/4 at /m.test(song) && /sections as played/.test(song),
+      song.split('\n').slice(0, 5));
+    const ofDance = (await invoke('shosa_song', { file: path.join(folder, 'dance.shosa') })).map(p => p.value).join('');
+    check('shosa_song reads the song a .shosa names', ofDance === song, ofDance.split('\n').slice(0, 2));
 
     // The preview's Export buttons, pressed by their commands (a path given: no dialog). The
     // video is filmed and encoded by the preview's page: this shows the editor has the encoders.

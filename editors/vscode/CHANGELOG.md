@@ -31,5 +31,6 @@ The first release, for Windows (x64).
 
 ### For AI assistants
 
-- Copilot Chat's agent mode gets three tools: the language (`#shosaGrammar`), the compiler's verdict (`#shosaCheck`) and a picture of the movement (`#shosaSheet`).
+- Copilot Chat's agent mode gets four tools: the language (`#shosaGrammar`), the compiler's verdict (`#shosaCheck`), a picture of the movement (`#shosaSheet`) and the song a dance is written to (`#shosaSong`: its sections with their bars and seconds, who sings, and the words bar by bar on their beats). `shosa song SONG.lys` prints the same in a terminal.
+- **Add a Dance…** on a Lily# song (right-click a `.lys`): a dance file begun beside it with a dancer for each part that sings, opened with the preview, and Copilot's chat asked to choreograph it to the words.
 - The compiler `shosa` comes with the extension and is on the PATH of VS Code's terminals (`shosa grammar` prints the whole language for an agent).

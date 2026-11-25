@@ -12,6 +12,8 @@ import type { LanguageClient } from 'vscode-languageclient/node';
 //   shosa_check     what `shosa check FILE [--score] [--at]` prints: diagnostics, scores, sections,
 //                   marks, and how the body is turned at the moments asked for
 //   shosa_sheet     what `shosa sheet FILE` draws: a pose per beat, as an image the model looks at
+//   shosa_song      what `shosa song FILE` prints: the song a dance is written to, its sections,
+//                   who sings and the words on their beats (DESIGN.md 123)
 //
 // The language server does the work (shosa/grammar, shosa/check, shosa/sheet) and is sent the
 // text of the document as the editor has it, so a file the assistant has just edited is read as
@@ -20,6 +22,7 @@ import type { LanguageClient } from 'vscode-languageclient/node';
 
 interface FileInput { file: string }
 interface CheckInput extends FileInput { score?: string; at?: string | number }
+interface SongInput extends FileInput { score?: string }
 interface SheetInput extends FileInput { score?: string; step?: number; from?: number | string; to?: number | string; view?: string | number }
 interface Sheet { score: string; beats: number; png: string }
 
@@ -32,6 +35,7 @@ const howToWork = `
 
 # Working in this editor
 
+0. To dance to a song (a .lys), call the tool shosa_song with it first, and write the dance as "Choreographing the words" above says: its section names and bar counts, the moves on its words by bar and beat, "sings PART" on the dancer line for the parts that sing.
 1. Write or change the .shosa file. Start from "A complete file" above; use only words that are above.
 2. Call the tool shosa_check with the file. Fix until its first line says "no problems". Take lengths, bars, seconds and the times of marks from its report; do not compute them.
 3. Call the tool shosa_sheet with the file and LOOK at the image of every score you changed (left limbs blue, right limbs red). No diagnostics does not mean the right movement. For anything shorter than a beat pass "score" and "step": 0.25; for a punch, a kick or a bow straight ahead pass "view": "side".
@@ -91,6 +95,18 @@ export function registerTools(context: vscode.ExtensionContext, client: Language
       return text(report.text + (clean
         ? '\n\nNo diagnostics does not mean the right movement: look at it with the tool shosa_sheet.'
         : '\n\nFix every line above that says "error" (the message says what to change) and check again. If a word is refused, it is not in the grammar (tool shosa_grammar): do not try spellings.'));
+    },
+  }));
+
+  // A .lys is not a Shosa document: the server reads it from disk (the open editor's text when it is open).
+  context.subscriptions.push(vscode.lm.registerTool<SongInput>('shosa_song', {
+    prepareInvocation: options => ({ invocationMessage: `Reading the song of ${name(options.input.file)}` }),
+    invoke: async options => {
+      const { file, score } = options.input;
+      const document = await open(file);
+      const report = await client.sendRequest<{ text: string } | null>('shosa/songReport',
+        { uri: document.uri.toString(), text: document.getText(), score });
+      return text(report?.text ?? 'The Shosa language server gave no answer.');
     },
   }));
 

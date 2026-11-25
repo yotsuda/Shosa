@@ -97,6 +97,11 @@
         "command": "shosa.chooseModelsFolder",
         "category": "Shosa",
         "title": "Choose Models Folder…"
+      },
+      {
+        "command": "shosa.addDance",
+        "category": "Shosa",
+        "title": "Add a Dance…"
       }
     ],
     "menus": {
@@ -104,6 +109,27 @@
         {
           "command": "shosa.newFile",
           "group": "file@1"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "shosa.addDance",
+          "when": "resourceExtname == .lys",
+          "group": "navigation@90"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "shosa.addDance",
+          "when": "resourceExtname == .lys",
+          "group": "1_open@90"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "shosa.addDance",
+          "when": "resourceExtname == .lys",
+          "group": "z_shosa@1"
         }
       ],
       "editor/title": [
@@ -129,6 +155,10 @@
         {
           "command": "shosa.exportAudio",
           "when": "editorLangId == shosa"
+        },
+        {
+          "command": "shosa.addDance",
+          "when": "resourceExtname == .lys"
         },
         {
           "command": "shosa.nextModel",
@@ -188,6 +218,38 @@
             "at": {
               "type": "string",
               "description": "Moments to say how each dancer's body is turned at: beats, or seconds with an s, with commas between (\"3,4.5\" or \"0.75s\"). The same as `shosa check FILE --at`."
+            }
+          },
+          "required": [
+            "file"
+          ]
+        }
+      },
+      {
+        "name": "shosa_song",
+        "displayName": "Shosa Song",
+        "toolReferenceName": "shosaSong",
+        "canBeReferencedInPrompt": true,
+        "icon": "$(music)",
+        "tags": [
+          "shosa",
+          "animation",
+          "choreography",
+          "music",
+          "lyrics"
+        ],
+        "userDescription": "Reads the song a dance is written to: its sections with bars and seconds, who sings, and the words bar by bar on their beats.",
+        "modelDescription": "Reads a Lily# song (.lys) the way a Shosa dance is written to it, or the song a .shosa file names with `music`: its time and tempo (or that it keeps a recording's beats), every section as played with its bars, beats and seconds, the song's parts that sing, and the words bar by bar, each syllable after the beat of its bar it falls on (from 1), held syllables with ~N and breaths with /. Call it BEFORE choreographing a song, and write each `section` of the dance with the song's section names and bar counts; put a move on a word by its bar and beat (a word stands where the body arrives, so a gesture written on beat 3 is made on the syllable at 3). Use the part names it lists in `dancer … sings PART`. Take bars, beats and seconds from this report instead of reading the .lys.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "file": {
+              "type": "string",
+              "description": "The song (.lys) or a dance danced to one (.shosa): its full path, or its path from the workspace folder."
+            },
+            "score": {
+              "type": "string",
+              "description": "For a .lys with several scores, the one the dance names (`music \"song.lys\" score NAME`). Without it, the unnamed one."
             }
           },
           "required": [

@@ -33,6 +33,14 @@ public class SingingTests
         (music.Length == 0 ? "form { A }\n" : "") + "score { dancer alice }\n";
 
     [Fact]
+    public void Check_says_what_a_singing_dancer_sings()
+    {
+        var compilation = ShosaCompilation.Compile(Dance(), null, Song(Melody));
+        Assert.Contains("    alice sings 5 syllables, from beat 0 to 6", CheckReport.Scores(compilation, "dance.shosa"));
+        Assert.DoesNotContain(CheckReport.Scores(ShosaCompilation.Compile(Dance(sings: ""), null, Song(Melody)), "dance.shosa"), line => line.Contains(" sings "));
+    }
+
+    [Fact]
     public void Each_syllable_opens_the_mouth_to_its_vowel_on_its_beat()
     {
         var compilation = ShosaCompilation.Compile(Dance(), null, Song(Melody));

@@ -14,6 +14,9 @@ const string Usage = """
                                     hips, shoulders and face, in degrees from the way the feet face,
                                     how far the elbows and knees are bent, and whether each foot
                                     is on the floor (on its toes, or how high)
+      shosa song    FILE            the song a dance is written to (FILE.lys, or the one FILE.shosa
+                    [--score NAME]  names): sections as played with bars and seconds, who sings,
+                                    and the words bar by bar on their beats, for choreographing it
       shosa sheet   FILE [-o PNG]   a pose per beat and the floor from above, on one image
                     [--step BEATS] [--from BEAT] [--to BEAT]   closer poses, or part of the clip
                                     (--from and --to take seconds with an s: --from 0.5s --to 1s)
@@ -72,6 +75,19 @@ if (!File.Exists(path))
 {
     Console.Error.WriteLine($"shosa: no such file: {path}");
     return 2;
+}
+
+// The song a dance is written to (a .lys, or the one a .shosa names): read before compiling, since a .lys is not Shosa.
+if (command == "song")
+{
+    if (SongReport.Read(path, File.ReadAllText(path), scoreName, out string? why) is not { } found)
+    {
+        Console.Error.WriteLine("shosa: " + why);
+        return 1;
+    }
+    foreach (string line in SongReport.Lines(found.Song, found.Label))
+        Console.WriteLine(line);
+    return 0;
 }
 
 // -o out\walk.png into a folder that is not there yet: make it.

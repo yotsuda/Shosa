@@ -7,6 +7,7 @@ import { registerModels, resolveModel } from './models';
 import { applyClipPatch } from './preview/patch.js';
 import { ClipMusic, createStems } from './stems';
 import { registerTools } from './tools';
+import { registerAddDance } from './addDance';
 
 // The extension is thin on purpose. The language server knows the language; the preview
 // knows how to draw. This file starts the one, opens the other, and carries four kinds of
@@ -267,6 +268,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   // The grammar, the check and the sheet as tools of an AI assistant in the editor (tools.ts).
   registerTools(context, client);
+  // Add a Dance… on a Lily# song: the dance begun beside it, and the chat asked to choreograph it (addDance.ts).
+  registerAddDance(context, client);
 
   const show = (uri: string) => {
     panelUri = uri;

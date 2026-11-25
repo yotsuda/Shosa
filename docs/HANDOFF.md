@@ -5,6 +5,17 @@
 下のパスはリポジトリの根から。
 - ★ **開始時に `C:\MyProj\Bamen\docs\repro\REQUESTS.md` の `open` を見る** (2026-11-23〜)。Bamen (撮影の言語。`shosa clip` を読んでカメラを解く) からの依頼の 1 枚。使い方は Shosa → Lily# の `docs/repro/REQUESTS.md` と同じ (入れたら `fixed <commit>`、入れないなら `won't`、聞くなら `question`)。2026-11-25: 1 (座る) は `fixed f9ae160`、2 (曲がった道) は `question` (曲線は `@turn` の歩でもう書けた。「この点まで歩く」の語が要るかを Bamen に聞いている)。`open` は無い。
 
+## 曲から踊りへの導線、第 1 段 (2026-11-26、DESIGN.md 123)
+
+方向 (ROADMAP 2 節の頭): 主な使い方は AI が `.lys` で作詞作曲した曲でキャラクターが歌いながら踊る。導線は 曲 → 歌 → 踊り → 動画 の 4 段で、第 1 段 (この日) が曲から踊りへ。第 2 段 Write a Song over These Chords… と第 3 段 Walkthrough・次の一手の表示は Lily# 側、第 4 段 Arrange an Accompaniment… (Lily#)。3 つの使い方 (AI の曲・既存の曲のコードに新しい歌・既存の曲で踊るだけ) は、どれも最後は「`.lys` に踊りを付ける」に集まるので、第 1 段から作った。
+
+- **`shosa song FILE [--score NAME]`** (`SongReport.cs`) と AI の道具 `shosa_song` (`#shosaSong`、サーバー `shosa/songReport`): セクション (小節・拍・秒、繰り返しは `Chorus, verse 2`)、歌うパート、歌詞を小節ごとに `bar 2 (beat 20)  zunda+metan: 1い 1.5は … 3.5よ~1.5`。
+- 文法書「Dancing to a song」に **「Choreographing the words」** (GrammarDoc.cs)。`check` が `X sings N syllables, from beat A to B` を言う。
+- **Add a Dance…** (`.lys` の右クリック、`addDance.ts`・`danceText.ts`): score・歌うパートごとのキャラクター・どんな踊りかを聞き、`SONG.shosa` の骨組み (music・dancer … sings・score) を書いてプレビューを開き、Copilot のチャットに振り付けを頼む。**実際の VS Code で通して使っていない** (ユーザーの手で: 拡張を入れ直し、`.lys` を右クリック)。
+- 書き手の試験 (123.4): サブエージェントが文法書と `shosa song` だけで Spring Breeze Bicycle に振りを付け、言葉に置いた 8 か所はみな狙った拍。指摘 5 つを直した。残りの指摘は 123.4 の「まだ」。踊りは `out\choreo\bicycle.shosa` (曲 `out\choreo\bicycle.lys` は Lily# の site の写し): ユーザーの目で見る候補。
+- 試験 C# 564 件、拡張 32 件。**`tools\test-extension-host.ps1` は変更前から動かない** (31 秒で報告なし、VS Code 1.147.0): 調べていない。
+- この日、ほかのリポジトリにも手を入れた (未コミット): Lily# の New File を 1 項目に (`Lily# Score (.lys)…` → Blank / Compose with AI… / Recording / Scan / MusicXML)、Compose with Copilot… → Compose with AI…、Sound Font と Cantoria に `extensionDependencies: yotsuda.lilysharp`。
+
 ## 最初のリリース 0.3.0 の準備 (2026-11-25 の 7 つ目のセッション)
 
 ユーザー: 「最初のリリースの準備をして。GitHub の README に動画をのせたい。ふさわしい .shosa を書いて。私が VS Code で確認して動画にする」。
@@ -21,6 +32,7 @@
   - **その後** (同日): ユーザーが GitHub に 2 本を上げ、その URL (`github.com/user-attachments/assets/…`) を README の冒頭に置いた (見出し 1 行 + URL だけの行、の 2 組。URL は行に単独で置かないとプレーヤーにならない、という理解)。止め絵の表はやめた。`docs\media\` の mp4 と jpg は README からは使われなくなったが、残してある (消すかはユーザー次第)。
 - **モデルのパスの探し方** (ユーザー: 「Ctrl+Shift+Up/Down で出てくるモデルは、設定のフォルダーからの相対パスであるべき」。DESIGN.md 114 の末尾): dancer の行のファイルは **`.shosa` のフォルダーから、なければ `shosa.models.folder` から** 探す (`models.ts` の `resolveModel`)。キーは設定のフォルダーからの短い名前で書く。言語サーバーは変えていない (文法書の 1 行だけ)。ホストの試験は通った (キーの書く形 3 つ)。**試験していない**: プレビューが短い名前のモデルを実際に着せること (`extension.ts` の `post`。型検査だけ) → ユーザーの目で。設定を替えた瞬間には引き直さない。`samples\juggle.shosa` の作業ツリーにはユーザーの `"../out/vrm/sample.vrm"` が未コミットで残っている (触っていない)。
 - **文書**: CHANGELOG 0.3.0 に日付 (2026-11-25。出す日が変われば直す)、ジャグリング・歌う口とマイクを足した。拡張の README にも。根の README は Status を「0.3.0 が最初のリリース」にし、冒頭に動画を置く場所のコメント (`<!-- VIDEO: … -->`)、`samples/hello.shosa` への案内。FOR_AGENTS の「まだ公開していない」を直した。
+- **README を書き直した** (2026-11-26、ユーザー: 「readme をあるべき形に」): 先頭の売りを「テキスト (または AI) で書き、キャラクターが曲に合わせて踊り・歌い・ジャグリングする。動画にも、ゲームエンジンへの書き出しにも」に。用途の順は 動画 → AI が書ける → ゲーム (固有の動きに限る、定番の歩きは素材集で) → 記譜法。例は wave をやめ hello と juggle の抜粋。「モーションキャプチャーほど自然ではない」と正直に書いた。節は Trying it (hello・モデル・juggle・AI に書かせる) を足し、拡張の節は短く。拡張の README は冒頭の 1 文だけ同じ向きに。Trying it に「自分の録音 (MP3) で踊る」= Orecchiante で `.lys` (小節線・コード・セクション、音符なし) を作り `music` で参照、を足した (ユーザー: 「それはすでにできる」。前は README に道が無かった)。**出す前に `tools\pack-extension.ps1` をもう一度**。
 - **確かめた**: `dotnet test` 543 件、`npm test` 28 件、`tools\pack-extension.ps1` → `artifacts\extension\shosa-win32-x64-0.3.0.vsix` (36 MB)、それをこの PC に入れた (`deploy-extension.ps1 -NoPack`)。
 - **残り (ユーザーの手)**: (1) `samples\hello.shosa` を見て録画 → GitHub の README の編集画面で `<!-- VIDEO -->` の所へ mp4 を落とす (GitHub がリンクを書く)。(2) push。(3) `vsce publish --packagePath artifacts\extension\shosa-win32-x64-0.3.0.vsix` (publisher `yotsuda`)。(4) タグ `v0.3.0` と GitHub のリリース (本文は CHANGELOG の 0.3.0、.vsix を添付)。README や CHANGELOG を直したら、出す前に `tools\pack-extension.ps1` をもう一度 (パッケージに入る)。
 

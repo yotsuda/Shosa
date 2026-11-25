@@ -7625,3 +7625,43 @@ Bamen (撮影の言語) の M3 は部屋の中の会話の場面で、椅子や�
 - 試験: `TouchTests` 4 件 (語に着いている間は 1・行き帰りは途中・`then` の後に離れる、場所から場所へは 2 つで 1、両腕は 2 つ・向きの語は無し、クリップの JSON)、`patch.test.mjs` に `touch`。全部で 547 件と 28 件。ソルバーの出力は控えと同じ (`--compare`。`juggle.takeouts` と `takeouts-test` だけ違うが、控えが 13:38 のテイクアウトの変更より前のもの: この変更ではない)。
 - **まだ**: ユーザーの目。胴の場所 (`chest` `hip` `belly` `shoulder` `shoulder.across`、`clap`) は未着手 (`touch` には出ている。プレビューが頭の 3 つだけを見る)。向きの語で埋まった手を知らせること。ほかの踊り手の体の場所 (`b.head`)。VRM 0.x のモデル (`flip`) では見ていない。行き帰りの途中のコマは 3 つ見ただけ (人形の道のまま: 顔の前を通る)。
 
+## 123. 曲に振りを付ける導線: `shosa song` (2026-11-26)
+
+ユーザーと決めた方向 (ROADMAP 2 節の頭): 主な使い方は **AI が `.lys` で作詞作曲した曲で、キャラクターが歌いながら踊る**。曲 → 歌 → 踊り → 動画の導線のうち、第 1 段が「曲から踊りへ」(Add a Dance… とその土台)。土台は **AI が「歌詞のどの音が、どの小節のどの拍に来るか」を知ること**: 振りを言葉に合わせるのに一番要るのに、`check` はセクションの拍と小節しか言わず、`.lys` を読むには Lily# を知る必要があった。Shosa は口の動きのために `lysc timeline` の `sung` (音ごとの拍と長さ) をもう受け取っている (99 節) ので、それを読める形で出す。
+
+### 123.1 何を足したか
+
+- **`shosa song FILE [--score NAME]`** (`Shosa.Core\Output\SongReport.cs`): FILE は `.lys` そのもの、または曲に合わせる `.shosa` (最初の score の `music`。踊りの `form` があればその順)。出すもの: 拍子・テンポ (録音の曲は平均で「at about N」、録音の名前)・テンポと拍子の変化・曲の score の一覧、**演奏される順のセクション** (小節の番号・小節数・弱起・拍・秒。2 回以上演奏される名前は `Verse, verse 2` = 踊りの `verse 2 { }` の呼び方)、演奏されないセクション、**歌うパート** (`sings PART` に使う名前)、**歌詞を小節ごとに**: 小節はそのセクションの何小節目 (弱起は `upbeat`)、音ごとに「その小節の何拍目 (1 から)」+ 文字、1 拍以上伸ばす音は `~N`、1 拍以上の休み (息継ぎ) は `/`、同じ歌い方のパートは `+` でまとめる、行の終わりに続けた文字列。
+  ```
+      Chorus
+        bar 2 (beat 20)  zunda+metan: 1い 1.5は 2じ 2.5ま 3る 3.5よ~1.5   "いはじまるよ"
+        bar 8 (beat 44)  zunda: 1な 1.5の 2だ~1   "なのだ"
+  ```
+- 言語サーバーの `shosa/songReport` (同じ文。`.lys` はディスクから、開いていればエディターの文) と、拡張の AI の道具 **`shosa_song`** (`#shosaSong`)。道具の説明と `howToWork` の 0 番: 曲に振りを付けるときは最初にこれ。
+- 文法書の「Dancing to a song」に **「Choreographing the words」**: `shosa song` の出力の読み方、音の拍に振りを置く書き方 (語は体が着く位置なので、小節の中の前の語の長さの和 = 拍 − 1。例 `side:5/2 up:3/2` で 3.5 拍目に上)、言葉に合って見える振りの置き方 (伸ばす音と息継ぎの後に大きな形、言葉のない小節に足と移動、歌の行の終わりを決めて `then`、繰り返すセクションは `move`)、歌う踊り手に `sings`、`+` は鏡写しのユニゾン、ひとりだけ歌う所は歌う方が前に出てもう片方が見る。
+- 名前の決め方: CLI の `song` は名詞 (`midi` `wav` と同じく曲のこと)。サーバーの `shosa/song` は前からプレビューの音符に使っているので、報告は `shosa/songReport`。
+
+### 123.2 確かめたこと
+
+- `samples\hello.lys` (2 人の歌、ユニゾンとそれぞれのソロ)、`samples\hello.shosa` (`.shosa` から曲)、`out\ito\ito.shosa` (録音の曲、拍子の変化)、`samples\dance.shosa` (歌のない曲)、`samples\walk.shosa` (曲のない踊り: 「.lys を渡して」と言って終了コード 1)、`out\choreo\bicycle.lys` (Lily# の site の Spring Breeze Bicycle、score が 5 つ、Verse 2 回・Chorus 3 回)。
+- 試験 `SongReportTests` 5 件 (セクションの表、拍・伸ばし・息継ぎ・弱起・パートのまとめ、`verse N`、Lily# が歌詞を言わないとき、曲のない踊り)。
+
+### 123.3 Add a Dance… (拡張、`src\addDance.ts`・`src\danceText.ts`)
+
+- **入口**: `.lys` の上で — エクスプローラーの右クリック、エディターのタブの右クリック、エディターの右クリック、パレット (`.lys` を開いているとき)。どれでもなければ `.lys` を選ぶ画面。開いている `.lys` が保存前なら保存する (踊りはディスクの曲を読む)。
+- **尋ねること** (少なく): 曲に score が複数あれば (言語ごと・カラオケ…) どれか。歌うパートごとにキャラクター (`shosa.models.folder` に VRM があるときだけ。先頭は「None — drawn as a figure」)。どんな踊りか (1 行。例「元気なアイドルの踊り、Verse は小さなステップ、サビは大きな腕と手拍子」)。人数は聞かない: **歌うパートごとに 1 人**、歌のない曲は `solo` 1 人。
+- **書くもの**: 曲の隣に `SONG.shosa` (あれば `SONG-2.shosa`…: 前の踊りを上書きしない)。中身は曲と選んだことだけ: `music` (score つき)、パートごとの `role` と `dancer NAME humanoid "MODEL" sings PART on NAME`、2 人以上は 1.6 m おきに横並び (`at`)、`score`。**セクションは書かない**: 書いていないセクションは立っているだけなので、このままでコンパイルが通り、プレビューも開ける (確かめた: Spring Breeze Bicycle の 1 人、hello の 2 人)。パートの名前が Shosa の名前でなければ直す (`lead-2` → `lead_2`)。
+- **それから**: 踊りを開き、プレビューを開き、Copilot のチャット (agent モード) に頼む: 踊りのファイル (開いているので直す、書いてある行は残す)、文法 (`shosa_grammar`)、曲 (`shosa_song`、score つき)、「Choreographing the words」のとおり、`shosa_check` で問題なしまで、`shosa_sheet` で見る、どんな踊りか。Lily# の Compose with AI と同じ渡し方 (`workbench.action.chat.open` の `query` と `mode: 'agent'`)。
+- 試験: `test\danceText.test.mjs` 4 件 (2 人の骨組みの全文、歌のない曲・score、名前の直し、頼む文)。サーバーの `shosa/songReport` は `scores` と `parts` も返す (LanguageServerTests)。
+- **まだ**: 実際の VS Code で通して使っていない (コマンド → 選ぶ画面 → チャット)。
+### 123.4 書き手の試験 (2026-11-26): 文法書と `shosa song` だけで Spring Breeze Bicycle に振りを付ける
+
+- 同じモデルのサブエージェント 1 体に、文法書だけで言語を学び (ほかの `.shosa` と `.lys` は開かない)、`shosa song … --score japanese`・`check`・`sheet` で、歌う 1 人の踊りを曲全体に付けさせた。結果 `out\choreo\bicycle.shosa`: `check` は no problems (52 小節、104 秒)。サビの「はしれはしれ」に `move run` (その場で走り、伸ばす「れ」で拳を上げる) をサビ 3 回と Bridge・Outro で使い回し、Verse は歌詞の身ぶり (日の出、ペダルの膝、手をかざす)、Verse 2 は `verse 2 { }` で首の傾きだけ違う。**言葉に置いた 8 か所はどれも sheet で狙った拍にあった** (例: Chorus 1 小節目の `4れ~1` に拳 = 拍 51)。sheet は `out\choreo\sheet-*.png`。
+- 書き手の指摘と、したこと:
+  1. 音の拍が「セクションの何小節目の何拍目」だけで、`check`・sheet・`--from` の通しの拍は毎回手で足した → **各小節の行に、その小節線の通しの拍** `bar 2 (beat 20)` を出す (弱起の行は、その小節がまるごとあれば始まる拍: 音の拍 = それ + 拍 − 1 がいつも成り立つ)。
+  2. `/` が「どこからどこまでの息継ぎか」分からない → 説明を「音の前に `/`: 前の音が終わってから 1 拍以上の休みがある (前の小節からのこともある)」に。
+  3. 文法書の「繰り返すセクションは `move` を使い回す」が、同じ名前のセクションは 1 つの文で踊るという規則と食い違って読めた → 「もう一度演奏されるセクション (`Chorus, verse 2`) は同じ文、違う所は `verse 2 { }`」と「使い回すのは素材 (`move`・`pose`)。move は覆う段ごとに使える (`steps { run:4 }` と `arms { run:4 }`)」に分けた。
+  4. 伸ばす音で形を保つには `then` が要る (腕は着いたらすぐ次へ向かう) のに、曲の手順の中で言っていなかった → 「伸ばす音の形の後に `then`: `up:3/2 then:1 side`」と、セクションの終わりの形を次のセクションまで保つなら次の行を `then` で始める、を足した。
+  5. `sings vox` が効いているか何も言わない → **`check` に 1 行**: `zundamon sings 42 syllables, from beat 16.5 to 46` (試験 `SingingTests.Check_says_what_a_singing_dancer_sings`)。
+- **まだ (書き手の指摘、直していない)**: move の中の語の誤り (SH2001・SH2003) が move を使った所に、使った回数だけ出て、move の中のどの語かを言わない。`sheet --from/--to` の床の図が範囲でなく曲全体の道に見える (セクションごとの移動を確かめられない)。踊りが全体で 0.75 m 前へずれたことを、セクションごとには言わない。左右の片腕の段と `arms` を混ぜたときの動きが読みにくい (書き手は片腕の段だけで書いた)。
+- `tools\test-extension-host.ps1` (実際の VS Code で道具を試す) は、**この変更の前の試験ファイルでも** 31 秒で終わって報告を書かない (VS Code 1.147.0)。今回の `shosa_song` の試験は足したが、走らせて確かめられていない。

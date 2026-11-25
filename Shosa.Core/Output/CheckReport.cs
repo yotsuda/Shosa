@@ -276,6 +276,13 @@ public static class CheckReport
                 if (Travel(clip, figure) is { } travel)
                     yield return $"    {figure.Name} {travel}";
             }
+
+            // `sings PART` shows nothing in the movement but the mouth: say what it took, so a writer knows the part was found (DESIGN.md 123.4).
+            if (compilation.Score.Clips.FirstOrDefault(ir => ir.Name == clip.Name) is { } sung)
+            {
+                foreach (var dancer in sung.Dancers.Where(d => d.Sings is { Count: > 0 }))
+                    yield return $"    {dancer.Name} sings {dancer.Sings!.Count} syllable{(dancer.Sings.Count == 1 ? "" : "s")}, from beat {N(dancer.Sings[0].Beat)} to {N(dancer.Sings[^1].Beat + dancer.Sings[^1].Beats)}";
+            }
         }
 
         // Marks do nothing to the movement, so this is the only place a writer sees where they fell.
