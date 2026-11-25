@@ -102,7 +102,7 @@ public class SkeletonTests
                     Quat before = figure.Rotation(f - 1, b), after = figure.Rotation(f, b);
                     double dot = Math.Abs(before.X * after.X + before.Y * after.Y + before.Z * after.Z + before.W * after.W);
                     double degrees = 2 * Math.Acos(Math.Min(1, dot)) * 180 / Math.PI;
-                    Assert.True(degrees < 45, $"{name}: {Skeleton.Bones[b].Name} turns {degrees:0} degrees at frame {f}");
+                    Assert.True(degrees < 45, $"{name}: {figure.Name}'s {Skeleton.Bones[b].Name} turns {degrees:0} degrees at frame {f}");
                 }
             }
         }
