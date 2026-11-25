@@ -61,6 +61,10 @@ test("a figure's head keeps its rows; a mic or a juggling changed comes whole, o
   const now = applyClipPatch(was, { clips: [{ from: 0, figures: [{ head: { id: 'a', model: 'b.vrm', modelHeight: 1.5 }, mic: null }, { juggle: { prop: 'balls' } }] }, { from: 1 }] });
   assert.deepEqual(now[0].figures[0], { id: 'a', model: 'b.vrm', modelHeight: 1.5, frames: was[0].figures[0].frames, turns: was[0].figures[0].turns });
   assert.equal(now[0].figures[0].frames, was[0].figures[0].frames);
+  // The hands at places of the body (`touch`) the same way: whole, or gone.
+  const touched = applyClipPatch(was, { clips: [{ from: 0, figures: [{ touch: [{ hand: 'right', place: 'head', weight: [0, 1, 1, 0] }] }, null] }, { from: 1 }] });
+  assert.deepEqual(touched[0].figures[0].touch, [{ hand: 'right', place: 'head', weight: [0, 1, 1, 0] }]);
+  assert.equal(applyClipPatch(touched, { clips: [{ from: 0, figures: [{ touch: null }, null] }, { from: 1 }] })[0].figures[0].touch, undefined);
   assert.deepEqual(now[0].figures[1].juggle, { prop: 'balls' });
 });
 

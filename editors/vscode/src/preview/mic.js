@@ -71,6 +71,28 @@ function square(v, axis, fallback) {
   return fallback ? square(fallback, axis, null) ?? new THREE.Vector3() : new THREE.Vector3();
 }
 
+/**
+ * Reaches an arm so its wrist is at `wrist`, the elbow toward `pole`, from where it is now by `share`
+ * (0 leaves it, 1 all the way): the upper arm and the forearm turned by the least turns that do it.
+ * (Also for a hand put at a place of the character's own body, touch.js.)
+ */
+export function reach(upper, lower, hand, wrist, pole, share) {
+  if (share <= 0) return;
+  const s = worldPos(upper), e = worldPos(lower), w = worldPos(hand);
+  const a = s.distanceTo(e), b = e.distanceTo(w);
+  const target = w.clone().lerp(wrist, share);
+  const d = target.clone().sub(s);
+  const length = Math.min(a + b - 1e-4, Math.max(Math.abs(a - b) + 1e-4, d.length()));
+  const way = d.normalize();
+  const now = square(e.clone().sub(s), way, pole);
+  const bend = square(now.clone().lerp(square(pole, way, now), share), way, pole);
+  const x = (a * a - b * b + length * length) / (2 * length);
+  const elbow = s.clone().addScaledVector(way, x).addScaledVector(bend, Math.sqrt(Math.max(0, a * a - x * x)));
+  swing(upper, e.clone().sub(s), elbow.clone().sub(s));
+  const e2 = worldPos(lower), w2 = worldPos(hand);
+  swing(lower, w2.clone().sub(e2), s.clone().addScaledVector(way, length).sub(e2));
+}
+
 export function createMicHands(scene) {
   /** The character's own frame at rest: the normalized rig's bones all rest turned as its scene is. */
   function restOf(vrm) {
@@ -104,27 +126,6 @@ export function createMicHands(scene) {
       const bone = vrm.humanoid.getNormalizedBoneNode(side + 'Thumb' + joint);
       if (bone) bone.quaternion.setFromAxisAngle(thumbAxis, amount * degrees * Math.PI / 180);
     }
-  }
-
-  /**
-   * Reaches an arm so its wrist is at `wrist`, the elbow toward `pole`, from where it is now by `share`
-   * (0 leaves it, 1 all the way): the upper arm and the forearm turned by the least turns that do it.
-   */
-  function reach(upper, lower, hand, wrist, pole, share) {
-    if (share <= 0) return;
-    const s = worldPos(upper), e = worldPos(lower), w = worldPos(hand);
-    const a = s.distanceTo(e), b = e.distanceTo(w);
-    const target = w.clone().lerp(wrist, share);
-    const d = target.clone().sub(s);
-    const length = Math.min(a + b - 1e-4, Math.max(Math.abs(a - b) + 1e-4, d.length()));
-    const way = d.normalize();
-    const now = square(e.clone().sub(s), way, pole);
-    const bend = square(now.clone().lerp(square(pole, way, now), share), way, pole);
-    const x = (a * a - b * b + length * length) / (2 * length);
-    const elbow = s.clone().addScaledVector(way, x).addScaledVector(bend, Math.sqrt(Math.max(0, a * a - x * x)));
-    swing(upper, e.clone().sub(s), elbow.clone().sub(s));
-    const e2 = worldPos(lower), w2 = worldPos(hand);
-    swing(lower, w2.clone().sub(e2), s.clone().addScaledVector(way, length).sub(e2));
   }
 
   return {

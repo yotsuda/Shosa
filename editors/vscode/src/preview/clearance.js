@@ -141,7 +141,16 @@ export function measureBody(vrm) {
     const radius = percentile(skull.map(q => q.distanceTo(centre)), 0.7);
     // Where the centre is from the head bone, in the bone's own axes (it turns with the head).
     const local = centre.clone().sub(at('head')).applyQuaternion(turned('head').invert());
-    headShape = { local, radius, mouth: measureMouth(node, at, turned, head.members) };
+    // The skull's own points from that centre, in the bone's axes (every few of them): where its surface is in any one
+    // direction, for a hand a word puts at the head (touch.js, DESIGN.md 122).
+    const inverse = turned('head').invert();
+    const every = Math.max(1, Math.floor(skull.length / 3000));
+    const points = new Float32Array(Math.ceil(skull.length / every) * 3);
+    for (let i = 0, j = 0; i < skull.length; i += every, j += 3) {
+      v1.subVectors(skull[i], centre).applyQuaternion(inverse);
+      points[j] = v1.x; points[j + 1] = v1.y; points[j + 2] = v1.z;
+    }
+    headShape = { local, radius, points, mouth: measureMouth(node, at, turned, head.members), ...measureFace(node, at, turned, head.members) };
   }
 
   const armShapes = {};
@@ -174,6 +183,37 @@ function measureMouth(node, at, turned, members) {
     }
   }
   return null;
+}
+
+/**
+ * The chin and the brow on the face, in the head bone's own axes (for a hand a word puts there, touch.js, DESIGN.md
+ * 122): `chin` is the front of the face at its lowest (the head's own vertices down the middle end there: the neck is
+ * the neck bone's), `brow` its front as far above the eyes as 0.7 of the way from the mouth up to them (the fringe is
+ * there, and the hand goes before it). Either is null when it cannot be found. At rest the character faces +z.
+ */
+function measureFace(node, at, turned, members) {
+  const base = at('head');
+  const eyes = ['leftEye', 'rightEye'].filter(node).map(at);
+  if (!eyes.length) return { chin: null, brow: null };
+  const eyeY = eyes.reduce((s, e) => s + e.y, 0) / eyes.length, eyeZ = eyes.reduce((s, e) => s + e.z, 0) / eyes.length;
+  if (eyeY <= base.y) return { chin: null, brow: null };
+  const local = point => point.sub(base).applyQuaternion(turned('head').invert());
+  const mouthY = base.y + 0.4 * (eyeY - base.y);
+  let chin = null, brow = null;
+  for (const width of [0.015, 0.03]) {
+    // The face down the middle, from the eyes down (not the hair behind: no further back than the eyes are).
+    // (Nor the locks that hang before the chest: nothing far below the top of the neck.)
+    const strip = members.filter(q => Math.abs(q.x - base.x) < width && q.y < eyeY && q.y > base.y - 0.04 && q.z > eyeZ - 0.03);
+    if (!chin && strip.length >= 6) {
+      const low = percentile(strip.map(q => q.y), 0.05);
+      const front = strip.filter(q => q.y < low + 0.015).map(q => q.z);
+      if (front.length >= 2) chin = local(new THREE.Vector3(base.x, low, percentile(front, 0.95)));
+    }
+    const browY = eyeY + 0.7 * (eyeY - mouthY);
+    const above = members.filter(q => Math.abs(q.y - browY) < width && Math.abs(q.x - base.x) < 2 * width).map(q => q.z);
+    if (!brow && above.length >= 3) brow = local(new THREE.Vector3(base.x, browY, percentile(above, 0.95)));
+  }
+  return { chin, brow };
 }
 
 /**

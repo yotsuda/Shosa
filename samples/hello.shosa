@@ -51,7 +51,7 @@ move together2 {
 // "kiite ne": a hand at the ear, leaning into it.
 move listen {
   steps    { rightFoot.side(0.45m) together then:2 }
-  rightArm { side.down(40):1/2 then:1/2 side.up(60).bent(130):2 then:1 }
+  rightArm { side.down(40):1/2 then:1/2 head:2 then:1 }
   leftArm  { side.down(40) hip:3 }
   torso    { up up.right(10):2 then:1 }
   head     { fwd fwd.tilt(right(15)):2 then:1 }

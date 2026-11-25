@@ -25,7 +25,7 @@ export function applyClipPatch(clips, patch) {
 function patched(was, change) {
   if (!change) return was;
   const figure = change.head ? { ...change.head } : { ...was };
-  for (const key of [...ROWS, 'mic', 'juggle']) {
+  for (const key of [...ROWS, 'mic', 'touch', 'juggle']) {
     if (change.head && was[key] !== undefined) figure[key] = was[key];
   }
   for (const key of ROWS) {
@@ -38,7 +38,7 @@ function patched(was, change) {
     }
     figure[key] = rows;
   }
-  for (const key of ['mic', 'juggle']) {
+  for (const key of ['mic', 'touch', 'juggle']) {
     if (!(key in change)) continue;
     if (change[key] === null) delete figure[key];
     else figure[key] = change[key];

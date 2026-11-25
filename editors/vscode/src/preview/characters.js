@@ -11,6 +11,7 @@ import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
 import { millsAngles, millsArms } from './arms.js';
 import { elbowSwings, keepArmsOut, measureBody, refresh } from './clearance.js';
 import { createMicHands } from './mic.js';
+import { headTouch, touchHead } from './touch.js';
 import { clubCatching, gripHands, heldBy, palmAlong, palmsUp, penguinShares, styleShares } from './juggle.js';
 
 // VRM's mouth expressions, in the order the server sends their weights (`mouth`, Mouth.Shapes).
@@ -652,6 +653,20 @@ export function createCharacters(scene, changed) {
           mics.hold(entry, mic.hand, u0 + (u1 - u0) * k, entry.body ? entry.body.head : null, size);
         } else {
           mics.drop(entry);
+        }
+        // A hand a word puts at a place of the head (`head`, `chin`, `forehead`): reached to that place on the character's
+        // own head, which is not the figure's (DESIGN.md 122). After the arms are kept out, as the mic's hand.
+        // (A test page turns it off with globalThis.shosaNoTouch, to compare.)
+        const touch = data.touch;
+        if (touch && touch.length && entry.body && !globalThis.shosaArmsAsSolved && !globalThis.shosaNoTouch) {
+          const weights = { left: headTouch(touch, 'left', f0, k), right: headTouch(touch, 'right', f0, k) };
+          if (weights.left || weights.right) {
+            const p = frames[f0], q = frames[Math.min(frames.length - 1, f0 + 1)];
+            touchHead(vrm, entry.body, size, name => {
+              const j = clip.joints.indexOf(name);
+              return new THREE.Vector3(p[j * 3] + (q[j * 3] - p[j * 3]) * k, p[j * 3 + 1] + (q[j * 3 + 1] - p[j * 3 + 1]) * k, p[j * 3 + 2] + (q[j * 3 + 2] - p[j * 3 + 2]) * k);
+            }, weights);
+          }
         }
         // A figure that sings (`sings melody`): the weights of the five mouth expressions, between two frames
         // blended (DESIGN.md 99). vrm.update below applies them.

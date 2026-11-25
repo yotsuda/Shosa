@@ -253,6 +253,14 @@ public sealed class ClipFigure
     public ClipMic? Mic { get; set; }
 
     /// <summary>
+    /// The hands a word puts at a place of the dancer's own body (`head`, `chin`, `hip` …): which hand, which place,
+    /// and at each frame how much the hand is there (0..1). The preview reaches a character's hand to that place on
+    /// its own body, which is not the figure's. Null when no word does (DESIGN.md 122).
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public List<ClipTouch>? Touch { get; set; }
+
+    /// <summary>
     /// For a figure that juggles (`juggles balls`): what it throws, how many, and each one at each frame
     /// (x y z, the hand it left and the one it goes to, how far through the flight, a club's turn). Null for none (DESIGN.md 118).
     /// </summary>
@@ -281,6 +289,9 @@ public sealed class ClipFigure
 
 /// <summary>A mic in a figure's hand: "right", "left" or "both", and how far it is up at the mouth at each frame, 0..1.</summary>
 public sealed record ClipMic(string Hand, List<float> Up);
+
+/// <summary>A hand ("right" or "left") at a place of the dancer's own body (a word of the language: "head", "chin" …), and how much it is there at each frame, 0..1.</summary>
+public sealed record ClipTouch(string Hand, string Place, List<float> Weight);
 
 /// <summary>
 /// The balls (clubs, rings) a figure juggles: <paramref name="Prop"/> balls | clubs | rings, <paramref name="Count"/> of

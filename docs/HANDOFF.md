@@ -16,6 +16,15 @@
 - **確かめた**: `dotnet test` 543 件、`npm test` 28 件、`tools\pack-extension.ps1` → `artifacts\extension\shosa-win32-x64-0.3.0.vsix` (36 MB)、それをこの PC に入れた (`deploy-extension.ps1 -NoPack`)。
 - **残り (ユーザーの手)**: (1) `samples\hello.shosa` を見て録画 → GitHub の README の編集画面で `<!-- VIDEO -->` の所へ mp4 を落とす (GitHub がリンクを書く)。(2) push。(3) `vsce publish --packagePath artifacts\extension\shosa-win32-x64-0.3.0.vsix` (publisher `yotsuda`)。(4) タグ `v0.3.0` と GitHub のリリース (本文は CHANGELOG の 0.3.0、.vsix を添付)。README や CHANGELOG を直したら、出す前に `tools\pack-extension.ps1` をもう一度 (パッケージに入る)。
 
+## 体の場所に置く手を、キャラクター自身の体へ (2026-11-25 の 7 つ目のセッション、DESIGN.md 122)
+
+ユーザー: `hello.shosa` で「めたんの手が頭にめり込んでいる」→「自動で補正する機能があると良いかな」→ 方針を答えて「着手して」。
+
+- **入れた**: 頭の場所の語 (`head` `chin` `forehead`) の手を、プレビューがキャラクター自身の頭 (メッシュから測ったあご・額・頭の横) へ寄せる。クリップに `touch` (手・場所・コマごとの重み、`Solver.Touches`)、プレビューは `preview\touch.js`。向きの語の手は動かさない (方針)。書き出しは変わらない。
+- **確かめた**: ずん子・ずんだもん・ミニで補正なし/ありを撮って比べた (`out\touch\`、122.2)。`hello.shosa` の `listen` は `head` に戻した。試験 547 件と 28 件。拡張は入れ直した。
+- **ユーザーの目はまだ**。**残り**: 胴の場所 (`chest` `hip` `belly` `shoulder`、`clap`)、向きの語で埋まった手を知らせること (122.2 の「まだ」)。
+- `out\pv\corpus` の `juggle.takeouts`・`takeouts-test` の控えは 13:38 のテイクアウトの変更より前のもの: 次にソルバーを速くする前に `--dump` し直す。
+
 ## 座る: `height { sit(0.45m) }` (2026-11-25 の 5 つ目のセッション、DESIGN.md 121、Bamen の依頼 1)
 
 - **語**: 高さの段の `sit(0.45m)` (かっこは床から座面まで。`sit` だけなら 0.45 m。0.1〜0.8 m)。ほかの高さ (`mid` など) で立つ。移りは高さの決まりどおり前の語の時間: `mid:2 then:2 sit(0.45m):4 then:4 then:2 mid`。

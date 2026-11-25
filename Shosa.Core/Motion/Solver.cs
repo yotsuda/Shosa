@@ -251,6 +251,8 @@ public static class Solver
             // A mic in a hand (DESIGN.md 117): how far it is up at the mouth, for the preview to draw it.
             if (dancer.Mic is { } micHand)
                 clipFigure.Mic = new ClipMic(micHand, beatOfFrame.Select(b => (float)Math.Round(solver.MicUp(b), 3)).ToList());
+            // The hands at places of the dancer's own body (DESIGN.md 122), for the preview to put a character's there.
+            clipFigure.Touch = solver.Touches(beatOfFrame);
             foreach (var (seg, channel) in solver.MicHidden())
                 diagnostics.Add(new Diagnostic("SH2018", DiagnosticSeverity.Warning, new TextSpan(seg.Src, seg.Len),
                     $"The mic is at the mouth here ({dancer.Id} is singing), and the hand that holds it wins: this word of the {channel} row is not seen. Move it to where {dancer.Id} does not sing, or give it to the other arm{(dancer.Mic == "both" ? " (with mic both, both hands are on the mic while singing; mic right frees the left)" : "")}."));
@@ -1129,6 +1131,38 @@ internal sealed class FigureSolver
     }
 
     private double Seconds(double beat) => TempoMap.Seconds(_tempos, Math.Max(0, beat));
+
+    /// <summary>
+    /// The hands a word puts at a place of the body (DESIGN.md 122): for each hand and each place its row names, how much
+    /// the hand is there at each frame — 1 at the word, the eased share of the way on the way to it and away from it,
+    /// 0 while a mic or the juggling has the arm. Null when no row names a place.
+    /// </summary>
+    public List<ClipTouch>? Touches(double[] beatOfFrame)
+    {
+        List<ClipTouch>? touches = null;
+        foreach (var (hand, isLeft, segs) in new[] { ("right", false, _rightArm), ("left", true, _leftArm) })
+        {
+            bool micHand = _dancer.Mic is { } mic && (mic == "both" || (mic == "left") == isLeft);
+            foreach (var place in segs.Where(s => s.Kind == SegKinds.Anchor && s.Anchor is not null).Select(s => s.Anchor!).Distinct())
+            {
+                var weight = new List<float>(beatOfFrame.Length);
+                bool any = false;
+                foreach (double t in beatOfFrame)
+                {
+                    double w = Chain<double>(segs, t, seg => seg is { Kind: SegKinds.Anchor } && seg.Anchor == place ? 1 : 0, (a, b, e) => a + (b - a) * e);
+                    if (w > 0 && micHand && _micPhrases.Count > 0)
+                        w *= 1 - MicUp(t);
+                    if (w > 0 && Juggling is { } juggling)
+                        w *= 1 - juggling.Weight(Seconds(t));
+                    weight.Add((float)Math.Round(Math.Clamp(w, 0, 1), 3));
+                    any |= weight[^1] > 0;
+                }
+                if (any)
+                    (touches ??= []).Add(new ClipTouch(hand, place, weight));
+            }
+        }
+        return touches;
+    }
 
     /// <summary>How far the mic is up at the mouth at beat t: 0 in the hand, 1 at the mouth.</summary>
     public double MicUp(double t)

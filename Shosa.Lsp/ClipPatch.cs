@@ -36,7 +36,7 @@ internal static class ClipPatch
     };
 
     private static readonly string[] OfTheClip = ["figures"];
-    private static readonly string[] OfTheFigure = ["frames", "turns", "mouth", "mic", "juggle"];
+    private static readonly string[] OfTheFigure = ["frames", "turns", "mouth", "mic", "touch", "juggle"];
 
     private static void LeaveOut(JsonTypeInfo info)
     {
@@ -135,6 +135,8 @@ internal static class ClipPatch
             entry["counts"] = counts;
         if (!Same(x.Mic, y.Mic))
             entry["mic"] = y.Mic;
+        if (!Same(x.Touch, y.Touch))
+            entry["touch"] = y.Touch;
         if (!Same(x.Juggle, y.Juggle))
             entry["juggle"] = y.Juggle;
         return entry.Count > 0 ? entry : null;
@@ -195,6 +197,10 @@ internal static class ClipPatch
 
     private static bool Same(ClipMic? a, ClipMic? b) =>
         a is null || b is null ? a is null && b is null : a.Hand == b.Hand && Same(a.Up, b.Up);
+
+    private static bool Same(List<ClipTouch>? a, List<ClipTouch>? b) =>
+        a is null || b is null ? a is null && b is null
+        : a.Count == b.Count && a.Zip(b).All(p => p.First.Hand == p.Second.Hand && p.First.Place == p.Second.Place && Same(p.First.Weight, p.Second.Weight));
 
     private static bool Same(ClipJuggle? a, ClipJuggle? b) =>
         a is null || b is null ? a is null && b is null

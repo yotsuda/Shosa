@@ -55,6 +55,7 @@ These work, but are new and may still change.
   `height 1.5m` on the line draws the character that tall (to the top of its hair): models are made at their own sizes,
   and dancers who should be the same size are given the same height. The character's arms are kept out of its
   own body (its trunk and head are measured from the model): the elbow goes round, and the hand stays where the words put it.
+  A hand a word puts at the head (`head`, `chin`, `forehead`) goes to that place on the character's own head.
   Set `shosa.models.folder` to the folder you keep your models in; with the cursor on the file of a dancer line,
   **Ctrl+Shift+Up / Ctrl+Shift+Down** put the model before or after it there, and the preview changes with it.
 - **Singing**: `dancer alice humanoid "girl.vrm" sings melody on lead` moves the character's mouth to the words
