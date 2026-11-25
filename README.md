@@ -4,9 +4,11 @@ Write human movement as text, compile it, and watch a figure perform it beside t
 Shosa is to movement what [Lily#](https://yotsuda.github.io/LilySharp/) is to music: a small language
 you can read, diff and mend, which compiles to animation files a game engine loads.
 
-<!-- VIDEO 1: samples/hello.shosa in VS Code (a dance to a song). Drop the .mp4 here in GitHub's editor; it writes the link. -->
+| [![Two characters dancing to a song](docs/media/hello.jpg)](docs/media/hello.mp4) | [![A character juggling three balls](docs/media/juggle.jpg)](docs/media/juggle.mp4) |
+|:---:|:---:|
+| **[A dance to a song](docs/media/hello.mp4)** (30 s, with sound) — [samples/hello.shosa](samples/hello.shosa) | **[Juggling, written in siteswap](docs/media/juggle.mp4)** (52 s) — [samples/juggle.shosa](samples/juggle.shosa) |
 
-<!-- VIDEO 2: samples/juggle.shosa in VS Code (juggling in siteswap). Drop the .mp4 here. -->
+<!-- For players in the page itself: in GitHub's editor, drop docs/media/hello.mp4 and juggle.mp4 here (it writes their links) and take the table out. -->
 
 ```
 tempo 120
