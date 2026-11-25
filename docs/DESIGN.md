@@ -7653,6 +7653,7 @@ Bamen (撮影の言語) の M3 は部屋の中の会話の場面で、椅子や�
 - **書くもの**: 曲の隣に `SONG.shosa` (あれば `SONG-2.shosa`…: 前の踊りを上書きしない)。中身は曲と選んだことだけ: `music` (score つき)、パートごとの `role` と `dancer NAME humanoid "MODEL" sings PART on NAME`、2 人以上は 1.6 m おきに横並び (`at`)、`score`。**セクションは書かない**: 書いていないセクションは立っているだけなので、このままでコンパイルが通り、プレビューも開ける (確かめた: Spring Breeze Bicycle の 1 人、hello の 2 人)。パートの名前が Shosa の名前でなければ直す (`lead-2` → `lead_2`)。
 - **それから**: 踊りを開き、プレビューを開き、Copilot のチャット (agent モード) に頼む: 踊りのファイル (開いているので直す、書いてある行は残す)、文法 (`shosa_grammar`)、曲 (`shosa_song`、score つき)、「Choreographing the words」のとおり、`shosa_check` で問題なしまで、`shosa_sheet` で見る、どんな踊りか。Lily# の Compose with AI と同じ渡し方 (`workbench.action.chat.open` の `query` と `mode: 'agent'`)。
 - 試験: `test\danceText.test.mjs` 4 件 (2 人の骨組みの全文、歌のない曲・score、名前の直し、頼む文)。サーバーの `shosa/songReport` は `scores` と `parts` も返す (LanguageServerTests)。
+- **曲のフォルダーがワークスペースの外なら、先に開く** (ユーザーの報告 2026-11-26: Copilot のチャットが踊りの最初の編集で「Allow Edits to SONG.shosa in this Session / Allow Edits in source …」と聞いて止まった。ワークスペースの外のファイルの編集は確認が要る)。曲を決めた直後に、外なら尋ねる: フォルダーが開いていれば **ワークスペースに足す** (`updateWorkspaceFolders` を末尾に: 最初のフォルダーが変わらないので拡張は再起動しない)、何も開いていなければ **開く** (`vscode.openFolder`、ウィンドウが読み込み直される。曲を `globalState` に置き、読み込み直した後 2 分以内でその曲がワークスペースの中なら Add a Dance… を続ける)、または「Continue Without」。VS Code の設定 `chat.tools.edits.autoApprove` (glob → true) でも止められるが、説明は「ワークスペースの中のパス」とだけ言い、外のファイルに効くかは書いていない (公式の説明で確かめた範囲)。
 - **まだ**: 実際の VS Code で通して使っていない (コマンド → 選ぶ画面 → チャット)。
 ### 123.4 書き手の試験 (2026-11-26): 文法書と `shosa song` だけで Spring Breeze Bicycle に振りを付ける
 

@@ -24,7 +24,61 @@ function freeName(folder: string, stem: string): string {
   }
 }
 
+/** A song whose folder was opened for Add a Dance… (the window reloads): the command goes on with it after the reload. */
+const pendingKey = 'shosa.addDance.pending';
+/** How long such a song is waited for: a reload takes seconds, and a stale one must not start the command a day later. */
+const pendingFor = 2 * 60 * 1000;
+
+/**
+ * Copilot's chat asks before every edit of a file outside the open folders ("Allow Edits in <folder> in this
+ * Session" …), which stops the choreography at its first edit (the user's report, 2026-11-26). So a song outside
+ * them is offered its folder first: added to the folders open (no reload), or opened when none is (the window
+ * reloads, and the command goes on afterwards). 'here': go on in this window; 'reloading': the folder is being
+ * opened; 'cancel': the question was closed, and nothing is done.
+ */
+async function songFolderOpen(context: vscode.ExtensionContext, song: vscode.Uri): Promise<'here' | 'reloading' | 'cancel'> {
+  if (vscode.workspace.getWorkspaceFolder(song)) {
+    return 'here';
+  }
+  const folder = vscode.Uri.file(path.dirname(song.fsPath));
+  const name = path.basename(folder.fsPath);
+  const folders = vscode.workspace.workspaceFolders ?? [];
+  const open = folders.length > 0 ? `Add "${name}" to the Workspace` : `Open "${name}"`;
+  const anyway = 'Continue Without';
+  const answer = await vscode.window.showInformationMessage(
+    `The song's folder "${name}" is not open in VS Code, so Copilot's chat would ask before each edit of the dance it writes there.`,
+    { modal: true, detail: folders.length > 0 ? 'Adding it does not reload the window.' : 'Opening it reloads the window; Add a Dance… then goes on.' },
+    open, anyway);
+  if (answer === anyway) {
+    return 'here';
+  }
+  if (answer !== open) {
+    return 'cancel';
+  }
+  if (folders.length > 0) {
+    // Added at the end: the first folder stays, so the extensions are not restarted.
+    vscode.workspace.updateWorkspaceFolders(folders.length, 0, { uri: folder });
+    return 'here';
+  }
+  await context.globalState.update(pendingKey, { song: song.toString(), at: Date.now() });
+  await vscode.commands.executeCommand('vscode.openFolder', folder, { forceReuseWindow: true });
+  return 'reloading';
+}
+
 export function registerAddDance(context: vscode.ExtensionContext, client: LanguageClient): void {
+  registerCommand(context, client);
+  // After the reload that opened a song's folder: go on with that song (the command is registered by now).
+  const pending = context.globalState.get<{ song: string; at: number }>(pendingKey);
+  if (pending) {
+    void context.globalState.update(pendingKey, undefined);
+    const song = vscode.Uri.parse(pending.song);
+    if (Date.now() - pending.at < pendingFor && vscode.workspace.getWorkspaceFolder(song)) {
+      void vscode.commands.executeCommand('shosa.addDance', song);
+    }
+  }
+}
+
+function registerCommand(context: vscode.ExtensionContext, client: LanguageClient): void {
   context.subscriptions.push(vscode.commands.registerCommand('shosa.addDance', async (given?: vscode.Uri) => {
     // The song: the one right-clicked, else the .lys being edited, else one picked.
     let song = given instanceof vscode.Uri ? given : undefined;
@@ -37,6 +91,9 @@ export function registerAddDance(context: vscode.ExtensionContext, client: Langu
       song = picked?.[0];
     }
     if (!song || song.scheme !== 'file') {
+      return;
+    }
+    if (await songFolderOpen(context, song) !== 'here') {
       return;
     }
     const open = vscode.workspace.textDocuments.find(d => d.uri.toString() === song!.toString());
