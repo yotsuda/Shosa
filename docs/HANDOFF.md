@@ -16,7 +16,8 @@
 - 試験 C# 567 件、拡張 32 件。**`tools\test-extension-host.ps1` は変更前から動かない** (31 秒で報告なし、VS Code 1.147.0): 調べていない。
 - この日、ほかのリポジトリにも手を入れた (コミット済み、push はユーザー): Lily# の New File を 1 項目に (`Lily# Score (.lys)…` → Blank / Compose with AI… / Recording / Scan / MusicXML)、Compose with Copilot… → Compose with AI… (`fbaf1ff63`)、Sound Font (`f5bebb00f`、出すには版を 1.0.1 に) と Cantoria (`85020cb`) に `extensionDependencies: yotsuda.lilysharp`。
 - **第 2 段 Write a Song over These Chords… は Lily# に入れた (2026-11-26、コミット済み・push はユーザー)**: ユーザーの決定どおり **同じ `.lys` に歌のパートを足す**、伴奏は元の録音。`.lys` の右クリック → 1 行の質問 → Copilot のチャットが Lily# の `readGuide` (topic `song`) を読み、`writePart` 1 回で `part vocal { instrument alto  lyrics words }`・`singer female sings on vocal`・セクションごとの旋律と歌詞を書く (譜表の一番上)。設計は Lily# の `docs/song-over-chords-design.md`。**実物のチャットは誰も通していない**: ユーザーが `We're An American Band.lys` で試し、その後 Add a Dance… で歌に合わせた振りになるかを見る。
-- **次**: 第 3 段 (Walkthrough・次の一手の表示、Lily#) か第 4 段 (Arrange an Accompaniment…、Lily#)。どちらを先にするかはユーザーに聞く。
+- **第 3 段 (Walkthrough・次の一手の表示) は Lily# に入れた (2026-11-26、ユーザーの指示「第 3 段を着手」、Lily# `491567514`、コミット済み・push はユーザー)**: 設計は Lily# の `docs/song-to-dance-design.md`。Lily# のパレット **Lily#: From a Song to a Dance (Steps)** で 4 段のウォークスルー (歌を書く → 声で歌う → Shosa の Add a Dance… → Shosa の Export MP4 Video…)。チャットの提案の Accept で曲に初めて `singer` の行が入ると、右下に「次は踊り」と **Add a Dance…** (Shosa が無ければ Install Shosa)。Lily# は `shosa.addDance` に曲の Uri を渡す (Shosa 側は変えていない)。**Shosa が Marketplace に出るまで、Install Shosa は拡張の検索で止まる。** ユーザーの実機はまだ。
+- **次**: 第 4 段 (Arrange an Accompaniment…、Lily#)。設計はユーザーに聞いてから。
 - **Orecchiante への依頼 1** (`docs\repro\ORECCHIANTE-REQUESTS.md`、オーナーの依頼 2026-11-26): 録音の歌のメロディ (と歌詞) を `.lys` に。Add a Dance… を `We're An American Band.lys` に使った振付が退屈だった (歌がなく手がかりがセクション名だけ) ため。`fixed` になったらその曲で `shosa song` と Add a Dance… を確かめて `done`。Orecchiante の HANDOFF の頭に「見る」の 1 行を足した。
 
 ## 最初のリリース 0.3.0 の準備 (2026-11-25 の 7 つ目のセッション)
