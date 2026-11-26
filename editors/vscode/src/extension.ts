@@ -155,7 +155,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           lookedIn.set(found.file, found.tried);
         }
       }
-      if (clip.music?.recording?.audio) {
+      // A silent one keeps the time but is never played (DESIGN.md 124): its bytes are not wanted.
+      if (clip.music?.recording?.audio && !clip.music.recording.silent) {
         recordings.add(clip.music.recording.audio);
       }
     }

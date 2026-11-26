@@ -71,6 +71,29 @@ public sealed class RecordingTests : IDisposable
     }
 
     [Fact]
+    public void A_silent_recording_still_keeps_the_time_and_says_it_is_silent()
+    {
+        string silentBars = ThreeBars.Replace("\"duration\": 9,", "\"duration\": 9, \"silent\": true,");
+        var song = RecordingSidecar.Apply(Plain(), Song(silentBars));
+        Assert.Null(song.RecordingError);
+        Assert.True(song.Recording!.Silent);
+        Assert.Equal(1.5, song.Recording.Offset);
+        Assert.Equal(10, song.Tempos.Count);
+        Assert.Equal(120, song.Tempos[0].Bpm);
+
+        // Not played, so the sound file need not be beside it.
+        var gone = RecordingSidecar.Apply(Plain(), Song(silentBars, audio: false));
+        Assert.Null(gone.RecordingError);
+        Assert.True(gone.Recording!.Silent);
+
+        // Without the item, the recording is heard; and the IR says "silent" only when it is.
+        var heard = RecordingSidecar.Apply(Plain(), Song(ThreeBars));
+        Assert.False(heard.Recording!.Silent);
+        Assert.DoesNotContain("silent", System.Text.Json.JsonSerializer.Serialize(heard.Recording), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("\"Silent\":true", System.Text.Json.JsonSerializer.Serialize(song.Recording));
+    }
+
+    [Fact]
     public void A_song_with_nothing_beside_it_is_the_song()
     {
         var plain = Plain();

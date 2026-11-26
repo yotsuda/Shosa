@@ -73,7 +73,15 @@ public sealed record SongSung(string Part, string? Singer, List<System.Text.Json
 /// <param name="Audio">The sound file, a full path.</param>
 /// <param name="Offset">Seconds into the recording of the song's first bar line.</param>
 /// <param name="Duration">How long the recording is, seconds (0 if not known).</param>
-public sealed record SongRecording(string Audio, double Offset, double Duration);
+/// <param name="Silent">
+/// The recording is not heard, and its bars still keep the time: the file beside the song says `"silent": true`
+/// (Lily#'s Arrange an Accompaniment… writes it when an accompaniment takes the recording's place). The preview
+/// and the video then play the stems or the song's notes, never the recording (DESIGN.md 124). Left out of the IR when false.
+/// </param>
+public sealed record SongRecording(
+    string Audio, double Offset, double Duration,
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+    bool Silent = false);
 
 /// <summary>
 /// The notes of a song as a clip plays it, for a preview that sounds them on the dance's clock.

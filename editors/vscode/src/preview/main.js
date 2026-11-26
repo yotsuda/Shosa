@@ -347,6 +347,9 @@ let songKey = null;        // the key of the shown clip's song; null without one
 let songError = '', fontStatus = { state: 'none' };
 const recorder = createRecording();
 const recordingOf = c => (c && c.music && c.music.recording) || null;
+// The recording as heard: a silent one (`"silent": true` beside the song, Lily#'s Arrange an
+// Accompaniment…) keeps the time but is never played; the stems or the notes play instead (DESIGN.md 124).
+const heardRecordingOf = c => { const r = recordingOf(c); return r && !r.silent ? r : null; };
 let shownRecording = null; // the recording file of the shown clip; null without one
 let fromRecording = false; // what sounded last: the recording (true) or the notes
 
@@ -421,8 +424,9 @@ function mixer() {
   if (message && message.state === 'loading') lines.push('Lily# is making the song\'s parts' + (message.progress ? ': ' + message.progress : '') + '…');
   if (message && message.state === 'none' && message.error) lines.push(message.error);
   if (message && message.state === 'ready' && !usable && message.stems && message.stems.length) {
-    lines.push(clip.music.recording
+    lines.push(heardRecordingOf(clip)
       ? 'Lily# could not put the parts on the recording\'s beats, which this dance keeps time with: the recording alone plays.'
+      : recordingOf(clip) ? 'Lily# could not put the parts on the recording\'s beats, which this dance keeps time with: the recording is silent, so the song\'s notes play.'
       : 'Lily# put the parts on the recording\'s beats, which this dance does not keep time with: the song\'s notes play.');
   }
   if (usable) {
@@ -455,19 +459,20 @@ function applyStems() {
 // The Sound box says on hover what is wrong with the song, or else what it is played with.
 function soundTitle() {
   mixer();
-  const usable = stemsOf(clip);
+  const usable = stemsOf(clip), silent = recordingOf(clip) && !heardRecordingOf(clip)
+    ? ' The recording ' + recordingOf(clip).audio.split(/[\\/]/).pop() + ' is silent (an accompaniment plays): its bars keep the time.' : '';
   if (usable) {
     const state = stemPlayer.state();
-    soundLabel.title = state === 'ready' ? 'Played from the parts Lily# made of the song, at the levels the Mixer gives them.'
+    soundLabel.title = (state === 'ready' ? 'Played from the parts Lily# made of the song, at the levels the Mixer gives them.'
       : state === 'loading' ? 'Reading the parts Lily# made of the song; until then, as before.'
-      : state;
+      : state) + silent;
     return;
   }
   if (!songKey) {
     soundLabel.title = 'No song: a click on every beat (louder on the first of a bar) and a clap at every mark.';
     return;
   }
-  const recording = recordingOf(clip);
+  const recording = heardRecordingOf(clip);
   if (recording) {
     const name = recording.audio.split(/[\\/]/).pop(), state = recorder.state(recording.audio);
     soundLabel.title = state === 'ready' ? 'Played from the recording ' + name + ': beat 0 is at ' + recording.offset.toFixed(2) + ' s of it.'
@@ -479,7 +484,7 @@ function soundTitle() {
     fontStatus.state === 'ready' ? 'Played with the sound font ' + fontStatus.detail + '.'
     : fontStatus.state === 'loading' ? 'Reading the sound font ' + fontStatus.detail + ' (it is used from the first Play on); simple tones until then.'
     : fontStatus.state === 'failed' ? 'Simple tones: ' + fontStatus.detail
-    : 'Simple tones: no sound font was found. Set shosa.playback.soundFont, or install the Lily# Sound Font extension.');
+    : 'Simple tones: no sound font was found. Set shosa.playback.soundFont, or install the Lily# Sound Font extension.') + silent;
 }
 
 const port = createSynthPort(status => {
@@ -521,7 +526,7 @@ function sound() {
     stemPlayer.cue();
     fromStems = false;
   }
-  const recording = recordingOf(clip);
+  const recording = heardRecordingOf(clip);
   if (recording && recorder.play(recording.audio, recording.offset, secondsAt(clip, beat), Number(speed.value))) {
     if (!fromRecording) player.cue(beat);   // decoded while the notes were sounding: they stop
     fromRecording = true;
@@ -601,7 +606,7 @@ function setClip(next, keepBeat) {
   // or another moment, starts it again.
   const key = keyOf(clip);
   soundLabel.hidden = !clip;
-  const recording = recordingOf(clip)?.audio ?? null;
+  const recording = heardRecordingOf(clip)?.audio ?? null;
   if (recording !== shownRecording) {
     shownRecording = recording;
     recorder.cue();
@@ -693,7 +698,8 @@ async function songSound(filmed, seconds) {
     }
   }
   // The recording the dance keeps time with, as recorded; the notes only when it cannot be read.
-  const recording = recordingOf(filmed);
+  // A silent one is left out, as Lily#'s own exports leave it out: the notes play.
+  const recording = heardRecordingOf(filmed);
   if (recording) {
     try {
       const buffer = await recorder.buffer(recording.audio);
@@ -1119,7 +1125,7 @@ function tick(now) {
   }
   if (playing && clip) {
     // While the stems or a recording sound they are the clock: the dance is where they are heard.
-    const recording = recordingOf(clip), stems = fromStems ? stemsOf(clip) : null;
+    const recording = heardRecordingOf(clip), stems = fromStems ? stemsOf(clip) : null;
     const timeline = stems ? stemPlayer.position() : null;
     const heard = timeline !== null ? timeline - stems.offset
       : recording && fromRecording ? recorder.position(recording.offset) : null;

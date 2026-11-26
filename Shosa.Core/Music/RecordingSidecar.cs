@@ -20,6 +20,8 @@ public static class RecordingSidecar
     {
         public string? Audio { get; set; }
         public double Duration { get; set; }
+        /// <summary>Not heard; its bars still keep the time (Lily#'s Arrange an Accompaniment…). Lily# writes it only as true.</summary>
+        public bool Silent { get; set; }
         public List<Bar> Bars { get; set; } = [];
     }
 
@@ -59,7 +61,8 @@ public static class RecordingSidecar
             return result;
         }
         string audio = Path.Combine(Path.GetDirectoryName(file) ?? ".", read.Audio);
-        if (!File.Exists(audio))
+        // A silent recording is not played: its bars alone keep the time, so the sound file need not be there.
+        if (!read.Silent && !File.Exists(audio))
         {
             result.RecordingError = $"The recording {read.Audio} that {name} names is not beside it.";
             return result;
@@ -118,7 +121,7 @@ public static class RecordingSidecar
 
         result.Tempos = tempos;
         result.Tempo = tempos[0].Bpm;
-        result.Recording = new SongRecording(Path.GetFullPath(audio), read.Bars[0].Start, read.Duration);
+        result.Recording = new SongRecording(Path.GetFullPath(audio), read.Bars[0].Start, read.Duration, read.Silent);
         return result;
     }
 

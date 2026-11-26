@@ -22,7 +22,7 @@ interface StemsApi {
 }
 
 /** The song of a clip as the server writes it (MusicIr). */
-export interface ClipMusic { file: string; score?: string | null; order?: string[] | null; tempo?: number | null; recording?: { audio: string; offset: number } | null }
+export interface ClipMusic { file: string; score?: string | null; order?: string[] | null; tempo?: number | null; recording?: { audio: string; offset: number; silent?: boolean } | null }
 
 /** The key the page finds a clip's stems by: the song as written, its score, and whether the recording is followed. */
 export const stemsKey = (music: ClipMusic) => JSON.stringify([music.file, music.score ?? null, !!music.recording]);

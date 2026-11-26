@@ -91,7 +91,9 @@ public static class SongReport
             : $"at {N(tempos[0].Bpm)}{felt}";
         yield return $"song {Path.GetFileName(label)}: {first.BeatsPerBar}/{first.BeatUnit} {pace} (a beat is {unit}), {bars} bar{(bars == 1 ? "" : "s")}, {N(total)} beats, {Seconds(total)} s";
         if (song.Recording is { } recording)
-            yield return $"  made from the recording {Path.GetFileName(recording.Audio)}: a dance keeps its beats (a tempo for every beat), and the preview plays it";
+            yield return recording.Silent
+                ? $"  made from the recording {Path.GetFileName(recording.Audio)}, which is silent (an accompaniment plays): a dance keeps its beats (a tempo for every beat), and the preview plays the song's parts"
+                : $"  made from the recording {Path.GetFileName(recording.Audio)}: a dance keeps its beats (a tempo for every beat), and the preview plays it";
         else if (song.RecordingError is { } why)
             yield return $"  the recording beside it is not followed: {why}";
         var changes = song.Recording is null ? tempos.Skip(1).Select(t => $"{N(t.Bpm)} from beat {N(t.Beat)}").ToList() : [];

@@ -7673,3 +7673,13 @@ Bamen (撮影の言語) の M3 は部屋の中の会話の場面で、椅子や�
 - **今**: 展開した語の Seg が `Word`・`WordLen` (move の中のその語の場所) と `Within` (`move run`) を持つ (`Binder` の `Ctx.Within`、入れ子なら一番内側)。誤りは **その語に 1 回**、文の終わりに `This word is in `move flip`; it is so where it comes, at beats 2, 6 and 10.`。2 人以上の踊りでは `where alice does it`。まとめるのは `InMoves` (`Shosa.Core\Semantics\InMoves.cs`): Solver は踊り手ごと (SH2002・SH2003・SH2004・SH2006・SH2010・SH2013・SH2015・SH2016・SH2018・SH2024 など、`Flag` と `SupportProblems` を通るもの全部)、Binder は SH2001・SH2017 を踊り手ごとに。ジャグリングの語 (SH2020 など) は今までどおり使った所に。
 - 解いた結果の使い回し (`SolvedClip`、120.8): `Word`・`WordLen` も場所なので鍵から外し、言ったことを新しい場所へ移すときに `Src` と同じく対応させる。`Within` (名前) は鍵に入る。
 - 試験 `MoveWordsTests` 3 件 (3 回使った move の語に 1 回・拍 2, 6, 10、セクションに書いた語は今までどおり、move の上に 1 行足しても解き直さず場所が移る)。567 件通る。前は同じ踊りで SH2001 が使った所ごとに 3 つ出ていた (`shosa check` で確かめた)。
+
+## 124. 黙った録音: `"silent": true` (2026-11-26、Lily# の第 4 段 Arrange an Accompaniment… から)
+
+- **元**: Lily# が伴奏を書いて Accept すると、隣の `.orecchiante.json` に `"silent": true` を書く (Lily# `6895373bd`、`docs/accompaniment-design.md`。報告 `docs\repro\lilysharp-report-2026-11-26-silent-recording.md`)。意味は「録音は鳴らさない、小節は録音の秒のまま」。Lily# は `false` を書かない (あるかないか)。ミキサーで録音を戻すと消える。
+- **拍**: 今までどおり録音の小節で拍を取る (97 節)。`RecordingSidecar` が `silent` を読み、`SongRecording.Silent` に。IR (`music.recording`) には true のときだけ `"silent": true` が出る (`WhenWritingDefault`: 前からの譜の IR は 1 バイトも変わらない)。
+- **鳴らさないので、音のファイルが無くてもよい**: 黙った録音では「録音が隣に無い」の誤りを言わない (小節だけで拍は取れる)。`"audio"` の名前は今までどおり要る。
+- **プレビュー** (`main.js`): `heardRecordingOf` = 黙っていない録音。音 (`sound()`)・時計 (`tick`)・録音の読み込み (`setClip`)・動画と音の書き出し (`songSound`) はこれを使う。stems の鍵と `timeline` の照合 (`stemsOf`) は `recordingOf` のまま (Lily# の stems は黙った録音でも `timeline: 'recording'`、録音の行を出さない)。stems が無いときは録音でなく曲の音符が鳴る (前は録音)。Sound の題 (hover) とミキサーの注に「録音 X は黙っている (伴奏が鳴る)、小節が拍を取る」。拡張 (`extension.ts`) は黙った録音のバイトを送らない。
+- **`shosa song`**: 録音の行が「…, which is silent (an accompaniment plays): … the preview plays the song's parts」。
+- 試験 `RecordingTests.A_silent_recording_still_keeps_the_time_and_says_it_is_silent` (拍は同じ・音のファイル無しでも誤りなし・IR の `Silent` は true のときだけ)。568 件、拡張 32 件、`tsc` 通る。**窓なしの Chrome のハーネスでも実際の VS Code でも鳴らしていない**: ユーザーの実機 (Lily# で伴奏を Accept した曲に Add a Dance… → プレビューで伴奏の stems が鳴り録音が鳴らないこと、MP4 に録音が入らないこと)。
+
