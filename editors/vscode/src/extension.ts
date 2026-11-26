@@ -109,7 +109,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const server = findServer(context);
   if (!server) {
     void vscode.window.showErrorMessage(
-      'Shosa: the language server was not found. Build it with "dotnet build", or set shosa.server.path.');
+      'Shosa: the language server was not found. Build it with "dotnet build", or set shosa.developer.languageServer.');
     return;
   }
 
@@ -443,7 +443,7 @@ export async function deactivate(): Promise<void> {
  * `server`); then, running from the repository, the one `dotnet build` leaves. A .dll is run with `dotnet`.
  */
 function findServer(context: vscode.ExtensionContext): { command: string; args: string[] } | undefined {
-  const configured = vscode.workspace.getConfiguration('shosa').get<string>('server.path') ?? '';
+  const configured = vscode.workspace.getConfiguration('shosa').get<string>('developer.languageServer') ?? '';
   const candidates = [
     configured,
     path.join(context.extensionPath, 'server', process.platform === 'win32' ? 'Shosa.Lsp.exe' : 'Shosa.Lsp'),

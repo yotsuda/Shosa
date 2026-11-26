@@ -80,7 +80,7 @@ These work, but are new and may still change.
 ## Settings
 
 - `shosa.models.folder` — the folder your VRM models are kept in.
-- `shosa.server.path` — a language server of your own build.
+- `shosa.developer.languageServer` — a language server of your own build.
 
 The preview plays a song with the sound font Lily# plays with: choose it with **Lily#: Choose Sound Font…** (`lilysharp.playback.soundFont`).
 

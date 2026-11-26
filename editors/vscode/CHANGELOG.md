@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- *Settings:* each setting under a heading of its own — **VRM Models** and **Language Server** — where the Settings editor showed "Models: Folder" and "Server: Path" under one (the setting names are unchanged).
+- *Settings:* named `shosa.<heading>.<setting>` like Lily#'s, Cantoria's and Bamen's, each under a heading of its own — **VRM Models** (`shosa.models.folder`) and **Developer** (`shosa.developer.languageServer`, was `shosa.server.path`) — where the Settings editor showed "Models: Folder" and "Server: Path" under one. A server path set under the old name is to be set again.
 - *Preview:* **the sound font is Lily#'s**: `shosa.playback.soundFont` is gone, and a song plays with the font Lily# plays with — `lilysharp.playback.soundFont` (**Lily#: Choose Sound Font…**), else the Lily# Sound Font extension's, else the system's. One setting for Lily#, Shosa and Bamen: a song is read by Lily#, so where there is a song, Lily# is there.
 
 ## 0.3.0 — 2026-11-25

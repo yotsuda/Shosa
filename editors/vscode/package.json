@@ -348,11 +348,11 @@
         }
       },
       {
-        "id": "shosa.server",
-        "title": "Language Server",
+        "id": "shosa.developer",
+        "title": "Developer",
         "order": 2,
         "properties": {
-          "shosa.server.path": {
+          "shosa.developer.languageServer": {
             "type": "string",
             "default": "",
             "description": "Path to Shosa.Lsp.dll. Empty uses the server shipped with the extension, or the one built in this repository."
