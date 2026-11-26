@@ -1,7 +1,7 @@
 {
   "name": "shosa",
-  "displayName": "Shosa",
-  "description": "Write human movement as text and watch it performed beside the source.",
+  "displayName": "Shosa 3D Choreographer",
+  "description": "Write movement as text, or have an AI write it, and watch 3D characters dance, sing and juggle to a song.",
   "version": "0.3.0",
   "publisher": "yotsuda",
   "author": "Yoshifumi Tsuda",
