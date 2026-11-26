@@ -16,6 +16,7 @@
 - 試験 C# 567 件、拡張 32 件。**`tools\test-extension-host.ps1` は変更前から動かない** (31 秒で報告なし、VS Code 1.147.0): 調べていない。
 - この日、ほかのリポジトリにも手を入れた (コミット済み、push はユーザー): Lily# の New File を 1 項目に (`Lily# Score (.lys)…` → Blank / Compose with AI… / Recording / Scan / MusicXML)、Compose with Copilot… → Compose with AI… (`fbaf1ff63`)、Sound Font (`f5bebb00f`、出すには版を 1.0.1 に) と Cantoria (`85020cb`) に `extensionDependencies: yotsuda.lilysharp`。
 - **次 (ユーザーが決めた、2026-11-26)**: 第 2 段 Write a Song over These Chords… は **同じ `.lys` に歌のパートを足す** (ユーザー)。伴奏はまず元の録音 (私の既定。コードから作る伴奏は第 4 段)。Lily# 側の仕事。
+- **Orecchiante への依頼 1** (`docs\repro\ORECCHIANTE-REQUESTS.md`、オーナーの依頼 2026-11-26): 録音の歌のメロディ (と歌詞) を `.lys` に。Add a Dance… を `We're An American Band.lys` に使った振付が退屈だった (歌がなく手がかりがセクション名だけ) ため。`fixed` になったらその曲で `shosa song` と Add a Dance… を確かめて `done`。Orecchiante の HANDOFF の頭に「見る」の 1 行を足した。
 
 ## 最初のリリース 0.3.0 の準備 (2026-11-25 の 7 つ目のセッション)
 
