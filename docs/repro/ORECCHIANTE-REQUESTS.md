@@ -16,4 +16,4 @@
 
 | # | 日付 | 状態 | 依頼 | 詳細 |
 |---|---|---|---|---|
-| 1 | 2026-11-26 | open | **録音の歌のメロディ（と歌詞）を `.lys` に**（オーナーの依頼: 「Orecchiante が曲のボーカルのメロディと歌詞を読み取れれば、曲の振付も大きく改善できる」）。段階: ① 歌の音の始まりと長さを拍に寄せて歌のパートに（音の高さは目安でよい）、② 貼った歌詞を音に割り当てる、③ 聞き取り（音声認識）は要るなら。Shosa 側に足すものはない（Lily# の `lysc timeline` の `sung` → `shosa song` → Add a Dance… と口がそのまま動く） | [依頼](orecchiante-requests-2026-11-26-vocal-melody.md) |
+| 1 | 2026-11-26 | fixed 80d797c（① だけ。Orecchiante 0.15.0: 歌が聞こえれば `part vocal`（tenor か soprano）・各 section の `vocal { … }`・`singer on vocal sings "ら"`＝`lysc timeline` の `sung` に音ごとの「ら」が出る（We're An American Band で 337 音節）。音の頭は格子の 16 分で RWC-P の答えに F 0.72〜0.74、長さは 8 分の格子、音高は目安。② 歌詞の割り当て・③ 聞き取りは次。未公開＝オーナーのタグ待ち。試すなら作り直した譜面 `C:\MyProj\Orecchiante\scratch\vocal\e2e\wab.lys`（オーナーの曲には書いていない）。再生で歌声エンジンが「ら」を歌う点はオーナーに確認中） | **録音の歌のメロディ（と歌詞）を `.lys` に**（オーナーの依頼: 「Orecchiante が曲のボーカルのメロディと歌詞を読み取れれば、曲の振付も大きく改善できる」）。段階: ① 歌の音の始まりと長さを拍に寄せて歌のパートに（音の高さは目安でよい）、② 貼った歌詞を音に割り当てる、③ 聞き取り（音声認識）は要るなら。Shosa 側に足すものはない（Lily# の `lysc timeline` の `sung` → `shosa song` → Add a Dance… と口がそのまま動く） | [依頼](orecchiante-requests-2026-11-26-vocal-melody.md) |
