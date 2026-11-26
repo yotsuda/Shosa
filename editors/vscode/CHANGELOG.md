@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- *Settings:* each setting under a heading of its own — **VRM Models**, **Playback**, **Language Server** — where the Settings editor showed "Models: Folder", "Playback: Sound Font" and "Server: Path" under one. The setting names (`shosa.models.folder`, `shosa.playback.soundFont`, `shosa.server.path`) are unchanged.
+
 ## 0.3.0 — 2026-11-25
 
 The first release, for Windows (x64).

@@ -334,26 +334,44 @@
         "when": "editorTextFocus && editorLangId == shosa && shosa.onModelPath"
       }
     ],
-    "configuration": {
-      "title": "Shosa",
-      "properties": {
-        "shosa.server.path": {
-          "type": "string",
-          "default": "",
-          "description": "Path to Shosa.Lsp.dll. Empty uses the server shipped with the extension, or the one built in this repository."
-        },
-        "shosa.models.folder": {
-          "type": "string",
-          "default": "",
-          "markdownDescription": "The folder your VRM models (`.vrm`) are kept in, and the folders below it (three levels). With the cursor on the file of a dancer line (`dancer alice humanoid \"girl.vrm\"`), `Ctrl+Shift+Up` / `Ctrl+Shift+Down` put the model before or after it in this folder there, written from this folder (`\"girl.vrm\"`). A dancer's file is looked for in the dance's own folder first, then here. A full path, `~` for the home folder, or a path from the workspace folder (also the **Shosa: Choose Models Folder…** command).\n\n**[Choose a folder…](command:shosa.chooseModelsFolder)**"
-        },
-        "shosa.playback.soundFont": {
-          "type": "string",
-          "default": "",
-          "markdownDescription": "The sound font the preview plays a dance's song with: a path to an `.sf2`, `.sf3` or `.dls` file on this machine. Empty: the one Lily# plays with — its `lilysharp.playback.soundFont` setting, else the font of the *Lily# Sound Font* extension when that is installed, else the General MIDI bank of the operating system. Where there is none, the preview plays simple tones."
+    "configuration": [
+      {
+        "id": "shosa.models",
+        "title": "VRM Models",
+        "order": 1,
+        "properties": {
+          "shosa.models.folder": {
+            "type": "string",
+            "default": "",
+            "markdownDescription": "The folder your VRM models (`.vrm`) are kept in, and the folders below it (three levels). With the cursor on the file of a dancer line (`dancer alice humanoid \"girl.vrm\"`), `Ctrl+Shift+Up` / `Ctrl+Shift+Down` put the model before or after it in this folder there, written from this folder (`\"girl.vrm\"`). A dancer's file is looked for in the dance's own folder first, then here. A full path, `~` for the home folder, or a path from the workspace folder (also the **Shosa: Choose Models Folder…** command).\n\n**[Choose a folder…](command:shosa.chooseModelsFolder)**"
+          }
+        }
+      },
+      {
+        "id": "shosa.playback",
+        "title": "Playback",
+        "order": 2,
+        "properties": {
+          "shosa.playback.soundFont": {
+            "type": "string",
+            "default": "",
+            "markdownDescription": "The sound font the preview plays a dance's song with: a path to an `.sf2`, `.sf3` or `.dls` file on this machine. Empty: the one Lily# plays with — its `lilysharp.playback.soundFont` setting, else the font of the *Lily# Sound Font* extension when that is installed, else the General MIDI bank of the operating system. Where there is none, the preview plays simple tones."
+          }
+        }
+      },
+      {
+        "id": "shosa.server",
+        "title": "Language Server",
+        "order": 3,
+        "properties": {
+          "shosa.server.path": {
+            "type": "string",
+            "default": "",
+            "description": "Path to Shosa.Lsp.dll. Empty uses the server shipped with the extension, or the one built in this repository."
+          }
         }
       }
-    }
+    ]
   },
   "scripts": {
     "build": "node build.mjs",
