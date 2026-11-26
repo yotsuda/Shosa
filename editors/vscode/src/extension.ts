@@ -306,7 +306,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     });
   };
   context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(event => {
-    if (panel && (event.affectsConfiguration('shosa.playback.soundFont') || event.affectsConfiguration('lilysharp.playback.soundFont'))) {
+    if (panel && event.affectsConfiguration('lilysharp.playback.soundFont')) {
       panel.webview.options = { enableScripts: true, localResourceRoots: resourceRoots() };
       tellSynth();
     }
@@ -483,16 +483,17 @@ async function lyscOfLilySharp(): Promise<string | undefined> {
 
 /**
  * The sound font the preview plays a song with, or undefined where there is none (the preview
- * then plays simple tones). Shosa's own setting first; else what Lily# plays with, in Lily#'s
- * order: its setting, the font of the Lily# Sound Font extension, the operating system's
- * General MIDI bank. So a song sounds in the dance's preview as it does in its own.
+ * then plays simple tones): what Lily# plays with, in Lily#'s order — its setting
+ * `lilysharp.playback.soundFont`, the font of the Lily# Sound Font extension, the operating
+ * system's General MIDI bank. So a song sounds in the dance's preview as it does in its own.
+ * Shosa has no setting of its own (the owner's decision 2026-11-26: one sound font setting for
+ * Lily#, Shosa and Bamen, while there are few users): a song is read by Lily#, so where there is
+ * a song to play, Lily# and its setting are there.
  */
 function soundFontFile(): string | undefined {
-  for (const section of ['shosa', 'lilysharp']) {
-    const named = (vscode.workspace.getConfiguration(section).get<string>('playback.soundFont') ?? '').trim();
-    if (named && fs.existsSync(named)) {
-      return named;
-    }
+  const named = (vscode.workspace.getConfiguration('lilysharp').get<string>('playback.soundFont') ?? '').trim();
+  if (named && fs.existsSync(named)) {
+    return named;
   }
   const packaged = vscode.extensions.getExtension('yotsuda.lilysharp-soundfont');
   if (packaged) {

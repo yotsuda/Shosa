@@ -79,8 +79,10 @@ These work, but are new and may still change.
 
 ## Settings
 
-- `shosa.playback.soundFont` — the sound font the preview plays a song with. Empty: the one Lily# plays with.
+- `shosa.models.folder` — the folder your VRM models are kept in.
 - `shosa.server.path` — a language server of your own build.
+
+The preview plays a song with the sound font Lily# plays with: choose it with **Lily#: Choose Sound Font…** (`lilysharp.playback.soundFont`).
 
 ## License
 

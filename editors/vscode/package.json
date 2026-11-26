@@ -348,21 +348,9 @@
         }
       },
       {
-        "id": "shosa.playback",
-        "title": "Playback",
-        "order": 2,
-        "properties": {
-          "shosa.playback.soundFont": {
-            "type": "string",
-            "default": "",
-            "markdownDescription": "The sound font the preview plays a dance's song with: a path to an `.sf2`, `.sf3` or `.dls` file on this machine. Empty: the one Lily# plays with — its `lilysharp.playback.soundFont` setting, else the font of the *Lily# Sound Font* extension when that is installed, else the General MIDI bank of the operating system. Where there is none, the preview plays simple tones."
-          }
-        }
-      },
-      {
         "id": "shosa.server",
         "title": "Language Server",
-        "order": 3,
+        "order": 2,
         "properties": {
           "shosa.server.path": {
             "type": "string",

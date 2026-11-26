@@ -1486,7 +1486,7 @@ Lily# の `06-meter-changes.lys` (4/4 → 3/4 → 2/4 → 6/8 → 4/4、1 小節
 | **シンセは Lily# の拡張と同じ `spessasynth_lib`** (Apache-2.0。`spessasynth_core` 4.3.22 と `spessasynth_lib` 4.3.14 に固定) を、プレビューの webview の中で動かす | 時計が 1 つのまま (19.6)。音符を 1 つずつ、人形のいる拍から計って渡すので、速度・シーク・ループ・テンポの変化で動きからずれない。WAV を流す (b) だと時計が 2 つになる |
 | Lily# の拡張のコード (`previewSynth.ts` `playbackCore.ts`、GPL) は写さず、`spessasynth_lib` の上に自分で書いた | 拡張のライセンスを GPL に縛らない (19.1 と同じ考え)。GPL なのは `shosa-music` だけのまま |
 | **サウンドフォントは同梱しない。Lily# が鳴らすものを探して使う** | 曲が、自分のプレビューと踊りのプレビューで同じ音になる。40 MB を Shosa の拡張に入れずに済む |
-| 探す順: `shosa.playback.soundFont` (新しい設定) → `lilysharp.playback.soundFont` → 拡張 `yotsuda.lilysharp-soundfont` の `soundfont\` の最初の `.sf2/.sf3/.dls` → OS の GM バンク (Windows の `gm.dls`、macOS の `gs_instruments.dls`) → なし | 後ろ 3 つは Lily# の拡張と同じ順。なければ今までの発振器の音 (`sound.js`) で鳴る |
+| 探す順: `lilysharp.playback.soundFont` (Shosa 自身の `shosa.playback.soundFont` は 2026-11-26 に消した: オーナーの決定で、音源の設定は Lily#・Shosa・Bamen で Lily# の 1 つ。曲は Lily# が読むので、曲があれば Lily# とその設定もある) → 拡張 `yotsuda.lilysharp-soundfont` の `soundfont\` の最初の `.sf2/.sf3/.dls` → OS の GM バンク (Windows の `gm.dls`、macOS の `gs_instruments.dls`) → なし | 後ろ 3 つは Lily# の拡張と同じ順。なければ今までの発振器の音 (`sound.js`) で鳴る |
 | **フォントを読み終えるまでは発振器で鳴らし、読めた拍から切り替える** | 最初の Play を待たせない。ブラウザーは音のスレッドをクリックの後にしか動かさず、シンセの組み立てとフォントの解析はそのスレッドで進むので、最初の Play の前には終えられない (フォントのファイルを取ってくるところまでは先に済ませる) |
 | `shosa preview` の HTML は発振器のまま | ディスクの 1 枚のページは、この機械の 40 MB のファイルを読めない |
 

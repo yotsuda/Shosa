@@ -484,7 +484,7 @@ function soundTitle() {
     fontStatus.state === 'ready' ? 'Played with the sound font ' + fontStatus.detail + '.'
     : fontStatus.state === 'loading' ? 'Reading the sound font ' + fontStatus.detail + ' (it is used from the first Play on); simple tones until then.'
     : fontStatus.state === 'failed' ? 'Simple tones: ' + fontStatus.detail
-    : 'Simple tones: no sound font was found. Set shosa.playback.soundFont, or install the Lily# Sound Font extension.') + silent;
+    : 'Simple tones: no sound font was found. Choose one with Lily#: Choose Sound Font… (lilysharp.playback.soundFont), or install the Lily# Sound Font extension.') + silent;
 }
 
 const port = createSynthPort(status => {
@@ -713,7 +713,7 @@ async function songSound(filmed, seconds) {
   // Without a song the video has what the preview plays: the clicks and the claps.
   const notes = key ? songs.get(key) : clicksOf(filmed);
   if (!notes || !notes.length) return key ? { silent: songError || 'the song gave no notes' } : {};
-  if (!synthConfig || !synthConfig.soundFont) return { silent: 'no sound font was found (set shosa.playback.soundFont)' };
+  if (!synthConfig || !synthConfig.soundFont) return { silent: 'no sound font was found (Lily#: Choose Sound Font…)' };
   try {
     const response = await fetch(synthConfig.soundFont);
     if (!response.ok) throw new Error('the sound font could not be read (HTTP ' + response.status + ')');
