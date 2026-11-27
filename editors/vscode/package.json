@@ -184,10 +184,66 @@
           "choreography"
         ],
         "userDescription": "The whole Shosa language, so the assistant can write .shosa files (character movement as text).",
-        "modelDescription": "Returns the complete grammar of Shosa, a language in which the movement of a humanoid character (a dance, an attack combo, an idle, a gesture, a walk) is written as text in a .shosa file and compiled to an animation (glTF, VRM Animation, BVH). Shosa is new and you do not know it: ALWAYS call this once before you write or change any .shosa file, or answer a question about the language, and read all of it. A word that is not in it does not exist; never guess. The result ends with how to work in this editor (tools shosa_check and shosa_sheet). Takes no input.",
+        "modelDescription": "Returns the complete grammar of Shosa, a language in which the movement of a humanoid character (a dance, an attack combo, an idle, a gesture, a walk) is written as text in a .shosa file and compiled to an animation (glTF, VRM Animation, BVH). Shosa is new and you do not know it: ALWAYS call this once before you write or change any .shosa file, or answer a question about the language, and read all of it. A word that is not in it does not exist; never guess. The result ends with how to work in this editor (tools shosa_edit, shosa_check and shosa_sheet). Takes no input.",
         "inputSchema": {
           "type": "object",
           "properties": {}
+        }
+      },
+      {
+        "name": "shosa_edit",
+        "displayName": "Shosa Edit",
+        "toolReferenceName": "shosaEdit",
+        "canBeReferencedInPrompt": true,
+        "icon": "$(edit)",
+        "tags": [
+          "shosa",
+          "animation",
+          "motion",
+          "choreography"
+        ],
+        "userDescription": "Writes a .shosa file for the assistant (changes to it, or the whole text), and says what the compiler says of it.",
+        "modelDescription": "Use this to write or change a .shosa file (Shosa: character movement as text), INSTEAD of editing the file yourself and never by commands or scripts in the terminal: those stop to ask the user, this does not. Give the file's full path and either `edits` or `text`. `edits`: each `old` copied exactly from the file as it stands (a line, or a few lines: enough to be found once), with its `new`; `all: true` changes every place `old` stands, so the same fix on many lines is one edit. All the edits are made or none: an `old` not in the file, one found more than once without `all`, or edits that overlap come back, and nothing is changed. Do NOT write the whole file again to change part of it. `text`, the WHOLE file, is for a new file or rewriting most of one. The file is saved, and the answer is what shosa_check says of it: fix until it says 'no problems'. If you have not read the grammar in this conversation, call shosa_grammar first.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "file": {
+              "type": "string",
+              "description": "The .shosa file: its full path, or its path from the workspace folder."
+            },
+            "edits": {
+              "type": "array",
+              "description": "The changes, each found by text copied from the file. Made all together, or none.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "old": {
+                    "type": "string",
+                    "description": "Text copied exactly from the file, found once in it (or everywhere with all)."
+                  },
+                  "new": {
+                    "type": "string",
+                    "description": "What it becomes. Empty to delete it."
+                  },
+                  "all": {
+                    "type": "boolean",
+                    "description": "true: change every place old stands, not only one."
+                  }
+                },
+                "required": [
+                  "old",
+                  "new"
+                ]
+              }
+            },
+            "text": {
+              "type": "string",
+              "description": "The whole new file, in place of edits: for a new file, or most of one rewritten."
+            }
+          },
+          "required": [
+            "file"
+          ]
         }
       },
       {

@@ -2627,6 +2627,7 @@ godot --headless --path out\godot\proj -s tools\godot_check.gd -- walk.glb out\g
 | 道具 | 入力 | 返すもの |
 |---|---|---|
 | `shosa_grammar` (`#shosaGrammar`) | なし | 文法書の全文 (52 KB)。末尾に、このエディターでの回し方 (書く → `shosa_check` → `shosa_sheet` を見る → プレビュー → ターミナルで `shosa gltf`) |
+| `shosa_edit` (`#shosaEdit`、44.2 で追加) | `file`、`edits` か `text` | ファイルを書き (保存まで)、`shosa_check` と同じ検査の文面 |
 | `shosa_check` (`#shosaCheck`) | `file` | `shosa check` と同じ文面 (診断の行、`score`、セクション、印)。末尾に次にすることを 1 行 |
 | `shosa_sheet` (`#shosaSheet`) | `file`、`score` `step` `from` `to` `view` | `score` ごとの連続写真を**画像として** (`LanguageModelDataPart.image`)。同じ PNG を一時フォルダー (`%TEMP%\shosa-sheets`) にも書き、場所を言う |
 
@@ -2638,6 +2639,19 @@ godot --headless --path out\godot\proj -s tools\godot_check.gd -- walk.glb out\g
 - **道具の説明 (`modelDescription`) が呼ばせる**: 「Shosa は新しく、あなたは知らない。`.shosa` を書く前に必ず `shosa_grammar` を呼ぶ」「変更のたびに `shosa_check`」「`no problems` の後に `shosa_sheet` を見る」。
   文面は `package.json` の `contributes.languageModelTools`。回し方は FOR_AGENTS.md の「The loop」と同じで、**片方を変えたらもう片方も直す** (`tools.ts` の `howToWork`)。
 - 読むだけの道具なので、確認は出さない (`prepareInvocation` は進行の 1 行だけ)。書き出し (`gltf`) は道具にせず、ターミナルの `shosa` (43.4 の PATH) に任せる。
+
+### 44.2 書く道具 `shosa_edit` (2026-11-27)
+
+ユーザー: Copilot にダンス作成 (Add a Dance…) を頼んだら、途中で「Run in terminal: Fix @sharp/length ordering in shosa file」の確認が出た。Lily# で作曲を頼んだときは、別の仕組みで確認を出さずに済ませていたはず: それを Shosa に移す。
+
+- **原因**: 曲のフォルダーを開いて防いでいたのは、Copilot 自身の編集の確認 (「Allow Edits in …」、フォルダーの外のファイル) だけ。モデルは同じ誤り (SH1040、`fwd@sharp:2`) が何行もあったので、ターミナルのスクリプトで一度に直そうとし、ターミナルのコマンドは毎回確認が出る。
+- **Lily# の仕組み**: Lily# は `lilysharp_proposeScore` (と `writePart`) で書かせる。説明の最初が「ファイルを自分で直す代わりにこれを使う」。拡張が `WorkspaceEdit` で当てるので、Copilot の編集の確認を通らない。拡張の道具は `confirmationMessages` を返さなければ確認が出ない。
+- **Shosa の `shosa_edit`** (`#shosaEdit`): `file` と、`edits` (`old` をファイルから写し、`new`。`all: true` なら全部の箇所) か `text` (ファイル全体: 新しいファイル、または大半を書き直すとき)。
+  - 編集は全部当たるか、1 つも当たらないか。`old` がない、`all` なしで 2 か所以上、重なる、のどれかなら何も変えずに理由を返す (Lily# の `applyEdits` と同じ規則。`src/textEdits.ts`、ファイルの改行に合わせる)。
+  - 当てたら**保存する** (Lily# は保存しない: プレビューで聴いて受け入れるか決めるため)。Shosa ではプレビュー、CLI の `shosa gltf`、曲が同じものを見るようにするため。
+  - 答えは `shosa_check` と同じ検査の文面。1 往復減る。`.shosa` だけを書く。
+- 頼み方: Add a Dance… の依頼文 (`danceRequest`) と `howToWork` の 1 番が「`shosa_edit` で書く。自分の編集の道具やターミナルのコマンドは使わない (確認が出る)」。`modelDescription` も最初にそう言う。
+- 試験: `test/textEdits.test.mjs` (規則)、`hosttest` (新しいファイル、`all`、保存、検査の答え、誤った編集で何も変わらない、`.shosa` だけ)。モデルが実際に `shosa_edit` を選ぶかは、ユーザーが Copilot で確かめる。
 - `engines.vscode` を 1.90 → **1.95** に上げた (道具の API が入った版。`@types/vscode` も 1.95.0。vsce は型の版が `engines` を超えると断る)。
   画像の部品 `LanguageModelDataPart` は 1.95 の型にないので、あれば使う形 (なければファイルの場所だけを返す)。この PC の VS Code 1.146 の型定義には `LanguageModelDataPart.image` がある。
 

@@ -32,8 +32,10 @@ table the compiler checks against, so the two cannot disagree. Dancing to a Lily
 everything but dancing to a song works, and a `music` line says Lily# is needed.
 
 **In VS Code, an assistant that uses the editor's tools (Copilot Chat in agent mode) needs
-none of this file's setup**: the extension gives it four tools — `shosa_grammar` (the
-language), `shosa_check` (what `shosa check` prints, for the text as the editor has it; `score` and
+none of this file's setup**: the extension gives it five tools — `shosa_grammar` (the
+language), `shosa_edit` (writes the .shosa, by edits copied from it or the whole text, and
+answers its check: the chat asks the user nothing, as it does for its own edits outside the
+open folders and for the terminal), `shosa_check` (what `shosa check` prints, for the text as the editor has it; `score` and
 `at` as `--score` and `--at`), `shosa_song` (what `shosa song` prints: the song a dance is
 written to, its sections and its words on their beats)
 and `shosa_sheet` (the sheet as an image). The rest of this file is for an agent that

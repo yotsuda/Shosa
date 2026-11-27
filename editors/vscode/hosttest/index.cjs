@@ -60,9 +60,9 @@ exports.run = async function run() {
     await vscode.window.showTextDocument(document);
 
     // Registered: the declarations of package.json, and an implementation behind each.
-    const names = ['shosa_grammar', 'shosa_check', 'shosa_song', 'shosa_sheet'];
+    const names = ['shosa_grammar', 'shosa_edit', 'shosa_check', 'shosa_song', 'shosa_sheet'];
     await until('the tools', () => names.every(n => vscode.lm.tools.some(t => t.name === n)));
-    check('the four tools are listed', true, vscode.lm.tools.filter(t => t.name.startsWith('shosa_')).map(t => t.name));
+    check('the five tools are listed', true, vscode.lm.tools.filter(t => t.name.startsWith('shosa_')).map(t => t.name));
 
     // The grammar. The first call also waits for the language server to start.
     const grammar = await until('the grammar', async () => {
@@ -97,6 +97,25 @@ exports.run = async function run() {
     check('shosa_check sees an edit that is not saved', document.isDirty && /error SH\d+/.test(dirty) && /Fix every line/.test(dirty),
       dirty.split('\n').slice(0, 2));
     await vscode.commands.executeCommand('workbench.action.files.revert');
+
+    // shosa_edit (after Lily#'s lilysharp_proposeScore): a new file from its text, then edits of it — saved, and
+    // answered with the check; a wrong edit changes nothing. It asks nothing: invoked here with no chat to ask in.
+    const written = path.join(folder, 'edited.shosa');
+    fs.rmSync(written, { force: true });
+    const draft = 'tempo 100\ntime 4/4\nrole solo\ndancer solo humanoid on solo\nsection A {\n  solo {\n    rightArm { down fwd@sharp:2 down }\n    leftArm  { down fwd@sharp:2 down }\n  }\n}\nform { A }\nscore { dancer solo }\n';
+    const created = (await invoke('shosa_edit', { file: written, text: draft })).map(p => p.value).join('');
+    check('shosa_edit writes a new file and answers its check', fs.readFileSync(written, 'utf8') === draft && /^Wrote the new file/.test(created) && /error SH1040/.test(created),
+      created.split('\n').slice(0, 3));
+    const fixed = (await invoke('shosa_edit', { file: written, edits: [{ old: 'fwd@sharp:2', new: 'fwd:2@sharp', all: true }] })).map(p => p.value).join('');
+    const editedDoc = vscode.workspace.textDocuments.find(d => d.uri.fsPath.toLowerCase() === written.toLowerCase());
+    check('shosa_edit makes an edit everywhere with all, saves it, and answers no problems',
+      fs.readFileSync(written, 'utf8') === draft.replaceAll('fwd@sharp:2', 'fwd:2@sharp') && !!editedDoc && !editedDoc.isDirty && /edited\.shosa: no problems/.test(fixed),
+      fixed.split('\n').slice(0, 3));
+    const refused = (await invoke('shosa_edit', { file: written, edits: [{ old: 'section A', new: 'section B' }, { old: 'no such text', new: 'x' }] })).map(p => p.value).join('');
+    check('shosa_edit changes nothing when an edit is wrong', /^Nothing was changed\. Edit 2/.test(refused) && fs.readFileSync(written, 'utf8').includes('section A'), refused);
+    const other = (await invoke('shosa_edit', { file: path.join(folder, 'song.lys'), text: 'x' })).map(p => p.value).join('');
+    check('shosa_edit writes .shosa files only', /writes \.shosa files only/.test(other), other);
+    fs.rmSync(written, { force: true });
 
     // The sheet: one image per score, or the one asked for.
     const one = await invoke('shosa_sheet', { file, score: 'Combo', view: 'side', step: 0.5 });
@@ -196,7 +215,9 @@ exports.run = async function run() {
     await vscode.workspace.getConfiguration('shosa').update('models.folder', undefined, vscode.ConfigurationTarget.Global);
     // The link before the setting's box (its description's last line) runs a command that is there.
     const ownJson = vscode.extensions.all.find(e => e.packageJSON.name === 'shosa').packageJSON;
-    const link = /\(command:([\w.]+)\)\*\*$/.exec(ownJson.contributes.configuration.properties['shosa.models.folder'].markdownDescription);
+    // The settings come under headings: configuration is a list of them (f5577f1).
+    const modelsFolder = [].concat(ownJson.contributes.configuration).map(c => c.properties['shosa.models.folder']).find(Boolean);
+    const link = /\(command:([\w.]+)\)\*\*$/.exec(modelsFolder.markdownDescription);
     check('the setting\'s "Choose a folder…" link runs a registered command', !!link && (await vscode.commands.getCommands(true)).includes(link[1]), link && link[1]);
 
     // A new terminal finds `shosa` by name: only where the extension carries the programs.

@@ -32,7 +32,7 @@ export function danceSkeleton(song: string, score: string | undefined, dancers: 
 
 /** What the chat is asked: where the dance and the song are, what to read first, and what the dance should be. */
 export function danceRequest(dance: string, songFile: string, score: string | undefined, singing: string[], wanted: string): string {
-  return `Choreograph a dance in Shosa to the Lily# song ${songFile}, in the file ${dance} — it is open: edit it. `
+  return `Choreograph a dance in Shosa to the Lily# song ${songFile}, in the file ${dance} — it is open: write it with the tool shosa_edit. `
     + `It already names the song${singing.length ? ` and a dancer for each part that sings (${singing.join(', ')})` : ' and a dancer'}; `
     + 'keep those lines and write the sections.\n'
     + 'First read the Shosa grammar with the tool shosa_grammar unless you have it in this conversation, '
@@ -41,7 +41,9 @@ export function danceRequest(dance: string, songFile: string, score: string | un
     + 'the moves placed on the words by bar and beat. Check with shosa_check until it says no problems, and look at it with shosa_sheet.\n'
     // A model that met the same error on many lines ran a script in the terminal to fix them all, and the chat
     // stopped to ask the user ("Run in terminal: Fix @sharp/length ordering in shosa file", 2026-11-27).
-    + 'Make every change with your tool for editing files, even the same fix on many lines: '
-    + 'do not edit the file by running commands or scripts in the terminal (each one stops to ask the user).\n'
+    // shosa_edit asks nothing (tools.ts), as Lily#'s lilysharp_proposeScore.
+    + 'Make every change with shosa_edit ("all": true for the same fix on many lines), '
+    + 'not your own tool for editing files, and do not edit the file by running commands or scripts in the terminal: '
+    + 'those stop to ask the user.\n'
     + `The dance: ${wanted}`;
 }
