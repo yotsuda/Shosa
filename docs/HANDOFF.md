@@ -11,6 +11,8 @@
 - **Lily# 0.18.0 は出ている** (GitHub のリリース 2026-11-27 06:55Z、Release の run は緑)。出す順の前提は満たした。この PC の Lily# の拡張はまだ 0.17.1 (フォルダー名 0.16.0): 歌詞まわりをユーザーが試すなら先に更新。
 - **README に募集の節の案を書いた (未コミット、文面はユーザーが見てから)**: 「What it is for」の末尾に得意分野 (拍にポーズを決める踊り、ballet・break は実験的)、Status の後ろに「Help wanted, most of all from people who dance」(型の直し・見本の踊り・`quality` の残りの質・mocap との比べ、issue も歓迎)。Trying it の拡張の名前を **Shosa 3D Choreographer** に。
 - **残り (ユーザーの手)**: README の文面を決める → コミット → `git push` → `git tag v0.3.0` → `git push origin v0.3.0` (Release が試験・pack・GitHub のリリース・Marketplace)。CHANGELOG の日付は 2026-11-27: 出す日が変われば直す (Release は版と CHANGELOG の頭の節を確かめる)。
+- **VRM は同梱しない (ユーザー決定)**: 使ってもらう道は Marketplace で、clone ではない。入手先は拡張の README の「Where to get a character」(VRM 仕様のサンプル 2 体は確かめた。VRoid Hub は自動の取得が 403、VRoid Studio の URL は未確認、Seed-san は Shosa で動かしていない)。`samples\juggle.shosa` のモデルは `"models/…"` に。**気づき**: Marketplace から入れた人の手元に `samples\` は無く、拡張の README から `hello.shosa` への道が無い (GitHub の samples へのリンクを足すかはユーザーに聞いている)。
+- **設定 `shosa.models.folder` からプレビューが着せる道を、実際の VS Code で通した**: `tools\test-extension-host.ps1 -Repository` は VS Code 1.148.0 で動く (31 件 ok。2026-11-26 の「動かない」は再現せず。**報告なしで終わるときは `node --check editors\vscode\hosttest\index.cjs` を先に**: 構文の誤りだと試験が走らず報告が無い)。足した試験 2 つ: 設定のフォルダーにしかないモデルをページが着せる (この PC の `sample.vrm` で `dressed`。無い PC では空のファイルで「届いた」ことだけ見る: その枝は走らせていない)、どちらにも無いモデルは探した 2 か所を言う。そのための内部コマンド `shosa.reportCharacters` (パレットに出ない。ページの `characters.report()` を返す)。
 - **出した後の次の一手**: アイドルの振付の穴 (ROADMAP 2 節の頭): 横並びで内側の手をつなぐ、曲線・隊形の移動、定番の振りの語彙、表情。どれからかはユーザーに聞く。
 
 ## 実際のダンスを学ぶ教材: CMU のモーションキャプチャ (2026-11-27 の 6 つ目のセッション)

@@ -29,6 +29,9 @@ Copy-Item (Join-Path $root 'samples\parts') $work -Recurse   # what fighter.shos
 Copy-Item (Join-Path $root 'samples\dance.shosa'), (Join-Path $root 'samples\song.lys') $work   # a dance to a song: the MP4 with sound
 
 $env:SHOSA_HOSTTEST_OUT = Join-Path $temp 'report.json'
+# A real VRM model, when this machine has one (none is in the repository): the preview must dress a dancer in it
+# from the models folder. Without one the test still sees the file reach the page.
+$env:SHOSA_HOSTTEST_VRM = 'samples\models\sample.vrm', 'out\vrm\sample.vrm' | ForEach-Object { Join-Path $root $_ } | Where-Object { Test-Path $_ } | Select-Object -First 1
 try {
     $arguments = @(
         "--extensionDevelopmentPath=$extension",
@@ -52,6 +55,6 @@ try {
     }
     "exit code $($process.ExitCode)"
 } finally {
-    Remove-Item Env:\SHOSA_HOSTTEST_OUT
+    Remove-Item Env:\SHOSA_HOSTTEST_OUT, Env:\SHOSA_HOSTTEST_VRM -ErrorAction SilentlyContinue
     Remove-Item $temp -Recurse -Force -ErrorAction SilentlyContinue
 }

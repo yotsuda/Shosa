@@ -611,6 +611,11 @@ export function createCharacters(scene, changed) {
       return [...new Set(dressed.filter(e => e && e.error).map(e => e.error))].join('\n');
     },
 
+    /** Each figure of the clip shown: the file it is dressed in and how far that has got (the extension's own test asks: hosttest). */
+    report() {
+      return dressed.map(e => e ? { file: e.file, state: e.vrm ? 'dressed' : e.error ? 'error' : 'loading', error: e.error || '' } : null);
+    },
+
     /** Whether any figure of the clip is to be dressed (loaded or not). */
     any() {
       return dressed.some(e => e);

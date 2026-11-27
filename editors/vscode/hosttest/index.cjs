@@ -218,6 +218,42 @@ exports.run = async function run() {
     await vscode.commands.executeCommand('shosa.nextModel');
     check('off a dancer\'s file the command changes nothing', dressedDoc.getText() === before);
     await vscode.commands.executeCommand('workbench.action.files.revert');
+
+    // The preview dresses a dancer in a file that only the models folder has (the short name the keys write):
+    // the setting -> resolveModel -> the bytes to the page -> the character. With a real model on this machine
+    // (SHOSA_HOSTTEST_VRM) the page must show it; without one the file is empty, and the page must have been
+    // given it from the models folder and say that it is no VRM (not that it was not found).
+    const kept = path.join(os.tmpdir(), 'shosa-hosttest-models-' + process.pid);   // nowhere near the dance
+    fs.mkdirSync(kept, { recursive: true });
+    const realModel = process.env.SHOSA_HOSTTEST_VRM && fs.existsSync(process.env.SHOSA_HOSTTEST_VRM) ? process.env.SHOSA_HOSTTEST_VRM : null;
+    fs.writeFileSync(path.join(kept, 'only.vrm'), realModel ? fs.readFileSync(realModel) : '');
+    await vscode.workspace.getConfiguration('shosa').update('models.folder', kept, vscode.ConfigurationTarget.Global);
+    const danceIn = name => 'tempo 120\n\nrole solo\ndancer solo humanoid "' + name + '" on solo\n\nsection Wave {\n  solo {\n    rightArm { side up side down }\n  }\n}\n\nform { Wave }\nscore { dancer solo  loop }\n';
+    const same = (a, b) => path.normalize(a).toLowerCase() === path.normalize(b).toLowerCase();
+    const dressedIn = async (file, name, wanted) => {
+      fs.writeFileSync(path.join(folder, file), danceIn(name));
+      await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(path.join(folder, file)));
+      let figures;
+      for (let i = 0; i < 20; i++) {   // the page turns to this file's clip a moment after the editor does
+        figures = await vscode.commands.executeCommand('shosa.reportCharacters');
+        if (figures && figures[0] && same(figures[0].file, wanted)) {
+          break;
+        }
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+      return figures;
+    };
+    const fromSetting = await dressedIn('from-setting.shosa', 'only.vrm', path.join(kept, 'only.vrm'));
+    const got = fromSetting && fromSetting[0];
+    check(realModel ? 'the preview dresses a dancer in a model that is only in the models folder' : 'the preview is given a model that is only in the models folder (no real VRM here: an empty file)',
+      !!got && same(got.file, path.join(kept, 'only.vrm')) && (realModel ? got.state === 'dressed' : got.state === 'error' && /VRM model/.test(got.error) && !/not found/.test(got.error)),
+      fromSetting);
+    const missing = await dressedIn('missing.shosa', 'nowhere.vrm', path.join(folder, 'nowhere.vrm'));
+    const nowhere = missing && missing[0];
+    check('a model in neither place: the preview names both places it was looked for in',
+      !!nowhere && nowhere.state === 'error' && nowhere.error.toLowerCase().includes(path.join(folder, 'nowhere.vrm').toLowerCase()) && nowhere.error.toLowerCase().includes(path.join(kept, 'nowhere.vrm').toLowerCase()) && /were not found/.test(nowhere.error),
+      missing);
+    fs.rmSync(kept, { recursive: true, force: true });
     await vscode.workspace.getConfiguration('shosa').update('models.folder', undefined, vscode.ConfigurationTarget.Global);
     // The link before the setting's box (its description's last line) runs a command that is there.
     const ownJson = vscode.extensions.all.find(e => e.packageJSON.name === 'shosa').packageJSON;

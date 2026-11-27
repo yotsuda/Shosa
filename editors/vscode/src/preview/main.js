@@ -886,6 +886,9 @@ window.addEventListener('message', event => {
     setClip(same ?? under ?? clips[0] ?? null, !message.reset && (same !== null || under !== null));
   } else if (message.type === 'model') {
     characters.setFile(message.file, message.data, message.error);
+  } else if (message.type === 'characters') {
+    // The extension's own test asks what the dancers are dressed in (shosa.reportCharacters).
+    vscode.postMessage({ type: 'characters', id: message.id, figures: characters.report() });
   } else if (message.type === 'stems') {
     stemSongs.set(message.key, message);
     applyStems();

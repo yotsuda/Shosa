@@ -315,21 +315,49 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   // The preview's Export buttons (export.ts). A command that presses one opens the preview first
   // and waits for its page: `pageReady` is set when the page has said 'ready' and been given the clips.
   let pageReady = false;
+  const ready = async () => {
+    if (!panel) {
+      await vscode.commands.executeCommand('shosa.openPreview');
+    }
+    for (let i = 0; i < 100 && panel && !(pageReady && panelUri && clips.has(panelUri)); i++) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    return !!panel && pageReady;
+  };
   const exported = registerExport(context, {
     client,
     writeAudio: (mix, options) => stems.writeAudio(mix, options),
     panel: () => panel,
     uri: () => panelUri,
-    ready: async () => {
-      if (!panel) {
-        await vscode.commands.executeCommand('shosa.openPreview');
-      }
-      for (let i = 0; i < 100 && panel && !(pageReady && panelUri && clips.has(panelUri)); i++) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
-      return !!panel && pageReady;
-    },
+    ready,
   });
+
+  // What the preview's dancers are dressed in, asked of the page: per figure the file and 'dressed', 'loading' or
+  // 'error' (with what the page says). Not in package.json's `commands`: the test in a real VS Code (hosttest) asks it,
+  // to see that a file only the models folder has reaches the page.
+  type Dressed = ({ file: string; state: 'dressed' | 'loading' | 'error'; error: string } | null)[];
+  const askedCharacters = new Map<number, (figures: Dressed) => void>();
+  let askedCharactersId = 0;
+  context.subscriptions.push(vscode.commands.registerCommand('shosa.reportCharacters', async (): Promise<Dressed | undefined> => {
+    await vscode.commands.executeCommand('shosa.openPreview');   // the active file's, if another's is shown
+    if (!(await ready())) {
+      return undefined;
+    }
+    let figures: Dressed | undefined;
+    for (let i = 0; i < 100; i++) {
+      const id = ++askedCharactersId;
+      figures = await new Promise<Dressed | undefined>(resolve => {
+        askedCharacters.set(id, resolve);
+        void panel?.webview.postMessage({ type: 'characters', id });
+        setTimeout(() => { askedCharacters.delete(id); resolve(undefined); }, 2000);
+      });
+      if (figures && figures.length > 0 && !figures.some(f => f?.state === 'loading')) {
+        break;
+      }
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+    return figures;
+  }));
 
   context.subscriptions.push(vscode.commands.registerCommand('shosa.openPreview', () => {
     const editor = vscode.window.activeTextEditor;
@@ -363,6 +391,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         return;
       }
       switch (message.type) {
+        case 'characters': {
+          const asked = message as unknown as { id: number; figures: Dressed };
+          askedCharacters.get(asked.id)?.(asked.figures);
+          askedCharacters.delete(asked.id);
+          break;
+        }
+
         case 'song':
           // The notes of the song the clip is danced to: the server has Lily#'s lysc read them.
           if (panelUri && client) {
