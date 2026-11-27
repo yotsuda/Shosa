@@ -1,0 +1,3 @@
+# LF everywhere, on every checkout: the tests find text by "\n" (LanguageServerTests), and a Windows
+# runner's core.autocrlf=true would otherwise check the sources out with CRLF (CI 45950628236).
+* text=auto eol=lf
