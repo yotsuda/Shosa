@@ -656,9 +656,23 @@ playButton.addEventListener('click', () => {
   }
   setPlaying(!playing);
 });
+// Moving the slider while it plays holds the music only while the knob is held, and plays on
+// from where it is let go (the owner: the slider stopped the play). Not the sound at every step
+// of a drag: it would start again many times a second.
+let playsOnFromSeek = false;
 seek.addEventListener('input', () => {
-  setPlaying(false);
+  if (playing) {
+    playsOnFromSeek = true;
+    setPlaying(false);
+  }
   seekTo((clip ? clip.totalBeats : 0) * seek.value / 1000);
+});
+seek.addEventListener('change', () => {
+  if (playsOnFromSeek) {
+    playsOnFromSeek = false;
+    if (clip && beat < clip.totalBeats - 1e-6) setPlaying(true);
+  }
+  seek.blur();   // so that Space plays and pauses again instead of moving the knob
 });
 window.addEventListener('keydown', event => {
   if (event.code === 'Space') {
