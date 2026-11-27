@@ -5,6 +5,13 @@
 下のパスはリポジトリの根から。
 - ★ **開始時に `C:\MyProj\Bamen\docs\repro\REQUESTS.md` の `open` を見る** (2026-11-23〜)。Bamen (撮影の言語。`shosa clip` を読んでカメラを解く) からの依頼の 1 枚。使い方は Shosa → Lily# の `docs/repro/REQUESTS.md` と同じ (入れたら `fixed <commit>`、入れないなら `won't`、聞くなら `question`)。2026-11-25: 1 (座る) は `fixed f9ae160`、2 (曲がった道) は `question` (曲線は `@turn` の歩でもう書けた。「この点まで歩く」の語が要るかを Bamen に聞いている)。`open` は無い。
 
+## 振り付けのガイドと Shosa の型 (2026-11-27、DESIGN.md 125、44.2)
+
+- **Copilot が確認なしで書く**: 道具 `shosa_edit` (Lily# の `lilysharp_proposeScore` に倣う。`edits` か `text`、保存、検査を返す)。Add a Dance… で「Run in terminal」の確認が出た件の対策 (44.2)。
+- **振り付けのガイド** `shosa guide` / 道具 `shosa_guide` (`docs/CHOREOGRAPHY_FOR_LLM.md`、生成物)、**内蔵の型** `using "shosa:basics|pop|jazz|ballet"` (`Shosa.Core\Library\*.shosa`、106 個)。wab.lys の踊りがワンパターンで遅かった件の対策 (125)。型は 4 つのエージェントが並行して作り、私が合流・試験・見直し。
+- **次**: ユーザーが拡張を入れ直し (`tools\deploy-extension.ps1` → Reload Window)、wab.lys で Add a Dance… をやり直して、上手さと速さを見る。その結果でガイドと型を直す。125 節の末尾に、エージェントが見つけた言語の引っかかり (`~` と `@` の順の誤りの文面など) を次の候補として置いた。
+- CI (`.github/workflows/ci.yml`) と Release (`release.yml`) は GitHub 上で緑 (Node 24 の Actions)。
+
 ## 曲から踊りへの導線、第 1 段 (2026-11-26、DESIGN.md 123)
 
 方向 (ROADMAP 2 節の頭): 主な使い方は AI が `.lys` で作詞作曲した曲でキャラクターが歌いながら踊る。導線は 曲 → 歌 → 踊り → 動画 の 4 段で、第 1 段 (この日) が曲から踊りへ。第 2 段 Write a Song over These Chords… と第 3 段 Walkthrough・次の一手の表示は Lily# 側、第 4 段 Arrange an Accompaniment… (Lily#)。3 つの使い方 (AI の曲・既存の曲のコードに新しい歌・既存の曲で踊るだけ) は、どれも最後は「`.lys` に踊りを付ける」に集まるので、第 1 段から作った。
