@@ -1,0 +1,34 @@
+// Three dancers change formation (DESIGN.md 132): a line, a vee with the lead in front, the wings
+// changed over with the lead behind, and home again.
+// A formation says where each dancer stands; `go.NAME` in a steps row walks each dancer of the
+// role to its OWN place. Like every word it arrives on its beat: `then:4 | go.vee:4 |` walks
+// through the `then` and stands in the vee on the first beat of the next bar.
+// Nobody writes how they pass: dancers whose ways cross keep to their right and go round each other.
+title "Formation"
+tempo 120
+
+role lead
+role wing
+dancer zunko humanoid "models/zunko.vrm" on lead at 0 0
+dancer shino humanoid "models/shino.vrm" on wing at -0.9 0
+dancer sara  humanoid "models/sample.vrm" on wing at 0.9 0 mirror
+
+formation vee  { zunko at 0 0.8    shino at -0.9 -0.4   sara at 0.9 -0.4 }
+formation swap { zunko at 0 -0.8   shino at 0.9 0     sara at -0.9 0 }
+
+section Dance {
+  lead {
+    //       the line  | walking   | in the vee | walking  | changed over | walking | home again        |
+    steps { stand:4    | then:4    | go.vee:4   | then:4   | go.swap:4    | then:4  | go.home:2 then:2  | then:4 | }
+    arms  { down:4     | then:4    | side.up:2 down:2 | then:4 | fwd.up(20):2 down:2 | then:4 | side.up:2 side:2 | down:4 | }
+    face  { smile(40):4 | then:4    | smile:4    | smile(40):4 | smile:4   | smile(40):4 | smile.winkRight:2 smile:2 | smile(40):4 | }
+  }
+  wing {
+    steps { stand:4    | then:4    | go.vee:4   | then:4   | go.swap:4    | then:4  | go.home:2 then:2  | then:4 | }
+    arms  { down:4     | then:4    | side:2 down:2 | then:4 | side.up:2 down:2 | then:4 | side.up:2 side:2 | down:4 | }
+    face  { smile(40):4 | then:4    | smile:4    | smile(40):4 | smile:4   | smile(40):4 | smile:4       | smile(40):4 | }
+  }
+}
+
+form { Dance }
+score { dancer zunko  dancer shino  dancer sara }

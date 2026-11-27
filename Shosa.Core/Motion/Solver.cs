@@ -104,10 +104,172 @@ public static class Solver
             solvers[dancer.Id] = new FigureSolver(dancer, ir, beatsPerFrame, id => solvers.GetValueOrDefault(id));
         foreach (var dancer in ir.Dancers)
             solvers[dancer.Id].Build();
+        // Dancers who walk to their places (`go`, DESIGN.md 132) and would walk into someone go round: known only
+        // now that everybody's way is, so they are built again with their ways bowed.
+        if (Passing(solvers) is { Count: > 0 } bows)
+        {
+            foreach (var dancer in ir.Dancers)
+                solvers[dancer.Id] = new FigureSolver(dancer, ir, beatsPerFrame, id => solvers.GetValueOrDefault(id)) { Bows = bows };
+            foreach (var dancer in ir.Dancers)
+                solvers[dancer.Id].Build();
+        }
         foreach (var dancer in ir.Dancers)
             solvers[dancer.Id].SolvedAt(beatOfFrame);
         return solvers;
     }
+
+    /// <summary>How near two dancers' middles may come while one walks to its place before its way is bowed round the other, metres.</summary>
+    private const double GoClear = 0.7;
+
+    /// <summary>
+    /// The ways of `go` that are bowed to pass someone, and how (the middle of the way put aside by that much). A
+    /// walk is in the way when its line comes nearer than <see cref="GoClear"/> to another dancer on the way,
+    /// nearer than they are at either end of it (two who walk side by side are not in each other's way).
+    /// First each such walk keeps to its own right, as people passing in a corridor do: the same rule for
+    /// everyone, so two who change places pass each other, and three who cross in the middle go round it; someone
+    /// who is not walking is passed on the side away from them. Then, walk by walk in the order of the dancers, a
+    /// way is put to the other side, or made straight or wider, where that leaves everybody clearer (one who walks
+    /// across the end of another's short way). A way the writer bowed (`go.vee.front`) is the writer's: it is not
+    /// touched, and the others go round it.
+    /// </summary>
+    private static Dictionary<Seg, Vec3> Passing(Dictionary<string, FigureSolver> solvers)
+    {
+        var bows = new Dictionary<Seg, Vec3>();
+        var walks = new List<(FigureSolver Who, Seg Go, double T0, double T1, Vec3 From, Vec3 Along, Vec3 Right)>();
+        foreach (var solver in solvers.Values)
+        {
+            foreach (var w in solver.Went)
+            {
+                var along = w.To - w.From;
+                walks.Add((solver, w.Go, w.T0, w.T1, w.From, along, along.Length > 1e-6 ? -Vec3.Left(Math.Atan2(along.X, along.Z)) : default));
+            }
+        }
+        if (solvers.Count < 2 || walks.Count == 0)
+            return bows;
+
+        const int Samples = 32;
+        var aside = new Vec3[walks.Count];
+        for (int i = 0; i < walks.Count; i++)
+            aside[i] = new Vec3(0, 0, walks[i].Go.Bow ?? 0);
+
+        // Where a dancer's middle is at a beat: on its walk as it is bowed now, or where it was solved to be.
+        Vec3 Where(FigureSolver who, double t)
+        {
+            for (int i = 0; i < walks.Count; i++)
+            {
+                var w = walks[i];
+                if (w.Who == who && t >= w.T0 - 1e-9 && t <= w.T1 + 1e-9 && w.T1 > w.T0)
+                {
+                    double u = (t - w.T0) / (w.T1 - w.T0);
+                    return w.From + w.Along * u + aside[i] * FigureSolver.GoBow(u);
+                }
+            }
+            return who.WeightAt(t);
+        }
+
+        // How far one walk is in someone's way: by how much it comes nearer than it may, and where on the way.
+        (double Short, double At, Vec3 Gap) InTheWay(int i, FigureSolver other)
+        {
+            var w = walks[i];
+            double nearest = double.MaxValue, at = 0, first = 0, last = 0;
+            Vec3 gap = default;
+            for (int k = 0; k <= Samples; k++)
+            {
+                double u = (double)k / Samples, t = w.T0 + (w.T1 - w.T0) * u;
+                var between = Where(other, t) - Where(w.Who, t);
+                double d = between.Length;
+                if (k == 0) first = d;
+                if (k == Samples) last = d;
+                if (d < nearest)
+                    (nearest, at, gap) = (d, u, between);
+            }
+            return (Math.Max(0, Math.Min(GoClear, Math.Min(first, last) - 0.1) - nearest), at, gap);
+        }
+
+        double Cost()
+        {
+            double cost = 0;
+            for (int i = 0; i < walks.Count; i++)
+            {
+                foreach (var other in solvers.Values)
+                {
+                    if (other != walks[i].Who)
+                    {
+                        double shortBy = InTheWay(i, other).Short;
+                        cost += shortBy * shortBy;
+                    }
+                }
+                cost += 0.002 * aside[i].Dot(aside[i]);   // of two ways as clear, the straighter
+            }
+            return cost;
+        }
+
+        // Each walk that is in someone's way keeps to its right; round someone who stays, to the side they are not on.
+        var free = new List<int>();
+        var first = new Vec3[walks.Count];
+        for (int i = 0; i < walks.Count; i++)
+        {
+            var w = walks[i];
+            if (w.Go.Bow is not null || w.Along.Length < 0.3)
+                continue;
+            foreach (var other in solvers.Values)
+            {
+                if (other == w.Who)
+                    continue;
+                var (shortBy, at, gap) = InTheWay(i, other);
+                if (shortBy <= 0)
+                    continue;
+                double side = gap.Dot(w.Right), shape = Math.Max(0.36, FigureSolver.GoBow(at));
+                var their = walks.Where(x => x.Who == other && x.T0 < w.T1 - 1e-6 && x.T1 > w.T0 + 1e-6 && x.Along.Length >= 0.3).Select(x => (Vec3?)x.Along.Normalized()).FirstOrDefault();
+                Vec3 round;
+                if (their is { } theirWay)
+                {
+                    double meeting = (w.Along.Normalized() - theirWay).Length / 2;   // the sine of half the angle their ways meet at
+                    round = w.Right * (GoClear / (2 * Math.Max(0.5, meeting)));
+                }
+                else
+                {
+                    round = (side > 0.05 ? -w.Right : w.Right) * Math.Min(1, (GoClear - Math.Abs(side)) / shape);
+                }
+                if (round.Length > first[i].Length)
+                    first[i] = round;
+            }
+            if (first[i].Length > 1e-6)
+                free.Add(i);
+        }
+        foreach (int i in free)
+            aside[i] = first[i];
+
+        // Then whatever leaves everybody clearer, one walk at a time.
+        double cost = Cost();
+        for (int sweep = 0; sweep < 6 && cost > 1e-6; sweep++)
+        {
+            bool better = false;
+            foreach (int i in free)
+            {
+                foreach (double h in new[] { 0, 0.3, -0.3, 0.6, -0.6, 0.9, -0.9 })
+                {
+                    var was = aside[i];
+                    aside[i] = walks[i].Right * h;
+                    double tried = Cost();
+                    if (tried < cost - 1e-4)
+                        (cost, better) = (tried, true);
+                    else
+                        aside[i] = was;
+                }
+            }
+            if (!better)
+                break;
+        }
+
+        foreach (int i in free)
+        {
+            if (aside[i].Length > 1e-6)
+                bows[walks[i].Go] = aside[i];
+        }
+        return bows;
+    }
+
 
     /// <summary>
     /// A figure at one frame: its joints (as the clip has them: `inPlace` taken out), what was wrong there, the way
@@ -296,7 +458,7 @@ public static class Solver
             // What the feet were asked to do that the way they stood does not allow (a hop from both feet).
             foreach (var (seg, code, message) in solver.SupportProblems)
                 if (flagged.Add((seg, code)))
-                    moves.Say(diagnostics, code, code == "SH2016" ? DiagnosticSeverity.Warning : DiagnosticSeverity.Error, seg, message);
+                    moves.Say(diagnostics, code, code is "SH2016" or "SH2026" ? DiagnosticSeverity.Warning : DiagnosticSeverity.Error, seg, message);
             // A foot the steps put down and its leg's row holds up: the leg row wins, and the foot stays in the air.
             foreach (var (seg, leg, at) in solver.FeetHeldUp())
                 if (flagged.Add((seg, "SH2013")))
@@ -1371,6 +1533,12 @@ internal sealed class FigureSolver
     /// <summary>Words of the support track that the way the feet stood did not allow, with the error to give.</summary>
     public List<(Seg Seg, string Code, string Message)> SupportProblems { get; } = [];
 
+    /// <summary>Every `go` walked (DESIGN.md 132): its word, the beats it walks through, and the middle of the feet before and after.</summary>
+    public List<(Seg Go, double T0, double T1, Vec3 From, Vec3 To)> Went { get; } = [];
+
+    /// <summary>The ways of `go` that go round someone (<see cref="Solver"/>'s Passing): how far aside the middle of each is put. Null: none.</summary>
+    public Dictionary<Seg, Vec3>? Bows { get; init; }
+
     /// <summary>
     /// Words of the support track that put a foot down on the floor while its leg's own row still
     /// holds it up (the narrower row wins, so the foot stays in the air): the landing leg of a split
@@ -1567,6 +1735,33 @@ internal sealed class FigureSolver
     /// Plays the support track once, in order, and writes down what it implies: where each
     /// foot moves and when, where the weight is at each landing, the facing, the height.
     /// </summary>
+    /// <summary>
+    /// A `go` (DESIGN.md 132): the longest step of its walk before it is said to be stretched (SH2026), metres, and how
+    /// far behind the other foot (or in front of it) a foot lands that crosses it on a sideways way; and how near the
+    /// other foot's line a foot that walks on (forward, back) may land.
+    /// </summary>
+    private const double GoStride = 0.7, GoCross = 0.12, GoBeside = 0.1;
+
+    /// <summary>
+    /// A `go` walked facing as the dancer faces: how far a step may put a foot from the other, metres; under how
+    /// many seconds a step is quick; and how far a quick step straight ahead may reach. Else the walk is turned the way it goes.
+    /// </summary>
+    private const double GoReach = 0.72, GoQuick = 0.4, GoQuickReach = 0.6;
+
+    /// <summary>
+    /// A `go`: how far back a step facing forward may put a foot (longer ones turned the shin 46 degrees in a frame), and
+    /// how fast a walk may go, metres a second: a step is no longer than that covers in its time (0.4 m for a step
+    /// of a quarter of a second; at 0.5 m the foot behind was left behind and snatched up).
+    /// </summary>
+    private const double GoBack = 0.45, GoSpeed = 1.8;
+
+    /// <summary>
+    /// How far aside a bowed way of a `go` is, of its most, at u of the way (0..1): it leaves and arrives along the
+    /// straight line, and is all the way aside in the middle. (As a parabola it arrived steeply: bowed 0.9 m over 2 m,
+    /// the last step was 0.64 m backward, and the foot closing from there was snatched up.)
+    /// </summary>
+    internal static double GoBow(double u) => Math.Pow(Math.Sin(Math.PI * Math.Clamp(u, 0, 1)), 2);
+
     private void Play(Stand s, List<Seg> support, double offset, bool record)
     {
         // A step straight after a step: the body goes on over the feet, not stopping at each landing (DESIGN.md 90).
@@ -1698,9 +1893,200 @@ internal sealed class FigureSolver
             }
         }
 
+        // A `go` (DESIGN.md 132) is the steps that walk the dancer from where it stands, now, to its place: made here,
+        // where that is known, and then they are steps like any written. The way is a line, or bowed (by the writer, or
+        // to pass someone). The last step closes the feet at standing width on the place, on the word's beat.
+        //
+        // Two ways of walking it. A place near enough is walked facing as the dancer faces, a step a beat: forward,
+        // back, or sideways with the feet crossing (a grapevine). A place too far for that is walked as people
+        // walk: the first steps turn the body the way it goes, it walks forward (two steps a beat when one would be
+        // too long), and the last steps turn it back to face as it faced. (Quick steps sideways or backward are not
+        // made: a leg left behind a body that goes on is snatched up, the shin turning 50 degrees in a frame.)
+        List<Seg> Walk(Seg go)
+        {
+            double room = go.T1 - go.T0;
+            var to = new Vec3(go.ToX ?? 0, 0, go.ToZ ?? 0);
+            Vec3 fwd = Vec3.Forward(s.Yaw), leftward = Vec3.Left(s.Yaw);
+            var from = (s.Left + s.Right) * 0.5;
+            var travel = to - from;
+            var bow = Bows is not null && Bows.TryGetValue(go, out var round) ? round : new Vec3(0, 0, go.Bow ?? 0);
+            Vec3 At(double u) => from + travel * u + bow * GoBow(u);
+            bool stands = Math.Abs((s.Left - s.Right).Dot(leftward) - Rig.Stance) < 0.02 && Math.Abs((s.Left - s.Right).Dot(fwd)) < 0.02;
+            // Already made (the first word of a score: the formation it starts in), off the feet (the switch says so), or there.
+            if (room <= 1e-9 || s.Base != Stand.Feet)
+                return [go];
+            if (travel.Length < 0.02 && stands)
+                return [];
+            if (record && offset == 0)
+                Went.Add((go, go.T0, go.T1, from, to));
+
+            // How long the way is, along its bow.
+            double length = 0;
+            for (int i = 1; i <= 16; i++)
+                length += (At(i / 16.0) - At((i - 1) / 16.0)).Length;
+            double perSecond = PerSecond(go.T0 + offset);
+
+            // One of the walk's steps: a foot put from the other one, as a written step is, landing at `lands`.
+            Seg Step(int slot, int slots, bool first, bool isLeft, double dx, double dz, double turn)
+            {
+                double step = room / slots, lands = go.T0 + slot * step;
+                double lead = first ? Math.Min(step / 2, BinderRun.StepSeconds * perSecond) : Math.Min(step * BinderRun.WalkSwing, BinderRun.WalkSeconds * perSecond);
+                var sub = go.Clone();
+                (sub.ToX, sub.ToZ, sub.Bow, sub.Steps) = (null, null, null, null);
+                (sub.T0, sub.T1, sub.At, sub.Until) = (lands - lead, lands, lands, lands + step);
+                (sub.Kind, sub.Foot, sub.Dx, sub.Dz, sub.TurnDeg, sub.Stance) = (SegKinds.Step, isLeft ? "left" : "right", dx, dz, turn * 180 / Math.PI, false);
+                return sub;
+            }
+
+            // The last one: the other foot closes beside the one that arrived, on the word's beat.
+            Seg Close(int slots)
+            {
+                double step = room / slots;
+                var sub = go.Clone();
+                (sub.ToX, sub.ToZ, sub.Bow, sub.Steps) = (null, null, null, null);
+                (sub.T0, sub.T1, sub.At, sub.Until) = (go.T1 - Math.Min(step * BinderRun.WalkSwing, BinderRun.WalkSeconds * perSecond), go.T1, go.T1, go.Until);
+                (sub.Kind, sub.Spread) = (SegKinds.Together, Rig.Stance);
+                return sub;
+            }
+
+            // Facing as it faces: n landings a step apart, the last one the close. How far the longest step puts a foot from the other.
+            (List<Seg> Steps, double Reach, bool Ahead) Facing(int n)
+            {
+                var steps = new List<Seg>();
+                // Which foot first. The foot on the side the way arrives going to takes the last step before the close
+                // (the other, arriving last, would stand crossed); going straight on, the foot that carries no weight.
+                var arrives = to - At(15.0 / 16);
+                bool sideways = Math.Abs(arrives.Dot(leftward)) > 0.05 * arrives.Length;
+                bool leads = arrives.Dot(leftward) > 0;   // the left foot is on the side it arrives going to
+                bool isLeft = sideways ? (n - 1) % 2 == 1 ? leads : !leads : s.On == 'L' ? false : s.On == 'R' || leads;
+                Vec3 left = s.Left, right = s.Right;
+                double reach = 0;
+                bool ahead = true;
+                for (int i = 1; i < n; i++, isLeft = !isLeft)
+                {
+                    var own = isLeft ? leftward : -leftward;
+                    var other = isLeft ? right : left;
+                    var apart = At((double)i / (n - 1)) + own * (Rig.Stance / 2) - other;
+                    double dx = apart.Dot(own), dz = apart.Dot(fwd);
+                    // A foot that would land on the other one, or past it, goes behind it (or in front, when it is going
+                    // forward); one that walks on (forward, back) lands beside the other's line, and the other foot,
+                    // whose side the way goes to, makes up the rest.
+                    if (dx < 0.06 && Math.Abs(dz) < GoCross)
+                        dz = dz > 0.03 ? GoCross : -GoCross;
+                    else if (dx < GoBeside && Math.Abs(dz) >= GoCross && i < n - 1)
+                        dx = GoBeside;
+                    var landed = other + own * dx + fwd * dz;
+                    if (isLeft) left = landed; else right = landed;
+                    reach = Math.Max(reach, Math.Sqrt(dx * dx + dz * dz));
+                    ahead &= dz > 0.05 && dx is > 0.09 and < 0.35;
+                    steps.Add(Step(i, n, i == 1, isLeft, dx, dz, 0));
+                }
+                steps.Add(Close(n));
+                return (steps, reach, ahead);
+            }
+
+            // Turned the way it goes: of n landings a step apart, an even number of steps (the first on the side it
+            // turns to, the last on the side it turns back to) and the close; with one landing over, it sets out a step later.
+            // How many steps before the close, of n landings. Arriving sideways, the foot on the side it goes to takes the
+            // first step (it is the side the body turns to) and the last (the other, arriving last, would stand crossed):
+            // an odd number.
+            var comes = to - At(15.0 / 16);
+            bool comesSideways = Math.Abs(comes.Dot(leftward)) > 0.05 * comes.Length;
+            int Strides(int n) => !comesSideways || (n - 1) % 2 == 1 ? n - 1 : n - 2;
+            // How far along the way each step lands: the first and the last are short ones (a body setting out, and
+            // turning as it does, does not take a whole stride), the ones between are alike.
+            const double Short = 0.6, Last = 0.35;
+            double Whole(int m) => m <= 2 ? m : m - 2 + Short + Last;
+            double Along(int k, int m) => m <= 2 ? (double)k / m : k >= m ? 1 : (Short + (k - 1)) / Whole(m);
+
+            List<Seg>? Turned(int n)
+            {
+                int m = Strides(n);
+                if (m < 2)
+                    return null;
+                var steps = new List<Seg>();
+                // Which way the body faces after each step: along the way, no more than 100 degrees turned in a step,
+                // and square again a step before the last: the last step is taken facing as it will stand (turning back
+                // on it, a bowed way made it a step backward and round at once, and the shin turned 50 degrees in a frame).
+                const double Most = 100 * Math.PI / 180;
+                var yaws = new double[m + 1];
+                yaws[0] = yaws[m] = s.Yaw;
+                double before = 0;
+                for (int k = 1; k < m; k++)
+                {
+                    double u = Along(k, m);
+                    var way = At(Math.Min(1, u + 0.5 / m)) - At(Math.Max(0, u - 0.5 / m));
+                    double turned = Math.IEEERemainder(Math.Atan2(way.X, way.Z) - s.Yaw, 2 * Math.PI);
+                    if (k > 1 && Math.Abs(turned - before) > Math.PI)
+                        turned -= 2 * Math.PI * Math.Sign(turned - before);   // round the same way as the step before
+                    double most = Most * Math.Min(k, m - k);
+                    before = turned;
+                    yaws[k] = s.Yaw + Math.Clamp(turned, -most, most);
+                }
+                bool isLeft = comesSideways ? comes.Dot(leftward) > 0
+                    : Math.Abs(yaws[1] - s.Yaw) > 0.05 ? yaws[1] > s.Yaw : s.On == 'L' ? false : s.On == 'R' || travel.Dot(leftward) > 0;
+                Vec3 left = s.Left, right = s.Right;
+                for (int k = 1; k <= m; k++, isLeft = !isLeft)
+                {
+                    Vec3 ahead = Vec3.Forward(yaws[k]), own = Vec3.Left(yaws[k]) * (isLeft ? 1 : -1);
+                    var other = isLeft ? right : left;
+                    var apart = At(Along(k, m)) + own * (Rig.Stance / 2) - other;
+                    double dx = apart.Dot(own), dz = apart.Dot(ahead);
+                    if (dx < GoBeside && k < m)
+                        dx = GoBeside;
+                    var landed = other + own * dx + ahead * dz;
+                    if (isLeft) left = landed; else right = landed;
+                    steps.Add(Step(n - 1 - m + k, n, k == 1, isLeft, dx, dz, yaws[k] - yaws[k - 1]));
+                }
+                steps.Add(Close(n));
+                return steps;
+            }
+
+            // How long a step may be: a walking stride, and no longer than a body walking fast covers in the time of one
+            // step (quick steps are short ones).
+            double Reaches(int n) => Math.Min(GoStride, GoSpeed * room / n / perSecond);
+
+            // One step a beat; but no more of them than steps of 15 cm make (a place 10 cm away is a step and a close).
+            int beat = go.Steps ?? Math.Min(Math.Max(2, (int)Math.Round(room)), Math.Max(2, (int)Math.Ceiling(length / 0.15) + 1));
+            var facing = Facing(beat);
+            double seconds = room / beat / perSecond;
+            List<Seg> walk = facing.Steps;
+            double stride = length / (beat - 1), reaches = Reaches(beat);
+            // Near enough to walk facing so: no step longer than a foot is put from the other (backward, less), and
+            // none of them quick unless they go straight ahead.
+            if (facing.Reach > GoReach || facing.Steps.Any(x => x.Dz < -GoBack) || (seconds < GoQuick && !(facing.Ahead && facing.Reach <= GoQuickReach)))
+            {
+                // Too far: turned the way it goes, a step a beat, or two a beat when those would be too long.
+                int quick = Math.Max(3, (int)Math.Round(room * 2));
+                int n = go.Steps ?? (Strides(beat) >= 2 && length / Whole(Strides(beat)) <= Reaches(beat) ? beat : quick);
+                if (Turned(n) is { } turned)
+                    (walk, stride, reaches) = (turned, length / Whole(Strides(n)), Reaches(n));
+            }
+            if (record && stride > reaches + 1e-6)
+                SupportProblems.Add((go, "SH2026", FormattableString.Invariant(
+                    $"This walk is {length:0.##} m in {walk.Count} steps, the last one closing: {stride:0.##} m a step, and a step this quick reaches {reaches:0.##} m. Give it more time (the word before it is the time it walks in){(go.Steps is null ? "" : ", or other steps (`steps(N)`: fewer are longer and slower, more are shorter and quicker)")}.")));
+            return walk;
+        }
+
+
+        // The words as they are played: a `go` is its steps.
+        IEnumerable<Seg> Words()
+        {
+            foreach (var word in support)
+            {
+                if (word.Kind != SegKinds.Go)
+                {
+                    yield return word;
+                    continue;
+                }
+                foreach (var made in Walk(word))
+                    yield return made;
+            }
+        }
+
         // In a loop the word before the first is the last (of the turn before).
         Seg? previous = _loop && support.Count > 0 ? support[^1] : null;
-        foreach (var seg in support)
+        foreach (var seg in Words())
         {
             // A `down` that has arrived before this word sets out has put its foot on the floor.
             PutDown(seg.T0 + offset);
@@ -1717,7 +2103,7 @@ internal sealed class FigureSolver
             var leftward = Vec3.Left(s.Yaw);
 
             // Off the feet (DESIGN.md 128) the feet do nothing of their own: a step, a jump, a shift wants them under the body.
-            if (s.Base != Stand.Feet && seg.Kind is SegKinds.Step or SegKinds.Together or SegKinds.Jump or SegKinds.Shift)
+            if (s.Base != Stand.Feet && seg.Kind is SegKinds.Step or SegKinds.Together or SegKinds.Jump or SegKinds.Shift or SegKinds.Go)
             {
                 if (record)
                     SupportProblems.Add((seg, "SH2025", $"The weight is on the {BaseName(s.Base)} here, not on the feet: this word of the steps needs them under the body. Stand up first (`feet`, where the weight is, or `feet.back(0.5m)`), or move the legs in their own rows (`legs`, `leftLeg`, `rightLeg`)."));
@@ -1747,6 +2133,20 @@ internal sealed class FigureSolver
                         _bases.Add(new BaseSpan(t0, t1, onto, to));
                     Weight(t0, t1, to);
                     (s.Base, s.BasePoint) = (onto, to);
+                    break;
+                }
+
+                case SegKinds.Go:
+                {
+                    // Already made (the first word of a score): the dancer stands on its place in the formation.
+                    // (A `go` with time to walk in is its steps: Walk.)
+                    var to = new Vec3(seg.ToX ?? 0, 0, seg.ToZ ?? 0);
+                    var half = leftward * (Rig.Stance / 2);
+                    current = null;
+                    Move(true, new FootMove { T0 = t0, T1 = t0, From = s.Left, To = to + half, YawFrom = s.LeftYaw, YawTo = s.Yaw });
+                    Move(false, new FootMove { T0 = t0, T1 = t0, From = s.Right, To = to - half, YawFrom = s.RightYaw, YawTo = s.Yaw });
+                    s.On = 'B';
+                    Weight(t0, t1, to);
                     break;
                 }
 

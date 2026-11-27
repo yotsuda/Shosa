@@ -106,6 +106,15 @@ public static class ChoreographyDoc
           audience (`smile(50).winkRight:1/2`, the look again after it), `surprised` on a "eh?!", the full
           `smile` on the last pose, `sad(40)` or `relaxed.closed` in a quiet bridge. A few in a song, not every
           bar. The eyes blink by themselves.
+        - **Formations** (two dancers or more): where everybody stands is a layer of its own, and a change of
+          it is what an audience sees first. Write the pictures once (`formation line { … }`,
+          `formation vee { … }`: each dancer `at X Z`) and walk into them with one word of `steps`, the same
+          for every dancer of a role: `then:4 | go.vee:4 |` walks through the `then` and stands in the vee on
+          the next bar's first beat. Change the picture where a section changes, or for a chorus (the lead
+          forward, the others back); `go.home` goes back to where they began. Give a change its time: four
+          beats for a place up to 2 m away, eight for one across the stage (`check` says SH2026 when it is
+          too far for the time). Dancers whose ways cross go round each other by themselves. A pose ON the
+          arrival beat (the arms' word on the same beat as the `go`) makes the new picture land.
         - **Layers**: a dance is feet × arms × head × height × facing. Change one layer every two bars,
           two every four, all of them where a section changes. The same steps under new arms is a new
           figure; the same arms on new steps too. Most vocabulary moves are feet only or arms only so that

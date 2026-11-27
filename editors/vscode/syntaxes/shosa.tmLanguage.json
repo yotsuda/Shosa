@@ -33,8 +33,8 @@
       ]
     },
     {
-      "comment": "role NAME, pose NAME, move NAME, form [NAME], score [NAME]; in a score: form NAME, score NAME.",
-      "match": "(?<![.@!:\\w])(role|pose|move|form|score)\\b(?:[ \\t]+([A-Za-z_][A-Za-z0-9_]*))?",
+      "comment": "role NAME, pose NAME, move NAME, form [NAME], score [NAME], formation NAME; in a score: form NAME, score NAME.",
+      "match": "(?<![.@!:\\w])(role|pose|move|form|score|formation)\\b(?:[ \\t]+([A-Za-z_][A-Za-z0-9_]*))?",
       "captures": {
         "1": { "name": "keyword.control.shosa" },
         "2": { "name": "entity.name.function.shosa" }

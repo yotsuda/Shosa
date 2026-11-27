@@ -79,14 +79,14 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
     /// the word before and no longer than this many seconds, so a foot stands on the beat and is
     /// carried off it; a sharp word in no more than these; anything else in all of the word before.
     /// </summary>
-    private const double StepSeconds = 0.5, SharpSeconds = 0.15;
+    internal const double StepSeconds = 0.5, SharpSeconds = 0.15;
 
     /// <summary>
     /// A step that follows a step (DESIGN.md 90): its foot swings through this much of the word before, up
     /// to <see cref="WalkSeconds"/>. In a walk each foot is in the air about 40% of a stride of two steps,
     /// 80% of one step; the rest the two feet share the floor.
     /// </summary>
-    private const double WalkSwing = 0.8, WalkSeconds = 0.6;
+    internal const double WalkSwing = 0.8, WalkSeconds = 0.6;
 
     /// <summary>A word of the feet that walks: a step, or a close (`together`, `stand`) that moves one foot.</summary>
     internal static bool Walks(Seg seg) => seg.Kind is SegKinds.Step or SegKinds.Together && seg.TurnDeg == 0 && !seg.Stance && seg.Ease != "sharp";
@@ -183,6 +183,8 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
     private readonly Dictionary<string, SyntaxNode> _defs = [];
     private readonly Dictionary<string, SyntaxNode> _sections = [];
     private readonly List<string> _sectionOrder = [];
+    /// <summary>The formations (DESIGN.md 132): for each, where each dancer it names stands, as a dancer's `at`.</summary>
+    private readonly Dictionary<string, Dictionary<string, (double X, double Z)>> _formations = [];
 
     /// <summary>
     /// The lines a section begins with. Its tempo is in force from where it is played until a
@@ -681,6 +683,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
 
     private void Collect()
     {
+        var formations = new List<SyntaxNode>();
         foreach (var item in tree.Root.ChildNodes())
         {
             var name = item.Token(SyntaxKind.Identifier, 1);
@@ -740,6 +743,37 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                         Error("SH1005", (name ?? item.ChildTokens().First()).Span,
                             name is null ? "There is already a score above; give this one a name: score practice { ... }" : $"A score named '{name.Text}' is already written above.");
                     break;
+
+                case SyntaxKind.FormationDecl:
+                    formations.Add(item);
+                    break;
+            }
+        }
+
+        // The formations (DESIGN.md 132), once every dancer's name is known: where each dancer stands in each.
+        var dancerNames = _dancerNodes.Select(d => Tokens(d, SyntaxKind.Identifier)).Where(w => w.Count >= 2).Select(w => w[1].Text).ToHashSet();
+        foreach (var item in formations)
+        {
+            if (item.Token(SyntaxKind.Identifier, 1) is not { IsMissing: false } name)
+                continue;
+            var places = new Dictionary<string, (double X, double Z)>();
+            if (Vocabulary.Reserved.Contains(name.Text) || name.Text == Vocabulary.Home || Vocabulary.Has(Vocabulary.GoWords, name.Text))
+                Error("SH1045", name.Span, name.Text == Vocabulary.Home
+                    ? "'home' is the formation every file has (each dancer at its own `at`): a formation takes another name (line, vee, circle)."
+                    : $"'{name.Text}' is a word of the language: a formation takes another name (line, vee, circle).");
+            else if (!_formations.TryAdd(name.Text, places))
+                Error("SH1045", name.Span, $"A formation named '{name.Text}' is already written above.");
+            foreach (var place in item.ChildNodes(SyntaxKind.FormationPlace))
+            {
+                var tokens = place.ChildTokens().Where(t => !t.IsMissing).ToList();
+                var who = tokens[0];
+                var numbers = tokens.Where(t => t.Kind == SyntaxKind.Number).ToList();
+                if (!dancerNames.Contains(who.Text))
+                    Error("SH1045", who.Span, $"No dancer is named '{who.Text}': a formation says where each dancer stands, `{(dancerNames.FirstOrDefault() ?? "alice")} at 1.5 0`.{Hint(who.Text, dancerNames)}");
+                else if (numbers.Count != 2 || tokens.Count != 4 || tokens[1].Text != "at")
+                    Error("SH1045", place.Span, $"A place in a formation is the dancer, `at`, and two numbers in metres, as on a dancer's line: {who.Text} at 1.5 0 (x to stage left, z toward the audience).");
+                else if (!places.TryAdd(who.Text, (Number(numbers[0]), Number(numbers[1]))))
+                    Error("SH1045", who.Span, $"{who.Text} already has a place in this formation.");
             }
         }
     }
@@ -2652,7 +2686,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                 // own move, but a shift is the body's (DESIGN.md 87.4). A turn on the spot too: it is the body that
                 // turns over the foot, and "two beats to face right" is written so (DESIGN.md 89).
                 // (And the weight going onto the hands, the back, a knee: the whole body's way, DESIGN.md 128.)
-                : steps && seg.Kind is SegKinds.Shift or SegKinds.Turn or SegKinds.Base ? room
+                : steps && seg.Kind is SegKinds.Shift or SegKinds.Turn or SegKinds.Base or SegKinds.Go ? room
                 // A step straight after a step is walking: the foot leaves the floor soon after the other lands
                 // and swings through most of the word, and the body goes on over the feet without stopping
                 // (DESIGN.md 90: both feet flat for half of every step, the body stopping and going, was a robot's walk).
@@ -3679,6 +3713,72 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                             break;
                         default:
                             Error("SH1012", part.Word.Span, $"'{head.Text}' is put place (where the weight is), fwd, back, left or right of it: {head.Text}.fwd(0.5m).{Hint(part.Text, ["place", "fwd", "back", "left", "right"])}");
+                            return null;
+                    }
+                }
+                return seg;
+            }
+
+            case "go":
+            {
+                // go.NAME: walk to this dancer's own place in the formation NAME, and stand there on the beat (DESIGN.md 132).
+                const string Form = "'go' names the formation to walk to: go.vee (formation vee { alice at -1 0  bob at 1 0 }), or go.home (each dancer's own `at`).";
+                if (rest.Count == 0 || parts[0].Bracket is not null || rest[0].Bracket is not null)
+                {
+                    Error("SH1012", (parts[0].Bracket ?? (rest.Count > 0 ? rest[0].Bracket : null))?.Span ?? head.Span, Form);
+                    return null;
+                }
+                var named = rest[0];
+                (double X, double Z) to;
+                if (_formations.TryGetValue(named.Text, out var places))
+                {
+                    if (ctx.Dancer == Nobody)
+                        to = (0, 0);
+                    else if (!places.TryGetValue(ctx.Dancer.Id, out to))
+                    {
+                        Error("SH1045", named.Word.Span, $"Formation '{named.Text}' has no place for {ctx.Dancer.Id}, who dances this row: add `{ctx.Dancer.Id} at X Z` to it.");
+                        return null;
+                    }
+                }
+                else if (named.Text == Vocabulary.Home)
+                {
+                    to = (ctx.Dancer.X, ctx.Dancer.Z);
+                }
+                else
+                {
+                    Error("SH1045", named.Word.Span, $"No formation is named '{named.Text}'.{Hint(named.Text, _formations.Keys.Append(Vocabulary.Home))} {Form}");
+                    return null;
+                }
+                var seg = new Seg { Kind = SegKinds.Go, ToX = to.X, ToZ = to.Z };
+                foreach (var part in rest.Skip(1))
+                {
+                    switch (part.Text)
+                    {
+                        case "front" or "back" when seg.Bow is null:
+                            if (Distance(part, 0.5, $"go.{named.Text}.{part.Text}(0.5m)") is not { } bow)
+                                return null;
+                            seg.Bow = part.Text == "front" ? bow : -bow;
+                            break;
+                        case "steps" when seg.Steps is null:
+                        {
+                            string form = $"'steps' takes how many steps the walk is made of, 2 to 64, the last one closing the feet: go.{named.Text}.steps(8).";
+                            if (part.Bracket is null)
+                            {
+                                Error("SH1013", part.Word.Span, form);
+                                return null;
+                            }
+                            if (BracketNumber(part.Bracket, form) is not { } read)
+                                return null;
+                            if (read.Unit != "" || read.Value < 2 || read.Value > 64 || Math.Abs(read.Value - Math.Round(read.Value)) > Epsilon)
+                            {
+                                Error("SH1013", part.Bracket.Span, form);
+                                return null;
+                            }
+                            seg.Steps = (int)Math.Round(read.Value);
+                            break;
+                        }
+                        default:
+                            Error("SH1012", part.Word.Span, $"After the formation's name a 'go' takes front or back (the way there bows toward the audience or upstage, to pass someone: go.{named.Text}.front(0.5m)) and steps(N) (how many steps), each once.{Hint(part.Text, Vocabulary.GoWords.Select(w => w.Name))}");
                             return null;
                     }
                 }

@@ -332,6 +332,7 @@ public static class SegKinds
     public const string Juggle = "juggle";      // juggle: throw Pattern from T0 to T1, a throw every Every beats
     public const string Hand = "hand";          // hand: the fingers in Shape, turned to Fingers and Palm
     public const string Face = "face";          // face: the look and the eyes, as Face's weights
+    public const string Go = "go";              // support: walk to a place on the stage (ToX, ToZ), there at T1, standing (DESIGN.md 132)
     public const string Base = "base";          // support: the weight goes onto Base (hands, head, back, seat, knees … feet), put Dx and Dz from where it was
 }
 
@@ -422,6 +423,18 @@ public sealed class Seg
     /// end; the beat the word before it begins. If the feet already stand so, it is a way of standing: no foot
     /// moves, and the weight goes back between them from this beat (DESIGN.md 88).</summary>
     public double? Kept { get; set; }
+
+    /// <summary>Go (`go.vee`, DESIGN.md 132): the place on the stage the dancer walks to, as a dancer's `at` (x to stage left, z toward the audience).</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public double? ToX { get; set; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public double? ToZ { get; set; }
+    /// <summary>Go (`go.vee.front(0.5m)`): metres the way there bows toward the audience at its middle (negative: upstage), to pass someone; null: straight.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public double? Bow { get; set; }
+    /// <summary>Go (`go.vee.steps(8)`): how many steps it takes, the last one closing; null: one a beat.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public int? Steps { get; set; }
 
     /// <summary>Base (`hands`, `head`, `back`, `front`, `seat`, `knees`, `leftKnee` … `feet`, DESIGN.md 128): what carries the weight from this word on.</summary>
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]

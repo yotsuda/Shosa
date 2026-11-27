@@ -289,6 +289,7 @@ public static class Vocabulary
         new("hop", "Off the floor from the foot that carries the weight, landing on the same foot: `hop`, `hop.fwd`. The other foot is held off the floor. From both feet, it lands on the foot whose leg its row does not throw out (a sissonne)."),
         new("leap", "Off the floor from the foot that carries the weight, landing on the other: `leap.fwd` (a running step), `leap.left` (a small jump to the side). The foot it took off from is held off the floor."),
         new("shift", "The weight moves and neither foot leaves the floor: `shift.left`, `shift.right`, `shift.center`."),
+        new("go", "Walk to the dancer's own place in a formation, and stand there on the beat: `go.vee` (`formation vee { alice at -1 0  bob at 1 0 }`), `go.home` (its `at`). The steps are made for it, and it stands facing as it faced."),
         new("lift", "Only for a free body (`@free`, or `free` on the dancer): the feet hang at a height, `lift(0.4m)`. `lift(0.4m).fwd` also travels (0.4 m, or `fwd(0.6m)`)."),
         new("land", "Only for a free body: back down to the floor."),
     ];
@@ -312,6 +313,17 @@ public static class Vocabulary
         new("rightKnee", "Kneeling on the right knee, the left foot on the floor in front."),
         new("feet", "Back on the feet, standing where the weight was (`feet.back(0.5m)`: half a metre behind it), at standing width."),
     ];
+
+    /// <summary>What follows the formation's name in a `go` (DESIGN.md 132): `go.vee.front`, `go.vee.steps(8)`.</summary>
+    public static readonly Word[] GoWords =
+    [
+        new("front", "The way there bows toward the audience, to pass in front of someone: 0.5 m at its middle, or `front(0.8m)`."),
+        new("back", "The way there bows upstage, to pass behind someone: `back(0.8m)`."),
+        new("steps", "How many steps it takes, the last one closing the feet: `go.vee.steps(8)` (2 to 64). Not written: one a beat, or two a beat to a place far away."),
+    ];
+
+    /// <summary>The formation every file has: each dancer at its own `at` (`go.home`).</summary>
+    public const string Home = "home";
 
     public static readonly Word[] ShiftWords =
     [

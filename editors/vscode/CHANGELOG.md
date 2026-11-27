@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Formations**: `formation vee { alice at 0 0.8  bob at -1 -0.4  carol at 1 -0.4 }` says where each dancer stands, and one word of `steps`, `go.vee`, walks each dancer of a role to its own place, standing there on the beat (`go.home`: back to its `at`). The steps are made for it: a place near by is walked facing the front (forward, back, or a grapevine sideways), a place far away is walked as people walk — the body turns the way it goes, walks there, and turns back. Dancers whose ways cross go round each other by themselves, or as written (`go.vee.front`, `go.vee.back`: passing on the audience's side or upstage); `steps(8)` says how many steps. A walk too far for its time is said (SH2026). Completion and hover know the formations. `samples/formation.shosa` shows it.
+
 - **The face**: a `face` row gives a character a look and its eyes — `face { smile(50):4 | smile(60).winkRight:1 smile(50):3 | }` — with `smile`, `sad`, `angry`, `relaxed`, `surprised`, `neutral`, and `closed`, `winkLeft`, `winkRight`; a bracket is how much, in percent. It is there on its beat and changes in a moment. The eyes blink by themselves, written or not. The preview and its MP4 show it on a VRM character (a wink on top of a smile shuts the eye no further than the smile leaves of it, measured on each character), and the `.vrma` export keys VRM's expressions. `samples/face.shosa` shows it.
 
 ## 0.3.0 — 2026-11-27

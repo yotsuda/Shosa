@@ -117,7 +117,19 @@ internal static class Words
         new("section", "section NAME { ROLE { TRACK { … } } } — a stretch of time: what each role does in it."),
         new("form", "form { A |: B :| } — the order the sections are played in. A named one (form short { B }) is played by the score that names it."),
         new("score", "score NAME { dancer D  form F  loop } — one file written: who dances, and which form. The unnamed score plays the unnamed form."),
+        new("formation", "formation NAME { alice at -1 0  bob at 1 0 } — where each dancer stands in a formation. `go.NAME` in a `steps` row walks each dancer to its own place, there on the beat."),
     ];
+
+    /// <summary>`go.home`: the formation every file has.</summary>
+    private static readonly Vocabulary.Word Home = new(Vocabulary.Home, "The formation every file has: each dancer at its own `at`.");
+
+    /// <summary>The formations of a file, each said with its places.</summary>
+    private static List<Vocabulary.Word> Formations(SyntaxTree tree) =>
+        [.. from formation in tree.Root.ChildNodes(SyntaxKind.FormationDecl)
+            let name = formation.Token(SyntaxKind.Identifier, 1)
+            where name is { IsMissing: false }
+            select new Vocabulary.Word(name.Text, "Formation: " + string.Join(", ", formation.ChildNodes(SyntaxKind.FormationPlace)
+                .Select(p => string.Join(' ', p.ChildTokens().Where(t => !t.IsMissing).Select(t => t.Text)))))];
 
     /// <summary>
     /// What a top-level word is completed to: the least the item needs, with the names the
@@ -143,6 +155,7 @@ internal static class Words
             "section" => "section ${1:Main} {\n  ${2:" + figure + "} {\n    ${3:steps} { $0 }\n  }\n}",
             "form" => "form { ${1:" + (sections == "" ? "Main" : sections) + "} }",
             "score" => "score { dancer ${1:" + dancer + "} }",
+            "formation" => "formation ${1:line} {\n  ${2:" + dancer + "} at ${3:0} ${4:0}$0\n}",
             _ => null,
         };
     }
@@ -255,10 +268,11 @@ internal static class Words
     /// written before the cursor in the same target (empty at the start of an event).
     /// </summary>
     public static IEnumerable<Vocabulary.Word> ForTarget(string track, IReadOnlyList<string> before,
-        IReadOnlyList<Vocabulary.Word>? definitions = null, IReadOnlyList<Vocabulary.Word>? figures = null)
+        IReadOnlyList<Vocabulary.Word>? definitions = null, IReadOnlyList<Vocabulary.Word>? figures = null, IReadOnlyList<Vocabulary.Word>? formations = null)
     {
         definitions ??= [];
         figures ??= [];
+        formations ??= [];
         if (before.Count > 0 && figures.Any(f => f.Name == before[0]))
             return before.Count == 1 ? Vocabulary.Parts : before.Count == 2 && before[1] == "hand" ? [.. Vocabulary.Levels.Where(w => w.Name != "sit")] : [];
 
@@ -280,6 +294,8 @@ internal static class Words
                     : Except(Vocabulary.JumpWords, before.Skip(1)),
                 "hop" or "leap" => Except(jumpWays, before.Skip(1)),
                 "shift" => before.Count == 1 ? Vocabulary.ShiftWords : [],
+                // To its place in a formation (DESIGN.md 132): the formation, then how the way there goes.
+                "go" => before.Count == 1 ? [.. formations, Home] : Except(Vocabulary.GoWords, before.Skip(2).Any(w => w is "front" or "back") ? [.. before.Skip(2), "front", "back"] : before.Skip(2)),
                 "lift" or "land" => Except(jumpWays.Where(w => w.Name != "place"), before.Skip(1)),
                 // What carries the weight off the feet (DESIGN.md 128): where it is put from where the weight was.
                 var onto when Vocabulary.Has(Vocabulary.Bases, onto) => Except(jumpWays, before.Skip(1)),
@@ -432,7 +448,7 @@ internal static class Words
                 return ([Bar], "value");
             if (trigger is ':' or '!' or '(' || (trigger != '.' && wordStart > 0 && char.IsAsciiDigit(text[wordStart - 1])))
                 return ([], "none");
-            var targets = ForTarget(name, trigger == '.' ? ChainBefore(text, wordStart - 1) : [], Definitions(tree, null, brought), figures);
+            var targets = ForTarget(name, trigger == '.' ? ChainBefore(text, wordStart - 1) : [], Definitions(tree, null, brought), figures, Formations(tree));
             // A verse is written where an event is, in a section's row: a move is not played a first and a second time.
             bool inSection = Enclosing(tree, SyntaxKind.PoseDecl, offset) is null && Enclosing(tree, SyntaxKind.MoveDecl, offset) is null;
             return (trigger != '.' && inSection ? targets.Append(Verse) : targets, "word");
@@ -450,6 +466,18 @@ internal static class Words
                 return ([], "none");
             bool atHead = !section.ChildNodes().Any(n => n.Kind is SyntaxKind.FigureBlock or SyntaxKind.Track && n.Span.Start < wordStart);
             return (atHead ? [.. figures, .. SectionItems] : figures, "figure");
+        }
+
+        if (Enclosing(tree, SyntaxKind.FormationDecl, offset) is { } formation && formation.Token(SyntaxKind.OpenBrace) is { IsMissing: false } opened && wordStart >= opened.Span.End)
+        {
+            // DANCER at X Z, one after the other: a dancer, then `at`, then two numbers.
+            var written = text[opened.Span.End..wordStart].Split([' ', '\t', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
+            var dancers = DancerNames(tree).ToList();
+            if (written.Length > 0 && dancers.Contains(written[^1]))
+                return ([new Vocabulary.Word("at", "at X Z — where this dancer stands in the formation, in metres: x to stage left, z toward the audience.")], "property");
+            if (written.Length > 0 && (written[^1] == "at" || (written.Length > 1 && written[^2] == "at")))
+                return ([], "none");
+            return (dancers.Select(d => new Vocabulary.Word(d, "Dancer")), "figure");
         }
 
         if (Enclosing(tree, SyntaxKind.FormDecl, offset) is { } form)
@@ -581,7 +609,7 @@ internal static class Words
             var before = parent.ChildTokens().Where(t => t.Kind is SyntaxKind.Identifier or SyntaxKind.Number && !t.IsMissing && t.Span.Start < token.Span.Start)
                 .Select(t => t.Text).ToList();
             var figures = FigureNames(tree).Select(n => new Vocabulary.Word(n.Id, $"Figure {n.Label}")).ToList();
-            word = ForTarget(track, before, Definitions(tree, lengths, brought), figures).FirstOrDefault(w => w.Name == token.Text);
+            word = ForTarget(track, before, Definitions(tree, lengths, brought), figures, Formations(tree)).FirstOrDefault(w => w.Name == token.Text);
         }
         else if (parent.Kind is SyntaxKind.PoseDecl or SyntaxKind.MoveDecl && token == parent.Token(SyntaxKind.Identifier, 1))
         {
@@ -600,6 +628,10 @@ internal static class Words
         {
             word = Vocabulary.Tracks.FirstOrDefault(w => w.Name == token.Text);
         }
+        else if (parent.Kind == SyntaxKind.FormationDecl && token == parent.Token(SyntaxKind.Identifier, 1))
+        {
+            word = Formations(tree).FirstOrDefault(w => w.Name == token.Text);
+        }
         else if (parent.Kind == SyntaxKind.Clause && first)
         {
             word = DancerClauses.FirstOrDefault(w => w.Name == token.Text);
@@ -617,7 +649,7 @@ internal static class Words
             word = ScoreItems.FirstOrDefault(w => w.Name == token.Text);
         }
         else if (first && parent.Kind is SyntaxKind.Header or SyntaxKind.FigureDecl or SyntaxKind.DancerDecl or SyntaxKind.PoseDecl
-                     or SyntaxKind.MoveDecl or SyntaxKind.SectionDecl or SyntaxKind.FormDecl or SyntaxKind.ScoreDecl)
+                     or SyntaxKind.MoveDecl or SyntaxKind.SectionDecl or SyntaxKind.FormDecl or SyntaxKind.ScoreDecl or SyntaxKind.FormationDecl)
         {
             word = TopLevel.FirstOrDefault(w => w.Name == token.Text);
         }

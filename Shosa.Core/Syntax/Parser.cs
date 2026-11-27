@@ -16,7 +16,7 @@ namespace Shosa.Core.Syntax;
 internal sealed class Parser
 {
     private static readonly HashSet<string> TopKeywords =
-        ["using", "title", "tempo", "time", "fps", "music", "role", "dancer", "pose", "move", "section", "form", "score"];
+        ["using", "title", "tempo", "time", "fps", "music", "role", "dancer", "pose", "move", "section", "form", "score", "formation"];
     private static readonly HashSet<string> ClauseKeywords = ["on", "at", "facing", "mirror", "delay", "free", "in", "sings", "mic", "juggles", "height"];
     private static readonly HashSet<string> ScoreItemKeywords = ["form", "tempo", "title", "music", "dancer", "loop", "inPlace"];
 
@@ -111,6 +111,7 @@ internal sealed class Parser
                 case "section": return ParseSection();
                 case "form": return ParseForm();
                 case "score": return ParseScore();
+                case "formation": return ParseFormation();
             }
         }
         return SkipUnexpected();
@@ -595,6 +596,28 @@ internal sealed class Parser
             item.Add(Expect(SyntaxKind.Number, "A number"));
         }
         return new GreenInner(SyntaxKind.FormItem, item);
+    }
+
+    /// <summary>formation NAME { alice at -1.5 0  bob at 0 0.5 }: where each dancer stands in it (DESIGN.md 132).</summary>
+    private GreenNode ParseFormation()
+    {
+        var children = new List<GreenNode> { Next(), Expect(SyntaxKind.Identifier, "A formation name"), Expect(SyntaxKind.OpenBrace, "'{'") };
+        while (!AtBlockEnd)
+        {
+            if (!AtName)
+            {
+                children.Add(SkipUnexpected());
+                continue;
+            }
+            var place = new List<GreenNode> { Next() };
+            if (At("at"))
+                place.Add(Next());
+            while (Kind == SyntaxKind.Number)
+                place.Add(Next());
+            children.Add(new GreenInner(SyntaxKind.FormationPlace, place));
+        }
+        children.Add(Expect(SyntaxKind.CloseBrace, "'}'"));
+        return new GreenInner(SyntaxKind.FormationDecl, children);
     }
 
     /// <summary>score NAME? { dancer alice  form F  tempo 80  music "x.lys" score k  title "..."  loop  inplace }</summary>

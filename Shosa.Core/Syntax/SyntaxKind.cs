@@ -62,4 +62,6 @@ public enum SyntaxKind
     ScoreDecl,     // score NAME? { scoreItem* }
     ScoreItem,     // form NAME | tempo N | title "..." | music "..." (score NAME)? | dancer NAME
     Error,         // tokens the parser could not place
+    FormationDecl, // formation NAME { formationPlace* }   (DESIGN.md 132)
+    FormationPlace,// DANCER at X Z                        (where that dancer stands in the formation)
 }

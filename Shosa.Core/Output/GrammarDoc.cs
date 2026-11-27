@@ -117,6 +117,7 @@ public static class GrammarDoc
             | `section NAME { ROLE { TRACK { … } … } … }` | A stretch of time: what each role does in it. It may begin with lines of its own — `tempo N`, `time N/N`, `upbeat N` — before its first block (see "What a section begins with"). |
             | `form { A B A }` | The order the sections are played in. Required: every score plays one. The unnamed score plays this one; `form NAME { … }` is for the score that names it (a file whose scores all name their form has no unnamed one). Repeat signs: see "Doing it again". A `tempo N` or `time N/N` before a name: see "What a section begins with". |
             | `score { dancer NAME … }` | One file written: who dances, and which form. Required: at least one. `score NAME { … }` is one more (see "Scores"). |
+            | `formation NAME { DANCER at X Z … }` | Where each dancer stands in a formation; `go.NAME` in `steps` walks there (see "Formations"). Optional. |
 
             Names are letters, digits and `_`. The words in the left column are reserved, and a pose
             or a move cannot take the name of a word of the language — any word of any table here,
@@ -1583,6 +1584,69 @@ public static class GrammarDoc
               brings each of them nearer, and at 1 m the front legs of two such fighters meet (SH2007).
               Start those 1.1 m apart or more.
 
+            ## Formations: `formation` and `go`
+
+            Where everybody stands is a **formation**, written once at the top level. A dancer walks to
+            its own place in it with one word of `steps`: `go.NAME`.
+
+            ```shosa
+            role lead
+            role wing
+            dancer alice humanoid on lead at 0 0
+            dancer bob   humanoid on wing at -1.2 0
+            dancer carol humanoid on wing at 1.2 0
+
+            formation vee  { alice at 0 0.8    bob at -1.2 -0.4   carol at 1.2 -0.4 }
+            formation swap { alice at 0 -0.8   bob at 1.2 0       carol at -1.2 0 }
+
+            section Verse {
+              lead { steps { stand:4 | go.vee:4 | then:4 | go.swap:4 | then:4 | go.home:4 | } }
+              wing { steps { stand:4 | go.vee:4 | then:4 | go.swap:4 | then:4 | go.home:4 | } }
+            }
+            ```
+
+            - `formation NAME { DANCER at X Z … }` names dancers (not roles), each with its place as on a
+              dancer's line: metres, x to stage left, z toward the audience. A dancer who never goes to a
+              formation may be left out of it. **`home` is the formation every file has**: each dancer's own `at`.
+            - `go.NAME` is a word of `steps`, and like every word it ARRIVES on its beat: on the beat it is
+              written at the dancer stands on its place, the feet at standing width, and it walks there
+              through the time of the word before it. `stand:4 | go.vee:4 |` leaves at beat 0, is there
+              at beat 4 and stands there 4 beats. To stand 4 beats first and walk the next 4:
+              `stand:4 | then:4 | go.vee:4 |`.
+            - **One row serves every dancer of a role: each goes to its OWN place.** A row whose dancer the
+              formation does not name is SH1045.
+            - **The steps are made for it, and it stands facing as it faced.** A place near enough is
+              walked facing so, a step a beat: forward, backward (up to 0.45 m a step), or sideways with
+              the feet crossing (a grapevine; about half a metre a step), the last step closing the feet.
+              **A place too far for that is walked as people walk**: the first step turns the body the
+              way it goes, it walks there forward (two steps a beat when one a beat would be too long),
+              and the last steps turn it back to face as it faced. At 120 beats a minute, four beats
+              walk about 1.5 m sideways or 2 m forward facing the front, and about 2.5 m turned.
+            - `steps(N)` says how many steps, the last one the close: `go.vee.steps(8)`. A step is no
+              longer than 0.7 m, and no longer than a fast walk (1.8 m a second) covers in its time: a
+              step of a quarter of a second reaches 0.45 m. Longer is SH2026: give the walk more time
+              (a longer word before it). To face another way on arriving, a `turn` after it.
+            - The other rows go on meanwhile: the arms, the head and the face dance their words through
+              the walk (on a body that turns the way it walks, when the place is far), and arms nobody
+              wrote swing as in any walk.
+            - **Dancers whose ways cross go round each other by themselves**: each keeps to its own right,
+              as people passing in a corridor do, and one who walks goes round one who stands (the way
+              leaves and arrives along the straight line and bows aside in the middle; 0.7 m between
+              two dancers' middles where there is room for it). To say it yourself, bow the way:
+              `go.swap.front` passes on the audience's side, `go.swap.back` upstage (0.5 m aside at the
+              middle of the way, or `front(0.8m)`): "alice passes in front, bob behind". A way written so
+              is left as written, and the others go round it. A bowed way is a longer one: it needs the
+              time. Where two still meet, `check` says so (SH2007): bow one of them, or let them go at
+              different times.
+            - As the FIRST word of its row (`steps { go.vee:4 … }`) it is already made, as any first
+              word: the score begins with the dancer on that place, whatever its `at`.
+            - It needs the weight on the feet (off them: SH2025), and it takes no `@turn`.
+
+            """.ReplaceLineEndings("\n"));
+
+        Table("After the name", Vocabulary.GoWords);
+
+        sb.Append("""
             ## Juggling: `juggle`
 
             A dancer whose line says `juggles balls` (or `clubs`, `rings`) throws them in a `juggle` row,
@@ -1804,8 +1868,10 @@ public static class GrammarDoc
             - Where the eyes look, and the brows or the mouth on their own (the `face` row has whole looks; the mouth of a dancer who sings is the song's); the shoulders on their own (a shrug). A finger's joints one by one, or a finger bent sideways: a hand's row closes a whole finger.
             - "As far as it goes" (write the limit: 45 for the hips; the shoulders say when they do not get there, SH2010), a place on the other dancer's face (`b.chin`), the way an elbow travels in a hook.
             - Holding an object, but a mic (`mic` on the dancer line). Contact other than a hand reaching a place.
-            - Walking to a place by naming it ("to the door", "up to b"): the steps are written and counted
-              (a curve is steps that turn, see "The feet"; `check` says where they end).
+            - Walking up to another dancer, or to a thing ("up to b", "to the door"): a dancer walks by name
+              only to its own place in a formation (`go.vee`, see "Formations"); other ways are steps written
+              and counted (a curve is steps that turn, see "The feet"; `check` says where they end). Turning
+              to face the way it walks on the way to a formation, or running there.
             - Weight on an elbow, a forearm, a shoulder alone or a hip (the body lies on its `back`, its `front`, a
               `seat`, the `knees`, the `head` or the `hands`: see "Off the feet"); leaning on the back of a chair
               (`height { sit(0.45m) }` sits on one), crossed legs.

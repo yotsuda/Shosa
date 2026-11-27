@@ -222,6 +222,42 @@ public class LanguageServerTests
     }
 
     [Fact]
+    public void Completion_knows_formations_where_they_are_written_and_where_they_are_gone_to()
+    {
+        var session = new Session("""
+            role a
+            dancer ann humanoid on a
+            dancer ben humanoid on a at 1 0
+
+            formation vee { ann at 0 1  ben at 1 2 }
+            formation line { 
+            }
+
+            section Greet {
+              a { steps { stand:4 go.vee:4 go.vee.front.steps(8):4 } }
+            }
+
+            form { Greet }
+            score { dancer ann  dancer ben }
+
+            """);
+
+        Assert.Contains("formation", session.Complete("\n\n"));
+        Assert.Equal(new[] { "ann", "ben" }, session.Complete("formation line { "));
+        Assert.Equal(new[] { "at" }, session.Complete("formation vee { ann "));
+        Assert.Empty(session.Complete("formation vee { ann at "));
+        Assert.Contains("go", session.Complete("steps { "));
+        Assert.Equal(new[] { "vee", "line", "home" }, session.Complete("stand:4 go."));
+        Assert.Equal(new[] { "front", "back", "steps" }, session.Complete("4 go.vee."));
+        Assert.Equal(new[] { "steps" }, session.Complete("go.vee.front.").Where(w => w is "front" or "back" or "steps"));
+        Assert.Contains("ann at 0 1", session.Hover("vee:4"));
+        Assert.Contains("toward the audience", session.Hover("front.steps"));
+        Assert.StartsWith("formation ${1:line} {\n  ${2:ann} at", Snippet("formation"));
+
+        string Snippet(string word) => session.Items("\n\n").Single(i => i.GetProperty("label").GetString() == word).GetProperty("insertText").GetString()!;
+    }
+
+    [Fact]
     public void Completion_knows_the_figures_dancers_and_definitions_of_the_file()
     {
         var session = new Session("""
