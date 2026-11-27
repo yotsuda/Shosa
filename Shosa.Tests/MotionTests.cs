@@ -43,6 +43,22 @@ public class MotionTests
     }
 
     [Fact]
+    public void A_tie_written_after_the_annotation_or_with_no_length_is_one_error_that_writes_the_word_right()
+    {
+        // (It was "'~' does not belong here" and then a second error at the length after the line.)
+        var late = Assert.Single(Compile(Body("    arms { side:2 fwd:2@sharp!hit~ | :1 side:3 | }")).Diagnostics);
+        Assert.Equal("SH1040", late.Code);
+        Assert.Contains("fwd:2~@sharp!hit | :2", late.Message);
+
+        var bare = Assert.Single(Compile(Body("    arms { side:3 fwd~ | :1 side:3 | }")).Diagnostics);
+        Assert.Equal("SH1040", bare.Code);
+        Assert.Contains("fwd:1~ | :2", bare.Message);
+
+        // Said or not, the tie ties: the movement is the one of the word written right.
+        Same(Compile(Body("    arms { side:2 fwd:2~@sharp!hit | :1 side:3 | }")), Compile(Body("    arms { side:2 fwd:2@sharp!hit~ | :1 side:3 | }")));
+    }
+
+    [Fact]
     public void A_row_with_bar_lines_that_ends_inside_a_bar_is_warned_about()
     {
         var diagnostic = Assert.Single(Compile(Body("    arms { side:4 | fwd:2 }")).Diagnostics);

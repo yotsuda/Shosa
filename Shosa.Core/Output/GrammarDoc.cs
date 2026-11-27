@@ -330,9 +330,10 @@ public static class GrammarDoc
             - **An event that runs across a bar line is tied over it**: `~`, the line, then the rest
               of its length alone. In 4/4, `body { jab:2 kick:2~ | :1 then:3 | }` is a kick of three
               beats written at beat 2 (the third beat of the bar). It is ONE event (annotations and the mark go on the
-              first part). Its length is the sum of the parts as written, for a defined move too:
+              first part, after the tie: `kick:2~@mirror!hit | :1`; the `~` is the length's own, straight after it — SH1040).
+              Its length is the sum of the parts as written, for a defined move too:
               a 4-beat `kick` that starts on the last beat of a 3/4 bar is `kick:1~ | :3`
-              (`kick~ | :3` would be 4 + 3 beats). One that crosses several lines is tied over each:
+              (never `kick~ | :3`: the tie needs a length before it). One that crosses several lines is tied over each:
               a 12-beat `drill` is `drill:4~ | :4~ | :4 |`. Staying still needs no tie: `then:4 | then:4 |`.
             - `{ … } & { … }` — rows that happen together, inside one track. All start at the same
               time; the whole is as long as the longest row. The braces are required on both sides.

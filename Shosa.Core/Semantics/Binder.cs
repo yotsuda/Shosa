@@ -2017,6 +2017,32 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
             }
             rank = own;
         }
+        // The tie is the length's own: it says the length goes on. kick:1~@sharp | :2
+        if (ev.Token(SyntaxKind.Tilde) is { } tie)
+        {
+            var parts = ev.Children();
+            int at = 0;
+            while (at < parts.Count && !(parts[at] is SyntaxToken { Kind: SyntaxKind.Tilde }))
+                at++;
+            if (at == 0 || parts[at - 1] is not SyntaxNode { Kind: SyntaxKind.Duration })
+            {
+                // The word as it is written right: the tie moved to its length.
+                static string Text(object part) => part is SyntaxToken token ? token.Text : string.Concat(((SyntaxNode)part).DescendantTokens().Select(t => t.Text));
+                var right = new System.Text.StringBuilder();
+                bool timed = ev.Child(SyntaxKind.Duration) is not null;
+                for (int i = 0; i < parts.Count; i++)
+                {
+                    if (i == at)
+                        continue;
+                    right.Append(Text(parts[i]));
+                    if (timed ? parts[i] is SyntaxNode { Kind: SyntaxKind.Duration } : parts[i] is SyntaxNode { Kind: SyntaxKind.Target })
+                        right.Append(timed ? "~" : ":1~");
+                }
+                Error("SH1040", tie.Span, timed
+                    ? $"'~' is written straight after the length it ties, before any @ and mark: {right} | :2"
+                    : $"'~' ties a length to the length written after it, so the word has its own length first: {right} | :2");
+            }
+        }
 
         if (juggle)
         {

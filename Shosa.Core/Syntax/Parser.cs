@@ -426,7 +426,7 @@ internal sealed class Parser
             children.Add(target);
         else if (Kind != SyntaxKind.Colon)
             children.Add(ParseTarget(arguments: true));
-        bool hasDuration = false;
+        bool hasDuration = false, tied = false;
 
         while (true)
         {
@@ -444,7 +444,17 @@ internal sealed class Parser
                     duration.Add(Next());
                 children.Add(new GreenInner(SyntaxKind.Duration, duration));
                 if (Kind == SyntaxKind.Tilde)
+                {
+                    tied = true;
                     children.Add(Next());   // tied to the length that follows: kick:1~ | :2
+                }
+            }
+            else if (Kind == SyntaxKind.Tilde && !tied && children.Count > 0 && SameLine)
+            {
+                // A tie in the wrong place (kick:1@sharp~, kick~) still ties, so that the length after it is not
+                // a second mistake; the binder says where it is written (SH1040).
+                tied = true;
+                children.Add(Next());
             }
             else if (Kind == SyntaxKind.At)
             {

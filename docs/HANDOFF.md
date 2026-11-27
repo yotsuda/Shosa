@@ -9,7 +9,8 @@
 
 - **Copilot が確認なしで書く**: 道具 `shosa_edit` (Lily# の `lilysharp_proposeScore` に倣う。`edits` か `text`、保存、検査を返す)。Add a Dance… で「Run in terminal」の確認が出た件の対策 (44.2)。
 - **振り付けのガイド** `shosa guide` / 道具 `shosa_guide` (`docs/CHOREOGRAPHY_FOR_LLM.md`、生成物)、**内蔵の型** `using "shosa:basics|pop|jazz|ballet"` (`Shosa.Core\Library\*.shosa`、106 個)。wab.lys の踊りがワンパターンで遅かった件の対策 (125)。型は 4 つのエージェントが並行して作り、私が合流・試験・見直し。
-- **次**: ユーザーが拡張を入れ直し (`tools\deploy-extension.ps1` → Reload Window)、wab.lys で Add a Dance… をやり直して、上手さと速さを見る。その結果でガイドと型を直す。125 節の末尾に、エージェントが見つけた言語の引っかかり (`~` と `@` の順の誤りの文面など) を次の候補として置いた。
+- **次**: ユーザーが各ウィンドウで Reload Window し、wab.lys で Add a Dance… をやり直して、上手さと速さを見る。その結果でガイドと型を直す。
+- **125 節の末尾の引っかかりは確かめ終えた (2026-11-27 の次のセッション、DESIGN.md 125.1)**: `~` の場所の誤り (`wave:4@mirror~`、`fwd~`) は SH1040 が正しく書いた語を言う (前は SH0011 と SH1028 の 2 つ)。SH2003 の 29〜31 m/s は 80 通り試して再現できず。`@through` の SH2017 と、狭い段が move の高さを落とすのは決まりどおりで直さない。**残り (ユーザーが決める)**: バレエの 3 つ (二番から五番へ閉じる跳躍、`fifth` ↔ `fifth@mirror` で前へずれる、シェネの足の開き)。試験 576 件。再現の譜は `out\snag\`。
 - CI (`.github/workflows/ci.yml`) と Release (`release.yml`) は GitHub 上で緑 (Node 24 の Actions)。
 
 ## 曲から踊りへの導線、第 1 段 (2026-11-26、DESIGN.md 123)
