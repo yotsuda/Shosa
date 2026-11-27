@@ -1,0 +1,47 @@
+name: CI
+
+# Every push and pull request: the compiler's tests (dotnet test) and the extension's (npm test),
+# with the type check of the extension (npm run check). Windows, as the release is packed there
+# (release.yml) and the one platform the extension is published for.
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: editors/vscode/package-lock.json
+
+      - name: dotnet test
+        run: dotnet test Shosa.slnx -c Release
+
+      - name: npm ci
+        working-directory: editors/vscode
+        run: npm ci
+
+      - name: Type check
+        working-directory: editors/vscode
+        run: npm run check
+
+      - name: npm test
+        working-directory: editors/vscode
+        run: npm test
