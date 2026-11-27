@@ -13,6 +13,7 @@ import { elbowSwings, keepArmsOut, measureBody, refresh } from './clearance.js';
 import { createMicHands } from './mic.js';
 import { poseFingers } from './hands.js';
 import { headTouch, touchHead } from './touch.js';
+import { FACE, measureLids, setFace } from './face.js';
 import { clubCatching, gripHands, heldBy, palmAlong, palmsUp, penguinShares, styleShares } from './juggle.js';
 
 // VRM's mouth expressions, in the order the server sends their weights (`mouth`, Mouth.Shapes).
@@ -87,6 +88,8 @@ export function createCharacters(scene, changed) {
       }      // A VRM 0.x model's rig faces -z inside its scene (rotateVRM0 turns the scene round): the turns are mirrored to it.
       entry.flip = vrm.meta && vrm.meta.metaVersion === '0';
       entry.bones = null;
+      entry.lids = null;
+      if (globalThis.shosaFaceDebug) globalThis.shosaFaceDebug(entry.file, measureLids(vrm));
       entry.error = '';
       scene.add(vrm.scene);
       lastFrame = null;
@@ -690,6 +693,19 @@ export function createCharacters(scene, changed) {
         } else if (entry.sang && vrm.expressionManager) {
           MOUTH.forEach(name => vrm.expressionManager.setValue(name, 0));
           entry.sang = false;
+        }
+        // The face (a `face` row, and the eyes' own blinking; DESIGN.md 131): the weights of the looks and of each
+        // eye's lid, blended between two frames as the mouth's. What a look does to the mouth and the lids beside it
+        // is the character's own; an eye is shut no further than the look leaves of it (face.js).
+        const face = data.face;
+        if (face && face.length && vrm.expressionManager) {
+          const a0 = face[Math.min(face.length - 1, f0)], a1 = face[Math.min(face.length - 1, f0 + 1)];
+          entry.lids ??= measureLids(vrm);
+          setFace(vrm, entry.lids, FACE.map((name, j) => a0[j] + (a1[j] - a0[j]) * k));
+          entry.faced = true;
+        } else if (entry.faced && vrm.expressionManager) {
+          FACE.forEach(name => vrm.expressionManager.setValue(name, 0));
+          entry.faced = false;
         }
         // Juggling: the eyes on the top of the highest way in the air (the user; the head tips back for a very high one in
         // the figure itself), turned from and back to ahead as balls go up and come down. vrm.update below turns the eyes.

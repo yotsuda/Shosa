@@ -2,6 +2,7 @@ using System.Buffers.Binary;
 using System.Text;
 using System.Text.Json.Nodes;
 using Shosa.Core.Motion;
+using Shosa.Core.Semantics;
 
 namespace Shosa.Core.Output;
 
@@ -185,7 +186,9 @@ public static class Gltf
             {
                 Animate(figure, firstNode[figure.Id], frames, time);
                 if (vrma && figure.Mouth is { } mouth)
-                    Sing(mouth, frames, time);
+                    Express(Mouth.Shapes, mouth, frames, time);
+                if (vrma && figure.Face is { } face)
+                    Express(Vocabulary.FaceShapes, face, frames, time);
             }
 
             var extras = Extras(clip, cast[c]);
@@ -223,18 +226,19 @@ public static class Gltf
         }
 
         // The mouth of a figure that sings (DESIGN.md 99): VRM Animation keys an expression as the x of a node's
-        // translation, one node for each of the five mouth expressions, outside the humanoid.
-        void Sing(List<float[]> mouth, int frames, int time)
+        // translation, one node for each of the five mouth expressions, outside the humanoid. The face's looks and
+        // the eyes' blinking (DESIGN.md 131) the same way.
+        void Express(string[] shapes, List<float[]> rows, int frames, int time)
         {
-            for (int shape = 0; shape < Mouth.Shapes.Length; shape++)
+            for (int shape = 0; shape < shapes.Length; shape++)
             {
                 int node = nodes.Count;
-                nodes.Add(new JsonObject { ["name"] = "Expression_" + Mouth.Shapes[shape] });
+                nodes.Add(new JsonObject { ["name"] = "Expression_" + shapes[shape] });
                 roots.Add(node);
-                expressions[Mouth.Shapes[shape]] = new JsonObject { ["node"] = node };
+                expressions[shapes[shape]] = new JsonObject { ["node"] = node };
                 var weights = new float[frames * 3];
                 for (int f = 0; f < frames; f++)
-                    weights[f * 3] = mouth[Math.Min(f, mouth.Count - 1)][shape];
+                    weights[f * 3] = rows[Math.Min(f, rows.Count - 1)][shape];
                 Channel(time, Accessor(weights, "VEC3", 3), node, "translation");
             }
         }

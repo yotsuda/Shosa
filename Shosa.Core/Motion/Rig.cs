@@ -248,6 +248,20 @@ public sealed class ClipFigure
     public List<float[]>? Mouth { get; set; }
 
     /// <summary>
+    /// The face (a `face` row, and the eyes' own blinking; DESIGN.md 131): one array per frame, the weights of VRM's
+    /// expressions in <see cref="Semantics.Vocabulary.FaceShapes"/> order (happy, angry, sad, relaxed, surprised,
+    /// blinkLeft, blinkRight). Null when nothing is said of it (no row, and life off). Not in the JSON as it is:
+    /// see <see cref="FaceShown"/>.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public List<float[]>? Face { get; set; }
+
+    /// <summary><see cref="Face"/> in the JSON, for a figure with a <see cref="Model"/> only: sticks have no face.</summary>
+    [System.Text.Json.Serialization.JsonPropertyName("face")]
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public List<float[]>? FaceShown => Model is null ? null : Face;
+
+    /// <summary>
     /// For a figure that holds a mic (`mic right`): the hand, and how far the mic is up at the mouth at each
     /// frame (0 in the hand, 1 at the mouth). The preview draws the mic and closes the hand on it. Null for none (DESIGN.md 117).
     /// </summary>

@@ -1039,6 +1039,43 @@ public static class GrammarDoc
               (`leftThumbMetacarpal` … `rightLittleDistal`, VRM's names). A dance that writes no hand has none.
               A hand that holds a mic or juggles is the mic's or the juggling's while it does.
 
+            ## The face: `face`
+
+            A character (`dancer … "girl.vrm"`) has a face, and its row says **a look, then the eyes** (either alone too):
+
+            ```shosa
+            face { smile(50) }                                  // a smile held through the whole dance
+            face { smile(50):3 smile(60).winkRight:1/2 smile(50):1/2 | surprised:2 smile:2 | }
+            face { neutral:4 | relaxed.closed:4 | sad(40):4 }   // at rest, eyes shut in a soft smile, a little sad
+            ```
+
+
+            """.ReplaceLineEndings("\n"));
+
+        Table("Look", Vocabulary.FaceLooks);
+        Table("Eyes", Vocabulary.FaceEyes);
+
+        sb.Append("""
+            - **A word is the whole face**: one look (or none: the face at rest), then `closed`, `winkLeft` or
+              `winkRight`. A bracket is how much, in percent: `smile(50)`, `closed(50)`. `smile` alone is all of the
+              character's happy face, which on most characters narrows or shuts the eyes: **a smile to dance in is
+              `smile(40)` to `smile(60)`**, the full `smile` for an accent (the last pose, a "yay").
+            - **It is there on its beat, and changes in a moment**: a look takes the last 0.2 s before its beat, an
+              eye 0.08 s — not the whole of the word before, as a gesture does. A wink on beat 3 for half a beat is
+              `smile(50):3 smile(50).winkRight:1/2 smile(50)` (the look is written again to keep it: the word is the
+              whole face). It is kept until a word changes it, across sections too. No `@` but `@mirror`, which
+              winks the other eye (as a mirrored dancer does).
+            - **The eyes blink by themselves**, every few seconds, each dancer at its own moments, with a `face` row
+              or without; not while the row has an eye shut.
+            - The mouth of a dancer who sings (`sings PART`) goes on singing under any look.
+            - The face's words are the face's row's only, and not reserved. A pose may hold a face
+              (`pose cheer { arms { up } face { smile } }`), and so may a move.
+            - The figure of sticks has no face: the preview shows it on a character, and a `.vrma` keys VRM's
+              expressions (`happy`, `angry`, `sad`, `relaxed`, `surprised`, `blinkLeft`, `blinkRight`). What a look
+              is, exactly, is the character's own; `.glb` and `.bvh` have no face.
+            - Not said: where the eyes look (they look where the head faces), the brows or the mouth on their own,
+              a look coming slowly.
+
             ## The shoulders and the hips: `shoulders`, `hips`
 
             The torso's word says where the spine points (its lean). How the body is turned over
@@ -1764,7 +1801,7 @@ public static class GrammarDoc
 
             Do not try to express these; mention them as a limitation instead.
 
-            - The face (but the mouth of a dancer who sings), the shoulders on their own (a shrug). A finger's joints one by one, or a finger bent sideways: a hand's row closes a whole finger.
+            - Where the eyes look, and the brows or the mouth on their own (the `face` row has whole looks; the mouth of a dancer who sings is the song's); the shoulders on their own (a shrug). A finger's joints one by one, or a finger bent sideways: a hand's row closes a whole finger.
             - "As far as it goes" (write the limit: 45 for the hips; the shoulders say when they do not get there, SH2010), a place on the other dancer's face (`b.chin`), the way an elbow travels in a hook.
             - Holding an object, but a mic (`mic` on the dancer line). Contact other than a hand reaching a place.
             - Walking to a place by naming it ("to the door", "up to b"): the steps are written and counted

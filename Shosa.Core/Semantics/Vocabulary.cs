@@ -29,6 +29,7 @@ public static class Vocabulary
         new("hands", "Both hands at once, mirrored: the shape of the fingers (`fist`, `open`, `point`, `peace` …), and which way the fingers and the palm face (`open.fingers(up).palm(fwd)`)."),
         new("leftHand", "The left hand: the shape of its fingers, and which way they and the palm face."),
         new("rightHand", "The right hand."),
+        new("face", "The face of a character: its look (`smile`, `sad`, `angry`, `relaxed`, `surprised`, `neutral`), and the eyes (`closed`, `winkLeft`, `winkRight`): `face { smile:4 | smile.winkRight:1 smile:3 | }`. It changes in a moment just before its beat. The eyes blink by themselves, written or not."),
         new("quality", "How the parts go to their words from here on, for every word that does not say so itself: the names of the `@` marks, without the `@`. `quality { through }` passes every word without stopping, one flowing line (as `@through` on each); `quality { sharp }` hits every word at the last moment (as `@sharp` on each); `smooth` is the default again. Timed like any row (`quality { through:8 | sharp:4 smooth:4 | }`), and kept until the next word of the row. A word's own `@` wins. Not for `steps`."),
         new("juggle", "What the hands throw (`juggles balls` on the dancer line), in siteswap as jugglers write it: `juggle { every 1/2  3:4 | 531531 3 3 | }`. A word with no length is its throws as written, one throwing beat each (`531` once through); with a length, the pattern over and over for that long (`3:4`); `every` says how many beats from one throw to the next. While a pattern is thrown, the arms are the juggle row's."),
     ];
@@ -187,6 +188,34 @@ public static class Vocabulary
         new("fingers", "Which way the fingers point, as an arm's direction: `open.fingers(up)` (a stop sign on an arm held forward). The wrist bends that way, up to 80 degrees from the forearm; without it the fingers go on along the forearm."),
         new("palm", "Which way the palm faces, as an arm's direction: `open.palm(up)`, `spread.fingers(up).palm(fwd)`. The hand turns about its fingers to face it there as nearly as it can (only the part square to the fingers counts); without it the palm lies as the arm has it."),
     ];
+
+    /// <summary>
+    /// The looks of a face (`face { smile }`, DESIGN.md 131): each is one of VRM's expressions of feeling, as much as
+    /// its bracket says in percent (`smile(50)`; without one, all of it). Words of the face's row only, and not reserved.
+    /// </summary>
+    public static readonly Word[] FaceLooks =
+    [
+        new("neutral", "The face at rest: no look, the eyes open. What a face nobody wrote is."),
+        new("smile", "A happy face (VRM's `happy`): `smile` is the whole of it — on most characters a wide smile, the eyes narrowed or shut with it; `smile(50)` half of it, a smile with the eyes open, which is what a dancer holds through a song."),
+        new("sad", "A sad face (VRM's `sad`): the brows up in the middle, the mouth down. `sad(40)` a little."),
+        new("angry", "An angry face (VRM's `angry`): the brows down, the mouth tight."),
+        new("relaxed", "A soft, pleased face (VRM's `relaxed`): on most characters the eyes closed in a gentle smile."),
+        new("surprised", "A surprised face (VRM's `surprised`): the eyes and the brows up, the mouth a little open."),
+    ];
+
+    /// <summary>The eyes of a face, after its look or alone (`smile.winkRight`, `closed`): how far shut, in percent in a bracket (`closed(50)`).</summary>
+    public static readonly Word[] FaceEyes =
+    [
+        new("closed", "Both eyes shut (`closed(50)`: half shut, sleepy). Alone or after a look: `relaxed.closed`."),
+        new("winkLeft", "The dancer's left eye shut, the right open: a wink. Alone or after a look: `smile(60).winkLeft`."),
+        new("winkRight", "The dancer's right eye shut: `smile(60).winkRight`."),
+    ];
+
+    /// <summary>The weights a face's word gives, in this order: VRM's names for them (a frame of the clip's `face`, and the expressions a `.vrma` keys).</summary>
+    public static readonly string[] FaceShapes = ["happy", "angry", "sad", "relaxed", "surprised", "blinkLeft", "blinkRight"];
+
+    /// <summary>Which of <see cref="FaceShapes"/> a look is; -1 for `neutral`.</summary>
+    public static int LookShape(string word) => word switch { "smile" => 0, "angry" => 1, "sad" => 2, "relaxed" => 3, "surprised" => 4, _ => -1 };
 
     /// <summary>The most a wrist bends from the forearm's line (`fingers(…)`), degrees.</summary>
     public const double MaxWrist = 80;

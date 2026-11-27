@@ -101,6 +101,11 @@ public static class ChoreographyDoc
           on an open pose (`spread.fingers(up).palm(fwd)`: jazz hands), `point` with a pointing arm, `peace` at
           the face, `count(3)` on a counted lyric, `open.palm(up)` offered to the audience, `soft` for ballet.
           One row for the whole dance (`hands { fist }`) already reads better than none; change it on accents.
+        - **The face is a layer too** (`face`, for a dancer with a character): one row for the whole dance
+          (`face { smile(50) }`) already reads better than a blank face. Then accents: a wink on a pose to the
+          audience (`smile(50).winkRight:1/2`, the look again after it), `surprised` on a "eh?!", the full
+          `smile` on the last pose, `sad(40)` or `relaxed.closed` in a quiet bridge. A few in a song, not every
+          bar. The eyes blink by themselves.
         - **Layers**: a dance is feet × arms × head × height × facing. Change one layer every two bars,
           two every four, all of them where a section changes. The same steps under new arms is a new
           figure; the same arms on new steps too. Most vocabulary moves are feet only or arms only so that

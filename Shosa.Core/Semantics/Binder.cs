@@ -1189,7 +1189,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         "hands" => [Channels.LeftHand, Channels.RightHand],
         "legs" => [Channels.LeftLeg, Channels.RightLeg],
         Channels.LeftArm or Channels.RightArm or Channels.LeftLeg or Channels.RightLeg or Channels.Turnout or Channels.Hips or Channels.Torso or Channels.Shoulders or Channels.Head
-            or Channels.LeftHand or Channels.RightHand => [trackName],
+            or Channels.LeftHand or Channels.RightHand or Channels.Face => [trackName],
         Channels.Juggle => [Channels.Juggle],
         Channels.Quality => [Channels.Quality],
         _ => null,
@@ -1432,7 +1432,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                     }
                 }
                 // A hand no word shapes has no row: a `then` of the whole body holds nothing of it (and the clip has no fingers).
-                if (channel is Channels.LeftHand or Channels.RightHand && raws.All(r => r.Seg.Kind == SegKinds.Hold))
+                if (channel is Channels.LeftHand or Channels.RightHand or Channels.Face && raws.All(r => r.Seg.Kind == SegKinds.Hold))
                     continue;
                 ir.Tracks[channel] = Resolve(channel, raws, clip, dancer.Delay);
             }
@@ -1977,6 +1977,9 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         // In a hand's row a hand's own word is meant (`point`, `open`), whatever a file has named so: they are not reserved (DESIGN.md 126).
         if (definition is not null && IsHandRow(ctx.Channels) && Vocabulary.Has(Vocabulary.HandShapes, words[0].Text))
             definition = null;
+        // And in the face's row the face's (`smile`, `closed`): DESIGN.md 131.
+        if (definition is not null && ctx.Channels is [Channels.Face] && (Vocabulary.Has(Vocabulary.FaceLooks, words[0].Text) || Vocabulary.Has(Vocabulary.FaceEyes, words[0].Text)))
+            definition = null;
         if (words.Count == 1 && !bracketed && words[0].Text == Vocabulary.Again && ctx.ForcedLength is null)
         {
             BindAgain(ev, words[0], ctx, ref time, ref barStart, extra);
@@ -2252,6 +2255,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                 : channel is Channels.Shoulders or Channels.Hips ? BindTurned(channel, parts, mirror)
                 : channel == Channels.Turnout ? BindTurnout(parts)
                 : channel is Channels.LeftHand or Channels.RightHand ? BindHand(channel, parts, mirror)
+                : channel == Channels.Face ? BindFace(parts, annotations, mirror)
                 : BindGesture(channel, parts, annotations, mirror, ctx);
         }
         return seg?.Clone();
@@ -2526,7 +2530,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         var found = new List<Diagnostic>();
         foreach (var (channel, segs) in ir.Tracks)
         {
-            if (channel == Channels.Support)
+            if (channel is Channels.Support or Channels.Face)
                 continue;
             foreach (var seg in segs.Where(s => s.Ease == "through" && !s.Given))
             {
@@ -2797,6 +2801,72 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         return null;
     }
 
+
+    private const string FaceForm = "A face's word is its look, then the eyes: smile, smile(50), sad(40), surprised, neutral; closed, winkRight, smile(60).winkLeft, relaxed.closed.";
+
+    /// <summary>
+    /// A word of the face's row (DESIGN.md 131): a look (`smile`, `smile(50)`: percent of VRM's expression), then the
+    /// eyes (`closed`, `winkLeft`, `winkRight`), or either alone. A word is the whole face: what it does not say is at rest.
+    /// </summary>
+    private Seg? BindFace(List<Part> parts, List<SyntaxNode> annotations, bool mirror)
+    {
+        foreach (var annotation in annotations)
+        {
+            var name = annotation.Token(SyntaxKind.Identifier)!;
+            if (name.Text != "mirror")
+                Error("SH1010", name.Span, $"'@{name.Text}' is not for the face: a face changes in a moment, just before its beat, and takes only @mirror (the other eye winks).");
+        }
+        var face = new double[Vocabulary.FaceShapes.Length];
+        bool eyes = false;
+        for (int i = 0; i < parts.Count; i++)
+        {
+            var part = parts[i];
+            bool look = Vocabulary.Has(Vocabulary.FaceLooks, part.Text), eye = Vocabulary.Has(Vocabulary.FaceEyes, part.Text);
+            if (!look && !eye)
+            {
+                var known = Vocabulary.FaceLooks.Concat(Vocabulary.FaceEyes).Select(w => w.Name).Append(Vocabulary.Hold).Append(Vocabulary.Skip);
+                Error("SH1012", part.Word.Span, $"'{part.Text}' is not a word of the face.{Hint(part.Text, known)} {FaceForm}");
+                return null;
+            }
+            if (look && i > 0)
+            {
+                Error("SH1012", part.Word.Span, $"A face has one look, and it comes first: '{part.Text}' is {(eyes ? "after the eyes" : "a second")}. {FaceForm}");
+                return null;
+            }
+            if (eye && eyes)
+            {
+                Error("SH1012", part.Word.Span, $"The eyes are said once: closed (both), winkLeft or winkRight. {FaceForm}");
+                return null;
+            }
+            double share = 1;
+            if (part.Bracket is not null)
+            {
+                if (part.Text == "neutral")
+                {
+                    Error("SH1012", part.Bracket.Span, "'neutral' is the face at rest and takes no brackets: less of a look is the look's own number, smile(30).");
+                    return null;
+                }
+                if (Degrees(part.Bracket, 100, $"'{part.Text}' takes how much of it, in percent from 0 to 100: {part.Text}(50).") is not { } percent)
+                    return null;
+                share = percent / 100;
+            }
+            if (look)
+            {
+                if (Vocabulary.LookShape(part.Text) is >= 0 and var shape)
+                    face[shape] = share;
+                continue;
+            }
+            eyes = true;
+            // (5 the dancer's left eye, 6 the right: a mirrored dancer winks the other.)
+            bool left = part.Text == "closed" || (part.Text == "winkLeft") != mirror;
+            bool right = part.Text == "closed" || (part.Text == "winkRight") != mirror;
+            if (left)
+                face[5] = share;
+            if (right)
+                face[6] = share;
+        }
+        return new Seg { Kind = SegKinds.Face, Face = face };
+    }
 
     private static bool IsHandRow(string[] channels)
     {

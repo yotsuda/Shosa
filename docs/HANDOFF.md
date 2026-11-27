@@ -5,6 +5,19 @@
 下のパスはリポジトリの根から。
 - ★ **開始時に `C:\MyProj\Bamen\docs\repro\REQUESTS.md` の `open` を見る** (2026-11-23〜)。Bamen (撮影の言語。`shosa clip` を読んでカメラを解く) からの依頼の 1 枚。使い方は Shosa → Lily# の `docs/repro/REQUESTS.md` と同じ (入れたら `fixed <commit>`、入れないなら `won't`、聞くなら `question`)。2026-11-25: 1 (座る) は `fixed f9ae160`、2 (曲がった道) は `question` (曲線は `@turn` の歩でもう書けた。「この点まで歩く」の語が要るかを Bamen に聞いている)。`open` は無い。
 
+## 表情: `face` の段と自動のまばたき (2026-11-28、DESIGN.md 131)
+
+ユーザーに「アイドルの振付の穴のどれから」を聞き、**表情**が選ばれた。入れた (試験 C# 685 件、拡張 38 件。**ユーザーの目はまだ**)。
+
+- **文法**: `face { smile(50):4 | smile(50):2 smile(60).winkRight:1 smile(50):1 | then:2 surprised:2 | smile:4 | }`。語は「顔つき (`neutral` `smile` `sad` `angry` `relaxed` `surprised`)、それから目 (`closed` `winkLeft` `winkRight`)」、かっこはパーセント。語は顔の全部 (ウインクの前後に顔つきを書き直す)。拍にその顔で、変わるのは直前の 0.2 秒 (目は 0.08 秒): 身ぶりのように前の語の時間を全部は使わない。`@` は `@mirror` だけ。予約語ではなく、`pose`・`move` に書ける。
+- **自動のまばたき**: 書かなくても 2.2〜5.4 秒おき、踊り手ごとに別の時刻 (名前のハッシュ)。段が目を閉じている間はしない。`Solver.LifeOn` と同じスイッチ (試験では切れている)。
+- **道**: `Shosa.Core\Motion\Face.cs` → `ClipFigure.Face` (7 つ: happy angry sad relaxed surprised blinkLeft blinkRight。JSON の `face` はモデルのある踊り手だけ) → プレビュー `preview\face.js`・MP4、`.vrma` は表情ノード 7 つ。
+- **笑顔 + ウインクでまぶたが頬を突き抜けた件** (ずん子): プレビューがモデルを 1 回測り (顔つきのモーフをまばたきのモーフへ射影)、目は顔つきが残した分までしか閉じない。4 体 (ずん子・篠・pixiv のサンプル・ずんだもん) の 8 つの顔を撮って見た (`out\face\*.png`、譜 `out\face\looks.shosa`、撮り方は `out\pv\run-shots.ps1 … -Cam '0,1.42,0.55' -At '0,1.40,0'`、ずんだもんは高さ 1.14)。歌う口は笑顔の下でも動く (`out\face\sing.png`)。
+- **見てほしい**: `samples\face.shosa` (モデルは `samples\models\zunko.vrm`) をプレビューで: まばたきの頻度と速さ、顔の変わる速さ、`smile(50)` の目の細まり方。`hello.shosa` などの既存の譜も、モデルがあればまばたきする。拡張は入れ直した (各ウィンドウで Reload Window)。
+- **まだ** (131.6): `.vrma` の目は書いたまま (モデルを知らないので引き算なし: 他のビューアーで笑顔 + ウインクが崩れうる)、`check --at` と連続写真に顔はない、目線・眉だけ・ゆっくり変わる顔の語はない。
+- **書いて分かった**: 見本で手を `head` から `chest` へ 2 拍で移すと手首が 1 コマで 96〜128 度回り `No_bone_flips` が落ちた (129 の残りの種類 (5))。見本は腕を `side.up(20).bent(40)` にして避けた。直していない。
+- **次の一手**: 残りの穴 (手をつなぐ、隊形の移動、定番の振りの語彙) のどれからかをユーザーに聞く。CHANGELOG は Unreleased の節に書いた。
+
 ## 0.3.0 を出す直前 (2026-11-27 の 8 つ目のセッション)
 
 - ★ **0.3.0 は出た (2026-11-27 14:41Z)**: タグ `v0.3.0` = `d451f11`。Release の run 46017479903 は試験・pack・GitHub のリリース (`shosa-win32-x64-0.3.0.vsix`、38 MB)・Marketplace まで緑。Marketplace に **Shosa 3D Choreographer 0.3.0** (`yotsuda.shosa`、win32-x64) が載っているのを `vsce show` で見た。下の「残り (ユーザーの手)」と「README の案 (未コミット)」は済み。**まだ**: Marketplace から入れて動かすこと (ユーザーの PC の拡張は `deploy-extension.ps1` で入れたもの)、Lily# の Install Shosa の導線 (第 3 段) を実物で。次の版からは CHANGELOG に Unreleased の節を作って書く。
@@ -15,7 +28,7 @@
 - **残り (ユーザーの手)**: README の文面を決める → コミット → `git push` → `git tag v0.3.0` → `git push origin v0.3.0` (Release が試験・pack・GitHub のリリース・Marketplace)。CHANGELOG の日付は 2026-11-27: 出す日が変われば直す (Release は版と CHANGELOG の頭の節を確かめる)。
 - **VRM は同梱しない (ユーザー決定)**: 使ってもらう道は Marketplace で、clone ではない。入手先は拡張の README の「Where to get a character」(VRM 仕様のサンプル 2 体は確かめた。VRoid Hub は自動の取得が 403、VRoid Studio の URL は未確認、Seed-san は Shosa で動かしていない)。`samples\juggle.shosa` のモデルは `"models/…"` に。**気づき**: Marketplace から入れた人の手元に `samples\` は無く、拡張の README から `hello.shosa` への道が無い (GitHub の samples へのリンクを足すかはユーザーに聞いている)。
 - **設定 `shosa.models.folder` からプレビューが着せる道を、実際の VS Code で通した**: `tools\test-extension-host.ps1 -Repository` は VS Code 1.148.0 で動く (31 件 ok。2026-11-26 の「動かない」は再現せず。**報告なしで終わるときは `node --check editors\vscode\hosttest\index.cjs` を先に**: 構文の誤りだと試験が走らず報告が無い)。足した試験 2 つ: 設定のフォルダーにしかないモデルをページが着せる (この PC の `sample.vrm` で `dressed`。無い PC では空のファイルで「届いた」ことだけ見る: その枝は走らせていない)、どちらにも無いモデルは探した 2 か所を言う。そのための内部コマンド `shosa.reportCharacters` (パレットに出ない。ページの `characters.report()` を返す)。
-- **出した後の次の一手**: アイドルの振付の穴 (ROADMAP 2 節の頭): 横並びで内側の手をつなぐ、曲線・隊形の移動、定番の振りの語彙、表情。どれからかはユーザーに聞く。
+- **出した後の次の一手**: アイドルの振付の穴 (ROADMAP 2 節の頭): 横並びで内側の手をつなぐ、曲線・隊形の移動、定番の振りの語彙、表情。どれからかはユーザーに聞く。→ 表情は済み (上の節)。
 
 ## 実際のダンスを学ぶ教材: CMU のモーションキャプチャ (2026-11-27 の 6 つ目のセッション)
 

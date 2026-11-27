@@ -279,7 +279,13 @@ public static class Channels
     public const string LeftHand = "leftHand";
     public const string RightHand = "rightHand";
 
-    public static readonly string[] All = [Support, Height, LeftArm, RightArm, LeftLeg, RightLeg, Turnout, Hips, Torso, Shoulders, Head, LeftHand, RightHand];
+    /// <summary>
+    /// The face of a character (DESIGN.md 131): its look and its eyes. Its segments are `Face`. Nothing of the body's
+    /// pose depends on it, and it is not timed as a gesture: it changes in a moment just before its beat.
+    /// </summary>
+    public const string Face = "face";
+
+    public static readonly string[] All = [Support, Height, LeftArm, RightArm, LeftLeg, RightLeg, Turnout, Hips, Torso, Shoulders, Head, LeftHand, RightHand, Face];
 
     /// <summary>
     /// What the hands throw and catch, in siteswap (DESIGN.md 118). Not a part of the body, so not in
@@ -325,6 +331,7 @@ public static class SegKinds
     public const string Land = "land";          // support, free: back to the floor
     public const string Juggle = "juggle";      // juggle: throw Pattern from T0 to T1, a throw every Every beats
     public const string Hand = "hand";          // hand: the fingers in Shape, turned to Fingers and Palm
+    public const string Face = "face";          // face: the look and the eyes, as Face's weights
     public const string Base = "base";          // support: the weight goes onto Base (hands, head, back, seat, knees … feet), put Dx and Dz from where it was
 }
 
@@ -431,6 +438,10 @@ public sealed class Seg
     /// <summary>Hand (`palm(fwd)`): which way the palm faces, a unit vector in the dancer's frame; null: as the arm has it.</summary>
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public double[]? Palm { get; set; }
+
+    /// <summary>Face (`smile(60).winkRight`): how much of each of <see cref="Vocabulary.FaceShapes"/> the face has, 0..1.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public double[]? Face { get; set; }
 
     /// <summary>Juggle: the siteswap as written (`531`, `(4,2x)*`).</summary>
     public string? Pattern { get; set; }

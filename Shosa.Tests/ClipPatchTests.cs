@@ -141,7 +141,7 @@ public class ClipPatchTests
                             continue;
                         var before = figures[f]!.AsObject();
                         var figure = (change["head"] ?? before).DeepClone().AsObject();
-                        foreach (string key in new[] { "frames", "turns", "mouth", "mic", "juggle" })
+                        foreach (string key in new[] { "frames", "turns", "mouth", "hands", "face", "mic", "juggle" })
                         {
                             if (before[key] is { } kept)
                                 figure[key] = kept.DeepClone();

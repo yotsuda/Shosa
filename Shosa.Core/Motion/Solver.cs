@@ -252,8 +252,11 @@ public static class Solver
             var solver = solvers[dancer.Id];
             var clipFigure = new ClipFigure { Id = dancer.Id, Name = dancer.Name, Model = dancer.Model, ModelHeight = dancer.ModelHeight };
             // The mouth sings with the song, on its clock: frames are even in seconds.
+            var secondsOfFrame = Enumerable.Range(0, frames).Select(f => (double)f / fps).ToList();
             if (dancer.Sings is { } sung)
-                clipFigure.Mouth = Mouth.Frames(sung, Enumerable.Range(0, frames).Select(f => (double)f / fps).ToList(), clip.SecondsAt);
+                clipFigure.Mouth = Mouth.Frames(sung, secondsOfFrame, clip.SecondsAt);
+            // The face (DESIGN.md 131): its row's looks, and the eyes blinking by themselves as the rest of a body at rest moves.
+            clipFigure.Face = Face.Frames(dancer.Tracks.GetValueOrDefault(Channels.Face), secondsOfFrame, clip.SecondsAt, dancer.Id, LifeOn, totalSeconds, ir.Loop);
             // A mic in a hand (DESIGN.md 117): how far it is up at the mouth, for the preview to draw it.
             if (dancer.Mic is { } micHand)
                 clipFigure.Mic = new ClipMic(micHand, beatOfFrame.Select(b => (float)Math.Round(solver.MicUp(b), 3)).ToList());

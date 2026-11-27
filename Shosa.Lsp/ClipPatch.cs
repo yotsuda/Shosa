@@ -16,7 +16,7 @@ namespace Shosa.Lsp;
 ///     head     the clip without its figures (name, tempos, spans, sections, marks …), whole, when any of it changed
 ///     figures  one entry per figure, null for a figure as it is, else
 ///       head     the figure without its rows (id, name, velocity, model …), whole, when any of it changed
-///       rows     { frames?, turns?, mouth? }: runs of rows that changed, each [first frame, row, row, …]
+///       rows     { frames?, turns?, mouth?, hands?, face? }: runs of rows that changed, each [first frame, row, row, …]
 ///       counts   { frames?, turns?, mouth? }: how many rows a list has now, when it is not as many as it had (a bar
 ///                added at the end, or taken away: the rows before it are mostly as they were). The rows past the
 ///                old end are a run in `rows`.
@@ -36,7 +36,7 @@ internal static class ClipPatch
     };
 
     private static readonly string[] OfTheClip = ["figures"];
-    private static readonly string[] OfTheFigure = ["frames", "turns", "mouth", "mic", "touch", "juggle"];
+    private static readonly string[] OfTheFigure = ["frames", "turns", "mouth", "hands", "face", "mic", "touch", "juggle"];
 
     private static void LeaveOut(JsonTypeInfo info)
     {
@@ -103,7 +103,7 @@ internal static class ClipPatch
         for (int f = 0; f < a.Figures.Count; f++)
         {
             ClipFigure x = a.Figures[f], y = b.Figures[f];
-            if ((x.Turns is null) != (y.Turns is null) || (x.Mouth is null) != (y.Mouth is null) || (x.Hands is null) != (y.Hands is null))
+            if ((x.Turns is null) != (y.Turns is null) || (x.Mouth is null) != (y.Mouth is null) || (x.Hands is null) != (y.Hands is null) || (x.FaceShown is null) != (y.FaceShown is null))
                 return false;
         }
         return true;
@@ -130,6 +130,7 @@ internal static class ClipPatch
         Rows("turns", x.Turns, y.Turns);
         Rows("mouth", x.Mouth, y.Mouth);
         Rows("hands", x.Hands, y.Hands);
+        Rows("face", x.FaceShown, y.FaceShown);
         if (rows.Count > 0)
             entry["rows"] = rows;
         if (counts.Count > 0)

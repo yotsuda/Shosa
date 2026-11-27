@@ -296,6 +296,14 @@ internal static class Words
         if (track == "quality")
             return before.Count == 0 ? [.. Vocabulary.Annotations.Where(w => Array.IndexOf(Vocabulary.Qualities, w.Name) >= 0), Hold, Skip] : [];
 
+        // The face: a look, then the eyes (DESIGN.md 131).
+        if (track == "face")
+        {
+            if (before.Count == 0)
+                return [.. Vocabulary.FaceLooks, .. Vocabulary.FaceEyes, Hold, Skip, Again];
+            return before.Any(w => Vocabulary.Has(Vocabulary.FaceEyes, w)) || before[0] is "then" or "skip" ? [] : Vocabulary.FaceEyes;
+        }
+
         if (track == "turnout")
             return before.Count == 0 ? [.. Vocabulary.TurnoutWords, .. definitions, Hold, Skip, Again] : [];   // after out / in, degrees
 
