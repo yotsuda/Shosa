@@ -73,6 +73,17 @@ jobs:
           npx --yes @vscode/vsce verify-pat $publisher
           if ($LASTEXITCODE -ne 0) { throw "verify-pat failed for '$publisher': nothing was published" }
 
+      - name: Lily#'s lysc
+        # The tests that dance to a song read it with Lily#'s lysc (as ci.yml): that of Lily#'s latest release.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download --repo yotsuda/LilySharp --pattern 'lysc-*-win-x64.zip' --dir "$env:RUNNER_TEMP/lysc-zip"
+          if ($LASTEXITCODE -ne 0) { throw "no lysc in Lily#'s latest release" }
+          Expand-Archive (Get-ChildItem "$env:RUNNER_TEMP/lysc-zip/*.zip").FullName "$env:RUNNER_TEMP/lysc"
+          "SHOSA_LYSC=$env:RUNNER_TEMP\lysc\lysc.exe" >> $env:GITHUB_ENV
+          & "$env:RUNNER_TEMP\lysc\lysc.exe" --version
+
       - name: Test
         run: |
           dotnet test Shosa.slnx -c Release

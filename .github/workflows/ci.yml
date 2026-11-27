@@ -31,6 +31,18 @@ jobs:
           cache: npm
           cache-dependency-path: editors/vscode/package-lock.json
 
+      - name: Lily#'s lysc
+        # The tests that dance to a song read it with Lily#'s lysc (SongReader: SHOSA_LYSC first). The
+        # runner has no Lily# extension, so the lysc of Lily#'s latest GitHub Release is fetched.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download --repo yotsuda/LilySharp --pattern 'lysc-*-win-x64.zip' --dir "$env:RUNNER_TEMP/lysc-zip"
+          if ($LASTEXITCODE -ne 0) { throw "no lysc in Lily#'s latest release" }
+          Expand-Archive (Get-ChildItem "$env:RUNNER_TEMP/lysc-zip/*.zip").FullName "$env:RUNNER_TEMP/lysc"
+          "SHOSA_LYSC=$env:RUNNER_TEMP\lysc\lysc.exe" >> $env:GITHUB_ENV
+          & "$env:RUNNER_TEMP\lysc\lysc.exe" --version
+
       - name: dotnet test
         run: dotnet test Shosa.slnx -c Release
 
