@@ -3292,9 +3292,41 @@ internal sealed class FigureSolver
         if (from.Kind == Stand.Feet && to.Kind == Stand.Feet)
             return stood;
         var onto = On(to, stood, t);
-        var trunk = share >= 1 || from == to ? onto : Between(On(from, stood, t), onto, Smooth(share));
+        if (share >= 1 || from == to)
+        {
+            (onto.From, onto.To, onto.Share) = (from, to, share);
+            return onto;
+        }
+        var off = On(from, stood, t);
+        // Between a tipped body and one on level hips (the feet, a seat, the knees), both read the same torso's row, and
+        // a standing torso sent further than level is turned over (its chest looks back) where the tipped one keeps the
+        // facing its word says: half a turn apart about the spine (a cartwheel coming down from `down` through `right`
+        // to `up`: the body spun round its spine in a third of a second). Past level only a tipped body is meant, so
+        // from 60 degrees over to level the standing one takes the tipped one's facing. Short of level the two agree.
+        if (IsTipped(from.Kind) != IsTipped(to.Kind))
+        {
+            if (IsTipped(from.Kind))
+                onto = Faced(onto, off);
+            else
+                off = Faced(off, onto);
+        }
+        var trunk = Between(off, onto, Smooth(share));
         (trunk.From, trunk.To, trunk.Share) = (from, to, share);
         return trunk;
+
+        static Trunk Faced(Trunk level, Trunk tipped)
+        {
+            double over = Math.Acos(Math.Clamp(tipped.Up.Dot(Vec3.Up), -1, 1)) * 180 / Math.PI;
+            double share = Smooth(Math.Clamp((over - 60) / 30, 0, 1));
+            var left = tipped.Left - level.Up * tipped.Left.Dot(level.Up);
+            if (share <= 0 || left.Length < 1e-6 || level.Left.Length < 1e-6)
+                return level;
+            level.Left = Vec3.Slerp(level.Left.Normalized(), left.Normalized(), share);
+            level.Fwd = level.Left.Cross(level.Up);
+            level.FaceLeft = Vec3.Slerp(level.FaceLeft.Normalized(), level.Left, share);
+            level.FaceFwd = Vec3.Slerp(level.FaceFwd.Normalized(), level.Fwd, share);
+            return level;
+        }
     }
 
     /// <summary>The trunk with all the weight on one base.</summary>
@@ -3388,19 +3420,47 @@ internal sealed class FigureSolver
             trunk.Waist = trunk.Pelvis + half * (Rig.Spine / 2);
             trunk.Head = trunk.Chest + neck * Rig.HeadUp;
         }
-        trunk.Up = Way(a.Up, b.Up, e);
-        trunk.Left = Way(a.Left, b.Left, e);
-        trunk.Fwd = Way(a.Fwd, b.Fwd, e);
-        trunk.FaceLeft = Way(a.FaceLeft, b.FaceLeft, e);
-        trunk.FaceFwd = Way(a.FaceFwd, b.FaceFwd, e);
-        trunk.PelvisUp = Way(a.PelvisUp, b.PelvisUp, e);
+        // The body turns as one from the one to the other: its frame goes the shorter way round between the two, and
+        // what each end says of its own body (which way the hips lie, where the face looks) goes with it. (Each way
+        // taken round on its own, a left that pointed the opposite way at the two ends — a cartwheel coming down, the
+        // standing body bent right over — went round another way than the up did: the shoulders came off the chest,
+        // 18 cm, and the neck and the arms turned 90 degrees in a frame.)
+        static Quat Frame(Vec3 left, Vec3 up)
+        {
+            up = up.Length < 1e-9 ? Vec3.Up : up.Normalized();
+            left -= up * left.Dot(up);
+            if (left.Length < 1e-6)
+            {
+                var any = Math.Abs(up.X) < 0.9 ? new Vec3(1, 0, 0) : new Vec3(0, 0, 1);
+                left = any - up * any.Dot(up);
+            }
+            left = left.Normalized();
+            return Quat.FromBasis(left, up, left.Cross(up));
+        }
+        Quat frameA = Frame(a.Left, a.Up), frameB = Frame(b.Left, b.Up), frame = Quat.Slerp(frameA, frameB, e);
+        Vec3 Carried(Vec3 x, Vec3 y)
+        {
+            if (x.Length < 1e-9 || y.Length < 1e-9)
+                return e < 0.5 ? x : y;
+            return frame.Rotate(Vec3.Slerp(frameA.Inverse.Rotate(x.Normalized()), frameB.Inverse.Rotate(y.Normalized()), e));
+        }
+        // The chest's own up is the way from the waist to it (what is written of the bones is read off the joints).
+        var chestUp = trunk.Chest - trunk.Waist;
+        trunk.Up = chestUp.Length > 1e-6 ? chestUp.Normalized() : frame.Rotate(Vec3.Up);
+        var chestLeft = frame.Rotate(new Vec3(1, 0, 0));
+        chestLeft -= trunk.Up * chestLeft.Dot(trunk.Up);
+        trunk.Left = chestLeft.Length > 1e-6 ? chestLeft.Normalized() : Way(a.Left, b.Left, e);
+        trunk.Fwd = trunk.Left.Cross(trunk.Up);
+        trunk.FaceLeft = Carried(a.FaceLeft, b.FaceLeft);
+        trunk.FaceFwd = Carried(a.FaceFwd, b.FaceFwd);
+        trunk.PelvisUp = Carried(a.PelvisUp, b.PelvisUp);
         trunk.Off = a.Off + (b.Off - a.Off) * e;
         trunk.Tipped = a.Tipped + (b.Tipped - a.Tipped) * e;
         trunk.Reach = a.Reach + (b.Reach - a.Reach) * e;
         var c = b.C;
-        c.HipLeft = Way(a.C.HipLeft, b.C.HipLeft, e);
-        c.HipFwd = Way(a.C.HipFwd, b.C.HipFwd, e);
-        c.TorsoUp = Way(a.C.TorsoUp, b.C.TorsoUp, e);
+        c.HipLeft = Carried(a.C.HipLeft, b.C.HipLeft);
+        c.HipFwd = Carried(a.C.HipFwd, b.C.HipFwd);
+        c.TorsoUp = Carried(a.C.TorsoUp, b.C.TorsoUp);
         trunk.C = c;
         trunk.Short = null;
         return trunk;
@@ -3536,14 +3596,33 @@ internal sealed class FigureSolver
     // objects for them (DESIGN.md 120.12). The words are the same.
 
     /// <summary>Where the face looks, in the room: a written direction from the way the feet face (with `.body`, the chest), or at another dancer; unwritten, along the chest.</summary>
-    private readonly struct GazeOf(FigureSolver solver, double t, Vec3 head, Vec3 lifted, Vec3 faceLeft, Vec3 torsoUp, Vec3 faceFwd, Vec3 left, Vec3 fwd) : IChain<Vec3>
+    private readonly struct GazeOf(FigureSolver solver, double t, Vec3 head, Vec3 lifted, Vec3 faceLeft, Vec3 torsoUp, Vec3 faceFwd, Vec3 left, Vec3 fwd, double tipped = 0) : IChain<Vec3>
     {
         public Vec3 Target(Seg? seg)
         {
             if (seg?.Kind == SegKinds.Reach && solver._others(seg.Target!) is { } other)
                 return (other.PlaceAt(seg.Part!, 1, t, solver) - (head + lifted)).Normalized();
             if (seg?.Dir is { } d)
-                return seg.Body ? faceLeft * d[0] + torsoUp * d[1] + faceFwd * d[2] : left * d[0] + Vec3.Up * d[1] + fwd * d[2];
+            {
+                // A tipped body (on the hands, the head, the back: DESIGN.md 128) has no level of its own to look along:
+                // its head's word is measured from the chest, as with `.body`. (From the feet's level, a head sent `fwd`
+                // looked down its own neck lying on the back, and what is written of the bones turned it half round in a frame.)
+                Vec3 body = faceLeft * d[0] + torsoUp * d[1] + faceFwd * d[2], room = left * d[0] + Vec3.Up * d[1] + fwd * d[2];
+                if (seg.Body || tipped >= 1)
+                    return body;
+                if (tipped <= 0)
+                    return room;
+                // On the way over, from a frame that turns from the one to the other as the body does: the two ways
+                // themselves can be opposite (upside down), and a way between them taken round by itself passes along
+                // the neck, where the head has no way to be upright.
+                var bodyLeft = faceLeft - torsoUp * faceLeft.Dot(torsoUp);
+                if (bodyLeft.Length < 1e-6 || torsoUp.Length < 1e-6)
+                    return body;
+                bodyLeft = bodyLeft.Normalized();
+                var up = torsoUp.Normalized();
+                var between = Quat.Slerp(Quat.FromBasis(left, Vec3.Up, fwd), Quat.FromBasis(bodyLeft, up, bodyLeft.Cross(up)), tipped);
+                return between.Rotate(new Vec3(d[0], d[1], d[2]));
+            }
             return faceFwd;
         }
 
@@ -3831,6 +3910,9 @@ internal sealed class FigureSolver
         }
     }
 
+    /// <summary>How far a face goes up from square on its neck (the head back) and down (the chin to the chest), radians.</summary>
+    private const double HeadBackLimit = 70 * Math.PI / 180, HeadDownLimit = 75 * Math.PI / 180;
+
     private Vec3[] PoseCore(double t, out PoseProblems problems)
     {
         problems = default;
@@ -3845,7 +3927,7 @@ internal sealed class FigureSolver
         // Where the face looks, in the room. A written direction is measured as every part's is: from
         // the way the feet face, level (with `.body`, from the chest). A head nobody wrote looks
         // along the chest, so it bows with a bow; it is not turned with the shoulders.
-        var gazeOf = new GazeOf(this, t, head, lifted, faceLeft, torsoUp, faceFwd, c.Left, c.Fwd);
+        var gazeOf = new GazeOf(this, t, head, lifted, faceLeft, torsoUp, faceFwd, c.Left, c.Fwd, trunk.Tipped);
         var gaze = Chain<Vec3, GazeOf>(_head, t, ref gazeOf).Normalized();
         if (_alive && _head.Count == 0)
         {
@@ -3876,6 +3958,26 @@ internal sealed class FigureSolver
                 {
                     double rise = Math.Min(Math.Asin(Math.Clamp(gaze.Y, -1, 1)) + lift, 1.2);
                     gaze = level.Normalized() * Math.Cos(rise) + Vec3.Up * Math.Sin(rise);
+                }
+            }
+        }
+
+        // A head goes back on its neck, and down onto the chest, only so far (HeadBackLimit, HeadDownLimit): a face sent
+        // further — `fwd` in the room over a torso bowed level, or coming up from a headstand — looked along its own
+        // neck and then out of the back of its head, and what is written of the bones turned the head half round in a
+        // frame as it passed. Measured about the line of the ears; a head turned to the side is not held.
+        {
+            var along = head - chest;
+            var front = along.Length > 1e-6 ? faceFwd - along.Normalized() * faceFwd.Dot(along.Normalized()) : default;
+            if (front.Length > 1e-6)
+            {
+                Vec3 n = along.Normalized(), f = front.Normalized(), ears = n.Cross(f);
+                double aside = gaze.Dot(ears), back = gaze.Dot(n), ahead = gaze.Dot(f), inPlane = Math.Sqrt(back * back + ahead * ahead);
+                if (inPlane > 1e-6)
+                {
+                    double pitch = Math.Atan2(back, ahead), held = Math.Clamp(pitch, -HeadDownLimit, HeadBackLimit);
+                    if (held != pitch)
+                        gaze = (ears * aside + (f * Math.Cos(held) + n * Math.Sin(held)) * inPlane).Normalized();
                 }
             }
         }
@@ -4044,20 +4146,45 @@ internal sealed class FigureSolver
                 }
                 return toe.Y < FloorToe ? new Vec3(toe.X, FloorToe, toe.Z) : toe;
             }
-            int first = isLeft ? Rig.LHip : Rig.RHip;
-            joints[first] = hip;
-            joints[first + 1] = knee;
-            joints[first + 2] = reached;
             // (The foot turns from the one to the other: between two toes that point opposite ways, a toe half-way
             // would be at the ankle, and pointed anywhere from one frame to the next.)
             Vec3 toeA = Toe(a) - reached, toeB = Toe(b) - reached;
-            var toes = toeA.Length < 1e-6 || toeB.Length < 1e-6 ? Vec3.Lerp(Toe(a), Toe(b), share)
-                : reached + Vec3.Slerp(toeA.Normalized(), toeB.Normalized(), share) * (toeA.Length + (toeB.Length - toeA.Length) * share);
+            Vec3 toes;
+            if (toeA.Length < 1e-6 || toeB.Length < 1e-6)
+                toes = Vec3.Lerp(Toe(a), Toe(b), share);
+            else
+            {
+                // Between two ways that are nearly opposite (a foot flat on the floor, and pointed back along it when the
+                // body has gone down onto the hands) the shortest turn is any turn: which one it was changed from one
+                // frame to the next, under the floor and then over the top (121 degrees in a frame). Such a foot goes
+                // over its toes, as a person's does: the turn is taken down through the floor's side, and the ankle
+                // comes up as far as keeps the toes on the floor. Up to 120 degrees apart it is the shortest turn itself.
+                Vec3 from = toeA.Normalized(), to = toeB.Normalized();
+                double length = toeA.Length + (toeB.Length - toeA.Length) * share;
+                double opposite = Smooth(Math.Clamp((-from.Dot(to) - 0.5) / 0.5, 0, 1));
+                Vec3 way;
+                if (opposite <= 0)
+                    way = Vec3.Slerp(from, to, share);
+                else
+                {
+                    var middle = from + to - Vec3.Up * (2 * opposite);
+                    middle = middle.Length < 1e-6 ? -Vec3.Up : middle.Normalized();
+                    way = share < 0.5 ? Vec3.Slerp(from, middle, share * 2) : Vec3.Slerp(middle, to, share * 2 - 1);
+                    double under = (FloorToe - (reached.Y + way.Y * length)) * opposite;
+                    if (under > 0)
+                        (knee, reached) = TwoBone(hip, new Vec3(reached.X, reached.Y + under, reached.Z), Rig.Thigh, Rig.Shin, pole);
+                }
+                toes = reached + way * length;
+            }
             if (toes.Y < FloorToe)
                 toes = new Vec3(toes.X, FloorToe, toes.Z);
             // A foot off the floor is turned on its ankle no further than an ankle goes (DESIGN.md 104), the foot its own length.
             if (toes.Y > FloorToe + 0.005 && (toes - reached).Length > 1e-6)
                 toes = AnkleKept(knee, reached, reached + (toes - reached).Normalized() * Rig.FootLength);
+            int first = isLeft ? Rig.LHip : Rig.RHip;
+            joints[first] = hip;
+            joints[first + 1] = knee;
+            joints[first + 2] = reached;
             joints[first + 3] = toes;
         }
 
@@ -4191,7 +4318,9 @@ internal sealed class FigureSolver
             // On the tips of the toes (`pointe`): from demi-pointe up, the toes come in under the ankle, the foot upright.
             if (!offFloor && onToes is null && c.Raise > Rig.HighRise)
             {
-                double under = Math.Clamp((c.Raise - Rig.HighRise) / (Rig.PointeRise - Rig.HighRise), 0, 1);
+                // (Not wholly under: a toe right below its ankle no longer says which way the foot is turned out, and
+                // the bone turned 80 degrees in a frame as it got there. A few millimetres ahead keep it: under 2 degrees.)
+                double under = Math.Clamp((c.Raise - Rig.HighRise) / (Rig.PointeRise - Rig.HighRise), 0, 0.97);
                 toe = new Vec3(reached.X + (toe.X - reached.X) * (1 - under), toe.Y, reached.Z + (toe.Z - reached.Z) * (1 - under));
             }
 

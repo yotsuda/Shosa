@@ -114,9 +114,10 @@ public class BalletTests
         Assert.Equal(Rig.AnkleHeight + Rig.HighRise, At(compilation, 2, Rig.LAnkle).Y, 3);
         Assert.Equal(Rig.AnkleHeight + Rig.PointeRise, At(compilation, 4, Rig.LAnkle).Y, 3);
         Assert.Equal(Rig.PointeRise - Rig.HighRise, At(compilation, 4, Rig.Pelvis).Y - At(compilation, 2, Rig.Pelvis).Y, 3);
-        // The toe under the ankle, where on demi-pointe it is a foot's length ahead of it.
+        // The toe under the ankle, where on demi-pointe it is a foot's length ahead of it: a few millimetres ahead still,
+        // so that the foot says which way it is turned (right under, the bone turned 80 degrees in a frame).
         var foot = At(compilation, 4, Rig.LToe) - At(compilation, 4, Rig.LAnkle);
-        Assert.InRange(Math.Sqrt(foot.X * foot.X + foot.Z * foot.Z), 0, 0.005);
+        Assert.InRange(Math.Sqrt(foot.X * foot.X + foot.Z * foot.Z), 0.002, 0.008);
         var demi = At(compilation, 2, Rig.LToe) - At(compilation, 2, Rig.LAnkle);
         Assert.InRange(Math.Sqrt(demi.X * demi.X + demi.Z * demi.Z), 0.15, 0.18);
         Assert.Equal("SH1012", Assert.Single(Compile("    steps { together:4 }\n    height { pointe(5cm):4 }").Diagnostics).Code);

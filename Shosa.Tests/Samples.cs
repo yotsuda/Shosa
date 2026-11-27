@@ -9,8 +9,10 @@ internal static class Samples
     private static string Directory([CallerFilePath] string here = "") =>
         Path.Combine(Path.GetDirectoryName(here)!, "..", "samples");
 
+    /// <summary>Every sample: the ones in samples, and the dances in samples\dances as `dances/NAME`.</summary>
     public static IEnumerable<object[]> Names() =>
-        System.IO.Directory.GetFiles(Directory(), "*.shosa").Select(f => new object[] { Path.GetFileNameWithoutExtension(f) });
+        System.IO.Directory.GetFiles(Directory(), "*.shosa").Select(f => new object[] { Path.GetFileNameWithoutExtension(f) })
+            .Concat(System.IO.Directory.GetFiles(Path.Combine(Directory(), "dances"), "*.shosa").Select(f => new object[] { "dances/" + Path.GetFileNameWithoutExtension(f) }));
 
     public static string Read(string name) => File.ReadAllText(Path.Combine(Directory(), name + ".shosa"));
 

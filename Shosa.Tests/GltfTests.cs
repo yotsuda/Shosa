@@ -19,7 +19,9 @@ public class GltfTests
     {
         var clip = Samples.Compile(name).Clip;
         var file = GltfFile.Parse(Gltf.Render(clip));
-        int bones = Skeleton.Bones.Length;
+        // With the bones of the fingers when a hand's row is danced anywhere in the file (DESIGN.md 126).
+        var skeleton = Skeleton.BonesWith(clip.Figures.Any(f => f.Hands is not null));
+        int bones = skeleton.Length;
 
         // After the bones, a node for each figure, which is what the scene holds.
         Assert.Equal(clip.Figures.Count * (bones + 1), file.Json["nodes"]!.AsArray().Count);
@@ -33,7 +35,7 @@ public class GltfTests
         for (int i = 0; i < clip.Figures.Count; i++)
         {
             var figure = clip.Figures[i];
-            Assert.Equal(Skeleton.Bones.Select(b => b.Name), Enumerable.Range(i * bones, bones).Select(n => (string)file.Json["nodes"]![n]!["name"]!));
+            Assert.Equal(skeleton.Select(b => b.Name), Enumerable.Range(i * bones, bones).Select(n => (string)file.Json["nodes"]![n]!["name"]!));
             for (int f = 0; f < figure.Frames.Count; f++)
             {
                 var (positions, turns) = file.Pose(f);

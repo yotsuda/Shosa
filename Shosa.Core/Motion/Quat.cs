@@ -80,12 +80,19 @@ public readonly record struct Quat(double X, double Y, double Z, double W)
     /// </summary>
     public (double Z, double X, double Y) ToEulerZxy()
     {
-        Vec3 cx = Rotate(new Vec3(1, 0, 0)), cy = Rotate(new Vec3(0, 1, 0)), cz = Rotate(new Vec3(0, 0, 1));
+        // (Of its own length taken out: single precision leaves it a little off 1, and the axes with it.)
+        double length = Math.Sqrt(X * X + Y * Y + Z * Z + W * W);
+        var unit = length > 1e-12 ? new Quat(X / length, Y / length, Z / length, W / length) : Identity;
+        Vec3 cx = unit.Rotate(new Vec3(1, 0, 0)), cy = unit.Rotate(new Vec3(0, 1, 0)), cz = unit.Rotate(new Vec3(0, 0, 1));
         // Row r, column c of the matrix is the r-th component of the c-th rotated axis.
         double m21 = cy.Z;
         const double deg = 180 / Math.PI;
-        if (Math.Abs(m21) > 1 - 1e-9)
+        // Turned a quarter about x, z and y turn about the same line: all of it goes to z. Told by what is left of the
+        // y axis beside z, not by how near its z is to 1: a clip's rotations are single precision, and one a quarter
+        // round to the last digit had a z of 0.99999995 with nothing beside it — the two angles came out 0 and the
+        // bone 64 degrees wrong (a forearm 0.3 m from where it was, in the BVH of one frame).
+        if (Math.Sqrt(cy.X * cy.X + cy.Y * cy.Y) < 1e-4)
             return (Math.Atan2(cx.Y, cx.X) * deg, Math.Sign(m21) * 90, 0);
-        return (Math.Atan2(-cy.X, cy.Y) * deg, Math.Asin(m21) * deg, Math.Atan2(-cx.Z, cz.Z) * deg);
+        return (Math.Atan2(-cy.X, cy.Y) * deg, Math.Asin(Math.Clamp(m21, -1, 1)) * deg, Math.Atan2(-cx.Z, cz.Z) * deg);
     }
 }

@@ -977,6 +977,8 @@ legs  { down:4 | side.up(40):4 | }
   seen from the front; the upside-down of a cartwheel, `up left:1@through down.facing(fwd):1@through right:1@through up:1`),
   `back.facing(down)` (rolled over onto the front, the head still pointing back: half of a windmill's roll).
   Never straight from `up` to `down` (which way round?): through `fwd`, `back`, `left` or `right` (SH2001).
+  **The head of a tipped body is measured from its chest**, as with `.body`: `head { fwd }` is the face square
+  on the body (looking up, lying on the back), `fwd.down(30)` the chin toward the chest.
 - **`seat` and `knees` (and `leftKnee`, `rightKnee`) stand on level hips**, as the feet do: the torso's row
   leans the body from them as it does standing (`torso { back }` lies down from sitting), and `shoulders`
   and `hips` turn it. On the knees the `height` row sits the hips back toward the heels (`low(30cm)`; `mid` kneels up).

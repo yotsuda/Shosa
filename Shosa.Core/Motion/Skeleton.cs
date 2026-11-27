@@ -26,6 +26,8 @@ public static class Skeleton
     private static readonly Vec3 X = new(1, 0, 0), Z = new(0, 0, 1);
     private static readonly Vec3 FootRest = new(0, -0.06, Rig.FootLength);
     private const double HandLength = 0.08, NoseOut = 0.12, CollarHalf = 0.03;
+    /// <summary>How far round a palm is turned the thumb's way in (pronated) to face where its row sends it, radians: further is nearer the other way round.</summary>
+    private const double PalmTurnsIn = 120 * Math.PI / 180;
 
     public const int Hips = 0, Spine = 1, Chest = 2, Neck = 3, Head = 4,
         LShoulder = 5, LUpperArm = 6, LLowerArm = 7, LHand = 8, RShoulder = 9, RUpperArm = 10, RLowerArm = 11, RHand = 12,
@@ -321,10 +323,22 @@ public static class Skeleton
                 if (wrist.PalmShare > 0)
                 {
                     var want = wrist.Palm - fingers * wrist.Palm.Dot(fingers);
+                    double square = wrist.Palm.Length > 1e-6 ? want.Length / wrist.Palm.Length : 0;
                     if (want.Length > 1e-6)
                     {
                         want = want.Normalized();
-                        double angle = Math.Atan2(fingers.Dot(palm.Cross(want)), palm.Dot(want)) * wrist.PalmShare;
+                        // The short way round, but a palm sent to face the other way (down to up, which half said is a
+                        // quarter turn) always the same way round, the thumb going out: either is as short, and which it
+                        // was changed from one frame to the next (48 degrees in a frame, a palm coming up a little as
+                        // the arm went down to the floor). The two ways part where no forearm turns: 120 degrees thumb in.
+                        double angle = Math.Atan2(fingers.Dot(palm.Cross(want)), palm.Dot(want));
+                        if (angle * side > PalmTurnsIn)
+                            angle -= 2 * Math.PI * side;
+                        // Fingers that point where the palm is sent leave it no way to face there (SH2011 says so of a word;
+                        // on the way from one word to the next the fingers can pass through it): the palm is turned less
+                        // the nearer they are, within 30 degrees, and not at all there. (Turned in full, it faced up on
+                        // one side of that way and down on the other: 46 degrees in a frame.)
+                        angle *= wrist.PalmShare * Smooth(Math.Min(1, square / 0.5));
                         palm = palm * Math.Cos(angle) + fingers.Cross(palm) * Math.Sin(angle);
                     }
                 }
@@ -351,11 +365,17 @@ public static class Skeleton
                 // Off the feet a foot may point anywhere (up, on along a leg held overhead): flat to the line of the
                 // hips, which is where a foot standing square lies too; pointing along that line, to the knee's own hinge.
                 // (The hinge alone turned over from one frame to the next as a leg went straight: 104 degrees.)
+                // (From the one to the other as the foot comes to point along the line, between some 45 and 6 degrees
+                // from it: taken all at once, where the two differ — a leg lying out to the side on the floor — the foot
+                // turned over in a frame, 144 degrees.)
                 footLeft = left - along * left.Dot(along);
-                if (footLeft.Length < 0.3)
+                if (footLeft.Length < 0.7)
                 {
                     var hinge = lower.Rotate(X);
-                    footLeft = hinge - along * hinge.Dot(along);
+                    var hinged = hinge - along * hinge.Dot(along);
+                    double own = Smooth(Math.Clamp((footLeft.Length - 0.1) / 0.6, 0, 1));
+                    footLeft = own <= 0 || footLeft.Length < 1e-6 || hinged.Length < 1e-6 ? hinged
+                        : Vec3.Slerp(hinged.Normalized(), footLeft.Normalized(), own);
                 }
             }
             footLeft = footLeft.Length < 1e-6 ? left : footLeft.Normalized();
