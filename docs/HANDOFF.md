@@ -7,6 +7,8 @@
 
 ## 0.3.0 を出す直前 (2026-11-27 の 8 つ目のセッション)
 
+- ★ **0.3.0 は出た (2026-11-27 14:41Z)**: タグ `v0.3.0` = `d451f11`。Release の run 46017479903 は試験・pack・GitHub のリリース (`shosa-win32-x64-0.3.0.vsix`、38 MB)・Marketplace まで緑。Marketplace に **Shosa 3D Choreographer 0.3.0** (`yotsuda.shosa`、win32-x64) が載っているのを `vsce show` で見た。下の「残り (ユーザーの手)」と「README の案 (未コミット)」は済み。**まだ**: Marketplace から入れて動かすこと (ユーザーの PC の拡張は `deploy-extension.ps1` で入れたもの)、Lily# の Install Shosa の導線 (第 3 段) を実物で。次の版からは CHANGELOG に Unreleased の節を作って書く。
+
 - **下の節で「未コミット」と書いてあるものは全部コミットした**: `058a480` (mocap の道具 3 つ)、`8c7225a` (`quality`、曲線の `@through`、得意分野を絞る決定、`break-set` の移動、`floor-lyric` の削除)。試験 659 件、拡張 38 件、`tools\pack-extension.ps1` (36.2 MB) まで通した。main は origin より 9 つ先 (push はユーザー)。
 - **Lily# 0.18.0 は出ている** (GitHub のリリース 2026-11-27 06:55Z、Release の run は緑)。出す順の前提は満たした。この PC の Lily# の拡張はまだ 0.17.1 (フォルダー名 0.16.0): 歌詞まわりをユーザーが試すなら先に更新。
 - **README に募集の節の案を書いた (未コミット、文面はユーザーが見てから)**: 「What it is for」の末尾に得意分野 (拍にポーズを決める踊り、ballet・break は実験的)、Status の後ろに「Help wanted, most of all from people who dance」(型の直し・見本の踊り・`quality` の残りの質・mocap との比べ、issue も歓迎)。Trying it の拡張の名前を **Shosa 3D Choreographer** に。
