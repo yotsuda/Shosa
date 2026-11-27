@@ -32,8 +32,45 @@ public sealed class UsingSource(string? mainPath, Func<string, string?>? read = 
     }
 }
 
-/// <summary>A file a `using` brought in: where its text is in the combined source, and the `using` line of the main file it came by.</summary>
-public sealed record IncludedFile(string Path, int Start, int End, TextSpan Using);
+/// <summary>A file a `using` brought in: where its text is in the combined source, and the `using` line of the main file it came by.
+/// <see cref="Path"/> is a full path, or for one of Shosa's own files of parts its name as written (`shosa:jazz`).</summary>
+public sealed record IncludedFile(string Path, int Start, int End, TextSpan Using)
+{
+    /// <summary>The file as a writer names it: from the folder of the file that uses it, or `shosa:jazz`.</summary>
+    public string Name(string? folder) => Library.IsLibrary(Path) ? Path
+        : folder is null ? System.IO.Path.GetFileName(Path) : System.IO.Path.GetRelativePath(folder, Path).Replace('\\', '/');
+}
+
+/// <summary>
+/// Shosa's own files of parts (DESIGN.md 125): `using "shosa:jazz"` brings in the poses and moves of a
+/// style, so that a dance (or the assistant writing it) names them instead of writing them. They are
+/// Shosa.Core\Library\NAME.shosa, embedded in the compiler: the same in the CLI, the editor and the tests.
+/// </summary>
+public static class Library
+{
+    public const string Prefix = "shosa:";
+
+    private static readonly Lazy<Dictionary<string, string>> Files = new(() =>
+    {
+        var assembly = typeof(Library).Assembly;
+        var files = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string resource in assembly.GetManifestResourceNames().Where(r => r.StartsWith("library/", StringComparison.Ordinal) && r.EndsWith(".shosa", StringComparison.Ordinal)))
+        {
+            using var reader = new StreamReader(assembly.GetManifestResourceStream(resource)!);
+            files[resource["library/".Length..^".shosa".Length]] = reader.ReadToEnd();
+        }
+        return files;
+    });
+
+    /// <summary>The names there are, as `using` writes them after `shosa:`, in order.</summary>
+    public static IReadOnlyList<string> Names => [.. Files.Value.Keys.Order(StringComparer.Ordinal)];
+
+    public static bool IsLibrary(string written) => written.StartsWith(Prefix, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>The text of `shosa:NAME` (or of NAME); null when there is none of that name.</summary>
+    public static string? Read(string written) =>
+        Files.Value.TryGetValue(IsLibrary(written) ? written[Prefix.Length..] : written, out var text) ? text : null;
+}
 
 /// <summary>
 /// `using "parts.shosa"`, as Lily# has it (its UsingExpander): the files a file uses join it,
@@ -87,18 +124,32 @@ public static class Usings
                     diagnostics.Add(new Diagnostic("SH1039", DiagnosticSeverity.Warning, at, Where("A `using` with no file name brings in nothing: name the file, using \"parts.shosa\".")));
                     continue;
                 }
-                string resolved = Path.GetFullPath(Path.Combine(from, written));
+                bool library = Library.IsLibrary(written);
+                string resolved = library ? Library.Prefix + written[Library.Prefix.Length..].ToLowerInvariant() : Path.GetFullPath(Path.Combine(from, written));
                 if (visited.Contains(resolved))
                     continue;   // already in: a file is brought in once, and a cycle ends here
-                if (!resolved.EndsWith(".shosa", StringComparison.OrdinalIgnoreCase))
+                string? included;
+                if (library)
                 {
-                    diagnostics.Add(new Diagnostic("SH1039", DiagnosticSeverity.Warning, at, Where($"A `using` brings in a .shosa file: '{written}' is not one, and nothing of it is used.")));
-                    continue;
+                    if ((included = Library.Read(resolved)) is null)
+                    {
+                        diagnostics.Add(new Diagnostic("SH1039", DiagnosticSeverity.Warning, at, Where(
+                            $"Shosa has no file of parts '{written}': there are {string.Join(", ", Library.Names.Select(n => Library.Prefix + n))}.")));
+                        continue;
+                    }
                 }
-                if (source.Read(resolved) is not { } included)
+                else
                 {
-                    diagnostics.Add(new Diagnostic("SH1039", DiagnosticSeverity.Warning, at, Where($"There is no file '{written}' beside this one: nothing it would bring in is here.")));
-                    continue;
+                    if (!resolved.EndsWith(".shosa", StringComparison.OrdinalIgnoreCase))
+                    {
+                        diagnostics.Add(new Diagnostic("SH1039", DiagnosticSeverity.Warning, at, Where($"A `using` brings in a .shosa file: '{written}' is not one, and nothing of it is used.")));
+                        continue;
+                    }
+                    if ((included = source.Read(resolved)) is null)
+                    {
+                        diagnostics.Add(new Diagnostic("SH1039", DiagnosticSeverity.Warning, at, Where($"There is no file '{written}' beside this one: nothing it would bring in is here.")));
+                        continue;
+                    }
                 }
                 visited.Add(resolved);
                 int start = text.Length;
@@ -107,7 +158,7 @@ public static class Usings
                     text.Append('\n');
                 var line = via ?? header.Span;
                 files.Add(new IncludedFile(resolved, start, text.Length, line));
-                Walk(SyntaxTree.Parse(included), Path.GetDirectoryName(resolved) ?? from, line, viaFile ?? written, start);
+                Walk(SyntaxTree.Parse(included), library ? from : Path.GetDirectoryName(resolved) ?? from, line, viaFile ?? written, start);
             }
         }
 
@@ -129,7 +180,7 @@ public static class Usings
         if (files.LastOrDefault(f => f.Start <= diagnostic.Span.Start) is not { } file)
             return diagnostic with { Span = new TextSpan(mainLength, 0) };
         int line = ShosaCompilation.LineColumn(combinedText, diagnostic.Span.Start).Line - ShosaCompilation.LineColumn(combinedText, file.Start).Line + 1;
-        string name = mainFolder is null ? Path.GetFileName(file.Path) : Path.GetRelativePath(mainFolder, file.Path).Replace('\\', '/');
+        string name = file.Name(mainFolder);
         return diagnostic with { Span = file.Using, Message = $"In {name}, line {line}: {diagnostic.Message}" };
     }
 }

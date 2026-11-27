@@ -1,0 +1,179 @@
+// shosa:ballet — classical ballet, turned out, on straight legs. A dance brings it in with: using "shosa:ballet"
+// The feet positions (first … fifth) set the turnout (80) and the straight legs, and every move after keeps them:
+// begin a ballet dance with one of them. The arm positions and portDeBras / preparation are arms only; the
+// barre moves (plie … grandBattement) are a height or a leg only; the jumps and glissade / pasDeBourree / balance
+// are steps (and height) only: put any arms over any of them. arabesque, attitude, pirouette, chaine and reverence
+// are whole-body (an arms row beside them wins over their arms). The working leg is the right one; @mirror for the left.
+// Not in Shosa (yet), so not here: pointe work and a foot pointed or flexed by choice (it points by itself only on the
+// floor, at the knee or ankle and in the air of a jump), spotting in a turn, beats (entrechat, cabriole), a jump that
+// closes into fifth from second, rond de jambe en l'air, the arm's curve of a port de bras (it goes point to point).
+
+// ---- Positions of the feet: poses, turned out 80 on straight legs, the weight on both feet.
+
+// first — heels together, the feet in a line. The start of a barre, of a plié series, of a révérence.
+pose first  { turnout { out(80) }  steps { together }  height { straight } }
+// second — the feet apart (0.4 m), heels in line. For grand plié, an échappé's landing, a wide accent.
+pose second { turnout { out(80) }  steps { rightFoot.side(0.4m) }  height { straight } }
+// third — the right heel against the middle of the left foot. Rare in the centre: a gentler fifth.
+pose third  { turnout { out(80) }  steps { rightFoot.fwd(0.08m).across(0.06m) }  height { straight } }
+// fourth — the right foot a step ahead and crossed, both turned out: the preparation of a pirouette (here the
+// right in front; fourth@mirror has the left in front).
+pose fourth { turnout { out(80) }  steps { rightFoot.fwd(0.3m).across(0.1m) }  height { straight } }
+// fifth — the right heel at the left toes, crossed: ballet's home. Where jumps and small steps start and end.
+// fifth@mirror has the left foot in front.
+pose fifth  { turnout { out(80) }  steps { rightFoot.fwd(0.08m).across(0.13m) }  height { straight } }
+
+// ---- Positions of the arms: poses, arms only, rounded with the elbows held out.
+
+// brasBas — low, rounded in front of the thighs: the rest of the arms, at the start and end of everything.
+pose brasBas    { arms { fwd.across(30).down(70).bent(40).elbow(side) } }
+// enAvant — first position of the arms: rounded in front of the diaphragm. The arms of a turn, and the way up.
+pose enAvant    { arms { fwd.across(15).down(25).bent(50).elbow(side) } }
+// aLaSeconde — second position of the arms: open to the sides, a little forward and below the shoulders. Over
+// tendus, jumps, travelling steps: the arms that hold still.
+pose aLaSeconde { arms { side.fwd(20).down(15).bent(20) } }
+// enHaut — fifth position of the arms: rounded above the head, a little forward. A pose to hit on a high note.
+pose enHaut     { arms { fwd.up(70).bent(40).elbow(side) } }
+
+// ---- Arm patterns: arms only, over any steps.
+
+// preparation — 4 beats; arms. Bras bas, up to first, open to second: the arms before an exercise or a phrase,
+// in the bar of introduction.
+move preparation { arms { brasBas:1 enAvant:2 aLaSeconde:1 } }
+// portDeBras — 8 beats; arms. Bras bas, first, fifth en haut, open to second, down to bras bas: the arms
+// through all four, for a held note or the bars without words (also over plie / grandPlie).
+move portDeBras  { arms { brasBas:1 enAvant:2@through enHaut:2 aLaSeconde:2 brasBas:1 } }
+
+// ---- Barre and centre: the height or the right leg only.
+
+// plie — 4 beats; height. A demi-plié: down for two, up for two. In any position (in first and fifth the knees
+// go out over the toes).
+move plie      { height { straight:2 low(10cm):3/2 straight:1/2 } }
+// grandPlie — 8 beats; height. Down for four, up for four, deep; best in second (in first and fifth the heels
+// should rise, which Shosa cannot say). Slow music, the start of a class.
+move grandPlie { height { straight:4 low(40cm):7/2 straight:1/2 } }
+// releve — 4 beats; height. Up onto the toes (demi-pointe) on 1, held, down on 3. Stretched to 2 for a quick one.
+move releve    { height { straight:1 high:1 then:1 straight:1 } }
+
+// tenduFront — 2 beats; right leg. The foot slides out along the floor to the front, pointed, held, and
+// back in. In fours, on the counts of a quiet phrase.
+move tenduFront  { rightLeg { down:1/2 fwd.floor:1/2 then:1/2 down:1/2 } }
+// tenduSide — 2 beats; right leg. As tenduFront, to the side (à la seconde).
+move tenduSide   { rightLeg { down:1/2 side.floor:1/2 then:1/2 down:1/2 } }
+// tenduBack — 2 beats; right leg. As tenduFront, behind.
+move tenduBack   { rightLeg { down:1/2 back.floor:1/2 then:1/2 down:1/2 } }
+// degageFront — 2 beats; right leg. Brushed out through the tendu a little off the floor, and back in: a
+// tendu with an accent, quicker music.
+move degageFront { rightLeg { down:1/4 fwd.floor:1/4@through fwd.down(65):1/2 fwd.floor:1/2 down:1/2 } }
+// degageSide — 2 beats; right leg. As degageFront, to the side.
+move degageSide  { rightLeg { down:1/4 side.floor:1/4@through side.down(65):1/2 side.floor:1/2 down:1/2 } }
+// degageBack — 2 beats; right leg. As degageFront, behind.
+move degageBack  { rightLeg { down:1/4 back.floor:1/4@through back.down(65):1/2 back.floor:1/2 down:1/2 } }
+// rondDeJambe — 4 beats; right leg. Rond de jambe à terre en dehors: the toe draws a half circle on the floor,
+// front, side, back, and closes through first. (En dedans, back to front, is not here.)
+move rondDeJambe { rightLeg { down:1/2 fwd.floor:1/2 fwd.side.floor:1/2@through side.floor:1/2@through back.side.floor:1/2@through back.floor:1/2 down:1 } }
+// passe — 2 beats; right leg. Retiré: the toe up to the front of the standing knee, the knee out, and down.
+// On one leg for a beat: a balance, or with releve beside it.
+move passe       { rightLeg { down:1/2 otherKnee:1 down:1/2 } }
+// developpe — 4 beats; right leg. Développé à la seconde: up through retiré, the leg unfolds to the side at hip
+// height, and comes down. Slow music, a held note.
+move developpe   { rightLeg { down:1/2 otherKnee:1 side:3/2 down:1 } }
+// grandBattement — 2 beats; right leg. Thrown high to the front (40° above level, up by beat 3/4), lowered with
+// control by 1 1/2: a big accent. Not shorter than 2 beats at 120 (faster, the foot is too fast: SH2003).
+move grandBattement { rightLeg { down:3/4 fwd.up(40):3/4 down:1/2 } }
+
+// ---- Big poses: whole body (leg, arms, torso, head). On the left leg; @mirror on the right.
+
+// arabesque — 4 beats; whole body. First arabesque: the right leg rises behind through the tendu to hip height,
+// the body leans a little forward, the left arm reaches forward and the right out and back; held a beat, and
+// down. Stretch it (arabesque:8) to hold it longer: the peak of a phrase, a held high note.
+move arabesque {
+  rightLeg { down:1/2 back.floor:1/2@through back:1 then:1 back.floor:1/2 down:1/2 }
+  torso    { up:1/2 then:1/2 up.fwd(15):1 then:1 up:1 }
+  leftArm  { brasBas:1/2 enAvant:1/2@through fwd.up(15):1 then:1 brasBas:1 }
+  rightArm { brasBas:1/2 aLaSeconde:1/2@through side.back(30).down(5):1 then:1 brasBas:1 }
+  head     { fwd:1 fwd.up(10):1 then:1 fwd:1 }
+}
+// attitude — 4 beats; whole body. Attitude derrière: the right leg up behind, the knee bent and out above the foot,
+// the right arm en haut and the left in second; held a beat, and down. Stretch it to hold it.
+move attitude {
+  rightLeg { down:1/2 back.floor:1/2@through back.up(10).bent.knee(side.up):1 then:1 back.floor:1/2 down:1/2 }
+  torso    { up:1 up.fwd(5):1 then:1 up:1 }
+  rightArm { brasBas:1/2 enAvant:1/2@through enHaut:1 then:1 brasBas:1 }
+  leftArm  { brasBas:1/2 enAvant:1/2@through aLaSeconde:1 then:1 brasBas:1 }
+  head     { fwd:1 fwd.left(20).up(10):1 then:1 fwd:1 }
+}
+
+// ---- Turns: whole body.
+
+// pirouette — 4 beats; steps, height, right leg, arms. A single pirouette en dehors from fourth: the right foot
+// steps back into fourth in plié (beat 1), the weight goes forward, up onto the left toes with the right in passé
+// and one turn to the right (beat 2 to 3), and the right foot closes behind in fifth. Ends facing as it began, a
+// little forward. No spotting (the head turns with the body).
+move pirouette {
+  steps    { then:1 rightFoot.back(0.3m).across(0.1m):1 shift.left:1 turn.right(360):1/2 rightFoot.back(0.08m).across(0.13m):1/2 }
+  height   { straight:1 low(10cm):1/2 then:1/2 high:1 then:1/2 straight:1/2 }
+  rightLeg { skip:3/2 then:1/2 otherKnee:1 skip:1 }
+  leftArm  { brasBas:1 enAvant:2 then:1/2 brasBas:1/2 }
+  rightArm { brasBas:1 aLaSeconde:1/2 then:1/2 enAvant:1 then:1/2 brasBas:1/2 }
+}
+// chaine — 4 beats; steps, height, arms. Chaînés: two turns to the right on the toes in four half-turn steps,
+// travelling right, the arms in first; down and the feet together at the end. In a row across the floor.
+move chaine {
+  steps  { then:1/2 rightFoot.side(0.15m):3/4@turn(right(180)) leftFoot.side(0.15m):3/4@turn(right(180)) rightFoot.side(0.15m):3/4@turn(right(180)) leftFoot.side(0.15m):3/4@turn(right(180)) together:1/2 }
+  height { straight:1/2 high:5/2 then:1/2 straight:1/2 }
+  arms   { aLaSeconde:1/2 enAvant:5/2 then:1/2 aLaSeconde:1/2 }
+}
+
+// ---- Jumps: steps only (the jump makes its own plié). Arms over them: aLaSeconde, enAvant, brasBas.
+
+// saute — 2 beats; steps. A jump in place, landing as it stood (in fifth, in first, in second). On a beat of
+// light music, in fours.
+move saute      { steps { then:1 jump.up(10cm):1 } }
+// changement — 2 beats; steps. From fifth: a jump that lands in fifth with the other foot in front.
+move changement { steps { then:1 jump.change.up(10cm):1 } }
+// echappe — 4 beats; steps. Échappé sauté: from fifth, a jump out to second (beat 1), and a jump in again
+// (beat 3), landing with the heels together (first: a jump cannot close into fifth from second).
+move echappe    { steps { then:1 jump.apart(0.5m).up(8cm):1 then:1 jump.together.up(8cm):1 } }
+// assemble — 4 beats; steps, left leg. Assemblé from fifth with the right foot in front: the back (left) leg brushes
+// out to the side, the jump brings the feet together in the air and lands in fifth with the left in front (beat 2).
+// assemble@mirror from fifth@mirror.
+move assemble {
+  steps   { then:2 jump.change.up(12cm):2 }
+  leftLeg { skip:1/2 then:1/2 side.down(45):1/2 skip:5/2 }
+}
+
+// ---- Travelling steps: steps and height.
+
+// glissade — 2 beats; steps, height. A gliding step to the right: from plié the right foot slides out, the weight
+// goes over it, and the left closes in front in fifth (beat 1). Before a jump, or in pairs along a phrase.
+move glissade {
+  steps  { then:1/2 rightFoot.side(0.45m):1/2 leftFoot.fwd(0.08m).across(0.13m):1 }
+  height { straight:1/4 low(8cm):1/4 straight:1/2 low(8cm):1/2 straight:1/2 }
+}
+// pasDeBourree — 2 beats; steps, height. Pas de bourrée dessous: on the toes, the right foot behind, the left to
+// the side, the right in front in fifth with a plié. Moves a little left; a link between two bigger steps.
+move pasDeBourree {
+  steps  { then:1/2 rightFoot.back(0.08m).across(0.1m):1/2 leftFoot.side(0.3m):1/2 rightFoot.fwd(0.08m).across(0.13m):1/2 }
+  height { straight:1/4 low(6cm):1/4 high:1/2 then:1/2 low(6cm):1/4 straight:1/4 }
+}
+// balance — 3 beats IN 3/4 (a waltz bar); steps, height. Balancé: down onto the right foot to the side, up onto
+// the left behind it, down on the right. Ends with the weight on the right foot: the next is balance@mirror (to
+// the left), or a shift.center before anything else.
+move balance {
+  steps  { rightFoot.side(0.4m) leftFoot.back(0.08m).across(0.05m) rightFoot.fwd(0.08m) }
+  height { low(5cm) high straight }
+}
+
+// ---- The end.
+
+// reverence — 8 beats; whole body. The bow: a step to the right, the left foot pointed behind, a plié with the
+// head and the body bowed and the arms from second down to bras bas, and the feet together. To end on.
+move reverence {
+  steps   { then:1 rightFoot.side(0.4m):1 then:5 together:1 }
+  leftLeg { skip:1 then:1 back.floor:3 then:1 skip:2 }
+  height  { straight:2 then:2 low(10cm):1 then:2 straight:1 }
+  torso   { up:2 then:2 up.fwd(20):1 then:2 up:1 }
+  head    { fwd:2 then:2 fwd.down(30):1 then:2 fwd:1 }
+  arms    { brasBas:1 aLaSeconde:1 then:2 brasBas:4 }
+}

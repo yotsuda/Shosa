@@ -35,10 +35,13 @@ export function danceRequest(dance: string, songFile: string, score: string | un
   return `Choreograph a dance in Shosa to the Lily# song ${songFile}, in the file ${dance} — it is open: write it with the tool shosa_edit. `
     + `It already names the song${singing.length ? ` and a dancer for each part that sings (${singing.join(', ')})` : ' and a dancer'}; `
     + 'keep those lines and write the sections.\n'
-    + 'First read the Shosa grammar with the tool shosa_grammar unless you have it in this conversation, '
+    + 'First read the Shosa grammar with the tool shosa_grammar and the choreography guide with the tool shosa_guide, '
+    + 'unless you have them in this conversation, '
     + `then read the song with the tool shosa_song (file: ${songFile}${score ? `, score: ${score}` : ''}). `
+    + 'Work as the guide says: the plan first (the vocabulary files to use, every section\'s role and energy, the motifs), '
+    + 'then the head of the file, then one section a step, each reply short. '
     + 'Write the dance as "Choreographing the words" in the grammar says: a section for each of the song\'s sections, '
-    + 'the moves placed on the words by bar and beat. Check with shosa_check until it says no problems, and look at it with shosa_sheet.\n'
+    + 'the moves placed on the words by bar and beat. Check until it says no problems, and look at each section with shosa_sheet.\n'
     // A model that met the same error on many lines ran a script in the terminal to fix them all, and the chat
     // stopped to ask the user ("Run in terminal: Fix @sharp/length ordering in shosa file", 2026-11-27).
     // shosa_edit asks nothing (tools.ts), as Lily#'s lilysharp_proposeScore.

@@ -1,0 +1,188 @@
+// shosa:basics — the everyday steps, arm patterns and poses of a dance to a pop or idol song. A dance brings it in with: using "shosa:basics"
+// Feet patterns (steps, height, legs, a little torso) and arm patterns (arms, sometimes the head) are apart: put any arms over any
+// feet, the feet in `body` and the arms in `arms` (narrower, so it wins): `body { stepTouch:4 }` with `arms { handClap:2 handClap:2 }`.
+// (Not `steps { stepTouch }`: that keeps only the steps, and march/kick/hopKnee are legs.) Poses and combos are whole-body.
+// A height row that begins with a dip sinks to it through the word before: after a long `then`, slowly. Hit a pose `@sharp` only
+// from a shape near it (from hanging arms to highV is too fast, SH2003).
+// Not in Shosa (yet), so not here: hands and fingers (a peace sign, a finger heart, jazz hands), a shoulder shrug, kneeling or floor work.
+
+// ---- Feet: steps, height, legs. They leave the arms and the head to another row. ----
+
+// stepTouch — 4 beats; steps, height. Step right and close, step left and close, a small dip on each step: the step for a verse,
+// under any arm pattern. Ends where it began. @mirror starts to the left.
+move stepTouch {
+  steps  { rightFoot.side(0.45m) together leftFoot.side(0.45m) together }
+  height { { low(6cm):1/2 mid:1/2 } q q q }
+}
+
+// sideTogether — 4 beats; steps, height. Side, together, side, together to the right: travels 0.7 m right. Follow it with
+// sideTogether@mirror to come back: the travelling step for bars without words.
+move sideTogether {
+  steps  { rightFoot.side(0.45m) together rightFoot.side(0.45m) together }
+  height { { low(6cm):1/2 mid:1/2 } q q q }
+}
+
+// stepBallChange — 2 beats; steps, height. A small step forward on the right on the beat, the weight back onto the left in
+// place on the "and" of the next beat, and the right closes: a quick link before a turn or a new direction. Ends where it began.
+// @mirror for the left.
+move stepBallChange {
+  steps  { rightFoot.fwd(0.2m):1 leftFoot.back(0.2m):1/2 stand:1/2 }
+  height { low(6cm):1 mid:1/2 low(6cm):1/2 }
+}
+
+// march — 4 beats; legs. Marching on the spot, the knees up: right, left, right, each foot down on the beat (1, 2, 3), still
+// on 4. A beat to keep while the arms do the work (a chant, a call-and-response chorus). @mirror starts on the left.
+move march {
+  rightLeg { skip:1/4 then:1/4 fwd.down(55).bent(70):1/2 down:1 then:1/2 fwd.down(55).bent(70):1/2 down:1 }
+  leftLeg  { skip:1 then:1/2 fwd.down(55).bent(70):1/2 down:2 }
+}
+
+// bounce — 4 beats; height only. Down on every beat, up on every "and": the groove under a held pose, a clap or a sway.
+// Stretch it to 8 for a long intro; it works under any `steps` row.
+move bounce {
+  height { { low(7cm):1/2 mid:1/2 } q q q }
+}
+
+// sway — 4 beats; steps, torso. The weight over the right, the left, the right, and back to the middle, the chest leaning a
+// little against the hips: for a slow song, a ballad's verse, a held note. @mirror starts to the left.
+move sway {
+  steps { shift.right shift.left shift.right shift.center }
+  torso { up.left(4) up.right(4) up.left(4) up }
+}
+
+// hopKnee — 2 beats; steps, a leg. Onto the right foot, hop on it on beat 1 with the left knee up, the left foot down beside
+// it on the "and": a bright accent at the end of a line. Ends on the right foot (the left free): hopKnee@mirror next shifts back.
+move hopKnee {
+  steps   { then:1/2 shift.right:1/2 hop:1 }
+  leftLeg { skip:1/2 then:1/2 fwd.down(50).bent(90):1/2 down:1/2 }
+}
+
+// kick — 2 beats; a leg. The right knee up on the "and", a low kick forward on beat 1, the foot back down on 2: an accent on
+// a hit in the music. @mirror kicks the left.
+move kick {
+  rightLeg { down:1/2 fwd.down(40).bent(70):1/2 fwd.down(20):1/2@sharp down:1/2 }
+}
+
+// vine — 4 beats; steps, height. Grapevine to the right: side, cross behind, side, close. Travels about 0.8 m right;
+// vine@mirror comes back. For the bars without words, or the whole group crossing the stage.
+move vine {
+  steps  { rightFoot.side(0.45m) leftFoot.back(0.03m).across rightFoot.side(0.45m) together }
+  height { { low(6cm):1/2 mid:1/2 } q q q }
+}
+
+// quarterTurn — 2 beats; steps. A quarter turn to the right on both feet, facing the new way on beat 1 and standing there:
+// to face a partner or the side of the stage. Stretch it (:4) for a slow turn. @mirror turns left. Ends turned 90° right.
+move quarterTurn {
+  steps { together:1 turn.right(90):1 }
+}
+
+// halfTurn — 4 beats; steps. Step forward on the right, pivot half round to the left on beat 2, close: a pivot turn to face
+// the back, or (twice) round to the front again. Ends turned 180° left. @mirror steps on the left and turns right.
+move halfTurn {
+  steps { rightFoot.fwd(0.3m):1 turn.left(180):1 stand:2 }
+}
+
+// ---- Arms: arms, leftArm, rightArm, sometimes the head. They leave the feet to another row. ----
+
+// handClap — 2 beats; arms. Hands open low on the beat, clap on the next: two of them in a bar clap on 2 and 4 (the
+// backbeat). Over stepTouch or march, the chorus's easiest arms.
+move handClap {
+  arms { side.down(40):1 clap:1@sharp!clap }
+}
+
+// pointOut — 4 beats; arms, head. The right hand drawn to the chest, then pointing out to the audience on beat 1 and held,
+// the left hand on the hip, the eyes after the point: on "you" in a lyric, the first word after a rest. @mirror points with the left.
+move pointOut {
+  rightArm { chest:1 fwd.side(25).up(15):2@sharp then:1 }
+  leftArm  { hip:4 }
+  head     { fwd:1 fwd.right(15):3@sharp }
+}
+
+// waveOverhead — 4 beats; arms. Both arms up and swaying over the head, to the left and the right, one beat each, as a
+// concert crowd does: for a chorus, a held note, the last chorus. @mirror sways right first.
+move waveOverhead {
+  leftArm  { up.side(25) up.across(25) up.side(25) up.across(25) }
+  rightArm { up.across(25) up.side(25) up.across(25) up.side(25) }
+}
+
+// helloWave — 2 beats; arms. The right hand up by the head, waving side to side once a beat, the left hand on the hip: hello,
+// goodbye, the intro and the outro. @mirror waves the left.
+move helloWave {
+  rightArm { { up.bent(30):1/2 side.up(60).bent(30):1/2 } q }
+  leftArm  { hip:2 }
+}
+
+// armRoll — 2 beats; arms. The forearms rolling round each other in front of the chest, one roll a beat: for a rising
+// build before the chorus, or as "and round" in a lyric.
+move armRoll {
+  rightArm { fwd.across(25).up(10).bent(110).elbow(side):1/2@through fwd.across(25).down(20).bent(110).elbow(side):1/2@through fwd.across(25).up(10).bent(110).elbow(side):1/2@through fwd.across(25).down(20).bent(110).elbow(side):1/2 }
+  leftArm  { fwd.across(25).down(20).bent(110).elbow(side):1/2@through fwd.across(25).up(10).bent(110).elbow(side):1/2@through fwd.across(25).down(20).bent(110).elbow(side):1/2@through fwd.across(25).up(10).bent(110).elbow(side):1/2 }
+}
+
+// reachPull — 2 beats; the right arm. The right hand reaches out in front on the beat, and pulls back sharp to the ribs on the
+// next, the elbow behind: "come here", a grab on an accent. @mirror reaches with the left.
+move reachPull {
+  rightArm { fwd.side(15).up(10):1 fwd.down(60).bent(120):1@sharp }
+}
+
+// ---- Poses: a shape to hit (on its beat; `@sharp` for a snap) and hold, at the end of a phrase. Whole-body unless said. ----
+
+// highV — pose; arms, head. Both arms up and out in a V, the chin up: the top of a build, the first beat of a chorus, a jump.
+pose highV {
+  arms { side.up(50) }
+  head { fwd.up(10) }
+}
+
+// handsOnHips — pose; arms. Both hands on the hips: a sassy rest between moves, the last word of a cheeky line.
+pose handsOnHips {
+  arms { hip }
+}
+
+// pointUp — pose; arms, head. The right hand up and out to the sky, the left on the hip, the eyes after it: a held high
+// note. @mirror with the left hand up.
+pose pointUp {
+  rightArm { side.up(60) }
+  leftArm  { hip }
+  head     { fwd.right(15).up(15) }
+}
+
+// bigHeart — pose; arms, head. The arms curved over the head, the hands meeting above it: a big heart, the idol's "I love you",
+// a held last syllable. The head tilts a little.
+pose bigHeart {
+  arms { up.across(20).bent(80).elbow(side) }
+  head { fwd.tilt(left(10)) }
+}
+
+// bigFinish — pose; steps, arms, torso, head. Feet wide, arms open high, the chest lifted, the chin up: the final pose of the
+// song or of a big section. Stands in a stance 0.5 m wide.
+pose bigFinish {
+  steps { rightFoot.side(0.5m) }
+  arms  { side.up(30) }
+  torso { up.back(5) }
+  head  { fwd.up(15) }
+}
+
+// ---- Combos: feet and arms together. ----
+
+// touchClap — 4 beats; steps, height, arms. stepTouch with a clap on each close: the chorus step every idol group knows.
+// @mirror starts to the left.
+move touchClap {
+  steps  { rightFoot.side(0.45m) together leftFoot.side(0.45m) together }
+  height { { low(6cm):1/2 mid:1/2 } q q q }
+  arms   { side.down(40) clap:1@sharp!clap side.down(40) clap:1@sharp!clap }
+}
+
+// kickBallChange — 2 beats; a leg, steps. A low kick of the right foot on the "and", the foot down on its ball on beat 1, the
+// left closing to it on the next "and": a punchy end to a phrase, often before a turn. @mirror kicks with the left.
+move kickBallChange {
+  rightLeg { down:1/2 fwd.down(25):1/4@sharp skip:5/4 }
+  steps    { then:1 rightFoot.place:1/2 stand:1/2 }
+}
+
+// stepPointV — 8 beats; steps, arms, head. Two steps out to the right with the right hand pointing out, the same to the left,
+// then both arms into a V over a stepTouch: a whole 8-count for a chorus. Ends where it began, the arms in the V.
+move stepPointV {
+  body { pointOut:4 pointOut:4@mirror }
+  steps { stepTouch:4 stepTouch:4 }
+  arms  { skip:6 then:1 highV:1 }
+}

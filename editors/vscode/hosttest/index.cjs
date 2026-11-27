@@ -60,9 +60,9 @@ exports.run = async function run() {
     await vscode.window.showTextDocument(document);
 
     // Registered: the declarations of package.json, and an implementation behind each.
-    const names = ['shosa_grammar', 'shosa_edit', 'shosa_check', 'shosa_song', 'shosa_sheet'];
+    const names = ['shosa_grammar', 'shosa_guide', 'shosa_edit', 'shosa_check', 'shosa_song', 'shosa_sheet'];
     await until('the tools', () => names.every(n => vscode.lm.tools.some(t => t.name === n)));
-    check('the five tools are listed', true, vscode.lm.tools.filter(t => t.name.startsWith('shosa_')).map(t => t.name));
+    check('the six tools are listed', true, vscode.lm.tools.filter(t => t.name.startsWith('shosa_')).map(t => t.name));
 
     // The grammar. The first call also waits for the language server to start.
     const grammar = await until('the grammar', async () => {
@@ -77,6 +77,12 @@ exports.run = async function run() {
     check('shosa_grammar returns the grammar and how to work here',
       grammarText.includes('A complete file') && grammarText.includes('# Working in this editor'),
       { characters: grammarText.length });
+
+    // The choreography guide, ending with the vocabulary files (using "shosa:pop" …).
+    const guide = (await invoke('shosa_guide', {})).map(p => p.value ?? '').join('');
+    check('shosa_guide returns the guide and every vocabulary file',
+      guide.startsWith('# Choreographing in Shosa') && ['basics', 'pop', 'jazz', 'ballet'].every(s => guide.includes(`// shosa:${s} — `)),
+      { characters: guide.length });
 
     // The check, by full path and by the path from the workspace folder.
     const checked = (await invoke('shosa_check', { file })).map(p => p.value).join('');

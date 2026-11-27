@@ -1,0 +1,206 @@
+// shosa:jazz — theatre (Broadway) and lyrical jazz dance. A dance brings it in with: using "shosa:jazz"
+// The steps (jazzSquare … hitchKick) are feet, height and legs only: put any of the arm shapes and
+// arm moves (jazzSecond … punchUp) over them in an `arms` row. Isolations are one row each; the
+// finishing poses and the combinations are whole-body. `ready` takes any pose back to neutral.
+// A move's first step or kick lands ON the beat it is written at (it is made in the word before).
+// Not in Shosa (yet), so not here: jazz hands (no fingers), a hip pushed out to the side or a head
+// slide (the hips and the head turn, they do not move sideways), a back arched back (it only leans),
+// a pointed or flexed foot by choice, knee slides and floor work.
+
+// ---- Steps: feet, height and legs ----
+
+// jazzSquare — 4 beats; steps. Right crosses over the left (1), left back (2), right side (3), left
+// closes (4): a box on the floor, ends where it began. Verses and bars without words. @mirror.
+move jazzSquare {
+  steps { rightFoot.fwd(0.1m).across(0.1m) leftFoot.back(0.1m) rightFoot.side(0.5m) stand }
+}
+
+// jazzKickBallChange — 2 beats; rightLeg, steps. "1 & 2": a low kick to the front on the move's beat, the
+// right foot down under the body on "&", the weight onto the left on 2 (and back between the feet).
+// A pickup into a phrase, a fill. @mirror.
+move jazzKickBallChange {
+  rightLeg { fwd.down(30):1/4 skip:7/4 }
+  steps    { skip:1/2 rightFoot.place:1/2 leftFoot.place:1/2 shift.center:1/2 }
+}
+
+// jazzPasDeBourree — 2 beats; steps. Jazz pas de bourrée, "1 & 2": the right crosses behind the left, the
+// left steps to the side, the right steps beside it. Travels about 0.4 m left; the weight ends on the right. @mirror.
+move jazzPasDeBourree {
+  steps { rightFoot.back(0.05m).across(0.1m):1/2 leftFoot.side(0.3m):1/2 rightFoot.place:1 }
+}
+
+// chasse — 2 beats; steps. "1 & 2": right to the side, the left chases it closed, right to the side
+// again: travels about 0.35 m to the right, the weight on the right. Follow it with chasse@mirror to come back.
+move chasse {
+  steps { rightFoot.side(0.35m):1/2 together:1/2 rightFoot.side(0.35m):1 }
+}
+
+// jazzWalk — 4 beats; steps, height, hips. Three low, deliberate walking steps forward, left first,
+// each hip leading its leg, and the feet closed on 4: travels about 1 m forward. A strut on a groove.
+move jazzWalk {
+  steps  { leftFoot.fwd(0.45m) rightFoot.fwd(0.45m) leftFoot.fwd(0.45m) stand }
+  height { low(10cm):3 mid }
+  hips   { right(15) left(15) right(15) center }
+}
+
+// pivotTurn — 2 beats; steps. Step forward on the right (1), pivot half round to the left on both
+// feet, up on the toes (2): ends facing BACK, about 0.1 m on. Twice to face front again. @mirror turns right.
+move pivotTurn {
+  steps  { rightFoot.fwd(0.4m):1 turn.left(180):1 }
+  height { high:1 mid:1 }
+}
+
+// chaineTurns — 2 beats; steps, height. One chaîné turn to the right on the toes, in two half turns,
+// travelling about 0.5 m right; ends facing front. Usually twice or more ({ chaineTurns } q q). @mirror.
+move chaineTurns {
+  steps  { leftFoot.side(0.25m)@turn(right(180)) rightFoot.side(0.25m)@turn(right(180)) }
+  height { high:2 }
+}
+
+// piqueTurn — 2 beats; steps, height, leftLeg. Step out onto the right on the toes and turn once to the
+// right on it, the left foot at the right knee (parallel passé); down on both on 2. A turn on a big accent. @mirror.
+move piqueTurn {
+  steps   { rightFoot.side(0.3m):1 turn.right(360):1 }
+  height  { high:3/2 mid:1/2 }
+  leftLeg { down:1/4 otherKnee.knee(fwd):3/4 then:1/2 down:1/2 }
+}
+
+// parallelPasse — 2 beats; rightLeg, height. The right foot drawn up to the left knee, legs parallel,
+// rising onto the toe of the standing foot, and down. A held note, a balance. @mirror.
+move parallelPasse {
+  rightLeg { down:1/2 otherKnee.knee(fwd):1 down:1/2 }
+  height   { mid:1/2 high:1 mid:1/2 }
+}
+
+// fanKick — 4 beats; rightLeg. The straight right leg sweeps an arc: crossed in front, up over the
+// front, out to the side, and down. A showy accent on a fill. @mirror.
+move fanKick {
+  rightLeg { down:1 fwd.across(40).up(20):1/2 fwd.up(60):1/2@through side.up(20):1 down:1 }
+}
+
+// hitchKick — 4 beats; steps, legs. A scissor leap forward: the weight onto the left, the right knee
+// comes up (2), the left kicks out level past it in the air (2.5), the right lands (3), the left closes
+// beside it (3.5). Travels 0.6 m forward, the weight ends on the right. A climax, the end of a run. @mirror.
+move hitchKick {
+  steps    { then:1/2 shift.left:1/2 then:2 leap.fwd(0.6m):1 }
+  rightLeg { skip:3/2 then:1/2 fwd.bent:1/2 then:1/2 down:1 }
+  leftLeg  { skip:2 then:1/2 fwd:1/2 then:1/2 down:1/2 }
+}
+
+// ---- The torso and isolations: one row (or a few) each ----
+
+// contraction — pose; torso, head, height. The torso rounded forward from the middle, the head down,
+// the knees soft: hit it on a hard accent. Then release or ready.
+pose contraction {
+  torso  { up.fwd(15).round }
+  head   { fwd.down(25) }
+  height { low(8cm) }
+}
+
+// release — pose; torso, head, height. Out of the contraction: the chest lifted and leaning back,
+// the face up. On the next accent or a long note. Then ready.
+pose release {
+  torso  { up.back(15) }
+  head   { fwd.up(30) }
+  height { mid }
+}
+
+// hipIsolation — 2 beats; hips. The hips snapped round right, then left, over still feet and square
+// shoulders, and back. Over any steps or a still stance; @mirror starts left.
+move hipIsolation {
+  hips { center:1/2 right(25):1/2@sharp left(25):1/2@sharp center:1/2 }
+}
+
+// headIsolation — 4 beats; head. The face snapped to the right, front, left, front, one beat each:
+// a dry accent on each beat, often over a still body. @mirror starts left.
+move headIsolation {
+  head { fwd.right(60):1@sharp fwd:1@sharp fwd.left(60):1@sharp fwd:1@sharp }
+}
+
+// ---- Arms: shapes to hit, and arm moves (an arms or leftArm/rightArm row) ----
+
+// jazzSecond — pose; arms. Both arms straight out to the sides, a little forward, strong: the basic
+// jazz arm, over a square, a walk, chassés.
+pose jazzSecond { arms { side.fwd(10).up(5).bent(0) } }
+
+// jazzV — pose; arms. Both arms up in a wide V: the end of a phrase, a jump, "ta-da".
+pose jazzV { arms { side.up(55).bent(0) } }
+
+// jazzDiagonal — pose; leftArm, rightArm. One long diagonal line, the right arm high, the left arm
+// low: with a lunge or a hip-out pose. @mirror for the left arm high.
+pose jazzDiagonal {
+  rightArm { side.up(45).bent(0) }
+  leftArm  { side.down(45).bent(0) }
+}
+
+// punchUp — 2 beats; rightArm. The right hand drawn in to the shoulder, punched straight up on beat 1
+// (!hit), and down again. A hit in the music. @mirror for the left arm.
+move punchUp {
+  rightArm { down:1/2 shoulder:1/2 up:1/2@sharp!hit side.down(60):1/2 }
+}
+
+// ---- Finishing poses and whole-body shapes ----
+
+// ready — pose; steps, height, torso, head, hips, shoulders, arms. Standing neutral: feet at standing
+// width, upright, arms down. Takes any pose or isolation back to the start.
+pose ready {
+  steps     { stand }
+  height    { mid }
+  torso     { up }
+  head      { fwd }
+  hips      { center }
+  shoulders { center }
+  arms      { down }
+  leftLeg   { down }
+  rightLeg  { down }
+}
+
+// jazzLunge — 2 beats; steps, height, torso, head, arms. Step out to the right into a lunge, the
+// right knee bent, the left leg long, arms in the diagonal, the face to the high hand: ENDS in the
+// lunge, to hold to the end of the phrase; ready to come out. @mirror.
+move jazzLunge {
+  steps    { then:1/2 rightFoot.side(0.8m):1/2 shift.right:1 }
+  height   { mid:1/2 then:1/2 low(15cm):1 }
+  torso    { up:1 up:1 }
+  rightArm { down:1/2 then:1/2 side.up(45).bent(0):1 }
+  leftArm  { down:1/2 then:1/2 side.down(45).bent(0):1 }
+  head     { fwd:1 fwd.right(30).up(20):1 }
+}
+
+// hipOut — 2 beats; steps, rightLeg, hips, arms, head. The weight onto the left, the right toe out in
+// front, the hips turned, the left hand on the hip, the right arm up, the head tilted: a sassy
+// finishing pose; ENDS in it (ready to come out). @mirror.
+move hipOut {
+  steps    { then:1 shift.left:1 }
+  rightLeg { skip:1 fwd.side(30).floor:1 }
+  hips     { center:1 left(20):1 }
+  leftArm  { down:1 hip:1 }
+  rightArm { down:1 side.up(60).bent(0):1 }
+  head     { fwd:1 fwd.right(20).tilt(right(15)):1 }
+}
+
+// layout — 4 beats; steps, rightLeg, torso, arms, head. A back bend as far as Shosa allows (a straight lean back, no arch):
+// the right leg kicks up to the front as the chest goes back, the arms up and the face to the ceiling,
+// held a beat, and back to standing. A climax, the top of a phrase. @mirror.
+move layout {
+  steps    { shift.left:1 then:2 shift.center:1 }
+  rightLeg { down:1 fwd.up(30):2 down:1 }
+  torso    { up:1 up.back(25):2 up:1 }
+  arms     { down:1/2 fwd:1/2 up.body:2 side.down(30):1/2 down:1/2 }
+  head     { fwd:1 fwd.up(50):2 fwd:1 }
+}
+
+// ---- Combinations: whole bars ----
+
+// jazzCombo — 8 beats; steps, legs, arms. Jazz square, kick-ball-change, pas de bourrée (left), arms
+// in second through the square and up in a V on the pas de bourrée (they stay up: the next arms row takes them). Two bars of a verse, about 0.4 m to the right; @mirror.
+move jazzCombo {
+  body { jazzSquare:4 jazzKickBallChange:2 jazzPasDeBourree:2@mirror }
+  arms { jazzSecond:4 then:2 jazzV:2 }
+}
+
+// turnCombo — 8 beats; whole body. Two chaîné turns right, a piqué turn, and the lunge to finish:
+// a chorus's last two bars. Ends in the lunge, about 1.25 m to the right. @mirror.
+move turnCombo {
+  body { chaineTurns:2 chaineTurns:2 piqueTurn:2 jazzLunge:2 }
+}

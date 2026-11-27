@@ -574,6 +574,10 @@ score { dancer hero }
   the file and the line: `In hero.parts.shosa, line 3: …`. A file that is not there is SH1039.
 - A move counts its bars in the time of the file that uses it, and its seconds in that
   file's tempo, wherever it is written.
+- **Shosa has files of parts of its own**, a style's poses and moves each: `using "shosa:basics"`,
+  `"shosa:pop"`, `"shosa:jazz"`, `"shosa:ballet"` bring them in as any file of parts, from any
+  folder. What each holds, with a line on every pose and move, is in the choreography guide
+  (`shosa guide`; in the editor, the tool `shosa_guide`).
 
 ## Gesture targets (arms, legs, torso, head)
 
@@ -1548,6 +1552,9 @@ score { dancer solo }             // the whole song
   error (`SH1901`).
 
 ### Choreographing the words
+
+(How to plan and write a whole dance — a song's sections as roles, variety, the vocabulary
+files — is the choreography guide: `shosa guide`, in the editor the tool `shosa_guide`.)
 
 **Before writing a dance to a song, read the song with `shosa song song.lys`** (in the
 editor, the tool `shosa_song`). It prints the sections as played, who sings, and the

@@ -10,6 +10,7 @@ import { applyEdits, type TextEdit } from './textEdits';
 // the compiler's verdict and the picture of the movement, with nothing for the user to set up.
 //
 //   shosa_grammar   the whole language, from the compiler in this extension
+//   shosa_guide     how to choreograph a whole dance, and the vocabulary files (using "shosa:jazz")
 //   shosa_edit      writes a .shosa (edits of it, or the whole text) through the extension, so that
 //                   Copilot asks the user nothing, and answers the check of what it wrote
 //   shosa_check    what `shosa check FILE [--score] [--at]` prints: diagnostics, scores, sections,
@@ -39,7 +40,7 @@ const howToWork = `
 
 # Working in this editor
 
-0. To dance to a song (a .lys), call the tool shosa_song with it first, and write the dance as "Choreographing the words" above says: its section names and bar counts, the moves on its words by bar and beat, "sings PART" on the dancer line for the parts that sing.
+0. To choreograph a dance longer than a few bars, read the tool shosa_guide first: how to plan it and write it a section at a time, and the vocabulary files (using "shosa:pop" …) to take poses and moves from. To dance to a song (a .lys), call the tool shosa_song with it first, and write the dance as "Choreographing the words" above says: its section names and bar counts, the moves on its words by bar and beat, "sings PART" on the dancer line for the parts that sing.
 1. Write or change the .shosa file with the tool shosa_edit, not your own tool for editing files and never commands or scripts in the terminal (both stop to ask the user): "edits", each "old" copied from the file with its "new" ("all": true for the same fix everywhere it stands), or "text", the whole file for a new one or most of it rewritten. Start from "A complete file" above; use only words that are above.
 2. shosa_edit answers what the compiler says of what it wrote (the tool shosa_check says the same, and more with "score" and "at"). Fix until its first line says "no problems". Take lengths, bars, seconds and the times of marks from its report; do not compute them.
 3. Call the tool shosa_sheet with the file and LOOK at the image of every score you changed (left limbs blue, right limbs red). No diagnostics does not mean the right movement. For anything shorter than a beat pass "score" and "step": 0.25; for a punch, a kick or a bow straight ahead pass "view": "side".
@@ -80,6 +81,11 @@ export function registerTools(context: vscode.ExtensionContext, client: Language
   };
 
   const name = (file: string) => path.basename(file.replace(/[?#].*$/, ''));
+
+  context.subscriptions.push(vscode.lm.registerTool<Record<string, never>>('shosa_guide', {
+    prepareInvocation: () => ({ invocationMessage: 'Reading the Shosa choreography guide' }),
+    invoke: async () => text((await client.sendRequest<{ text: string }>('shosa/guide', {})).text),
+  }));
 
   context.subscriptions.push(vscode.lm.registerTool<Record<string, never>>('shosa_grammar', {
     prepareInvocation: () => ({ invocationMessage: 'Reading the Shosa grammar' }),

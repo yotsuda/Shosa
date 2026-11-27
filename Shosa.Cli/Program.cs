@@ -33,6 +33,8 @@ const string Usage = """
       shosa midi    FILE [-o MID]   the song the file is danced to (`music`), in the dance's order and tempo
       shosa wav     FILE [-o WAV] --soundfont FONT.sf2   the same as sound
       shosa grammar [-o MD]        the language in one file, for an AI that will write it
+      shosa guide   [-o MD]        how to choreograph a whole dance, and Shosa's vocabulary of poses
+                                   and moves (using "shosa:jazz"), for an AI that will write one
 
     One `score` of the file is one file written. Every command writes every score: the
     unnamed one to the input's name (walk.png), `score Idle` to walk-Idle.png. --score NAME
@@ -41,9 +43,9 @@ const string Usage = """
     as FILE.events.json.
     """;
 
-if (args.Length >= 1 && args[0] == "grammar")
+if (args.Length >= 1 && args[0] is "grammar" or "guide")
 {
-    string grammar = GrammarDoc.Render();
+    string grammar = args[0] == "grammar" ? GrammarDoc.Render() : ChoreographyDoc.Render();
     int at = Array.IndexOf(args, "-o");
     if (at >= 0 && at + 1 < args.Length)
         File.WriteAllText(args[at + 1], grammar);

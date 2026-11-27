@@ -1,0 +1,181 @@
+// shosa:pop — 80s pop dance: sharp hits that freeze, snapped kicks, fast spins into a freeze, toe rises, robot moves. A dance brings it in with: using "shosa:pop"
+// Poses are upper-body shapes to hit on an accent and hold (arms, torso, head, hips, shoulders, height; only wideHit and toeStand place the feet):
+// put them over any steps. Feet moves (steps, height, a leg) and upper-body moves (arms, head, shoulders, hips) are apart: lay any of one over any of the other.
+// Not in Shosa (yet), so not here: the backward glide (a flat foot sliding back under the weight, the other heel up), a hip thrust to the side, a shrug, hands and fingers (the pointing finger, a hat), a lean past the toes, sliding feet.
+
+// ---- poses: a shape to hit on an accent and hold ----
+// To hit one from a shape far from it, give the way a short `then`: `skyPoint:7/2 then:1/2 | robotHit:4 |` arrives on the bar line.
+// `@sharp` (`robotHit@sharp`) goes in 0.15 s: only from a near shape, or SH2003 says it is too fast.
+
+// skyPoint — pose; arms, torso, head, hips, shoulders, height. The right arm straight up and out, pointing at the sky, the face after it,
+// the left arm low: the end of a phrase, a held last note. @mirror for the left arm.
+pose skyPoint {
+  rightArm  { side.up(60).bent(0) }
+  leftArm   { side.down(50).bent(0) }
+  torso     { up.left(5) }
+  head      { fwd.right(25).up(35) }
+  hips      { left(10) }
+  shoulders { right(10) }
+  height    { mid }
+}
+
+// toeStand — pose; feet (together), height, turnout, arms, torso, head. Up on the toes, the feet together and the knees turned in,
+// the arms straight down by the sides, the face level: the freeze after a spin or on a high held note.
+pose toeStand {
+  steps     { together }
+  height    { high }
+  turnout   { in(15) }
+  arms      { down.bent(0) }
+  torso     { up }
+  head      { fwd }
+  hips      { center }
+  shoulders { center }
+}
+
+// leanBack — pose; arms, torso, head, height. The body leans back from the feet, the arms hanging straight, the face held level:
+// a cool hold over a bar without words. Go into it slowly (`leanBack:2`) and come out with a sharp hit.
+pose leanBack {
+  arms      { down.bent(0) }
+  torso     { up.back(20) }
+  head      { fwd }
+  hips      { center }
+  shoulders { center }
+  height    { straight }
+}
+
+// hatBrim — pose; arms, torso, head, height. The right hand at the brim of an (unseen) hat, the head down and a little to the right,
+// the left arm low: the opening freeze before the music starts, or the last one. @mirror for the left hand.
+pose hatBrim {
+  rightArm  { forehead }
+  leftArm   { side.down(20).bent(0) }
+  torso     { up.fwd(5) }
+  head      { fwd.right(15).down(30) }
+  hips      { right(10) }
+  shoulders { left(10) }
+  height    { low(5cm) }
+}
+
+// robotHit — pose; arms, torso, head, height. Square robot arms: the right forearm up from an elbow out to the side, the left forearm
+// across in front, the head turned sharp to the right: a robotic accent. @mirror for the other side.
+pose robotHit {
+  rightArm  { side.up(45).bent.elbow(side) }
+  leftArm   { fwd.across(20).bent.elbow(side) }
+  torso     { up }
+  head      { fwd.right(60) }
+  hips      { center }
+  shoulders { center }
+  height    { mid }
+}
+
+// wideHit — pose; feet (a wide stance), height, arms, torso, head. Feet wide, knees bent, both arms snapped down and out, the face down:
+// the big accent at the end of a chorus line. It stands wide: a feet move after it (or `steps { stand }`) brings the feet in.
+pose wideHit {
+  steps     { leftFoot.side(0.6m) }
+  height    { low(10cm) }
+  arms      { side.down(35).bent(0) }
+  torso     { up.fwd(10) }
+  head      { fwd.down(30) }
+  hips      { center }
+  shoulders { center }
+}
+
+// ---- feet: steps, height and the legs (lay any arms over them) ----
+
+// kickSnap — 2 beats; rightLeg. The knee comes up, the foot snaps out forward on beat 1 and straight back to the knee, then down:
+// on a snare accent. @mirror for the left leg.
+move kickSnap {
+  rightLeg { down:1/2 fwd.down.bent(110):1/2 fwd.down(10):1/4@sharp!kick fwd.down.bent(110):1/4 down:1/2 }
+}
+
+// sideKick — 2 beats; rightLeg, torso. The knee up, the foot snaps out to the side on beat 1, the body leaning away, and back:
+// an accent, often after kickSnap. @mirror for the left leg.
+move sideKick {
+  rightLeg { down:1/2 side.down(30).bent(110):1/2 side.down(5):1/4@sharp!kick side.down(30).bent(110):1/4 down:1/2 }
+  torso    { up:1/2 up:1/2 up.left(15):1/4@sharp up:3/4 }
+}
+
+// toeRise — 4 beats; height, turnout. Snaps up onto the toes on beat 1 with the knees turned in, holds through beat 3, comes down:
+// a held note. Put a pose's arms over it: `arms { skyPoint:4 }` beside `body { toeRise:4 }` (in the body row the pose's own height would win).
+move toeRise {
+  height  { mid:1 high:2@sharp then:1/2 mid:1/2 }
+  turnout { parallel:1 in(15):2@sharp then:1/2 parallel:1/2 }
+}
+
+// spinFreeze — 4 beats; steps, height, arms. On beat 1 the arms pull in, a fast whole turn to the right on the toes ending on beat 2,
+// the arms snapped out, frozen there on the toes, down by beat 4: the end of a phrase. @mirror turns left. `spinFreeze:2` is a quicker one.
+move spinFreeze {
+  steps  { together:1 then:1 turn.right(360):2 }
+  height { mid:1 high:1 then:1 mid:1 }
+  arms   { down:1 fwd.down(40).bent(80):1 side.down(30).bent(0):1@sharp then:1/2 down:1/2 }
+}
+
+// attitudeWalk — 4 beats; steps, shoulders, head. Three short strutting steps forward (left, right, left), the shoulders swung against them,
+// the face front, and the feet closed on beat 3: the walk-on of an intro, a bar between hits. @mirror starts on the right. Travels 1.2 m forward.
+move attitudeWalk {
+  steps     { leftFoot.fwd(0.4m) rightFoot.fwd(0.4m) leftFoot.fwd(0.4m) stand }
+  shoulders { right(15) left(15) right(15) center }
+  head      { fwd:4 }
+}
+
+// crossStep — 4 beats; steps, height. The right foot crosses in front of the left, the left steps out, the right crosses behind, the feet close:
+// travels to the left (0.5 m), a bouncy bar between hits. @mirror travels right.
+move crossStep {
+  steps  { rightFoot.across(0.13m) leftFoot.side(0.35m) rightFoot.back.across(0.13m) stand }
+  height { { low(6cm):1/2 mid:1/2 } q q q }
+}
+
+// ---- upper body: arms, head, shoulders, hips (lay them over any feet) ----
+
+// robotArms — 4 beats; rightArm, leftArm, head. Robot moves: each beat the arms go to a new square shape at one even speed and stop dead,
+// the head clicking the other way: a bar of synth or drum machine. @mirror starts with the left.
+move robotArms {
+  rightArm { down:1 fwd.bent:1@linear side.up(45).bent.elbow(side):1@linear down:1@linear }
+  leftArm  { down:1 then:1 fwd.bent:1@linear down:1@linear }
+  head     { fwd:1 fwd.left(45):1@sharp fwd.right(45):1@sharp fwd:1@sharp }
+}
+
+// pointHits — 4 beats; rightArm, leftArm, head. The right arm draws in and snaps out straight to point: up and out on beat 1, down and
+// across on beat 2, straight ahead on beat 3 (held), the eyes after the hand, the left hand on the hip: the accents of a chorus's words.
+// @mirror for the left arm.
+move pointHits {
+  rightArm { down:1/2 side.up(40).bent(100):1/2 side.up(40).bent(0):1/2@sharp fwd.across(30).down(40).bent(100):1/2
+             fwd.across(30).down(40).bent(0):1/2@sharp fwd.side(20).bent(100):1/2 fwd.side(20).bent(0):1@sharp }
+  leftArm  { down:1/2 hip:7/2 }
+  head     { fwd:1 fwd.right(30).up(30):1@sharp fwd.left(15).down(25):1@sharp fwd:1@sharp }
+}
+
+// shoulderPops — 4 beats; shoulders. The shoulders snap round, right, middle, left, middle, on every half beat: a bar of the hi-hat.
+move shoulderPops {
+  shoulders { center:1/2 right(25):1/2@sharp center:1/2@sharp left(25):1/2@sharp center:1/2@sharp right(25):1/2@sharp left(25):1/2@sharp center:1/2@sharp }
+}
+
+// hipPops — 4 beats; hips. The hips snap round to the right and to the left on each beat (Shosa turns the hips; it does not push them sideways):
+// a groove in a bar without words.
+move hipPops {
+  hips { center:1/2 right(30):1/2@sharp center:1/2 left(30):1/2@sharp center:1/2 right(30):1/2@sharp left(30):1/2@sharp center:1/2 }
+}
+
+// headSnaps — 4 beats; head. The head snaps to look right, left, and front, each on a beat: a sharp look over a held pose. @mirror looks left first.
+move headSnaps {
+  head { fwd:1 fwd.right(80):1@sharp fwd.left(80):1@sharp fwd:1@sharp }
+}
+
+// ---- combinations: whole body ----
+
+// kickSpinPoint — 8 beats; whole body. kickSnap, a spinFreeze to the right, then the skyPoint hit on beat 6 held to the end:
+// a chorus's last line. @mirror for the other side.
+move kickSpinPoint {
+  body { kickSnap:2 spinFreeze:4 skyPoint:2 }
+}
+
+// strutPoint — 8 beats; whole body. attitudeWalk forward, then up on the toes (toeRise) with the pointHits over it: an intro, or the bars
+// before a chorus. Travels 1.2 m forward. @mirror for the other side.
+move strutPoint {
+  body { { attitudeWalk:4 toeRise:4 } & { skip:4 pointHits:4 } }
+}
+
+// robotGroove — 8 beats; whole body. robotArms over the crossStep to the left and back to the right, then the robotHit freeze held:
+// the bars of a synth break. @mirror starts to the right.
+move robotGroove {
+  body { { crossStep:4 crossStep:4@mirror } & { robotArms:4 robotArms:3@mirror robotHit:1 } }
+}

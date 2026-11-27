@@ -191,7 +191,7 @@ internal static class Words
         var words = new List<Vocabulary.Word>();
         foreach (var file in compilation.Included)
         {
-            string name = folder is null ? Path.GetFileName(file.Path) : Path.GetRelativePath(folder, file.Path).Replace('\\', '/');
+            string name = file.Name(folder);
             var nodes = compilation.Bound.Root.ChildNodes().Where(n => n.Span.Start >= file.Start && n.Span.Start < file.End);
             words.AddRange(Described(nodes, name, compilation.Score.MoveLengths));
         }

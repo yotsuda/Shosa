@@ -338,6 +338,10 @@ public sealed class LanguageServer(Action<string> send)
                 Reply(id, new { text = Shosa.Core.Output.GrammarDoc.Render() });
                 break;
 
+            case "shosa/guide":
+                Reply(id, new { text = Shosa.Core.Output.ChoreographyDoc.Render() });
+                break;
+
             case "shosa/check":
             {
                 // What `shosa check FILE [--score NAME] [--at 3,0.75s]` prints: the diagnostics, then every

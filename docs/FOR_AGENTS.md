@@ -23,6 +23,7 @@ repository with the .NET 10 SDK: `dotnet build Shosa.Cli` →
 
 ```
 shosa grammar -o SHOSA_GRAMMAR.md # the language, as this build of the compiler knows it
+shosa guide -o SHOSA_GUIDE.md     # how to choreograph a whole dance, and the vocabulary files (using "shosa:jazz")
 ```
 
 Take the grammar from `shosa grammar` rather than from a copy: it is generated from the
@@ -32,8 +33,9 @@ table the compiler checks against, so the two cannot disagree. Dancing to a Lily
 everything but dancing to a song works, and a `music` line says Lily# is needed.
 
 **In VS Code, an assistant that uses the editor's tools (Copilot Chat in agent mode) needs
-none of this file's setup**: the extension gives it five tools — `shosa_grammar` (the
-language), `shosa_edit` (writes the .shosa, by edits copied from it or the whole text, and
+none of this file's setup**: the extension gives it six tools — `shosa_grammar` (the
+language), `shosa_guide` (how to choreograph a whole dance, and Shosa's vocabulary of poses and
+moves by style, `using "shosa:pop"`; on the command line `shosa guide`), `shosa_edit` (writes the .shosa, by edits copied from it or the whole text, and
 answers its check: the chat asks the user nothing, as it does for its own edits outside the
 open folders and for the terminal), `shosa_check` (what `shosa check` prints, for the text as the editor has it; `score` and
 `at` as `--score` and `--at`), `shosa_song` (what `shosa song` prints: the song a dance is

@@ -45,7 +45,9 @@ test('the chat is sent to the grammar, the song tool with the score, and the met
   assert.match(asked, /shosa_grammar/);
   assert.match(asked, /shosa_song \(file: C:\/d\/bicycle\.lys, score: japanese\)/);
   assert.match(asked, /"Choreographing the words"/);
-  assert.match(asked, /shosa_check until it says no problems/);
+  assert.match(asked, /the choreography guide with the tool shosa_guide/);
+  assert.match(asked, /the plan first .* then one section a step/);
+  assert.match(asked, /Check until it says no problems/);
   assert.match(asked, /it is open: write it with the tool shosa_edit/);
   assert.match(asked, /Make every change with shosa_edit/);
   assert.match(asked, /do not edit the file by running commands or scripts in the terminal/);

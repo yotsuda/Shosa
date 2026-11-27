@@ -192,7 +192,7 @@ public static class CheckReport
         // What the `using` lines brought in, and what a file of parts offers: a writer uses the names without opening the file.
         string folder = Path.GetDirectoryName(Path.GetFullPath(path)) ?? "";
         foreach (var file in compilation.Included)
-            yield return $"  using {Path.GetRelativePath(folder, file.Path).Replace('\\', '/')}";
+            yield return $"  using {file.Name(folder)}";
         if (compilation.Score.Scores.Count == 0 && (compilation.Score.Poses.Count > 0 || compilation.Score.MoveLengths.Count > 0))
         {
             var offered = compilation.Score.Poses.Select(p => $"pose {p}")

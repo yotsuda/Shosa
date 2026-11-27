@@ -32,6 +32,8 @@ The first release, for Windows (x64): **Shosa 3D Choreographer** in the Extensio
 
 ### For AI assistants
 
-- Copilot Chat's agent mode gets five tools: the language (`#shosaGrammar`), a way to write a dance that stops for no confirmation (`#shosaEdit`), the compiler's verdict (`#shosaCheck`), a picture of the movement (`#shosaSheet`) and the song a dance is written to (`#shosaSong`: its sections with their bars and seconds, who sings, and the words bar by bar on their beats). `shosa song SONG.lys` prints the same in a terminal.
+- **A vocabulary of poses and moves by style**, built in: `using "shosa:basics"`, `"shosa:pop"` (80s pop: hits, kicks, spins, toe stands, robot), `"shosa:jazz"` and `"shosa:ballet"` bring in more than a hundred named poses and moves, each saying what it is and where it fits, to dance with by name.
+- **A choreography guide** for AI assistants (`#shosaGuide`, `shosa guide`): plan the dance, write it a section at a time, dance a song's repeated sections from one move each, keep it varied, and choose from the vocabulary.
+- Copilot Chat's agent mode gets six tools: the language (`#shosaGrammar`), the choreography guide (`#shosaGuide`), a way to write a dance that stops for no confirmation (`#shosaEdit`), the compiler's verdict (`#shosaCheck`), a picture of the movement (`#shosaSheet`) and the song a dance is written to (`#shosaSong`: its sections with their bars and seconds, who sings, and the words bar by bar on their beats). `shosa song SONG.lys` prints the same in a terminal.
 - **Add a Dance…** on a Lily# song (right-click a `.lys`): a dance file begun beside it with a dancer for each part that sings, opened with the preview, and Copilot's chat asked to choreograph it to the words.
 - The compiler `shosa` comes with the extension and is on the PATH of VS Code's terminals (`shosa grammar` prints the whole language for an agent).

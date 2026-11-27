@@ -191,6 +191,25 @@
         }
       },
       {
+        "name": "shosa_guide",
+        "displayName": "Shosa Choreography Guide",
+        "toolReferenceName": "shosaGuide",
+        "canBeReferencedInPrompt": true,
+        "icon": "$(lightbulb)",
+        "tags": [
+          "shosa",
+          "animation",
+          "choreography",
+          "dance"
+        ],
+        "userDescription": "How to choreograph a whole dance in Shosa, and Shosa's vocabulary of poses and moves by style (basics, pop, jazz, ballet).",
+        "modelDescription": "Returns how to choreograph a whole dance in Shosa (a .shosa file), after the grammar (shosa_grammar) says how each thing is written: the plan to make first (the styles, every section's role and energy, the motifs, the floor, the accents), how to write a long song in good time (a section a step, a song's repeated roles as moves), what keeps a dance from being one pattern, and the vocabulary files — Shosa's own poses and moves of a style, used by name after `using \"shosa:pop\"` (basics, pop, jazz, ballet), each with what it is and where it fits. ALWAYS call this before choreographing a dance longer than a few bars, a dance to a song above all, and choose its moves from the vocabulary files. Takes no input.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      {
         "name": "shosa_edit",
         "displayName": "Shosa Edit",
         "toolReferenceName": "shosaEdit",
