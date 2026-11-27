@@ -66,7 +66,8 @@ These work, but are new and may still change.
   A dancer's file is looked for in the dance's own folder first, then in that folder: the keys write the short name
   (`"girl.vrm"`), so a dance does not say where on your machine the models are.
 - **Singing**: `dancer alice humanoid "girl.vrm" sings melody on lead` moves the character's mouth to the words
-  that part of the Lily# song sings (the `.vrma` export carries it). `mic right` puts a mic in the hand: at the mouth
+  that part of the Lily# song sings (the `.vrma` export carries it; it needs the Lily# extension 0.18.0 or later,
+  which tells the syllables and their beats, as `shosa song` and Add a Dance… need too). `mic right` puts a mic in the hand: at the mouth
   while the dancer sings, dancing with the arm between phrases.
 - **Dancing to a recording**: when a song made from a recording has its `NAME.orecchiante.json` beside it,
   the dance keeps the recording's beat, and the preview and the MP4 play the recording.

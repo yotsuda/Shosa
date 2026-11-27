@@ -49,6 +49,16 @@ public class SongReportTests
     }
 
     [Fact]
+    public void Words_in_letters_are_quoted_with_spaces_between_them_and_kana_run_on()
+    {
+        // As Orecchiante 0.18.0 writes We're An American Band: `sung` has no hyphen, so Lit and tle stay apart.
+        var english = Syllables((5, 0.5, "Last"), (5.5, 0.5, "night,"), (6, 0.5, "in"), (6.5, 0.5, "Lit"), (7, 0.75, "tle‿Rock"));
+        Assert.Contains(@"""Last night, in Lit tle‿Rock""", Report(Song([new("vocal", null, english)])));
+        var mixed = Syllables((5, 0.5, "Oh"), (5.5, 0.5, "あ"), (6, 0.5, "い"), (6.5, 0.5, "yeah"));
+        Assert.Contains(@"""Ohあいyeah""", Report(Song([new("vocal", null, mixed)])));
+    }
+
+    [Fact]
     public void Tells_a_section_played_again_by_its_verse_as_a_dance_writes_it()
     {
         var song = new SongInfo

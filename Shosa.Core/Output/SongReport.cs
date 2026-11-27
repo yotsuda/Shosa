@@ -161,6 +161,10 @@ public static class SongReport
                 built.Tokens.Append(N(into + 1)).Append(word);
                 if (beats >= Held - 1e-9)
                     built.Tokens.Append('~').Append(N(beats));
+                // Kana run on; between syllables in letters a space (English: "Last night in", not
+                // "Lastnightin"). `sung` drops Lily#'s hyphen, so a word of two syllables reads "Lit tle".
+                if (built.Words.Length > 0 && word.Length > 0 && IsLetterSpaced(built.Words[^1]) && word[0] < '　' && char.IsLetterOrDigit(word[0]))
+                    built.Words.Append(' ');
                 built.Words.Append(word);
                 lastEnd = beat + beats;
             }
@@ -189,4 +193,7 @@ public static class SongReport
             }
         }
     }
+
+    /// <summary>The last character of a syllable in a language written with spaces between its words (Latin, Greek, Cyrillic letters, digits, an apostrophe or a mark after a word), not kana or kanji.</summary>
+    static bool IsLetterSpaced(char c) => c < '　' && (char.IsLetterOrDigit(c) || c == '\'' || c == '’' || c == '‿' || c == ',' || c == '.' || c == '!' || c == '?');
 }
