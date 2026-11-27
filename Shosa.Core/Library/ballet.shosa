@@ -1,4 +1,5 @@
 // shosa:ballet — classical ballet, turned out, on straight legs. A dance brings it in with: using "shosa:ballet"
+// EXPERIMENTAL: it reads as a beginner at the barre — the positions and the slow steps are there, the turns and jumps have no momentum. Good for an adage; say that it is rough when it is asked for. A dancer's corrections to this file are welcome.
 // The feet positions (first … fifth) set the turnout (80) and the straight legs, and every move after keeps them:
 // begin a ballet dance with one of them. The arm positions and portDeBras / preparation are arms only; the
 // barre moves (plie … grandBattement) are a height or a leg only; the jumps and glissade / pasDeBourree / balance

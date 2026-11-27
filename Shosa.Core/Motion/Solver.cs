@@ -1105,6 +1105,9 @@ internal sealed class FigureSolver
 
         public bool Measures => false;
         public double Distance(HandState a, HandState b) => 0;
+        public bool Curves => false;
+        public Vec3 Place(HandState at) => default;
+        public HandState Moved(HandState at, Vec3 by) => at;
     }
 
     /// <summary>
@@ -2148,6 +2151,14 @@ internal sealed class FigureSolver
         /// <summary>Whether <see cref="Distance"/> says anything (without it a word passed through is passed at one speed either side).</summary>
         bool Measures { get; }
         double Distance(T a, T b);
+        /// <summary>
+        /// Whether the part is somewhere in space (<see cref="Place"/>) and can be put a little aside (<see cref="Moved"/>):
+        /// a word it passes through (`@through`) is then passed on one curve, not at a corner (DESIGN.md 130).
+        /// A part of one number has no corner to round, and says no.
+        /// </summary>
+        bool Curves { get; }
+        Vec3 Place(T at);
+        T Moved(T at, Vec3 by);
     }
 
     /// <summary>A row read with delegates: for the readings made of a method's own locals.</summary>
@@ -2157,6 +2168,9 @@ internal sealed class FigureSolver
         public T Blend(T a, T b, double e) => blend(a, b, e);
         public bool Measures => distance is not null;
         public double Distance(T a, T b) => distance!(a, b);
+        public bool Curves => false;
+        public Vec3 Place(T at) => default;
+        public T Moved(T at, Vec3 by) => at;
     }
 
     private static T Chain<T>(List<Seg> segs, double t, Func<Seg?, T> target, Func<T, T, double, T> blend, Func<T, T, double>? distance = null)
@@ -2192,9 +2206,12 @@ internal sealed class FigureSolver
     /// </summary>
     private static (double End, double Start) ThroughSlopes<T, TOps>(List<Seg> segs, int k, ref TOps ops, int depth) where TOps : struct, IChain<T>
     {
-        const double m = 1.5;
+        // In a run of words passed through, the words either side are passed at speed too, and the mean speed is the
+        // speed all the way: half as fast again at every word was a pulse on every beat (DESIGN.md 130).
+        // (A part that does not say how far it goes — the body tipped off its feet, a hand's fingers — is passed as it was.)
         if (!ops.Measures)
-            return (m, m);
+            return (1.5, 1.5);
+        double m = 1.5 - (Passed(segs, k - 1) ? 0.25 : 0) - (Passed(segs, k + 1) ? 0.25 : 0);
         Seg a = segs[k], b = segs[k + 1];
         T from = ChainAt<T, TOps>(segs, k - 1, a.T0, ref ops, depth + 1), at = ops.Target(a), to = ops.Target(b);
         double da = ops.Distance(from, at), db = ops.Distance(at, to), ta = a.T1 - a.T0, tb = b.T1 - b.T0;
@@ -2203,6 +2220,11 @@ internal sealed class FigureSolver
         double v = Math.Min(m * (da + db) / (ta + tb), Math.Min(3 * da / ta, 3 * db / tb));
         return (v * ta / da, v * tb / db);
     }
+
+    /// <summary>Whether the word of segs[i] is passed through: marked so (`@through`), and the next word sets out from it at once.</summary>
+    private static bool Passed(List<Seg> segs, int i) =>
+        i >= 0 && i + 1 < segs.Count && segs[i] is { Ease: "through", Kind: not (SegKinds.Hold or SegKinds.Stay or SegKinds.Release) } && segs[i + 1] is var b && Math.Abs(segs[i].T1 - b.T0) < 1e-9
+        && segs[i].T1 > segs[i].T0 + 1e-9 && b.Kind is not (SegKinds.Hold or SegKinds.Stay or SegKinds.Release) && b.T1 > b.T0 + 1e-9;
 
     private static T ChainAt<T, TOps>(List<Seg> segs, int index, double t, ref TOps ops, int depth) where TOps : struct, IChain<T>
     {
@@ -2220,14 +2242,44 @@ internal sealed class FigureSolver
         // from it leaves at that same speed (ThroughSlopes). Each side is a cubic; neither overshoots.
         // Only where the next word sets out from it at once.
         {
-            static bool Joined(Seg a, Seg b) => Math.Abs(a.T1 - b.T0) < 1e-9 && b.Kind is not (SegKinds.Hold or SegKinds.Stay or SegKinds.Release) && b.T1 > b.T0 + 1e-9;
-            bool through = seg.Ease == "through" && index + 1 < segs.Count && Joined(seg, segs[index + 1]);
-            bool fromThrough = index > 0 && segs[index - 1] is { Ease: "through" } before && Joined(before, seg);
+            bool through = Passed(segs, index), fromThrough = Passed(segs, index - 1);
             if ((through || fromThrough) && u > 0 && u < 1)
             {
-                double s0 = fromThrough ? ThroughSlopes<T, TOps>(segs, index - 1, ref ops, depth).Start : 0;
-                double s1 = through ? ThroughSlopes<T, TOps>(segs, index, ref ops, depth).End : 0;
+                var behind = fromThrough ? ThroughSlopes<T, TOps>(segs, index - 1, ref ops, depth) : default;
+                var ahead = through ? ThroughSlopes<T, TOps>(segs, index, ref ops, depth) : default;
+                double s0 = behind.Start, s1 = ahead.End;
                 e = (u * u * u - 2 * u * u + u) * s0 + (-2 * u * u * u + 3 * u * u) + (u * u * u - u * u) * s1;
+                if (ops.Curves && e < 1)
+                {
+                    // One speed through the word is not yet one way through it: each side goes its own way (its own arc),
+                    // and where they meet the part turned a corner at full speed (DESIGN.md 130: twice the acceleration of
+                    // the recording the words were read from). So the two ways are bowed a little, each by what takes
+                    // the half of that corner out of it: at the word the part has the mean of the speed it came with and
+                    // the speed it leaves with, from either side. The bow is nothing at both ends: the words are still
+                    // passed on their beats. A way that comes straight back (a swing) stops at the word, as it does unmarked.
+                    const double h = 1e-3;
+                    double span = seg.T1 - seg.T0;
+                    T from = ChainAt<T, TOps>(segs, index - 1, seg.T0, ref ops, depth + 1), to = ops.Target(seg);
+                    Vec3 bow = default;
+                    if (through && s1 > 0)
+                    {
+                        var next = segs[index + 1];
+                        Vec3 there = ops.Place(to);
+                        Vec3 arrives = (there - ops.Place(ops.Blend(from, to, 1 - h))) * (s1 / (h * span));
+                        Vec3 leaves = (ops.Place(ops.Blend(to, ops.Target(next), h)) - there) * (ahead.Start / (h * (next.T1 - next.T0)));
+                        bow += (leaves - arrives) * (0.5 * span * (u * u * u - u * u));
+                    }
+                    if (fromThrough && s0 > 0)
+                    {
+                        var last = segs[index - 1];
+                        T earlier = ChainAt<T, TOps>(segs, index - 2, last.T0, ref ops, depth + 1);
+                        Vec3 here = ops.Place(from);
+                        Vec3 arrives = (here - ops.Place(ops.Blend(earlier, from, 1 - h))) * (behind.End / (h * (last.T1 - last.T0)));
+                        Vec3 leaves = (ops.Place(ops.Blend(from, to, h)) - here) * (s0 / (h * span));
+                        bow += (arrives - leaves) * (0.5 * span * (u * u * u - 2 * u * u + u));
+                    }
+                    return ops.Moved(ops.Blend(from, to, e), bow);
+                }
             }
         }
         if (e >= 1)
@@ -2322,18 +2374,28 @@ internal sealed class FigureSolver
 
     private static Vec3 DirOf(Seg? seg, Vec3 neutral) => seg?.Dir is { } d ? new Vec3(d[0], d[1], d[2]) : neutral;
 
-    private static Vec3 Direction(List<Seg> targets, double t, Vec3 neutral, Vec3 via)
+    private static Vec3 Direction(List<Seg> targets, double t, Vec3 neutral, Vec3 via, bool curves)
     {
-        var ops = new DirectionOf(neutral, via);
+        var ops = new DirectionOf(neutral, via, curves);
         return Chain<Vec3, DirectionOf>(targets, t, ref ops).Normalized();
     }
 
-    private readonly struct DirectionOf(Vec3 neutral, Vec3 via) : IChain<Vec3>
+    private readonly struct DirectionOf(Vec3 neutral, Vec3 via, bool curves) : IChain<Vec3>
     {
         public Vec3 Target(Seg? seg) => DirOf(seg, neutral);
         public Vec3 Blend(Vec3 a, Vec3 b, double e) => FigureSolver.Blend(a, b, e, via);
         public bool Measures => true;
         public double Distance(Vec3 a, Vec3 b) => Dist(a, b);
+        public bool Curves => curves;
+        public Vec3 Place(Vec3 at) => at;
+        public Vec3 Moved(Vec3 at, Vec3 by) => Aside(at, by);
+    }
+
+    /// <summary>A direction put a little aside: as long as it was.</summary>
+    private static Vec3 Aside(Vec3 at, Vec3 by)
+    {
+        var moved = at + by;
+        return moved.Length < 1e-6 ? at : moved * (at.Length / moved.Length);
     }
 
     /// <summary>Which way the figure faces, radians: what its turns have made of where it began.</summary>
@@ -2735,6 +2797,10 @@ internal sealed class FigureSolver
 
         public bool Measures => true;
         public double Distance(LegPose a, LegPose b) => Dist(a.Offset, b.Offset) + Math.Abs(b.Weight - a.Weight);
+        // (A leg's way has turns of its own — under the hip, off the floor and back: it keeps them.)
+        public bool Curves => false;
+        public Vec3 Place(LegPose at) => default;
+        public LegPose Moved(LegPose at, Vec3 by) => at;
     }
 
     /// <summary>
@@ -2821,7 +2887,8 @@ internal sealed class FigureSolver
                 p = Vec3.Lerp(p, c.LPos, 0.85 * c.GwR);
         }
 
-        var torso = Direction(_torso, t, Vec3.Up, new Vec3(0, 0, 1));
+        // (A body that leaves its feet reads the same row as a rotation too (TipOf), which has no curve: the two stay one way.)
+        var torso = Direction(_torso, t, Vec3.Up, new Vec3(0, 0, 1), !LeavesTheFeet);
         if (_alive && _torso.Count == 0)
         {
             // An unwritten torso breathes (a degree each way), goes a little back and up as the arms rise or
@@ -3276,6 +3343,9 @@ internal sealed class FigureSolver
         public Quat Blend(Quat a, Quat b, double e) => Quat.Slerp(a, b, e);
         public bool Measures => false;
         public double Distance(Quat a, Quat b) => 0;
+        public bool Curves => false;
+        public Vec3 Place(Quat at) => default;
+        public Quat Moved(Quat at, Vec3 by) => at;
     }
 
     /// <summary>How far above its hands the shoulders are, standing on them: the arms straight, or bent as their rows say (`arms { down.bent(90) }`).</summary>
@@ -3629,6 +3699,9 @@ internal sealed class FigureSolver
         public Vec3 Blend(Vec3 a, Vec3 b, double e) => FigureSolver.Blend(a, b, e, faceFwd);
         public bool Measures => true;
         public double Distance(Vec3 a, Vec3 b) => Dist(a, b);
+        public bool Curves => true;
+        public Vec3 Place(Vec3 at) => at;
+        public Vec3 Moved(Vec3 at, Vec3 by) => Aside(at, by);
     }
 
     /// <summary>How far the line of the eyes is tilted (`tilt`), radians; unwritten, as the neck has it.</summary>
@@ -3638,6 +3711,9 @@ internal sealed class FigureSolver
         public double Blend(double a, double b, double e) => a + (b - a) * e;
         public bool Measures => true;
         public double Distance(double a, double b) => Dist(a, b);
+        public bool Curves => false;
+        public Vec3 Place(double at) => default;
+        public double Moved(double at, Vec3 by) => at;
     }
 
     /// <summary>
@@ -3777,6 +3853,21 @@ internal sealed class FigureSolver
 
         public bool Measures => true;
         public double Distance((Vec3 Offset, Vec3 Bend) a, (Vec3 Offset, Vec3 Bend) b) => Dist(a.Offset, b.Offset);
+        public bool Curves => true;
+        public Vec3 Place((Vec3 Offset, Vec3 Bend) at) => at.Offset;
+
+        // The hand a little aside, no further from the shoulder than the arm is long; the elbow square to the arm as it now lies.
+        public (Vec3 Offset, Vec3 Bend) Moved((Vec3 Offset, Vec3 Bend) at, Vec3 by)
+        {
+            var offset = at.Offset + by;
+            double most = (Rig.UpperArm + Rig.Forearm) * 0.999;
+            if (offset.Length < 1e-6)
+                return at;
+            if (offset.Length > most)
+                offset = offset * (most / offset.Length);
+            var bend = Across(at.Bend, offset.Normalized());
+            return (offset, bend.Length < 1e-6 ? at.Bend : bend);
+        }
 
         // From where the elbow points at one word to where it points at the next, both carried to the arm as it
         // is now (square to it). The shorter way round can lead the elbow through pointing up and in, the way an

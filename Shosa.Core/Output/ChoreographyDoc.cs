@@ -62,9 +62,13 @@ public static class ChoreographyDoc
 
         - **STYLE** — the dancer (who, what energy) and the vocabulary files: an idol or a cute pop song
           `basics` (with a little `jazz`); "like Michael Jackson", 80s pop, funk, sharp and cool `pop` (with
-          `basics`); Broadway, theatre, lyrical, sassy `jazz`; classical, elegant, a waltz `ballet`; hip-hop,
-          a breakbeat, a dance battle, anything that goes down to the floor `break` (a set: toprock, down,
-          footwork or a spin, a freeze on the accent, up). Mixing is fine: a dance is one dancer, not one file.
+          `basics`); Broadway, theatre, lyrical, sassy `jazz`. Mixing is fine: a dance is one dancer, not one file.
+          **What Shosa dances well is choreography of poses hit on the beat** — an idol's dance, gestures on the
+          words, a group in unison and in mirror. `ballet` and `break` are EXPERIMENTAL: a pirouette, a backspin
+          are momentum, and Shosa has none. `ballet` reads as a beginner at the barre (its slow positions and
+          steps are fine for something classical or elegant; keep to those, with flowing arms: `quality { through }`).
+          `break` has the shapes and not the movement: only when breaking is asked for by name, and say then that
+          it is rough; for hip-hop take `pop` and `basics`.
         - **MAP** — every section the song plays: its bars, an energy from 1 to 5, and its ROLE: intro,
           verse, pre-chorus, chorus, bridge, instrumental, outro. **Sections with other names that are the
           same music are one role** (a transcribed song may call them A, A2 … A8 and C, C2, C3): find them
@@ -115,7 +119,7 @@ public static class ChoreographyDoc
         ## Dancing to the music
 
         - **Tempo**: above about 140 a step every two beats and the arms on the beats; below about 90 big,
-          slow, sustained moves (`@smooth`, the long lengths), the steps fewer.
+          slow, sustained moves (a `quality { through }` row: the words passed without stopping; the long lengths), the steps fewer.
         - **Energy follows the MAP**: low in the verse (small steps, arms near the body), rising in the
           pre-chorus, the biggest in the chorus (travelling, arms overhead, turns, a jump), and the last
           chorus bigger still.

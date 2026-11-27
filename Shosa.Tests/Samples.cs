@@ -9,17 +9,30 @@ internal static class Samples
     private static string Directory([CallerFilePath] string here = "") =>
         Path.Combine(Path.GetDirectoryName(here)!, "..", "samples");
 
-    /// <summary>Every sample: the ones in samples, and the dances in samples\dances as `dances/NAME`.</summary>
+    /// <summary>
+    /// The dances kept for the tests only (Shosa.Tests\dances): a breaker's set that does not move like
+    /// the real thing, and so is not shown as a sample, but found the bone flips of DESIGN.md 129 and still watches for them.
+    /// </summary>
+    private static string Kept([CallerFilePath] string here = "") => Path.GetDirectoryName(here)!;
+
+    /// <summary>Every sample: the ones in samples, and the dances in samples\dances and Shosa.Tests\dances as `dances/NAME`.</summary>
     public static IEnumerable<object[]> Names() =>
         System.IO.Directory.GetFiles(Directory(), "*.shosa").Select(f => new object[] { Path.GetFileNameWithoutExtension(f) })
-            .Concat(System.IO.Directory.GetFiles(Path.Combine(Directory(), "dances"), "*.shosa").Select(f => new object[] { "dances/" + Path.GetFileNameWithoutExtension(f) }));
+            .Concat(new[] { Directory(), Kept() }.SelectMany(root => System.IO.Directory.GetFiles(Path.Combine(root, "dances"), "*.shosa"))
+                .Select(f => new object[] { "dances/" + Path.GetFileNameWithoutExtension(f) }));
 
-    public static string Read(string name) => File.ReadAllText(Path.Combine(Directory(), name + ".shosa"));
+    public static string PathOf(string name)
+    {
+        string shown = Path.GetFullPath(Path.Combine(Directory(), name + ".shosa"));
+        return File.Exists(shown) ? shown : Path.GetFullPath(Path.Combine(Kept(), name + ".shosa"));
+    }
+
+    public static string Read(string name) => File.ReadAllText(PathOf(name));
 
     /// <summary>A sample compiled as the command line does: with the files its `using` lines bring in (samples\parts).</summary>
     public static Shosa.Core.ShosaCompilation Compile(string name)
     {
-        string path = Path.GetFullPath(Path.Combine(Directory(), name + ".shosa"));
+        string path = PathOf(name);
         return Shosa.Core.ShosaCompilation.Compile(File.ReadAllText(path), null, null, Shosa.Core.Semantics.UsingSource.For(path));
     }
 

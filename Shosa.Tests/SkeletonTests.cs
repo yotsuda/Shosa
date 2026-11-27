@@ -129,7 +129,6 @@ public class SkeletonTests
         ["dances/ballet-variation"] = 12,
         ["dances/break-set"] = 32,
         ["dances/finger-pop"] = 13,
-        ["dances/floor-lyric"] = 2,
     };
 
     [Fact]

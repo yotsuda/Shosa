@@ -1,4 +1,5 @@
 // shosa:break — breaking and floor work: toprock on the feet, getting down, footwork on the hands, freezes, spins on the head and the back, and getting up. A dance brings it in with: using "shosa:break"
+// EXPERIMENTAL: the shapes are there, but danced it does not yet look like breaking (no momentum: a spin is turned, not thrown). Do not choose it for a dance unless breaking is asked for by name; a breaker's corrections to this file are welcome.
 // Every move is the whole body (steps, torso, arms, legs, height): write it in `body`. Each starts standing on both feet and ends standing where it says,
 // so any follows any; a set is toprock, a way down, footwork or a spin, a freeze on an accent, a way up. They take room: 1.5 m around the dancer.
 // Hands for them: `hands { fist }` in toprock, `hands { spread }` on the floor. Slower is safer: stretch a move (`headspin:12`) before it warns of speed (SH2003).

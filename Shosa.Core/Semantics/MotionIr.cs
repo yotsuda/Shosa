@@ -288,6 +288,12 @@ public static class Channels
     /// </summary>
     public const string Juggle = "juggle";
 
+    /// <summary>
+    /// How the parts go to their words where a word does not say (`quality { through:8 | sharp:4 }`, DESIGN.md 130).
+    /// Not a part of the body, and not in the IR: the binder writes it into each word's <see cref="Seg.Ease"/>.
+    /// </summary>
+    public const string Quality = "quality";
+
     public static string Mirror(string channel) => channel switch
     {
         LeftArm => RightArm,
@@ -435,8 +441,11 @@ public sealed class Seg
     /// <summary>Juggle: the tricks the hands throw it with (`@mills`, `@penguinCatch`, `@clawCatch`, `@reverse`, `@tennis`, `@backThrow`, `@backCatch`, `@underThrow`); null for none.</summary>
     public List<string>? Tricks { get; set; }
 
-    /// <summary>smooth | sharp | linear.</summary>
+    /// <summary>smooth | sharp | linear | through.</summary>
     public string Ease { get; set; } = "smooth";
+    /// <summary>The word did not say how the part goes to it (no `@smooth`, `@sharp` …): <see cref="Ease"/> is the default, or what the `quality` row gave it.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool Given { get; set; }
     /// <summary>Weight, gravity and speed limits are not applied (`@free`, or a free dancer).</summary>
     public bool Free { get; set; }
 

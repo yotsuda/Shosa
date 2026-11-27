@@ -293,6 +293,9 @@ internal static class Words
         if (track is "shoulders" or "hips")
             return before.Count == 0 ? [.. track == "hips" ? Vocabulary.HipsWords : Vocabulary.ShouldersWords, .. definitions, Hold, Skip, Again] : [];
 
+        if (track == "quality")
+            return before.Count == 0 ? [.. Vocabulary.Annotations.Where(w => Array.IndexOf(Vocabulary.Qualities, w.Name) >= 0), Hold, Skip] : [];
+
         if (track == "turnout")
             return before.Count == 0 ? [.. Vocabulary.TurnoutWords, .. definitions, Hold, Skip, Again] : [];   // after out / in, degrees
 

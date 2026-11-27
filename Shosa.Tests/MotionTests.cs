@@ -566,6 +566,52 @@ public class MotionTests
         Assert.Equal("SH1010", Assert.Single(Compile(Samples.Solo("    steps { then:1 leftFoot.fwd:1@through }", "tempo 60\ntime 4/4\n")).Diagnostics).Code);
     }
 
+    /// <summary>A word passed through is passed on one curve: the hand does not turn a corner there (DESIGN.md 130).</summary>
+    [Fact]
+    public void A_word_passed_through_is_no_corner()
+    {
+        var compilation = Compile(Samples.Solo("    rightArm { down.bent(0):1 side:1@through fwd:1 then:1 }", "tempo 60\ntime 4/4\n"));
+        Assert.Empty(compilation.Diagnostics);
+        var figure = compilation.Clip.Figures[0];
+        double at = Math.Round(compilation.Clip.FrameAt(1));
+        // Down, out to the side, then forward: a right angle at the side, were each way its own arc.
+        Vec3 arriving = figure.Joint(at, Rig.RHand) - figure.Joint(at - 1, Rig.RHand), leaving = figure.Joint(at + 1, Rig.RHand) - figure.Joint(at, Rig.RHand);
+        double corner = Math.Acos(Math.Clamp(arriving.Normalized().Dot(leaving.Normalized()), -1, 1)) * 180 / Math.PI;
+        Assert.True(corner < 25, $"the hand turns {corner:0} degrees in a frame at the word it passes");
+    }
+
+    /// <summary>The quality row: every word that does not say how it is gone to is given what the row says at its beat (DESIGN.md 130).</summary>
+    [Fact]
+    public void The_quality_row_marks_the_words()
+    {
+        const string head = "tempo 60\ntime 4/4\n";
+        // Kept until the next word of the row; a word's own mark wins; a `then` of the row changes nothing; no SH2017 for the words it stops at.
+        {
+            var compilation = Compile(Samples.Solo("    quality { through:3 sharp:1 then:1 linear:3 }\n    rightArm { down:1 side:1 up:1 fwd:1 side:1@smooth down:1 side:1 then:1 }", head));
+            Assert.Empty(compilation.Diagnostics);
+            var words = compilation.Ir.Dancers[0].Tracks[Shosa.Core.Semantics.Channels.RightArm].Where(s => s.Kind != Shosa.Core.Semantics.SegKinds.Hold).Select(s => s.Ease);
+            Assert.Equal("through through through sharp smooth linear linear", string.Join(" ", words));
+        }
+        // The feet are not its: a step lands where it goes.
+        {
+            var compilation = Compile(Samples.Solo("    quality { sharp }\n    steps { stand:2 leftFoot.side:2 }\n    rightArm { down:2 side:2 }", head));
+            Assert.All(compilation.Ir.Dancers[0].Tracks[Shosa.Core.Semantics.Channels.Support], s => Assert.Equal("smooth", s.Ease));
+            Assert.Equal("sharp", compilation.Ir.Dancers[0].Tracks[Shosa.Core.Semantics.Channels.RightArm][^1].Ease);
+        }
+        // The same movement as the marks written out.
+        {
+            var marked = Compile(Samples.Solo("    rightArm { down:1 side:1@through up:1@through fwd:1 then:1 }", head));
+            var row = Compile(Samples.Solo("    quality { through }\n    rightArm { down:1 side:1 up:1 fwd:1 then:1 }", head));
+            Assert.Empty(row.Diagnostics);
+            for (int frame = 0; frame < marked.Clip.FrameAt(4); frame++)
+                Assert.True((marked.Clip.Figures[0].Joint(frame, Rig.RHand) - row.Clip.Figures[0].Joint(frame, Rig.RHand)).Length < 1e-9, $"frame {frame}");
+        }
+        // Its words are the marks' names; it takes no mark; it is not written in a pose or a move.
+        Assert.Equal("SH1044", Assert.Single(Compile(Samples.Solo("    quality { legato:4 }\n    rightArm { down:2 side:2 }", head)).Diagnostics).Code);
+        Assert.Equal("SH1044", Assert.Single(Compile(Samples.Solo("    quality { through:4@sharp }\n    rightArm { down:2 side:2 }", head)).Diagnostics).Code);
+        Assert.Contains(Compile("pose p { quality { through } arms { side } }\n" + Samples.Solo("    body { p:4 }", head)).Diagnostics, d => d.Code == "SH1044");
+    }
+
     [Fact]
     public void A_hand_at_the_forehead_is_in_front_of_the_brow_with_the_elbow_out()
     {

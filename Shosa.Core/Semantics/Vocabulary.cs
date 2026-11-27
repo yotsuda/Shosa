@@ -29,6 +29,7 @@ public static class Vocabulary
         new("hands", "Both hands at once, mirrored: the shape of the fingers (`fist`, `open`, `point`, `peace` …), and which way the fingers and the palm face (`open.fingers(up).palm(fwd)`)."),
         new("leftHand", "The left hand: the shape of its fingers, and which way they and the palm face."),
         new("rightHand", "The right hand."),
+        new("quality", "How the parts go to their words from here on, for every word that does not say so itself: the names of the `@` marks, without the `@`. `quality { through }` passes every word without stopping, one flowing line (as `@through` on each); `quality { sharp }` hits every word at the last moment (as `@sharp` on each); `smooth` is the default again. Timed like any row (`quality { through:8 | sharp:4 smooth:4 | }`), and kept until the next word of the row. A word's own `@` wins. Not for `steps`."),
         new("juggle", "What the hands throw (`juggles balls` on the dancer line), in siteswap as jugglers write it: `juggle { every 1/2  3:4 | 531531 3 3 | }`. A word with no length is its throws as written, one throwing beat each (`531` once through); with a length, the pattern over and over for that long (`3:4`); `every` says how many beats from one throw to the next. While a pattern is thrown, the arms are the juggle row's."),
     ];
 
@@ -307,6 +308,9 @@ public static class Vocabulary
         new("rightFoot", "For a jump, last: the stance it lands in, named by the right foot (see `leftFoot`)."),
     ];
 
+    /// <summary>What the `quality` row says: the marks that say how a part gets to its word, as words (DESIGN.md 130). A new one is a mark and a quality at once.</summary>
+    public static readonly string[] Qualities = ["smooth", "sharp", "linear", "through"];
+
     /// <summary>The most a turn says in one word, degrees: a triple turn.</summary>
     public const double MaxTurn = 1080;
 
@@ -316,7 +320,7 @@ public static class Vocabulary
         new("smooth", "The way TO this word eases in and out (the default)."),
         new("sharp", "Go at the last moment: the part waits, then gets there in no more than 0.15 s before its beat. An accent — a punch, a clap. Fast, so it can be too fast (SH2003)."),
         new("linear", "The way TO this word is at constant speed: no slowing as it arrives."),
-        new("through", "Pass this word without stopping: the way to it arrives at speed and the way on to the next word leaves at that speed — a point an arm goes through on an arc (`rightArm { down side:1@through up:1 }`), a wave. On a word the part stops at (the last, or before `then`) it says nothing (SH2017). Not for steps."),
+        new("through", "Pass this word without stopping: the way to it arrives at speed and the way on to the next word leaves at that speed, the two one curve (no corner at the word) — a point an arm goes through on an arc (`rightArm { down side:1@through up:1 }`), a wave. On a word the part stops at (the last, or before `then`) it says nothing (SH2017). Not for steps."),
         new("mirror", "Left and right swapped: `kick:2@mirror` kicks with the other leg."),
         new("free", "The rules of weight, gravity and speed do not apply to this event. Bones still keep their length."),
         new("turn", "For a step or a jump: turn while doing it, `leftFoot.fwd@turn(left(90))`, `jump@turn(right(180))`. The step lands where it would after the turn."),

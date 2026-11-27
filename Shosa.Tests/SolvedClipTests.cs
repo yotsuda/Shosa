@@ -137,7 +137,7 @@ public class SolvedClipTests
     [MemberData(nameof(Samples.Names), MemberType = typeof(Samples))]
     public void Every_sample_with_a_line_put_in_is_as_compiled_alone(string name)
     {
-        string path = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(typeof(SolvedClipTests).Assembly.Location)!, "..", "..", "..", "..", "samples", name + ".shosa"));
+        string path = Samples.PathOf(name);
         string text = File.ReadAllText(path);
         ShosaCompilation Compile(string of, ShosaCompilation? previous = null) => ShosaCompilation.Compile(of, null, null, UsingSource.For(path), previous);
         var first = Compile(text);

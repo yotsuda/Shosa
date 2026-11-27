@@ -592,7 +592,7 @@ public static class GrammarDoc
             - A move counts its bars in the time of the file that uses it, and its seconds in that
               file's tempo, wherever it is written.
             - **Shosa has files of parts of its own**, a style's poses and moves each: `using "shosa:basics"`,
-              `"shosa:pop"`, `"shosa:jazz"`, `"shosa:ballet"` bring them in as any file of parts, from any
+              `"shosa:pop"`, `"shosa:jazz"` (and, experimental, `"shosa:ballet"` and `"shosa:break"`) bring them in as any file of parts, from any
               folder. What each holds, with a line on every pose and move, is in the choreography guide
               (`shosa guide`; in the editor, the tool `shosa_guide`).
 
@@ -1438,6 +1438,35 @@ public static class GrammarDoc
             arrives in** (that is the target's: `bent`, `elbow`, `round` …). `@turn(…)` is for steps
             and jumps. Several can follow one event, after its length and before its mark:
             `fwd.up(25):1@sharp!hit`, `kick:2@mirror@free`.
+
+            ### A whole passage one way: the `quality` row
+
+            To make a passage flow, or hit, do not mark every word: say it once in a `quality` row
+            beside the body's rows. Its words are the names of the marks, without the `@`:
+
+            ```
+            lead {
+              quality  { through:8 | sharp:4 smooth:4 | }
+              rightArm { down:1 side:1 up:1 fwd.up(30):1 … }
+              torso    { up:2 up.fwd(15):2 … }
+            }
+            ```
+
+            - `through`: every word of the arms, legs, torso, head, hands and height in that time is passed
+              without stopping, as if each had `@through`: one flowing line through the places written
+              (legato). The part still stops where it has to: at the last word, before a `then`.
+            - `sharp`: every word is hit at the last moment, as if each had `@sharp` (staccato, popping).
+            - `linear`: every way at constant speed (a robot). `smooth`: the default again.
+            - It is in force from its beat **until the next word of the row**, across sections: one
+              `quality { through }` at the top of a dance makes all of it flow. Its lengths only say when the
+              next word comes; `then` and `skip` fill time and change nothing.
+            - A word's own mark wins: in a `through` passage, `clap@sharp` still hits, and `up@smooth` still stops.
+            - It says nothing to `steps` (a foot lands where it goes), and is not written in a pose or a
+              move: there the marks go on the words. A move danced in a `through` passage flows, for the
+              words of it that have no mark of their own.
+
+            Write the words as densely as the shape needs — one every half beat is fine in a `through`
+            passage: the part passes each on its beat and does not stop at any.
 
 
             ## Roles and dancers

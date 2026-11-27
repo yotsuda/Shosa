@@ -1191,6 +1191,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         Channels.LeftArm or Channels.RightArm or Channels.LeftLeg or Channels.RightLeg or Channels.Turnout or Channels.Hips or Channels.Torso or Channels.Shoulders or Channels.Head
             or Channels.LeftHand or Channels.RightHand => [trackName],
         Channels.Juggle => [Channels.Juggle],
+        Channels.Quality => [Channels.Quality],
         _ => null,
     };
 
@@ -1219,6 +1220,11 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
             if (channels is [Channels.Juggle])
             {
                 Error("SH1043", track.Token(SyntaxKind.Identifier)!.Span, "A juggle track is written in a section, beside the body's rows: a pattern is already a name for a juggling move (531, (4,4)).");
+                continue;
+            }
+            if (channels is [Channels.Quality])
+            {
+                Error("SH1044", track.Token(SyntaxKind.Identifier)!.Span, "A quality row is written in a section, beside the body's rows. In a pose or a move, put the mark on the words themselves (side:1@through).");
                 continue;
             }
             var ctx = new Ctx(Nobody, null, [], channels, track.Token(SyntaxKind.Identifier)!.Text, [0], double.NaN, Free: true, Depth: 1);
@@ -1410,10 +1416,21 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
             }
             Place(null);
             CheckTurnsAtOnce(sink);
+            // The quality row (DESIGN.md 130): a word that does not say how its part goes to it is given what the row
+            // says at its beat — the last word of the row at or before it. The feet land where they go: not theirs.
+            var qualities = sink.TryGetValue(Channels.Quality, out var given) ? given.OrderBy(r => r.Seg.T0).ThenBy(r => r.Order).Select(r => r.Seg).ToList() : null;
             foreach (string channel in Channels.All)
             {
                 if (!sink.TryGetValue(channel, out var raws))
                     continue;
+                if (qualities is not null && channel != Channels.Support)
+                {
+                    foreach (var raw in raws)
+                    {
+                        if (raw.Seg.Given && raw.Seg.Kind is not (SegKinds.Hold or SegKinds.Stay or SegKinds.Release) && qualities.LastOrDefault(q => q.T0 <= raw.Seg.T0 + Epsilon) is { } says)
+                            raw.Seg.Ease = says.Ease;
+                    }
+                }
                 // A hand no word shapes has no row: a `then` of the whole body holds nothing of it (and the clip has no fingers).
                 if (channel is Channels.LeftHand or Channels.RightHand && raws.All(r => r.Seg.Kind == SegKinds.Hold))
                     continue;
@@ -1955,7 +1972,8 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
             }
         }
         bool juggle = ctx.TrackName == Channels.Juggle;
-        SyntaxNode? definition = words.Count == 1 && !bracketed && !juggle ? _defs.GetValueOrDefault(words[0].Text) : null;
+        bool quality = ctx.TrackName == Channels.Quality;
+        SyntaxNode? definition = words.Count == 1 && !bracketed && !juggle && !quality ? _defs.GetValueOrDefault(words[0].Text) : null;
         // In a hand's row a hand's own word is meant (`point`, `open`), whatever a file has named so: they are not reserved (DESIGN.md 126).
         if (definition is not null && IsHandRow(ctx.Channels) && Vocabulary.Has(Vocabulary.HandShapes, words[0].Text))
             definition = null;
@@ -2054,6 +2072,23 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
             }
         }
 
+        if (quality)
+        {
+            // How the parts go to their words from this beat on (DESIGN.md 130): one of the marks' names; `then` and `skip` say nothing new.
+            bool known = words.Count == 1 && !bracketed && Array.IndexOf(Vocabulary.Qualities, words[0].Text) >= 0;
+            if (!known && !(words.Count == 1 && !bracketed && words[0].Text is Vocabulary.Hold or Vocabulary.Skip))
+                Error("SH1044", target.Span, $"The quality row says how the parts go to their words, with the names of the marks: {string.Join(", ", Vocabulary.Qualities)} (quality {{ through:8 | sharp:4 smooth:4 | }}).{(words.Count > 0 ? Hint(words[0].Text, Vocabulary.Qualities) : "")}");
+            else if (ev.Child(SyntaxKind.Annotation) is { } marked)
+                Error("SH1044", marked.Span, "A word of the quality row is itself what `@` would say: it takes none.");
+            else if (known && ctx.Clip is not null && t1 > Epsilon)
+            {
+                if (!ctx.Sink.TryGetValue(Channels.Quality, out var rowSays))
+                    ctx.Sink[Channels.Quality] = rowSays = [];
+                var span = ctx.Src ?? ev.Span;
+                rowSays.Add(new Raw(new Seg { T0 = Math.Max(0, t0), T1 = t1, Ease = words[0].Text, Src = span.Start, Len = span.Length }, ctx.Priority, _order++, t0, ctx.Since));
+            }
+            return;
+        }
         if (juggle)
         {
             BindJuggle(ev, target, words, ctx, t0, t1);
@@ -2177,6 +2212,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                 (seg.Word, seg.WordLen, seg.Within) = (ev.Span.Start, ev.Span.Length, ctx.Within);
             seg.Free = free;
             seg.Ease = ease ?? "smooth";
+            seg.Given = ease is null;
 
             if (!ctx.Sink.TryGetValue(channel, out var list))
                 ctx.Sink[channel] = list = [];
@@ -2492,7 +2528,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         {
             if (channel == Channels.Support)
                 continue;
-            foreach (var seg in segs.Where(s => s.Ease == "through"))
+            foreach (var seg in segs.Where(s => s.Ease == "through" && !s.Given))
             {
                 bool goesOn = segs.Any(next => next != seg && next.Kind is not (SegKinds.Hold or SegKinds.Stay or SegKinds.Release)
                     && (Math.Abs(next.T0 - seg.T1) < Epsilon || clip.Loop && Math.Abs(next.T0 + clip.TotalBeats - seg.T1) < Epsilon) && next.T1 > next.T0 + Epsilon);

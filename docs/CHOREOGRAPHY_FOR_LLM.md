@@ -31,9 +31,13 @@ short ones) a step.
 
 - **STYLE** — the dancer (who, what energy) and the vocabulary files: an idol or a cute pop song
   `basics` (with a little `jazz`); "like Michael Jackson", 80s pop, funk, sharp and cool `pop` (with
-  `basics`); Broadway, theatre, lyrical, sassy `jazz`; classical, elegant, a waltz `ballet`; hip-hop,
-  a breakbeat, a dance battle, anything that goes down to the floor `break` (a set: toprock, down,
-  footwork or a spin, a freeze on the accent, up). Mixing is fine: a dance is one dancer, not one file.
+  `basics`); Broadway, theatre, lyrical, sassy `jazz`. Mixing is fine: a dance is one dancer, not one file.
+  **What Shosa dances well is choreography of poses hit on the beat** — an idol's dance, gestures on the
+  words, a group in unison and in mirror. `ballet` and `break` are EXPERIMENTAL: a pirouette, a backspin
+  are momentum, and Shosa has none. `ballet` reads as a beginner at the barre (its slow positions and
+  steps are fine for something classical or elegant; keep to those, with flowing arms: `quality { through }`).
+  `break` has the shapes and not the movement: only when breaking is asked for by name, and say then that
+  it is rough; for hip-hop take `pop` and `basics`.
 - **MAP** — every section the song plays: its bars, an energy from 1 to 5, and its ROLE: intro,
   verse, pre-chorus, chorus, bridge, instrumental, outro. **Sections with other names that are the
   same music are one role** (a transcribed song may call them A, A2 … A8 and C, C2, C3): find them
@@ -84,7 +88,7 @@ short ones) a step.
 ## Dancing to the music
 
 - **Tempo**: above about 140 a step every two beats and the arms on the beats; below about 90 big,
-  slow, sustained moves (`@smooth`, the long lengths), the steps fewer.
+  slow, sustained moves (a `quality { through }` row: the words passed without stopping; the long lengths), the steps fewer.
 - **Energy follows the MAP**: low in the verse (small steps, arms near the body), rising in the
   pre-chorus, the biggest in the chorus (travelling, arms overhead, turns, a jump), and the last
   chorus bigger still.
@@ -127,6 +131,7 @@ What trips a dance written with them (each met while they were made):
 
 ```shosa
 // shosa:ballet — classical ballet, turned out, on straight legs. A dance brings it in with: using "shosa:ballet"
+// EXPERIMENTAL: it reads as a beginner at the barre — the positions and the slow steps are there, the turns and jumps have no momentum. Good for an adage; say that it is rough when it is asked for. A dancer's corrections to this file are welcome.
 // The feet positions (first … fifth) set the turnout (80) and the straight legs, and every move after keeps them:
 // begin a ballet dance with one of them. The arm positions and portDeBras / preparation are arms only; the
 // barre moves (plie … grandBattement) are a height or a leg only; the jumps and glissade / pasDeBourree / balance
@@ -514,6 +519,7 @@ move stepPointV {
 
 ```shosa
 // shosa:break — breaking and floor work: toprock on the feet, getting down, footwork on the hands, freezes, spins on the head and the back, and getting up. A dance brings it in with: using "shosa:break"
+// EXPERIMENTAL: the shapes are there, but danced it does not yet look like breaking (no momentum: a spin is turned, not thrown). Do not choose it for a dance unless breaking is asked for by name; a breaker's corrections to this file are welcome.
 // Every move is the whole body (steps, torso, arms, legs, height): write it in `body`. Each starts standing on both feet and ends standing where it says,
 // so any follows any; a set is toprock, a way down, footwork or a spin, a freeze on an accent, a way up. They take room: 1.5 m around the dancer.
 // Hands for them: `hands { fist }` in toprock, `hands { spread }` on the floor. Slower is safer: stretch a move (`headspin:12`) before it warns of speed (SH2003).
