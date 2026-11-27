@@ -52,6 +52,8 @@ public static class Rig
     public const double RoundAngle = 15;
     public const double HeadUp = 0.24;
     public const double FootLength = 0.17;
+    /// <summary>How far the ankles rise standing on the toes (`high`, demi-pointe) and on their tips (`pointe`: the foot upright under the shin), metres.</summary>
+    public const double HighRise = 0.07, PointeRise = 0.12;
 
     /// <summary>Distance between the feet when standing, and what the step words mean in metres.</summary>
     public const double Stance = 0.20;
@@ -267,8 +269,21 @@ public sealed class ClipFigure
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public ClipJuggle? Juggle { get; set; }
 
+    /// <summary>
+    /// For a figure whose hands are written (a `hands` row, DESIGN.md 126): one array per frame, for the left hand and
+    /// then the right, how far the thumb, the first, the middle, the ring and the little finger are closed (0 straight,
+    /// 1 into the fist) and the degrees between two fingers. The bones of the fingers are turned from it
+    /// (<see cref="Skeleton.Finger"/>; the preview turns a character's the same way). How the hand is turned on its
+    /// wrist is in <see cref="Rotations"/>, with the other bones. Null when no row writes a hand.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public List<float[]>? Hands { get; set; }
+
+    /// <summary>How a bone is turned from its parent at a frame: one of <see cref="Skeleton.Bones"/>, or after them one of <see cref="Skeleton.FingerBones"/>.</summary>
     public Quat Rotation(int frame, int bone)
     {
+        if (bone >= Skeleton.Bones.Length)
+            return Skeleton.Finger(bone - Skeleton.Bones.Length, Hands is { Count: > 0 } hands ? hands[Math.Clamp(frame, 0, hands.Count - 1)] : Skeleton.RelaxedHands);
         var f = Rotations[Math.Clamp(frame, 0, Rotations.Count - 1)];
         return new Quat(f[bone * 4], f[bone * 4 + 1], f[bone * 4 + 2], f[bone * 4 + 3]);
     }

@@ -112,7 +112,9 @@ public static class Gltf
             });
         }
 
-        var bones = Skeleton.Bones;
+        // With the bones of the fingers when a hand's row is danced anywhere in the file (DESIGN.md 126): every figure
+        // then has them (one that writes none holds its hands relaxed), so the skeletons of a file are alike.
+        var bones = Skeleton.BonesWith(cast.Any(c => c.Any(f => f.Hands is not null)));
         var humanBones = new JsonObject();
         var expressions = new JsonObject();
 

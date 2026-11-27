@@ -56,6 +56,113 @@ public static class Skeleton
         new("rightFoot", RLowerLeg, new Vec3(0, -Rig.Shin, 0), Rig.RAnkle, FootRest, Rig.RToe),
     ];
 
+    // ---- The fingers (DESIGN.md 126). The solver has no joints for them: a hand's row says how far each is closed,
+    // and the bones are turned from that. They come after <see cref="Bones"/>, the left hand's fifteen and then the
+    // right's, under the VRM humanoid's names, and only in a file whose dancers write a hand's row.
+
+    /// <summary>The fingers in the order a hand's shape counts them, and the three bones of each from the palm out.</summary>
+    private static readonly string[] FingerNames = ["Thumb", "Index", "Middle", "Ring", "Little"];
+    private static readonly string[][] FingerJoints = [["Metacarpal", "Proximal", "Distal"], ["Proximal", "Intermediate", "Distal"]];
+    /// <summary>Where each finger starts from the wrist of a left hand at rest (the fingers along +x, the thumb's side +z), and how long its three bones are.</summary>
+    private static readonly (Vec3 Root, double[] Lengths)[] FingerRest =
+    [
+        (new Vec3(0.025, -0.005, 0.020), [0.040, 0.030, 0.025]),
+        (new Vec3(0.085, 0, 0.025), [0.040, 0.025, 0.020]),
+        (new Vec3(0.088, 0, 0.005), [0.045, 0.028, 0.020]),
+        (new Vec3(0.082, 0, -0.014), [0.041, 0.026, 0.020]),
+        (new Vec3(0.073, 0, -0.031), [0.032, 0.019, 0.017]),
+    ];
+    /// <summary>The way a left thumb points at rest: out of the palm's edge, forward of the fingers.</summary>
+    private static readonly Vec3 ThumbRest = new(0.6, 0, 0.8);
+    /// <summary>Degrees each bone of a finger turns closed into the fist, from the palm out; and of the thumb, down under the palm and in toward the fingers.</summary>
+    private static readonly double[] FingerCurl = [80, 95, 65];
+    private const double ThumbUnder = 40, ThumbIn = 25, ThumbMiddle = 45, ThumbTip = 50;
+    /// <summary>How far each finger goes to the thumb's side as the hand spreads, in shares of the degrees between two fingers.</summary>
+    private static readonly double[] SpreadShare = [0, 1, 0, -1, -2];
+
+    /// <summary>The bones of the fingers: fifteen of the left hand, then fifteen of the right, their parents numbered as in <see cref="AllBones"/>.</summary>
+    public static readonly SkeletonBone[] FingerBones = MakeFingers();
+
+    /// <summary><see cref="Bones"/> and then <see cref="FingerBones"/>: the skeleton of a file whose hands are written.</summary>
+    public static readonly SkeletonBone[] AllBones = [.. Bones, .. FingerBones];
+
+    /// <summary>The skeleton a file is written with: with the fingers when a hand's row is danced in it.</summary>
+    public static SkeletonBone[] BonesWith(bool fingers) => fingers ? AllBones : Bones;
+
+    private static SkeletonBone[] MakeFingers()
+    {
+        var made = new List<SkeletonBone>();
+        for (int side = 1; side >= -1; side -= 2)
+        {
+            int hand = side == 1 ? LHand : RHand;
+            string prefix = side == 1 ? "left" : "right";
+            for (int finger = 0; finger < 5; finger++)
+            {
+                var (root, lengths) = FingerRest[finger];
+                var way = finger == 0 ? ThumbRest.Normalized() : X;
+                way = new Vec3(way.X * side, way.Y, way.Z);
+                for (int joint = 0; joint < 3; joint++)
+                {
+                    int parent = joint == 0 ? hand : Bones.Length + made.Count - 1;
+                    var offset = joint == 0 ? new Vec3(root.X * side, root.Y, root.Z) : way * lengths[joint - 1];
+                    made.Add(new SkeletonBone(prefix + FingerNames[finger] + FingerJoints[finger == 0 ? 0 : 1][joint], parent, offset, End: joint == 2 ? way * lengths[2] : null));
+                }
+            }
+        }
+        return [.. made];
+    }
+
+    /// <summary>What a hand nobody wrote is: the relaxed hand, for both (<see cref="Semantics.Vocabulary.ShapeOfHand"/>).</summary>
+    public static readonly float[] RelaxedHands = MakeRelaxed();
+
+    private static float[] MakeRelaxed()
+    {
+        var shape = Semantics.Vocabulary.ShapeOfHand("relaxed")!.Value;
+        float[] one = [(float)(shape.Thumb / 90), (float)(shape.Index / 90), (float)(shape.Middle / 90), (float)(shape.Ring / 90), (float)(shape.Little / 90), (float)shape.Spread];
+        return [.. one, .. one];
+    }
+
+    /// <summary>
+    /// How a bone of the fingers is turned from its parent: <paramref name="bone"/> counts <see cref="FingerBones"/>, and
+    /// <paramref name="hands"/> is a frame of <see cref="ClipFigure.Hands"/> (for each hand, the left first: how far the
+    /// thumb and the four fingers are closed, 0..1, and the degrees between two fingers). The fingers close about the
+    /// knuckles' line, down toward the palm; the thumb goes down under the palm and in across it.
+    /// </summary>
+    public static Quat Finger(int bone, ReadOnlySpan<float> hands)
+    {
+        int side = bone < 15 ? 1 : -1, finger = bone % 15 / 3, joint = bone % 3, at = bone < 15 ? 0 : 6;
+        double closed = Math.Clamp(hands[at + finger], 0, 1), spread = hands[at + 5];
+        const double rad = Math.PI / 180;
+        if (finger == 0)
+        {
+            // (About x the thumb goes down from the palm's plane on both hands; about y, in toward the fingers.)
+            return joint switch
+            {
+                0 => About(Vec3.Up, side * closed * ThumbIn * rad) * About(X, closed * ThumbUnder * rad),
+                1 => About(Vec3.Up, side * closed * ThumbMiddle * rad),
+                _ => About(Vec3.Up, side * closed * ThumbTip * rad),
+            };
+        }
+        var curl = About(Z, -side * closed * FingerCurl[joint] * rad);
+        // A closed finger lies against its neighbours whatever the hand's spread.
+        return joint == 0 ? About(Vec3.Up, -side * SpreadShare[finger] * spread * (1 - closed) * rad) * curl : curl;
+    }
+
+    private static Quat About(Vec3 axis, double angle)
+    {
+        double s = Math.Sin(angle / 2);
+        return new Quat(axis.X * s, axis.Y * s, axis.Z * s, Math.Cos(angle / 2));
+    }
+
+    /// <summary>
+    /// How a hand's row turns the hand on its wrist (`fingers(up)`, `palm(fwd)`), in the room: where the fingers point
+    /// and the palm faces, and how much each is said (0 not at all: as the arm has it; 1 wholly, between two words in between).
+    /// </summary>
+    public readonly record struct HandTurn(Vec3 Fingers, double FingersShare, Vec3 Palm, double PalmShare)
+    {
+        public bool Says => FingersShare > 0 || PalmShare > 0;
+    }
+
     /// <summary>
     /// The rotation of every bone relative to its parent, read off the joint positions of one
     /// pose. Positions do not say how a limb is twisted about its own length; the plane in
@@ -69,7 +176,10 @@ public static class Skeleton
     }
 
     /// <summary>The same, into <paramref name="local"/> (one for each of <see cref="Bones"/>): a clip asks for every frame of every figure.</summary>
-    public static void Rotations(Vec3[] joints, Span<Quat> local)
+    public static void Rotations(Vec3[] joints, Span<Quat> local) => Rotations(joints, local, default, default);
+
+    /// <summary>The same, the hands turned on their wrists as their rows say (DESIGN.md 126).</summary>
+    public static void Rotations(Vec3[] joints, Span<Quat> local, HandTurn leftHand, HandTurn rightHand)
     {
         Span<Quat> world = stackalloc Quat[Bones.Length];
 
@@ -166,6 +276,44 @@ public static class Skeleton
                         world[arm + 2] = Quat.Between(X * side, Vec3.Up * -side, way, palm);
                     }
                 }
+            }
+
+            // A hand its row turns (`fingers(up)`, `palm(fwd)`): the wrist bends to point the fingers there, no further
+            // from the forearm than a wrist goes, and the hand turns about its fingers to face the palm there. What
+            // the row does not say stays as the arm has it: the fingers along the forearm, the palm as the elbow lies.
+            var wrist = side == 1 ? leftHand : rightHand;
+            if (wrist.Says)
+            {
+                var forearm = (joints[shoulder + 2] - joints[shoulder + 1]).Normalized();
+                var hand = world[arm + 2];
+                var fingers = hand.Rotate(X * side);
+                if (wrist.FingersShare > 0 && wrist.Fingers.Length > 1e-6)
+                {
+                    var want = wrist.Fingers.Normalized();
+                    double most = Semantics.Vocabulary.MaxWrist * Math.PI / 180;
+                    double off = Math.Acos(Math.Clamp(forearm.Dot(want), -1, 1));
+                    if (off > most)
+                    {
+                        var square = want - forearm * want.Dot(forearm);
+                        want = square.Length < 1e-6 ? forearm : forearm * Math.Cos(most) + square.Normalized() * Math.Sin(most);
+                    }
+                    fingers = Vec3.Slerp(fingers, want, wrist.FingersShare);
+                }
+                // The palm as it lies, carried onto the fingers' new way; then turned about them to where it is sent.
+                var palm = hand.Rotate(-Vec3.Up);
+                palm -= fingers * palm.Dot(fingers);
+                palm = palm.Length < 1e-6 ? hand.Rotate(Z) : palm.Normalized();
+                if (wrist.PalmShare > 0)
+                {
+                    var want = wrist.Palm - fingers * wrist.Palm.Dot(fingers);
+                    if (want.Length > 1e-6)
+                    {
+                        want = want.Normalized();
+                        double angle = Math.Atan2(fingers.Dot(palm.Cross(want)), palm.Dot(want)) * wrist.PalmShare;
+                        palm = palm * Math.Cos(angle) + fingers.Cross(palm) * Math.Sin(angle);
+                    }
+                }
+                world[arm + 2] = Quat.Between(X * side, -Vec3.Up, fingers, palm);
             }
 
             int leg = side == 1 ? LUpperLeg : RUpperLeg, hip = side == 1 ? Rig.LHip : Rig.RHip;

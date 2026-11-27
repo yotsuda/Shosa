@@ -11,6 +11,7 @@ import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
 import { millsAngles, millsArms } from './arms.js';
 import { elbowSwings, keepArmsOut, measureBody, refresh } from './clearance.js';
 import { createMicHands } from './mic.js';
+import { poseFingers } from './hands.js';
 import { headTouch, touchHead } from './touch.js';
 import { clubCatching, gripHands, heldBy, palmAlong, palmsUp, penguinShares, styleShares } from './juggle.js';
 
@@ -115,6 +116,11 @@ export function createCharacters(scene, changed) {
       q1.set(s * b[j * 4], b[j * 4 + 1], s * b[j * 4 + 2], b[j * 4 + 3]);
       bone.quaternion.slerpQuaternions(q0, q1, k);
     });
+    // The fingers (DESIGN.md 126): as a hand's row has them, or relaxed. (A juggler with no such row keeps the flat
+    // hand the props lie on; a mic's hand is closed on it after this.)
+    const fingers = data.hands;
+    if (fingers && fingers.length) poseFingers(entry, fingers[Math.min(fingers.length - 1, f0)], fingers[Math.min(fingers.length - 1, f1)], k);
+    else if (!data.juggle) poseFingers(entry, null, null, 0);
     const hips = entry.bones[names.indexOf('hips')];
     const size = entry.height && entry.ownHeight ? entry.height / entry.ownHeight : 1;
     vrm.scene.scale.setScalar(size);

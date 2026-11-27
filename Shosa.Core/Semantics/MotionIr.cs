@@ -272,8 +272,14 @@ public static class Channels
     /// </summary>
     public const string Shoulders = "shoulders";
     public const string Head = "head";
+    /// <summary>
+    /// A hand: the shape of its fingers, and how it is turned on its wrist (DESIGN.md 126). Its segments are `Hand`.
+    /// A part of its own beside its arm: the arm says where the wrist is, this what the hand does there.
+    /// </summary>
+    public const string LeftHand = "leftHand";
+    public const string RightHand = "rightHand";
 
-    public static readonly string[] All = [Support, Height, LeftArm, RightArm, LeftLeg, RightLeg, Turnout, Hips, Torso, Shoulders, Head];
+    public static readonly string[] All = [Support, Height, LeftArm, RightArm, LeftLeg, RightLeg, Turnout, Hips, Torso, Shoulders, Head, LeftHand, RightHand];
 
     /// <summary>
     /// What the hands throw and catch, in siteswap (DESIGN.md 118). Not a part of the body, so not in
@@ -288,6 +294,8 @@ public static class Channels
         RightArm => LeftArm,
         LeftLeg => RightLeg,
         RightLeg => LeftLeg,
+        LeftHand => RightHand,
+        RightHand => LeftHand,
         _ => channel,
     };
 }
@@ -310,6 +318,7 @@ public static class SegKinds
     public const string Lift = "lift";          // support, free: hang with the feet Height above the floor
     public const string Land = "land";          // support, free: back to the floor
     public const string Juggle = "juggle";      // juggle: throw Pattern from T0 to T1, a throw every Every beats
+    public const string Hand = "hand";          // hand: the fingers in Shape, turned to Fingers and Palm
 }
 
 /// <summary>
@@ -345,6 +354,9 @@ public sealed class Seg
     public bool Round { get; set; }
     /// <summary>Dir, legs (`side.floor`): the leg straight that way, the foot pointed and its toe on the floor (a tendu). Dir is level; how far down follows from how high the hip is.</summary>
     public bool Floor { get; set; }
+    /// <summary>Dir, legs (`pointed`, `flexed`): the foot of a leg in the air stretched on along the shin (1) or pulled up toward it (-1); null: square, as it stood.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public double? Point { get; set; }
     /// <summary>Anchor, arms: hip | chest | shoulder | head | chin | belly | shoulder.across | clap. Legs: otherKnee | otherKnee.back | otherAnkle | otherAnkle.back.</summary>
     public string? Anchor { get; set; }
     /// <summary>Reach and Turn: the id of the other dancer.</summary>
@@ -371,6 +383,17 @@ public sealed class Seg
     public double? Spread { get; set; }
     /// <summary>Jump (`jump.change`): the feet land as they stood mirrored left for right: the one behind lands in front (a changement).</summary>
     public bool Change { get; set; }
+    /// <summary>
+    /// Jump (`jump.rightFoot.fwd(0.08m).across(0.13m)`): the stance it lands in, as a step of <see cref="Foot"/> from the
+    /// other foot would stand: metres toward that foot's own side and forward. Null: as <see cref="Spread"/> and <see cref="Change"/> say.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public double? StanceDx { get; set; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public double? StanceDz { get; set; }
+    /// <summary>Jump (`jump.beat`, `jump.change.beat(2)`): how many times the legs close crossed in the air before they land, each time the other way round; null for none.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public int? Beats { get; set; }
     /// <summary>Jump: the foot it lands on. both (`jump`), same — the one it took off from (`hop`), other — the one that carried no weight (`leap`).</summary>
     public string? Lands { get; set; }
     /// <summary>Lift: metres between the floor and the feet.</summary>
@@ -385,6 +408,16 @@ public sealed class Seg
     /// end; the beat the word before it begins. If the feet already stand so, it is a way of standing: no foot
     /// moves, and the weight goes back between them from this beat (DESIGN.md 88).</summary>
     public double? Kept { get; set; }
+
+    /// <summary>Hand: how far the thumb, the first, the middle, the ring and the little finger are closed (0 straight, 90 into the fist), and the degrees between two fingers.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public double[]? Shape { get; set; }
+    /// <summary>Hand (`fingers(up)`): which way the fingers point, a unit vector in the dancer's frame; null: on along the forearm.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public double[]? Fingers { get; set; }
+    /// <summary>Hand (`palm(fwd)`): which way the palm faces, a unit vector in the dancer's frame; null: as the arm has it.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public double[]? Palm { get; set; }
 
     /// <summary>Juggle: the siteswap as written (`531`, `(4,2x)*`).</summary>
     public string? Pattern { get; set; }

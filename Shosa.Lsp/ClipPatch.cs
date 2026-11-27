@@ -103,7 +103,7 @@ internal static class ClipPatch
         for (int f = 0; f < a.Figures.Count; f++)
         {
             ClipFigure x = a.Figures[f], y = b.Figures[f];
-            if ((x.Turns is null) != (y.Turns is null) || (x.Mouth is null) != (y.Mouth is null))
+            if ((x.Turns is null) != (y.Turns is null) || (x.Mouth is null) != (y.Mouth is null) || (x.Hands is null) != (y.Hands is null))
                 return false;
         }
         return true;
@@ -129,6 +129,7 @@ internal static class ClipPatch
         Rows("frames", x.Frames, y.Frames);
         Rows("turns", x.Turns, y.Turns);
         Rows("mouth", x.Mouth, y.Mouth);
+        Rows("hands", x.Hands, y.Hands);
         if (rows.Count > 0)
             entry["rows"] = rows;
         if (counts.Count > 0)

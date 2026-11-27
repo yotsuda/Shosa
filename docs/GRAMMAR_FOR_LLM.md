@@ -187,6 +187,9 @@ the tracks alone; in a file each of them stands inside a role's block.
 | `torso` | The spine: `up` is upright, `up.fwd(10)` leans 10 degrees forward, `fwd` is folded level. |
 | `shoulders` | The line of the shoulders turned from the feet, as seen from above: `left(30)` (degrees), `right(85)`, `center`. The chest turns on the hips to put it there; the feet stay. |
 | `head` | Where the face looks: `fwd` is straight ahead. It nods with the chest's lean, but does not turn with the hips or the shoulders. |
+| `hands` | Both hands at once, mirrored: the shape of the fingers (`fist`, `open`, `point`, `peace` …), and which way the fingers and the palm face (`open.fingers(up).palm(fwd)`). |
+| `leftHand` | The left hand: the shape of its fingers, and which way they and the palm face. |
+| `rightHand` | The right hand. |
 | `juggle` | What the hands throw (`juggles balls` on the dancer line), in siteswap as jugglers write it: `juggle { every 1/2  3:4 | 531531 3 3 | }`. A word with no length is its throws as written, one throwing beat each (`531` once through); with a length, the pattern over and over for that long (`3:4`); `every` says how many beats from one throw to the next. While a pattern is thrown, the arms are the juggle row's. |
 
 Tracks may overlap: `body` covers everything, `arms` covers both arms. **Where two tracks
@@ -691,8 +694,13 @@ An arm can also go to a place on the own body instead of a direction:
 | `belly` | The hand on the belly. |
 | `shoulder.across` | The hand on the opposite shoulder. With `arms`: arms folded. |
 | `clap` | The hand at the midline in front of the chest. With `arms`: the two hands meet. |
+| `thigh` | The hand on the front of the thigh of its own side, half-way down it, wherever the leg is (standing, lifted, sitting). |
+| `knee` | The hand on the knee of its own side, wherever the leg is: `arms { knee }` with a bow and bent knees is hands on the knees. |
 
 `arms { clap!clap }` is a clap on its beat (add `@sharp` for a crisp one); `arms { shoulder.across }` folds the arms.
+`thigh` and `knee` are on the leg of the hand's own side, wherever that leg is: `arms { knee }` with
+`torso { up.fwd(40) }` and `height { low(20cm) }` is hands on the knees (an arm reaches 0.6 m: standing upright
+the knee is out of reach, SH2006 does not say so — read the hand in `shosa clip`).
 
 **A hand that stays where it is in the room: `stay`.** Every target above is measured from the
 shoulder, so a hand goes with the body when it leans, bows or sinks. `stay` keeps the hand where its
@@ -774,6 +782,10 @@ the leg back with `down`.
   the foot pointed, the toe on the floor, as far out as the leg reaches from the hip (farther in a
   plié). Out from the floor and back the toe slides; a dégagé brushes through it, `side.floor:1/2
   side.down(70):1/2 side.floor:1/2 down:1/2`, and a rond de jambe is `fwd.floor side.floor back.floor down`.
+  **With `bent` the knee bends and the toe still rests on the floor**, nearer the body, the heel up:
+  `rightLeg { back.floor.bent(40) }` is the foot resting on its toe behind (a dancer waiting, a "B-plus"),
+  `fwd.floor.bent(30)` a toe tapped in front (`knee(…)` says where the knee points). The floor is the place: a
+  knee bent further than still reaches the floor from where the hip is bends as far as does.
   Seen from above, a foot going between the floor and a shape by the standing foot goes round
   the standing ankle the shorter way, no nearer to it than its two ends: from the back of the
   ankle to fifth in front it passes beside the standing foot (about 12 cm out), not through it.
@@ -786,15 +798,27 @@ A leg in the air can also send its toe to a place on the other leg:
 | `otherKnee.back` | The toe at the back of the other leg's knee. |
 | `otherAnkle` | The toe at the front of the other leg's ankle: a coupé (sur le cou-de-pied). |
 | `otherAnkle.back` | The toe at the back of the other leg's ankle. |
+| `otherShin` | The toe at the front of the other leg's shin, half-way between the ankle and the knee (a low retiré). |
+| `otherShin.back` | The toe at the back of the other leg's calf. |
+| `otherThigh` | The toe at the front of the other leg's thigh, half-way up it (a high retiré; the foot of a tree pose). |
+| `otherThigh.back` | The toe at the back of the other leg's thigh. |
 
 `rightLeg { otherKnee:2 down }` is a retiré (passé) held for two beats; `rightLeg { otherKnee fwd.up(15):2 down }`
 a développé that goes up through it and unfolds to the front. How far the knee bends follows
 from the place (so no `bent`); it points where the foot does — forward with the legs
 parallel, to the side turned out (`turnout`) — or as `knee(...)` says: `otherKnee.knee(fwd)`.
 The place is found on the other leg wherever it is: in a plié, turned out, or in the air.
-The foot is pointed on along the shin, its toe at the place.
+The foot is pointed on along the shin, its toe at the place. `otherShin` and `otherThigh` are half-way
+along the shin and the thigh (their fronts; `.back` their backs): a retiré at half height, and one above the knee.
 
-### Shapes: `bent`, `elbow`, `knee`, `round`, `tilt`, `body`
+**The foot of a leg in the air: `pointed`, `flexed`.** A lifted foot lies as it stood, level, unless its
+word says: `rightLeg { fwd.down(45).pointed }` stretches it on along the shin (a dégagé, a battement, the back
+foot of an arabesque: `back.up(10).pointed`), `fwd.flexed` pulls the toes up toward the shin, the heel
+leading (a heel dig, a flexed kick). They are shape words (after `bent` and `knee(…)`), and go evenly from
+word to word. A toe sent to the floor or to the other leg is pointed already, and takes neither; in the air
+of a jump every foot points by itself.
+
+### Shapes: `bent`, `elbow`, `knee`, `pointed`, `flexed`, `round`, `tilt`, `body`
 
 After the direction a target may say the shape the part arrives in, with words of their
 own joined on by dots, **each once and in this order** (SH1012 otherwise):
@@ -804,6 +828,8 @@ own joined on by dots, **each once and in this order** (SH1012 otherwise):
 | `bent` | For an arm or a leg: bend the elbow or the knee, the hand or foot staying in its direction and coming closer. `bent` is a right angle; `bent(40)` 40 degrees (0 straight, up to 150): `fwd.up(25).bent`. |
 | `elbow` | For an arm: which way the elbow points, as an arm's direction: `fwd.across(15).down(25).bent(50).elbow(side)` holds it out to the side (ballet's rounded arms; the `across` brings the hands together). Without it the elbow hangs down, back and a little out. Only the part square to the arm counts; on a straight arm it turns the arm about its length. |
 | `knee` | For a leg in the air: which way the knee points, as a leg's direction: `back.up(20).bent.knee(side.up)` (an attitude, the knee above the foot). Without it the knee points where its foot does (`turnout`). |
+| `pointed` | For a leg in the air: the foot stretched on along the shin, the toes pointed: `rightLeg { fwd.down(45).pointed }` (a dégagé, a battement, an arabesque's back foot). Without it (and without `flexed`) a lifted foot lies square, as it stood. |
+| `flexed` | For a leg in the air: the foot pulled up, the toes toward the shin and the heel pushed out: `rightLeg { fwd.flexed }` (a flexed-foot kick, a heel dig, a character step). |
 | `round` | For the torso: the back is rounded. The direction still says where the chest is from the hips; the spine bows back from that line, and the chest, the shoulders and the head lean further forward (`torso { up.fwd(10).round }` is a fighter's guard, `up.round` a slouch). Without it the back is straight, as in a bow from the hips. |
 | `tilt` | For the head: the line of the eyes tilted from level, an ear toward its shoulder: `fwd.tilt(left(15))` (up to 45; `tilt(left(0))` holds the eyes level on a leaning torso). Without it the head sits square on the neck and leans with the torso. |
 | `body` | For an arm: the direction is measured against the torso instead of the room, so the arm leans when the torso leans: `up.body`. |
@@ -894,6 +920,82 @@ turnout { parallel:4 out(45):4 }       // parallel, turned out 45° by beat 4
   until a word changes it, across sections too. A row nobody wrote is `parallel`.
   In a pose it is the pose's own (`pose first { turnout { out(80) }  steps { together } }`),
   and a pose's name in the row is that pose's turnout.
+
+## The hands: `hands`, `leftHand`, `rightHand`
+
+An arm's row says where the wrist is. What the hand does there is a row of its own:
+**the shape of the fingers, then which way the fingers point and the palm faces.**
+`hands` writes both hands alike (mirrored, as `arms` does); `leftHand` / `rightHand` one.
+
+```shosa
+hands     { fist }                                // both fists, from the first beat
+rightHand { relaxed:3 then:1 point:4 }            // hanging, then pointing by beat 4
+hands     { spread.fingers(up).palm(fwd) }        // jazz hands: the fingers up, the palms to the front
+rightHand { open.palm(up):2 fist.palm(up):2 }     // a hand held out, closing
+hands     { fist.index(0).middle(0) }             // a finger of its own after the shape: 0 straight, 90 closed
+```
+
+| Hand shape | Meaning |
+|---|---|
+| `relaxed` | The hand as it hangs: the fingers a little curled, more toward the little finger. What a hand nobody wrote is. |
+| `open` | The hand flat: the fingers straight and together, the thumb beside them. A blade of a hand, a stop sign, a salute. |
+| `spread` | The hand flat and the fingers spread wide, the thumb out: jazz hands, a high five, paper. |
+| `fist` | The fingers closed into the palm, the thumb across them: a punch, a guard, rock. |
+| `point` | The first finger straight, the others closed, the thumb across them: pointing; one. |
+| `peace` | The first and the middle finger straight and apart, the others closed: a V, scissors; two. |
+| `thumbUp` | A fist with the thumb straight out of it: with the palm turned in (`thumbUp.palm(across)`) the thumb points up. |
+| `gun` | The first finger straight and the thumb up from it, the others closed: a finger gun, an L. |
+| `rock` | The first and the little finger straight, the middle two closed under the thumb: horns. |
+| `shaka` | The thumb and the little finger out, the middle three closed: hang loose, a telephone. |
+| `ok` | The tips of the thumb and the first finger together in a ring, the other three straight and a little spread. |
+| `pinch` | The tips of the thumb and the first finger together, the other three closed: holding something small, a pinch of salt. |
+| `heart` | The four fingers curved over together and the thumb curved under them: half a heart; the two hands side by side, fingertips and thumb tips touching, make a whole one. |
+| `claw` | Every finger half bent and spread, the thumb too: a cat's paw, a monster's hand. |
+| `soft` | A ballet dancer's hand: the fingers long and barely curved, the middle finger a little in toward the thumb, the first finger a little lifted. |
+| `count` | Fingers held up to count, the rest closed: `count(3)` is three (first, middle and ring); `count(0)` a fist, `count(1)` is `point`, `count(2)` `peace`, `count(5)` the whole hand, spread. |
+
+| Finger | Meaning |
+|---|---|
+| `thumb` | The thumb alone, after the hand's shape: `thumb(0)` straight out to its side, `thumb(90)` folded across the palm. |
+| `index` | The first finger alone, after the hand's shape: how far it is curled, `index(0)` straight, `index(90)` closed into the palm: `fist.index(0)` points. |
+| `middle` | The middle finger alone: `middle(0)` straight to `middle(90)` closed. |
+| `ring` | The ring finger alone: `ring(0)` straight to `ring(90)` closed. |
+| `little` | The little finger alone: `little(0)` straight to `little(90)` closed. |
+
+| The wrist | Meaning |
+|---|---|
+| `fingers` | Which way the fingers point, as an arm's direction: `open.fingers(up)` (a stop sign on an arm held forward). The wrist bends that way, up to 80 degrees from the forearm; without it the fingers go on along the forearm. |
+| `palm` | Which way the palm faces, as an arm's direction: `open.palm(up)`, `spread.fingers(up).palm(fwd)`. The hand turns about its fingers to face it there as nearly as it can (only the part square to the fingers counts); without it the palm lies as the arm has it. |
+
+- **A word is the whole hand, in this order**: one shape; then any finger of its own (`thumb`, `index`,
+  `middle`, `ring`, `little`, each with how far it is closed in brackets, 0 to 90); then `fingers(…)`;
+  then `palm(…)`. What a word does not say is the relaxed hand, turned as the arm has it:
+  `palm(up)` alone is a relaxed hand with the palm up, and `fist` after `open.palm(up)` lets the palm go.
+  Write the palm again to keep it: `open.palm(up) fist.palm(up)`.
+- **`fingers(…)` and `palm(…)` take an arm's direction** (`fwd`, `up`, `side`, `across`, `back`, `down`,
+  `fwd.up(30)` …), measured in the room from the way the feet face, as every direction is; `side` is the
+  hand's own side, so `hands { open.palm(across) }` turns the two palms toward each other.
+  The fingers go on along the forearm unless `fingers(…)` bends the wrist, and a wrist bends no more than
+  80° from the forearm: `arms { fwd }` with `hands { open.fingers(up).palm(fwd) }` is a stop sign
+  (the fingers 10° short of straight up); with the arm hanging, `fingers(up)` cannot be (the hand gets as
+  near as the wrist lets it). The palm faces square to the fingers: only that part of `palm(…)` counts
+  (`fingers(up).palm(up)` says nothing of the palm, warning SH2011).
+  Without `palm(…)` the palm lies as the arm has it: down with the arm out to the side or forward,
+  toward the thigh with the arm hanging.
+- **It moves as a gesture does: through ALL of the word before**, so `hands { open:4 fist }` closes slowly
+  over four beats. A hand that snaps shut on its beat is `@sharp` (`fist@sharp`), or a `then` before it
+  (`open:3 then:1 fist`). It is kept until a word changes it, across sections too. A row nobody wrote is `relaxed`.
+- **The hand's words are the hand's row's only, and not reserved**: a file may name a move `point` or a pose
+  `open`. In a hand's row the hand's own word is meant.
+- A pose may hold the hands (`pose guard { arms { fwd.up(25).bent }  hands { fist } }`), and so may a move;
+  `body { guard }` then closes the fists with the rest.
+- Two hands make one shape by where the arms put them: a heart is `arms { fwd.up(20).across(20).bent(100) }`
+  (read the hands' places in `shosa clip`) with `hands { heart.fingers(across.down(30)).palm(down) }`.
+  `shosa check --at` reads a hand back: how far each finger is closed, where the fingers point and the palm faces.
+- The figure of sticks has no fingers; a character (`dancer … "girl.vrm"`) shows them, and a file written
+  from a dance with a hand's row (`.glb`, `.vrma`, `.bvh`) has the fifteen bones of each hand
+  (`leftThumbMetacarpal` … `rightLittleDistal`, VRM's names). A dance that writes no hand has none.
+  A hand that holds a mic or juggles is the mic's or the juggling's while it does.
 
 ## The shoulders and the hips: `shoulders`, `hips`
 
@@ -1153,6 +1255,9 @@ on its direction, in metres: `leftFoot.fwd(0.3m)` (a small step), `leftFoot.side
 | `stand` | For a jump: land with the feet at standing width. |
 | `together` | For a jump: land with the feet touching (turned out, the heels). |
 | `change` | For a jump: land with the feet as they stood, mirrored left for right: the foot that was behind lands in front, as far ahead and as crossed (a changement: fifth, right foot front, lands in fifth, left foot front). |
+| `beat` | For a jump: the legs beat in the air. They close crossed the other way round from how they land, and open again to land: `jump.beat` from fifth is an entrechat quatre (it lands as it stood), `jump.change.beat` a royale. `beat(2)` beats twice, each time the other way round (`jump.change.beat(2)`: an entrechat six); up to 3. |
+| `leftFoot` | For a jump, last: the stance it lands in, as a step of that foot from the other would stand: `jump.rightFoot.fwd(0.08m).across(0.13m)` lands in fifth with the right foot in front, from wherever the feet were (an échappé closing from second). Where it lands (`fwd`, `left`, `up(…)`) is written before the foot. |
+| `rightFoot` | For a jump, last: the stance it lands in, named by the right foot (see `leftFoot`). |
 
   A jump LANDS on its beat; the bend and the flight are in the word before it, and the
   knees give a little after. How high it goes follows from the time that
@@ -1194,6 +1299,18 @@ on its direction, in metres: `leftFoot.fwd(0.3m)` (a small step), `leftFoot.side
   `height { straight:1 low(8cm):1 }` with `steps { together:2 jump.up(10cm):1 }` goes down into
   the plié through beat 1, stays, sinks 1 cm more, jumps 10 cm, lands at beat 2 and gives back into the plié.
   `jump@turn(right(180))` turns in the air. Jumps in a row, each on its beat: `jump jump jump`.
+  **A jump lands in any stance a step can stand in: the foot and its step, last.**
+  `jump.rightFoot.fwd(0.08m).across(0.13m)` lands in fifth with the right foot in front, wherever the feet
+  were — out of second (an échappé closing: `jump.apart(0.5m) then jump.leftFoot.fwd(0.08m).across(0.13m)`),
+  out of first. The words after the foot are a step's (`fwd`, `back`, `side`, `across`, each with its metres),
+  and say where that foot stands from the other; the two land about the middle of where they took off (plus
+  `jump.fwd(0.3m)…`, written before the foot). `up(8cm)` and `beat` may stand before the foot or after its step.
+  **`beat`: the legs beat in the air** (from a crossed stance, a fifth). They close crossed the other way
+  round from how they will land, then open and land: `jump.beat.up(12cm)` from fifth with the right foot in
+  front shows the left in front in the air and lands as it stood (an entrechat quatre); `jump.change.beat`
+  beats as it stood and lands changed (a royale); `beat(2)` beats twice, the first as it lands and the
+  second the other way round (`jump.change.beat(2).up(18cm)`: an entrechat six), up to `beat(3)`. Give it
+  air: 12 cm for one beat, 18 cm and more for two (a beat in less is a flicker).
   Between two jumps close together (no more than 0.15 s standing between the give of one and the
   bend of the next: jumping jacks, a skipped rope) the knees go down and up ONCE: the give of the
   landing is the bend of the next take-off.
@@ -1232,6 +1349,7 @@ changed**, as a turn of the hips is — across steps, jumps and sections:
 | `mid` | Standing, the knees soft (bent 12°): the height a row nobody wrote stands at. |
 | `straight` | Standing on straight legs (a ballet dancer's, a soldier at attention): the hips half a centimetre higher than `mid`. |
 | `high` | On the toes, the legs straight. |
+| `pointe` | On the tips of the toes, the feet upright under the legs (pointe shoes): the hips higher than `high` by most of the foot's length. |
 | `sit` | Sitting on a seat, the feet on the floor: `sit(0.45m)` on a seat 0.45 m above the floor (a chair, and what `sit` alone means; a sofa about 0.35 m, a bar stool 0.7 m; 0.1 m to 0.8 m). The hips go back and down onto it and carry the weight there; any other height stands up again. |
 
 ```shosa
@@ -1248,7 +1366,10 @@ height { straight }                 // a soldier at attention, a ballet dancer: 
 - `mid` stands on soft knees (12°), as a character stands about; `straight` on straight legs
   (about 4° in `check`), half a centimetre higher. Ballet and a soldier at attention write
   `height { straight }` once; it is kept until another height is written (after a plié, go
-  back to `straight`, not `mid`). `high` is on the toes, the legs straight.
+  back to `straight`, not `mid`). `high` is on the toes, the legs straight (demi-pointe: the ankles 7 cm up).
+  `pointe` is on the tips of the toes, the feet upright under the shins (the ankles 12 cm up): pointe work,
+  written as `high` is (`height { straight:2 pointe:2 straight }`, a relevé; steps and turns on it as on
+  `high`). Both feet rise: for one foot on its toe beside a flat one, rest it there in its leg's row (`back.floor.bent(40)`).
 - `low` bends the knees, the hips 16 cm lower than standing straight on the same feet (on wide feet, lower than the wide stance straight): a fighter's stance, a plié — not a squat.
   `low(8cm)` is a slight bend, `low(40cm)` a deep crouch (up to `low(60cm)`).
 - The weight stays where it is, and the feet: a `height` row beside a pose or a walk
@@ -1606,7 +1727,7 @@ song hello.lys: 4/4 at 128 (a beat is a crotchet), 16 bars, 64 beats, 30 s
 
 Do not try to express these; mention them as a limitation instead.
 
-- Hands and fingers, the face, the shoulders on their own (a shrug).
+- The face (but the mouth of a dancer who sings), the shoulders on their own (a shrug). A finger's joints one by one, or a finger bent sideways: a hand's row closes a whole finger.
 - "As far as it goes" (write the limit: 45 for the hips; the shoulders say when they do not get there, SH2010), a place on the other dancer's face (`b.chin`), the way an elbow travels in a hook.
 - Holding an object, but a mic (`mic` on the dancer line). Contact other than a hand reaching a place.
 - Walking to a place by naming it ("to the door", "up to b"): the steps are written and counted
@@ -1615,9 +1736,8 @@ Do not try to express these; mention them as a limitation instead.
   carries weight — but sitting on a seat, which is `height { sit(0.45m) }` (leaning on its back, crossed
   legs: not). Standing on one leg is possible (a leg gesture).
 - A change of tempo or of time in the middle of a section (a section says them where it begins; a dance to a song follows its song).
-- A toe at any place on the other leg but its knee and its ankle; a hand on a leg (the thigh, the knee).
-- A foot that points or flexes when you choose (it points by itself in the air of a jump, and with its toe on the other leg or on the floor, `side.floor`; a leg lifted while standing keeps its foot square); standing on pointe; one foot on its toes (demi-pointe) while the other is flat — `height { high }` puts both up.
-- Beating the legs in the air (an entrechat; a changement is `jump.change`).
+- A toe at a place on the other leg but its ankle, its shin, its knee and its thigh; a hand on the other side's leg, or on a foot.
+- A foot that points or flexes while it stands on the floor; a jump landing on one foot from a beat (an entrechat trois, cinq), a beat of one leg against the other held out (a cabriole); a foot that slides while it carries the weight (a moonwalk).
 
 ## Checking your work
 

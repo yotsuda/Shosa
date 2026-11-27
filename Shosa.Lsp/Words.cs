@@ -274,7 +274,10 @@ internal static class Words
             {
                 "leftFoot" or "rightFoot" => Except(Vocabulary.StepDirections, before.Skip(1)),
                 "turn" => before.Count == 1 ? [.. TurnSides, .. figures] : [],   // after the side, its degrees in brackets
-                "jump" => Except(Vocabulary.JumpWords, before.Skip(1)),
+                // (After a foot, the stance it lands in: that step's own words; how high and the beats may still follow.)
+                "jump" => before.Skip(1).Any(w => w is "leftFoot" or "rightFoot")
+                    ? [.. Except(Vocabulary.StepDirections, before.SkipWhile(w => w is not ("leftFoot" or "rightFoot")).Skip(1)), .. Except(Vocabulary.JumpWords.Where(w => w.Name is "up" or "beat"), before.Skip(1))]
+                    : Except(Vocabulary.JumpWords, before.Skip(1)),
                 "hop" or "leap" => Except(jumpWays, before.Skip(1)),
                 "shift" => before.Count == 1 ? Vocabulary.ShiftWords : [],
                 "lift" or "land" => Except(jumpWays.Where(w => w.Name != "place"), before.Skip(1)),
@@ -291,6 +294,20 @@ internal static class Words
         if (track == "turnout")
             return before.Count == 0 ? [.. Vocabulary.TurnoutWords, .. definitions, Hold, Skip, Again] : [];   // after out / in, degrees
 
+        // A hand: its shape, then fingers of their own, then which way the fingers point and the palm faces (DESIGN.md 126).
+        if (track is "hands" or "leftHand" or "rightHand")
+        {
+            if (before.Count == 0)
+                return [.. Vocabulary.HandShapes, .. Vocabulary.Fingers, .. Vocabulary.HandTurns, .. definitions, Hold, Skip, Again];
+            if (before[0] is "then" or "skip")
+                return [];
+            if (before.Contains("palm"))
+                return [];
+            if (before.Contains("fingers"))
+                return Vocabulary.HandTurns.Where(w => w.Name == "palm");
+            return [.. Except(Vocabulary.Fingers, before), .. Vocabulary.HandTurns];
+        }
+
         // The torso and the head say left / right; a limb says side / across.
         var directions = Vocabulary.Directions.Where(w => IsLimb(track) ? w.Name is not ("left" or "right") : w.Name is not ("side" or "across")).ToList();
         // The shape words this track takes, in their order: after the direction, and each after the one before.
@@ -298,7 +315,7 @@ internal static class Words
         {
             "bent" => IsLimb(track),
             "elbow" => IsArm(track),
-            "knee" => IsLimb(track) && !IsArm(track),
+            "knee" or "pointed" or "flexed" => IsLimb(track) && !IsArm(track),
             "round" => track == "torso",
             "tilt" => track == "head",
             _ => IsLimb(track) || track == "head",
@@ -327,13 +344,15 @@ internal static class Words
             return shapes.Where(s => s.Name is "elbow" or "knee");
         // After a shape word, the ones that come after it.
         int lastShape = before.Select(Vocabulary.ShapeOrder).DefaultIfEmpty(-1).Max();
+        // (A toe on the floor is pointed there: after `floor` only how the knee bends and points.)
         if (lastShape >= 0)
-            return shapes.Where(s => Vocabulary.ShapeOrder(s.Name) > lastShape && !(s.Name == "knee" && before.Contains("elbow")));
+            return shapes.Where(s => Vocabulary.ShapeOrder(s.Name) > lastShape && !(s.Name == "knee" && before.Contains("elbow"))
+                && !(s.Name == "flexed" && before.Contains("pointed")) && !(before.Contains(Vocabulary.Floor) && s.Name is not ("bent" or "knee")));
         int horizontal = before.Count(w => directions.Any(d => d.Name == w));
         bool vertical = before.Any(w => w is "up" or "down");
-        // A leg to the floor is straight and pointed: nothing follows.
+        // A leg to the floor is pointed, its toe there: only a bent knee follows (`back.floor.bent(60)`).
         if (before.Contains(Vocabulary.Floor))
-            return [];
+            return shapes.Where(s => s.Name is "bent" or "knee");
         // up.fwd(10): from straight up toward one way.
         if (before is ["up" or "down"])
             return [.. directions, .. shapes];

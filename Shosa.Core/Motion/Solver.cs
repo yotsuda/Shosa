@@ -112,7 +112,7 @@ public static class Solver
     /// A figure at one frame: its joints (as the clip has them: `inPlace` taken out), what was wrong there, the way
     /// it faces, where its body really is (before `inPlace`), and the two rows of the clip.
     /// </summary>
-    private readonly record struct Posed(Vec3[] Pose, PoseProblems Problems, double Facing, Body Body, float[] Data, float[] Turns);
+    private readonly record struct Posed(Vec3[] Pose, PoseProblems Problems, double Facing, Body Body, float[] Data, float[] Turns, float[]? Hands = null);
 
     /// <param name="travel">`inPlace`: the travel taken out over the clip; else nothing.</param>
     private static Posed PoseFrame(FigureSolver solver, MotionIr ir, double t, Vec3 travel)
@@ -136,7 +136,12 @@ public static class Solver
         }
 
         Span<Quat> rotations = stackalloc Quat[Skeleton.Bones.Length];
-        Skeleton.Rotations(pose, rotations);
+        // The hands, where a row writes them (DESIGN.md 126): the fingers a row of the clip, the wrists in the rotations.
+        Skeleton.HandTurn leftHand = default, rightHand = default;
+        float[]? hands = null;
+        if (solver.WritesHands)
+            (leftHand, rightHand, hands) = solver.HandsAt(t);
+        Skeleton.Rotations(pose, rotations, leftHand, rightHand);
         var turns = new float[rotations.Length * 4];
         for (int b = 0; b < rotations.Length; b++)
         {
@@ -145,7 +150,7 @@ public static class Solver
             turns[b * 4 + 2] = (float)rotations[b].Z;
             turns[b * 4 + 3] = (float)rotations[b].W;
         }
-        return new Posed(pose, problems, solver.FacingAt(t), body, data, turns);
+        return new Posed(pose, problems, solver.FacingAt(t), body, data, turns, hands);
     }
 
     /// <summary>
@@ -329,6 +334,8 @@ public static class Solver
                 clipFigure.Frames.Add(posed.Data);
                 clipFigure.Yaws.Add(facing);
                 clipFigure.Rotations.Add(posed.Turns);
+                if (posed.Hands is { } fingers)
+                    (clipFigure.Hands ??= []).Add(fingers);
 
                 if (problems.Overreach)
                     Flag(Channels.Support, t, "SH2002", DiagnosticSeverity.Warning,
@@ -833,6 +840,14 @@ internal sealed class FigureSolver
         /// the standing foot goes round it (<see cref="GoRound"/>).
         /// </summary>
         public Vec3 Open;
+        /// <summary>
+        /// In the air of a jump that beats (`jump.beat`, DESIGN.md 127): how many times the legs close crossed before
+        /// they land, and how far ahead of the middle of the two this foot is at the take-off and at the landing. At
+        /// each beat it is as far ahead as it lands, or as far behind: the last beat the other way round from the
+        /// landing, the one before as the landing, and so on.
+        /// </summary>
+        public int Beats;
+        public Vec3 ForeFrom, ForeTo;
         /// <summary>How high the foot is held off the floor when the move begins and when it ends (a foot left in the air after a hop or a leap stays at LiftTo).</summary>
         public double LiftFrom, LiftTo;
         /// <summary>How much of a stride the step goes the way the foot points: 1 forward, -1 back, 0 sideways.</summary>
@@ -851,6 +866,8 @@ internal sealed class FigureSolver
         public char On = 'B';   // the supporting foot: L, R or Both
         /// <summary>A shift that did not get the weight over its foot (a wide stance): the other foot still carries some, and slides to close.</summary>
         public bool Short;
+        /// <summary>The middle of the feet where the steps last put them (a pose's stance does not move it); null until a word of the steps has.</summary>
+        public Vec3? Home;
         public Stand Clone() => (Stand)MemberwiseClone();
     }
 
@@ -1012,6 +1029,8 @@ internal sealed class FigureSolver
         _shoulders = Row(Channels.Shoulders);
         _hips = Row(Channels.Hips);
         _head = Row(Channels.Head);
+        _leftHand = Row(Channels.LeftHand);
+        _rightHand = Row(Channels.RightHand);
         _sits = _height.Any(seg => seg.Seat is not null);
         SetUpLife();
         SetUpMic();
@@ -1020,6 +1039,81 @@ internal sealed class FigureSolver
 
     /// <summary>The juggle row timed (DESIGN.md 118), or null for a dancer that does not juggle.</summary>
     public Juggling? Juggling { get; }
+
+    // ---- The hands (DESIGN.md 126): the fingers, and how the hand is turned on its wrist. A row of their own beside
+    // the arms: nothing of the body's pose depends on them.
+    private readonly List<Seg> _leftHand, _rightHand;
+
+    /// <summary>Whether a row writes either hand: only then has the clip fingers.</summary>
+    public bool WritesHands => _leftHand.Count > 0 || _rightHand.Count > 0;
+
+    /// <summary>A hand at a moment: how far each finger is closed (degrees, 0..90) and spread, and where its row turns it (in the dancer's frame), each as much as it is said.</summary>
+    private readonly record struct HandState(double Thumb, double Index, double Middle, double Ring, double Little, double Spread,
+        Vec3 Fingers, double FingersShare, Vec3 Palm, double PalmShare);
+
+    private static readonly HandState RelaxedHand = HandOf.Of(null);
+
+    private readonly struct HandOf : IChain<HandState>
+    {
+        public static HandState Of(Seg? seg)
+        {
+            if (seg?.Shape is not { Length: >= 6 } s)
+            {
+                var relaxed = Vocabulary.ShapeOfHand("relaxed")!.Value;
+                return new HandState(relaxed.Thumb, relaxed.Index, relaxed.Middle, relaxed.Ring, relaxed.Little, relaxed.Spread, default, 0, default, 0);
+            }
+            static Vec3 Way(double[]? d) => d is null ? default : new Vec3(d[0], d[1], d[2]);
+            return new HandState(s[0], s[1], s[2], s[3], s[4], s[5], Way(seg.Fingers), seg.Fingers is null ? 0 : 1, Way(seg.Palm), seg.Palm is null ? 0 : 1);
+        }
+
+        public HandState Target(Seg? seg) => Of(seg);
+
+        public HandState Blend(HandState a, HandState b, double e)
+        {
+            static double Mix(double x, double y, double e) => x + (y - x) * e;
+            // A way one end says and the other does not comes in (or goes out) as the hand goes: it is the said one, said less.
+            static (Vec3, double) Way(Vec3 x, double sx, Vec3 y, double sy, double e) =>
+                sx <= 0 && sy <= 0 ? (default, 0)
+                : sx <= 0 ? (y, sy * e)
+                : sy <= 0 ? (x, sx * (1 - e))
+                : (Vec3.Slerp(x, y, e), Mix(sx, sy, e));
+            var (fingers, fingersShare) = Way(a.Fingers, a.FingersShare, b.Fingers, b.FingersShare, e);
+            var (palm, palmShare) = Way(a.Palm, a.PalmShare, b.Palm, b.PalmShare, e);
+            return new HandState(Mix(a.Thumb, b.Thumb, e), Mix(a.Index, b.Index, e), Mix(a.Middle, b.Middle, e), Mix(a.Ring, b.Ring, e),
+                Mix(a.Little, b.Little, e), Mix(a.Spread, b.Spread, e), fingers, fingersShare, palm, palmShare);
+        }
+
+        public bool Measures => false;
+        public double Distance(HandState a, HandState b) => 0;
+    }
+
+    /// <summary>
+    /// The hands at a moment: how each is turned on its wrist, in the room (for <see cref="Skeleton.Rotations(Vec3[], Span{Quat}, Skeleton.HandTurn, Skeleton.HandTurn)"/>),
+    /// and a frame of <see cref="ClipFigure.Hands"/>.
+    /// </summary>
+    public (Skeleton.HandTurn Left, Skeleton.HandTurn Right, float[] Fingers) HandsAt(double t)
+    {
+        t = Clamp(t);
+        double yaw = YawAt(t);
+        Vec3 left = Vec3.Left(yaw), fwd = Vec3.Forward(yaw);
+        var fingers = new float[12];
+        Skeleton.HandTurn One(List<Seg> row, int at)
+        {
+            var ops = new HandOf();
+            var hand = row.Count == 0 ? RelaxedHand : Chain<HandState, HandOf>(row, t, ref ops);
+            fingers[at] = (float)Math.Round(hand.Thumb / 90, 4);
+            fingers[at + 1] = (float)Math.Round(hand.Index / 90, 4);
+            fingers[at + 2] = (float)Math.Round(hand.Middle / 90, 4);
+            fingers[at + 3] = (float)Math.Round(hand.Ring / 90, 4);
+            fingers[at + 4] = (float)Math.Round(hand.Little / 90, 4);
+            fingers[at + 5] = (float)Math.Round(hand.Spread, 3);
+            Vec3 Room(Vec3 v) => left * v.X + Vec3.Up * v.Y + fwd * v.Z;
+            return new Skeleton.HandTurn(Room(hand.Fingers), hand.FingersShare, Room(hand.Palm), hand.PalmShare);
+        }
+        var leftTurn = One(_leftHand, 0);
+        var rightTurn = One(_rightHand, 6);
+        return (leftTurn, rightTurn, fingers);
+    }
 
     /// <summary>The farthest a juggling hand goes from its shoulder, metres: the elbow bent some 40 degrees (0.60 is straight).</summary>
     private const double JuggleReach = 0.575;
@@ -1597,13 +1691,28 @@ internal sealed class FigureSolver
                     }
                     var from = isLeft ? s.Left : s.Right;
                     var other = isLeft ? s.Right : s.Left;
-                    var target = other + fwd * seg.Dz + (isLeft ? leftward : -leftward) * seg.Dx;
-                    Move(isLeft, new FootMove
+                    var apartTo = fwd * seg.Dz + (isLeft ? leftward : -leftward) * seg.Dx;
+                    var target = other + fwd * seg.Dz + (isLeft ? leftward : -leftward) * seg.Dx;   // (summed in this order: the numbers of every clip before DESIGN.md 127)
+                    bool moveLeft = isLeft;
+                    // A pose's stance is a way of standing, not a step forward: of the two feet that can make it (the one
+                    // it names going to its place, or the other going from under it), the one that leaves the dancer
+                    // nearer where the steps last put it. `fifth` and `fifth@mirror` in turn stand on one spot (each named
+                    // foot stepping ahead of the other, they walked 0.16 m forward every pair: DESIGN.md 127).
+                    if (seg.Stance && seg.TurnDeg == 0 && t1 - t0 > 1e-9)
+                    {
+                        var home = s.Home ??= (s.Left + s.Right) * 0.5;
+                        if ((from - apartTo * 0.5 - home).Length < (other + apartTo * 0.5 - home).Length - 1e-3)
+                        {
+                            (moveLeft, target) = (!isLeft, from - apartTo);
+                            (from, other) = (other, from);
+                        }
+                    }
+                    Move(moveLeft, new FootMove
                     {
                         T0 = t0, T1 = t1, From = from, To = target,
-                        YawFrom = isLeft ? s.LeftYaw : s.RightYaw, YawTo = s.Yaw, Lift = StepLift(from, target),
+                        YawFrom = moveLeft ? s.LeftYaw : s.RightYaw, YawTo = s.Yaw, Lift = StepLift(from, target),
                         Along = Math.Clamp((target - from).Dot(fwd) / Rig.Stride, -1, 1),
-                        Open = GoRound(from, target, other, Outward(isLeft)),
+                        Open = GoRound(from, target, other, Outward(moveLeft)),
                     });
                     if (t1 - t0 <= 1e-9 || seg.Stance)
                     {
@@ -1780,17 +1889,33 @@ internal sealed class FigureSolver
                         var half = seg.Spread is null
                             ? (leftAfter * stood.Dot(leftward) + fwdAfter * (seg.Change ? -1 : 1) * stood.Dot(fwd)) * 0.5
                             : leftAfter * ((seg.Spread is -1 ? TouchWidth(t1) : seg.Spread.Value) / 2);
-                        // Changing, the feet open in the air to pass each other at standing width, each to its own side.
-                        double open = seg.Change ? Math.Max(0, (Rig.Stance - stood.Dot(leftward)) / 2) : 0;
+                        // A stance said as a step (`jump.rightFoot.fwd(0.08m).across(0.13m)`, DESIGN.md 127): the feet land
+                        // standing so about the landing, the named foot that far from the other (an échappé closing into fifth).
+                        if (seg is { Foot: { } stanceFoot, StanceDx: { } stanceDx, StanceDz: { } stanceDz })
+                        {
+                            bool named = stanceFoot == "left";
+                            var apartTo = fwdAfter * stanceDz + (named ? leftAfter : -leftAfter) * stanceDx;
+                            half = apartTo * (named ? 0.5 : -0.5);
+                        }
+                        // Changing, the feet open in the air to pass each other at standing width, each to its own side:
+                        // where one that was behind lands in front, and at every beat.
+                        bool passes = seg.Change || seg.Beats > 0 || stood.Dot(fwd) * half.Dot(fwdAfter) < -1e-6;
+                        double open = passes ? Math.Max(0, (Rig.Stance - Math.Min(stood.Dot(leftward), 2 * half.Dot(leftAfter))) / 2) : 0;
+                        // Beats (`jump.beat`): how far ahead of the middle each foot is as it takes off and as it lands,
+                        // for the air between to close the legs crossed the other way round (FootAt).
+                        Vec3 foreFrom = fwd * (stood.Dot(fwd) / 2), foreTo = fwdAfter * half.Dot(fwdAfter);
+                        int beats = made ? 0 : seg.Beats ?? 0;
                         Move(true, new FootMove
                         {
                             T0 = up, T1 = land, From = s.Left, To = landing + half,
                             YawFrom = s.LeftYaw, YawTo = s.Yaw + angle, Air = !made, AirHeight = height, Open = leftward * open,
+                            Beats = beats, ForeFrom = foreFrom, ForeTo = foreTo,
                         });
                         Move(false, new FootMove
                         {
                             T0 = up, T1 = land, From = s.Right, To = landing - half,
                             YawFrom = s.RightYaw, YawTo = s.Yaw + angle, Air = !made, AirHeight = height, Open = leftward * -open,
+                            Beats = beats, ForeFrom = -foreFrom, ForeTo = -foreTo,
                         });
                         Weight(t0, up, middle);
                         Weight(up, land, landing);
@@ -1887,6 +2012,9 @@ internal sealed class FigureSolver
                     Weight(t0, t1, s.Weight);
                     break;
             }
+            // Where the steps have put the dancer: what a pose's stance is stood about (the Step case).
+            if (seg.Kind != SegKinds.Hold && !(seg.Kind == SegKinds.Step && seg.Stance))
+                s.Home = (s.Left + s.Right) * 0.5;
         }
         PutDown(double.MaxValue);
     }
@@ -2137,6 +2265,17 @@ internal sealed class FigureSolver
             else if (move.Air)
             {
                 pos = Vec3.Lerp(move.From, move.To, u) + move.Open * Math.Sin(Math.PI * u);
+                if (move.Beats > 0)
+                {
+                    // Beating: between the take-off and the landing the legs close crossed `Beats` times, evenly through
+                    // the air, and open to their own sides between (to pass each other, and to be seen to beat).
+                    int parts = move.Beats + 1, part = Math.Min(parts - 1, (int)(u * parts));
+                    double within = u * parts - part;
+                    // How far ahead the foot is at the key before this part of the air and at the one after it.
+                    Vec3 Key(int k) => k <= 0 ? move.ForeFrom : k >= parts ? move.ForeTo : move.ForeTo * ((parts - k) % 2 == 1 ? -1 : 1);
+                    var fore = Vec3.Lerp(Key(part), Key(part + 1), Smooth(within));
+                    pos = Vec3.Lerp(move.From - move.ForeFrom, move.To - move.ForeTo, u) + fore + move.Open * Math.Abs(Math.Sin(Math.PI * parts * u));
+                }
                 yaw = move.YawFrom + (move.YawTo - move.YawFrom) * s;
                 lift = move.AirHeight * 4 * u * (1 - u) + move.LiftFrom + (move.LiftTo - move.LiftFrom) * u;
                 air = true;
@@ -2449,7 +2588,8 @@ internal sealed class FigureSolver
             else
                 offset = (l * d[0] + u * d[1] + f * d[2]) * Reach(seg, Rig.Thigh, Rig.Shin, Rig.StraightLeg);
             Vec3? bend = seg.Pole is { } q ? Across(l * q[0] + u * q[1] + f * q[2], offset.Normalized()) : null;
-            return new LegPose(1, offset, bend, seg.Kind == SegKinds.Anchor || seg.Floor ? 1 : 0);
+            // (A toe sent to a place is pointed there; else as the word says: `pointed` 1, `flexed` -1.)
+            return new LegPose(1, offset, bend, seg.Kind == SegKinds.Anchor || seg.Floor ? 1 : seg.Point ?? 0);
         }
 
         public LegPose Blend(LegPose a, LegPose b, double e)
@@ -2649,7 +2789,7 @@ internal sealed class FigureSolver
 
         // The height is a row of its own, read like a gesture: it can be taken over half-way.
         double level = Chain(_height, t, seg => seg?.Level ?? 0, (a, b, e) => a + (b - a) * e, Dist);
-        c.Raise = Math.Max(0, level) * 0.07;
+        c.Raise = Math.Max(0, level) * Rig.HighRise;
         double reach = Rig.Leg * Rig.StraightLeg;
         double top = Rig.AnkleHeight + reach + c.Raise;
         // `mid` stands on soft knees, `straight` and `high` on straight legs; `low` is measured from straight.
@@ -3128,7 +3268,7 @@ internal sealed class FigureSolver
     /// how the arm goes from one word to the next. Made of the pose so far (the trunk, the head, the gaze).
     /// </summary>
     private struct ArmOf(FigureSolver solver, double t, int side, Vec3 shoulder, Vec3 lifted, bool holdsMic, double swing, Vec3 pole, List<Seg> armSegs,
-        CoreState c, Vec3 pelvis, Vec3 chest, Vec3 head, Vec3 gaze, Vec3 neck, Vec3 torsoUp, Vec3 torsoLeft, Vec3 torsoFwd, Vec3 faceLeft, Vec3 faceFwd, Vec3 lap)
+        CoreState c, Vec3 pelvis, Vec3 chest, Vec3 head, Vec3 gaze, Vec3 neck, Vec3 torsoUp, Vec3 torsoLeft, Vec3 torsoFwd, Vec3 faceLeft, Vec3 faceFwd, Vec3 lap, Vec3 onThigh, Vec3 onKnee)
         : IChain<(Vec3 Offset, Vec3 Bend)>
     {
         // An arm that hangs: the upper arm straight down, the elbow a little bent, so the hand
@@ -3175,6 +3315,9 @@ internal sealed class FigureSolver
                         + (faceLeft * Math.Cos(c.Hips) - faceFwd * Math.Sin(c.Hips)) * (0.03 * side),
                     "across.shoulder" => chest - torsoLeft * (Rig.ShoulderHalf * 0.8 * side) - torsoUp * Rig.ShoulderDrop + torsoFwd * 0.09,
                     "clap" => chest + torsoFwd * 0.28 - torsoUp * 0.12 + torsoLeft * (0.025 * side),   // the wrists 5 cm apart: a hand is that thick (DESIGN.md 95)
+                    // On the leg of its own side, wherever the leg is (DESIGN.md 127).
+                    "thigh" => onThigh,
+                    "knee" => onKnee,
                     _ => shoulder + torsoUp * 0.06 + torsoFwd * 0.05,
                 };
                 return place - shoulder;
@@ -3303,7 +3446,50 @@ internal sealed class FigureSolver
             way = way.Length > 1e-6 ? way.Normalized() : c.Fwd;
             double leg = Rig.StraightLeg * Rig.Leg, reach = leg + Rig.FootLength;
             double sin = Math.Clamp((hip.Y - FloorToe) / reach, 0, 1), cos = Math.Sqrt(1 - sin * sin);
-            return (way * cos - Vec3.Up * sin) * leg;
+            if (seg.Bend is not > 0)
+                return (way * cos - Vec3.Up * sin) * leg;
+            // The knee bent (`back.floor.bent(60)`: the toe resting on the floor behind, DESIGN.md 127): the ankle as far
+            // from the hip as that bend puts it, and as far down that way as brings the toe, on along the shin, to the
+            // floor. The shin's way depends on where the ankle is: sought between level and straight down.
+            double bent = seg.Bend.Value, length = Rig.Leg * Rig.BentShare(Rig.Thigh, Rig.Shin, bent);
+            double footYaw = side == 1 ? c.LYaw : c.RYaw;
+            var pole = seg.Pole is { } q ? c.Left * q[0] + Vec3.Up * q[1] + c.Fwd * q[2] : Rig.KneePole(Vec3.Left(footYaw), Vec3.Forward(footYaw), side);
+            Vec3 AnkleAt(double angle) => (way * Math.Cos(angle) - Vec3.Up * Math.Sin(angle)) * length;
+            double ToeHeight(double angle)
+            {
+                var ankle = hip + AnkleAt(angle);
+                var (knee, reached) = TwoBone(hip, ankle, Rig.Thigh, Rig.Shin, pole);
+                return (reached + (reached - knee).Normalized() * Rig.FootLength).Y;
+            }
+            // The floor is the place: a leg bent so far that its toe would hang above it bends as far as still reaches,
+            // sloping no steeper than 70 degrees (the foot still out its way, not under the hip).
+            double lo = 0, hi = 70 * Math.PI / 180;
+            if (ToeHeight(hi) > FloorToe)
+            {
+                double less = 0, more = bent;
+                for (int i = 0; i < 20; i++)
+                {
+                    bent = (less + more) / 2;
+                    length = Rig.Leg * Rig.BentShare(Rig.Thigh, Rig.Shin, bent);
+                    if (ToeHeight(hi) > FloorToe)
+                        more = bent;
+                    else
+                        less = bent;
+                }
+                bent = less;
+                length = Rig.Leg * Rig.BentShare(Rig.Thigh, Rig.Shin, bent);
+                if (ToeHeight(hi) > FloorToe)
+                    return AnkleAt(hi);   // too high even for the straight leg (on pointe): as near as it gets
+            }
+            for (int i = 0; i < 24; i++)
+            {
+                double mid = (lo + hi) / 2;
+                if (ToeHeight(mid) > FloorToe)
+                    lo = mid;
+                else
+                    hi = mid;
+            }
+            return AnkleAt(lo);
         }
 
         // The toe of the leg on `side` at the other leg's knee or ankle. The foot is pointed on along
@@ -3313,7 +3499,12 @@ internal sealed class FigureSolver
         {
             var hip = pelvis + c.HipLeft * (Rig.HipHalf * side);
             double ahead = seg.Anchor!.EndsWith(".back") ? -0.06 : 0.06;
-            var place = seg.Anchor.StartsWith("otherKnee") ? otherKnee + c.HipFwd * ahead : otherAnkle + c.HipFwd * ahead + Vec3.Up * 0.05;
+            var otherHip = pelvis - c.HipLeft * (Rig.HipHalf * side);
+            var place = seg.Anchor.StartsWith("otherKnee") ? otherKnee + c.HipFwd * ahead
+                // Half-way down the shin, and half-way down the thigh (thicker: further out from the bone). DESIGN.md 127.
+                : seg.Anchor.StartsWith("otherShin") ? Vec3.Lerp(otherKnee, otherAnkle, 0.5) + c.HipFwd * ahead
+                : seg.Anchor.StartsWith("otherThigh") ? Vec3.Lerp(otherHip, otherKnee, 0.5) + c.HipFwd * (ahead * 1.5)
+                : otherAnkle + c.HipFwd * ahead + Vec3.Up * 0.05;
             double footYaw = side == 1 ? c.LYaw : c.RYaw;
             var pole = seg.Pole is { } q ? c.Left * q[0] + Vec3.Up * q[1] + c.Fwd * q[2] : Rig.KneePole(Vec3.Left(footYaw), Vec3.Forward(footYaw), side);
             var ankle = place + Vec3.Up * Rig.FootLength;
@@ -3543,6 +3734,27 @@ internal sealed class FigureSolver
                 if (toe.Y < FloorToe)
                     toe = new Vec3(toe.X, FloorToe, toe.Z);
             }
+            else if (point < 0 && offFloor)
+            {
+                // A flexed foot (`flexed`, DESIGN.md 127): square to the shin and 15 degrees past it, the toes toward the
+                // knee, on the side of the shin the foot faces.
+                var shin = (reached - knee).Normalized();
+                var ahead = footFwd - shin * footFwd.Dot(shin);
+                if (ahead.Length < 1e-6)
+                    ahead = c.Fwd - shin * c.Fwd.Dot(shin);
+                if (ahead.Length > 1e-6)
+                {
+                    const double past = 15 * Math.PI / 180;
+                    var flexed = reached + (ahead.Normalized() * Math.Cos(past) - shin * Math.Sin(past)) * Rig.FootLength;
+                    toe = Vec3.Lerp(toe, flexed, -point);
+                }
+            }
+            // On the tips of the toes (`pointe`): from demi-pointe up, the toes come in under the ankle, the foot upright.
+            if (!offFloor && onToes is null && c.Raise > Rig.HighRise)
+            {
+                double under = Math.Clamp((c.Raise - Rig.HighRise) / (Rig.PointeRise - Rig.HighRise), 0, 1);
+                toe = new Vec3(reached.X + (toe.X - reached.X) * (1 - under), toe.Y, reached.Z + (toe.Z - reached.Z) * (1 - under));
+            }
 
             int first = isLeft ? Rig.LHip : Rig.RHip;
             joints[first] = hip;
@@ -3624,7 +3836,10 @@ internal sealed class FigureSolver
             // Where a hand rests on the thigh of its side, sitting: half-way along it, on top, a little to the outside.
             int thigh = isLeft ? Rig.LHip : Rig.RHip;
             var lap = c.Sit > 0 ? Vec3.Lerp(joints[thigh], joints[thigh + 1], 0.5) + Vec3.Up * 0.08 + c.HipLeft * (0.03 * side) : default;
-            var armOf = new ArmOf(this, t, side, shoulder, lifted, holdsMic, swing, pole, armSegs, c, pelvis, chest, head, gaze, neck, torsoUp, torsoLeft, torsoFwd, faceLeft, faceFwd, lap);
+            // A hand sent to the leg of its side (`thigh`, `knee`): on its front, half-way down the thigh, or on the knee.
+            var legFront = Vec3.Up * 0.05 + c.HipFwd * 0.07;
+            Vec3 onThigh = Vec3.Lerp(joints[thigh], joints[thigh + 1], 0.5) + legFront, onKnee = joints[thigh + 1] + legFront;
+            var armOf = new ArmOf(this, t, side, shoulder, lifted, holdsMic, swing, pole, armSegs, c, pelvis, chest, head, gaze, neck, torsoUp, torsoLeft, torsoFwd, faceLeft, faceFwd, lap, onThigh, onKnee);
             var (reach, bend) = Chain<(Vec3 Offset, Vec3 Bend), ArmOf>(armSegs, t, ref armOf);
             _toForehead = _fromForehead = false;
             int last = armSegs.Count - 1;

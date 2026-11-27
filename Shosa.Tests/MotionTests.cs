@@ -458,7 +458,7 @@ public class MotionTests
         Assert.True(Math.Abs(Joint(7, toe).X - Joint(7, hip).X) > Math.Abs(Joint(2, toe).Z - Joint(2, hip).Z) + 0.05, "a tendu from a plié reaches farther");
 
         Assert.Contains(Compile(Samples.Solo("    arms { side.floor }")).Diagnostics, d => d.Code == "SH1012");
-        Assert.Contains(Compile(Samples.Solo("    rightLeg { side.floor.bent }")).Diagnostics, d => d.Code == "SH1012");
+        Assert.Contains(Compile(Samples.Solo("    rightLeg { side.floor.pointed }")).Diagnostics, d => d.Code == "SH1012");
         Assert.Contains(Compile(Samples.Solo("    rightLeg { side.down.floor }")).Diagnostics, d => d.Code == "SH1012");
     }
 
@@ -1173,7 +1173,8 @@ public class MotionTests
         Assert.Equal("SH1010", Code("    steps { leftFoot.fwd:4@knee(side) }"));
         Assert.Equal("SH1010", Code("    torso { fwd.up(20).elbow(side):4 }"));
         Assert.Equal("SH1010", Code("    rightLeg { down:2 otherKnee.bent:2 }"));
-        Assert.Equal("SH1013", Code("    rightArm { knee:4 }"));        // a shape word, after a direction
+        Assert.Equal("SH1013", Code("    rightArm { elbow:4 }"));       // a shape word, after a direction
+        Assert.Equal("SH1013", Code("    rightLeg { knee:4 }"));        // (an arm's `knee` is a place: the hand on the knee)
         Assert.Equal("SH1012", Code("    rightArm { otherKnee:4 }"));
         Assert.Equal("SH1012", Code("    rightLeg { chin:4 }"));
         // Pointed along the limb, the joint is not told anything.

@@ -168,10 +168,46 @@ public static class CheckReport
                         return $"{Math.Round(lowest * 100).ToString(CultureInfo.InvariantCulture)} cm up";
                     }
                     string onFloor = $"; feet: left {Foot(Rig.LAnkle, Rig.LToe)}, right {Foot(Rig.RAnkle, Rig.RToe)}";
-                    yield return $"  {label} at beat {N(beat)} = {N(clip.SecondsAt(beat))} s: {who}hips {Turned(angles.Hips)}, shoulders {Turned(angles.Shoulders)}, face {Turned(angles.Face)}{up}{feet}{bends}{onFloor}";
+                    yield return $"  {label} at beat {N(beat)} = {N(clip.SecondsAt(beat))} s: {who}hips {Turned(angles.Hips)}, shoulders {Turned(angles.Shoulders)}, face {Turned(angles.Face)}{up}{feet}{bends}{onFloor}{Hands(clip, figure, beat)}";
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// The hands of a figure whose hands are written (DESIGN.md 126), for `check --at`: how far each finger is closed
+    /// (the degrees a hand's row counts, thumb first), and which way the fingers point and the palm faces, as the
+    /// nearest of an arm's six ways from the way the feet face, with the degrees it is off when it is.
+    /// </summary>
+    private static string Hands(MotionClip clip, ClipFigure figure, double beat)
+    {
+        if (figure.Hands is not { Count: > 0 } hands)
+            return "";
+        int frame = Math.Clamp(clip.FrameOfBeat(beat), 0, hands.Count - 1);
+        var local = new Quat[Skeleton.Bones.Length];
+        for (int b = 0; b < local.Length; b++)
+            local[b] = figure.Rotation(frame, b);
+        var world = new Quat[local.Length];
+        for (int b = 0; b < local.Length; b++)
+            world[b] = Skeleton.Bones[b].Parent < 0 ? local[b] : world[Skeleton.Bones[b].Parent] * local[b];
+        double yaw = figure.Yaws.Count == 0 ? figure.Facing[0] : figure.Yaws[Math.Clamp(frame, 0, figure.Yaws.Count - 1)];
+        Vec3 fwd = Vec3.Forward(yaw), left = Vec3.Left(yaw);
+
+        string Way(Vec3 v, int side)
+        {
+            (string Name, Vec3 Axis)[] ways = [("fwd", fwd), ("back", -fwd), ("up", Vec3.Up), ("down", -Vec3.Up), ("side", left * side), ("across", left * -side)];
+            var best = ways.MaxBy(w => w.Axis.Dot(v));
+            double off = Math.Acos(Math.Clamp(best.Axis.Dot(v), -1, 1)) * 180 / Math.PI;
+            return off < 2.5 ? best.Name : $"{best.Name} ({Math.Round(off).ToString(CultureInfo.InvariantCulture)}° off)";
+        }
+        string One(int side)
+        {
+            int at = side == 1 ? 0 : 6, bone = side == 1 ? Skeleton.LHand : Skeleton.RHand;
+            var row = hands[frame];
+            string closed = string.Join(' ', Enumerable.Range(0, 5).Select(i => Math.Round(row[at + i] * 90).ToString(CultureInfo.InvariantCulture)));
+            return $"{closed}, spread {Math.Round(row[at + 5]).ToString(CultureInfo.InvariantCulture)}°, fingers {Way(world[bone].Rotate(new Vec3(side, 0, 0)), side)}, palm {Way(world[bone].Rotate(-Vec3.Up), side)}";
+        }
+        return $"; hands (thumb index middle ring little closed 0-90): left {One(1)}; right {One(-1)}";
     }
 
     /// <summary>

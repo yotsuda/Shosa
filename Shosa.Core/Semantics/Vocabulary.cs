@@ -25,6 +25,9 @@ public static class Vocabulary
         new("torso", "The spine: `up` is upright, `up.fwd(10)` leans 10 degrees forward, `fwd` is folded level."),
         new("shoulders", "The line of the shoulders turned from the feet, as seen from above: `left(30)` (degrees), `right(85)`, `center`. The chest turns on the hips to put it there; the feet stay."),
         new("head", "Where the face looks: `fwd` is straight ahead. It nods with the chest's lean, but does not turn with the hips or the shoulders."),
+        new("hands", "Both hands at once, mirrored: the shape of the fingers (`fist`, `open`, `point`, `peace` …), and which way the fingers and the palm face (`open.fingers(up).palm(fwd)`)."),
+        new("leftHand", "The left hand: the shape of its fingers, and which way they and the palm face."),
+        new("rightHand", "The right hand."),
         new("juggle", "What the hands throw (`juggles balls` on the dancer line), in siteswap as jugglers write it: `juggle { every 1/2  3:4 | 531531 3 3 | }`. A word with no length is its throws as written, one throwing beat each (`531` once through); with a length, the pattern over and over for that long (`3:4`); `every` says how many beats from one throw to the next. While a pattern is thrown, the arms are the juggle row's."),
     ];
 
@@ -77,6 +80,7 @@ public static class Vocabulary
         new("mid", "Standing, the knees soft (bent 12°): the height a row nobody wrote stands at."),
         new("straight", "Standing on straight legs (a ballet dancer's, a soldier at attention): the hips half a centimetre higher than `mid`."),
         new("high", "On the toes, the legs straight."),
+        new("pointe", "On the tips of the toes, the feet upright under the legs (pointe shoes): the hips higher than `high` by most of the foot's length."),
         new("sit", "Sitting on a seat, the feet on the floor: `sit(0.45m)` on a seat 0.45 m above the floor (a chair, and what `sit` alone means; a sofa about 0.35 m, a bar stool 0.7 m; 0.1 m to 0.8 m). The hips go back and down onto it and carry the weight there; any other height stands up again."),
     ];
 
@@ -96,6 +100,8 @@ public static class Vocabulary
         new("bent", "For an arm or a leg: bend the elbow or the knee, the hand or foot staying in its direction and coming closer. `bent` is a right angle; `bent(40)` 40 degrees (0 straight, up to 150): `fwd.up(25).bent`."),
         new("elbow", "For an arm: which way the elbow points, as an arm's direction: `fwd.across(15).down(25).bent(50).elbow(side)` holds it out to the side (ballet's rounded arms; the `across` brings the hands together). Without it the elbow hangs down, back and a little out. Only the part square to the arm counts; on a straight arm it turns the arm about its length."),
         new("knee", "For a leg in the air: which way the knee points, as a leg's direction: `back.up(20).bent.knee(side.up)` (an attitude, the knee above the foot). Without it the knee points where its foot does (`turnout`)."),
+        new("pointed", "For a leg in the air: the foot stretched on along the shin, the toes pointed: `rightLeg { fwd.down(45).pointed }` (a dégagé, a battement, an arabesque's back foot). Without it (and without `flexed`) a lifted foot lies square, as it stood."),
+        new("flexed", "For a leg in the air: the foot pulled up, the toes toward the shin and the heel pushed out: `rightLeg { fwd.flexed }` (a flexed-foot kick, a heel dig, a character step)."),
         new("round", "For the torso: the back is rounded. The direction still says where the chest is from the hips; the spine bows back from that line, and the chest, the shoulders and the head lean further forward (`torso { up.fwd(10).round }` is a fighter's guard, `up.round` a slouch). Without it the back is straight, as in a bow from the hips."),
         new("tilt", "For the head: the line of the eyes tilted from level, an ear toward its shoulder: `fwd.tilt(left(15))` (up to 45; `tilt(left(0))` holds the eyes level on a leaning torso). Without it the head sits square on the neck and leans with the torso."),
         new("body", "For an arm: the direction is measured against the torso instead of the room, so the arm leans when the torso leans: `up.body`."),
@@ -118,6 +124,8 @@ public static class Vocabulary
         new("belly", "The hand on the belly."),
         new("shoulder.across", "The hand on the opposite shoulder. With `arms`: arms folded."),
         new("clap", "The hand at the midline in front of the chest. With `arms`: the two hands meet."),
+        new("thigh", "The hand on the front of the thigh of its own side, half-way down it, wherever the leg is (standing, lifted, sitting)."),
+        new("knee", "The hand on the knee of its own side, wherever the leg is: `arms { knee }` with a bow and bent knees is hands on the knees."),
     ];
 
     /// <summary>Places on the other leg, for a leg in the air: where its toe goes. The bend follows from the place.</summary>
@@ -127,7 +135,91 @@ public static class Vocabulary
         new("otherKnee.back", "The toe at the back of the other leg's knee."),
         new("otherAnkle", "The toe at the front of the other leg's ankle: a coupé (sur le cou-de-pied)."),
         new("otherAnkle.back", "The toe at the back of the other leg's ankle."),
+        new("otherShin", "The toe at the front of the other leg's shin, half-way between the ankle and the knee (a low retiré)."),
+        new("otherShin.back", "The toe at the back of the other leg's calf."),
+        new("otherThigh", "The toe at the front of the other leg's thigh, half-way up it (a high retiré; the foot of a tree pose)."),
+        new("otherThigh.back", "The toe at the back of the other leg's thigh."),
     ];
+
+    /// <summary>
+    /// The shapes of a hand (`hands { fist }`): what the five fingers do. Each is a row of <see cref="HandShape"/>:
+    /// how far the thumb is folded in and each finger curled, 0 (straight; the thumb out to its side) to 90 (closed
+    /// into the fist; the thumb across the palm), and how many degrees the fingers are spread from each other.
+    /// They are words of a hand's row only, and not reserved: a file may still name a move `point` or a pose `open`
+    /// (in a hand's row the hand's own word is meant).
+    /// </summary>
+    public static readonly Word[] HandShapes =
+    [
+        new("relaxed", "The hand as it hangs: the fingers a little curled, more toward the little finger. What a hand nobody wrote is."),
+        new("open", "The hand flat: the fingers straight and together, the thumb beside them. A blade of a hand, a stop sign, a salute."),
+        new("spread", "The hand flat and the fingers spread wide, the thumb out: jazz hands, a high five, paper."),
+        new("fist", "The fingers closed into the palm, the thumb across them: a punch, a guard, rock."),
+        new("point", "The first finger straight, the others closed, the thumb across them: pointing; one."),
+        new("peace", "The first and the middle finger straight and apart, the others closed: a V, scissors; two."),
+        new("thumbUp", "A fist with the thumb straight out of it: with the palm turned in (`thumbUp.palm(across)`) the thumb points up."),
+        new("gun", "The first finger straight and the thumb up from it, the others closed: a finger gun, an L."),
+        new("rock", "The first and the little finger straight, the middle two closed under the thumb: horns."),
+        new("shaka", "The thumb and the little finger out, the middle three closed: hang loose, a telephone."),
+        new("ok", "The tips of the thumb and the first finger together in a ring, the other three straight and a little spread."),
+        new("pinch", "The tips of the thumb and the first finger together, the other three closed: holding something small, a pinch of salt."),
+        new("heart", "The four fingers curved over together and the thumb curved under them: half a heart; the two hands side by side, fingertips and thumb tips touching, make a whole one."),
+        new("claw", "Every finger half bent and spread, the thumb too: a cat's paw, a monster's hand."),
+        new("soft", "A ballet dancer's hand: the fingers long and barely curved, the middle finger a little in toward the thumb, the first finger a little lifted."),
+        new("count", "Fingers held up to count, the rest closed: `count(3)` is three (first, middle and ring); `count(0)` a fist, `count(1)` is `point`, `count(2)` `peace`, `count(5)` the whole hand, spread."),
+    ];
+
+    /// <summary>The fingers of a hand, as a word after its shape changes one: `fist.index(0)`.</summary>
+    public static readonly Word[] Fingers =
+    [
+        new("thumb", "The thumb alone, after the hand's shape: `thumb(0)` straight out to its side, `thumb(90)` folded across the palm."),
+        new("index", "The first finger alone, after the hand's shape: how far it is curled, `index(0)` straight, `index(90)` closed into the palm: `fist.index(0)` points."),
+        new("middle", "The middle finger alone: `middle(0)` straight to `middle(90)` closed."),
+        new("ring", "The ring finger alone: `ring(0)` straight to `ring(90)` closed."),
+        new("little", "The little finger alone: `little(0)` straight to `little(90)` closed."),
+    ];
+
+    /// <summary>Which way a hand is turned on its wrist, after its shape and its fingers. Written in this order.</summary>
+    public static readonly Word[] HandTurns =
+    [
+        new("fingers", "Which way the fingers point, as an arm's direction: `open.fingers(up)` (a stop sign on an arm held forward). The wrist bends that way, up to 80 degrees from the forearm; without it the fingers go on along the forearm."),
+        new("palm", "Which way the palm faces, as an arm's direction: `open.palm(up)`, `spread.fingers(up).palm(fwd)`. The hand turns about its fingers to face it there as nearly as it can (only the part square to the fingers counts); without it the palm lies as the arm has it."),
+    ];
+
+    /// <summary>The most a wrist bends from the forearm's line (`fingers(…)`), degrees.</summary>
+    public const double MaxWrist = 80;
+
+    /// <summary>The thumb and the four fingers of a hand shape: how far each is closed, 0..90; and the degrees between two fingers.</summary>
+    public readonly record struct HandShape(double Thumb, double Index, double Middle, double Ring, double Little, double Spread);
+
+    /// <summary>What a hand shape's word does to the fingers; `count` by its number.</summary>
+    public static HandShape? ShapeOfHand(string word, int count = 0) => word switch
+    {
+        "relaxed" => new(30, 20, 26, 32, 38, 4),
+        "open" => new(35, 0, 0, 0, 0, 0),
+        "spread" => new(0, 0, 0, 0, 0, 18),
+        "fist" => new(75, 90, 90, 90, 90, 0),
+        "point" => new(75, 0, 90, 90, 90, 0),
+        "peace" => new(80, 0, 0, 90, 90, 14),
+        "thumbUp" => new(0, 90, 90, 90, 90, 0),
+        "gun" => new(0, 0, 90, 90, 90, 0),
+        "rock" => new(80, 0, 90, 90, 0, 8),
+        "shaka" => new(0, 90, 90, 90, 0, 10),
+        "ok" => new(58, 52, 8, 4, 0, 10),
+        "pinch" => new(58, 52, 75, 80, 85, 0),
+        "heart" => new(45, 55, 55, 55, 55, 0),
+        "claw" => new(40, 50, 50, 50, 50, 16),
+        "soft" => new(40, 6, 22, 14, 10, 5),
+        "count" => count switch
+        {
+            <= 0 => new(75, 90, 90, 90, 90, 0),
+            1 => new(75, 0, 90, 90, 90, 0),
+            2 => new(80, 0, 0, 90, 90, 14),
+            3 => new(85, 0, 0, 0, 90, 12),
+            4 => new(85, 0, 0, 0, 0, 12),
+            _ => new(0, 0, 0, 0, 0, 18),
+        },
+        _ => null,
+    };
 
     /// <summary>Degrees `@bent` bends an elbow or a knee when it has no number, and the most it can.</summary>
     public const double DefaultBend = 90, MaxBend = 150;
@@ -188,6 +280,9 @@ public static class Vocabulary
         new("stand", "For a jump: land with the feet at standing width."),
         new("together", "For a jump: land with the feet touching (turned out, the heels)."),
         new("change", "For a jump: land with the feet as they stood, mirrored left for right: the foot that was behind lands in front, as far ahead and as crossed (a changement: fifth, right foot front, lands in fifth, left foot front)."),
+        new("beat", "For a jump: the legs beat in the air. They close crossed the other way round from how they land, and open again to land: `jump.beat` from fifth is an entrechat quatre (it lands as it stood), `jump.change.beat` a royale. `beat(2)` beats twice, each time the other way round (`jump.change.beat(2)`: an entrechat six); up to 3."),
+        new("leftFoot", "For a jump, last: the stance it lands in, as a step of that foot from the other would stand: `jump.rightFoot.fwd(0.08m).across(0.13m)` lands in fifth with the right foot in front, from wherever the feet were (an échappé closing from second). Where it lands (`fwd`, `left`, `up(…)`) is written before the foot."),
+        new("rightFoot", "For a jump, last: the stance it lands in, named by the right foot (see `leftFoot`)."),
     ];
 
     /// <summary>The most a turn says in one word, degrees: a triple turn.</summary>

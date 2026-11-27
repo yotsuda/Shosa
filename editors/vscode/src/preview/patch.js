@@ -8,7 +8,7 @@
 // character's body at every frame, a juggler's palms) stays good for a figure that is still the same object, and
 // for one that is not, the rows that are still the same arrays are the frames it need not work out again.
 
-const ROWS = ['frames', 'turns', 'mouth'];
+const ROWS = ['frames', 'turns', 'mouth', 'hands'];
 
 /** The clips after a patch. `clips` is what the patch was made on (the message's `base`). */
 export function applyClipPatch(clips, patch) {
