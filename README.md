@@ -67,9 +67,14 @@ Its strengths are movement fitted to the beat, several dancers who see each othe
 leaves the rest alone, readable diffs, and the same result every time. It does not capture movement, it builds
 it from poses on beats: clear and on time, but not yet as natural as motion capture.
 
+So it is best at **dances that hit a pose on the beat**: pop and idol choreography, gestures fitted to the words
+of a song, several dancers in unison or mirrored. Dances whose point is technique are beyond it today: the
+vocabularies `shosa:ballet` and `shosa:break` are experimental (ballet reads as a beginner at the barre, breaking
+has the shapes without the momentum).
+
 ## Trying it
 
-Install **Shosa** from VS Code's Extensions view (Windows x64), open [samples/hello.shosa](samples/hello.shosa),
+Install **Shosa 3D Choreographer** from VS Code's Extensions view (Windows x64), open [samples/hello.shosa](samples/hello.shosa),
 and press Ctrl+K V. The preview moves as you type.
 
 - It dances to a song, so it also wants the
@@ -82,7 +87,8 @@ and press Ctrl+K V. The preview moves as you type.
   beats, with the sections the chart names, and the preview and the MP4 play the recording.
 - The characters of the videos (Zundamon and Tohoku Zunko, © SSS LLC.) are not in the repository:
   [samples/models/README.md](samples/models/README.md) says where they come from and on what terms. Without them
-  the dancers are drawn as sticks. Any VRM model will do, for example the CC0 models of VRoid Hub.
+  the dancers are drawn as sticks. Any VRM model will do: the extension's
+  [README](editors/vscode/README.md#preview-features) lists places to download one.
 - [samples/juggle.shosa](samples/juggle.shosa) is the second video: four jugglers for fifty seconds. Three balls
   in siteswaps (531, 441, 52512, 7131, 45141, a synchronous box) and tricks (Mills' Mess, a windmill, takeouts),
   five balls (645, 744, 97531), five clubs and seven rings.
@@ -106,6 +112,21 @@ Early: 0.3.0 is the first release, as a
 [VS Code extension](https://marketplace.visualstudio.com/items?itemName=yotsuda.shosa) for Windows x64.
 Packages for Linux x64 and macOS arm64 can be built but have not been run, and are not published yet.
 The design notes and the plan are in Japanese.
+
+## Help wanted, most of all from people who dance
+
+The movement is only as good as its vocabulary, and that was written by a programmer and an AI. Pull requests
+are welcome:
+
+- **A pose or a move, corrected or added**, in the built-in vocabularies (`Shosa.Core/Library/*.shosa`: basics,
+  pop, jazz, ballet, break). They are plain Shosa, a few lines each.
+- **A dance** for [samples/dances](samples/dances), in any style.
+- **A quality of movement.** A `quality` row knows `through`, `sharp` and `smooth`; swinging, suspended and
+  collapsing movement are not there yet.
+- **A comparison with the real thing.** `tools/amc2shosa.py` writes motion capture (ASF/AMC, as in CMU's
+  database) out as Shosa, to see what the language cannot say.
+
+An issue that says "this does not look like a chassé, because …" helps as much as a pull request.
 
 ## Building
 

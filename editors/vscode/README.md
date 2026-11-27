@@ -20,6 +20,10 @@ form { Wave }
 score { dancer solo  loop }
 ```
 
+Dances to open and change are in the repository's [samples](https://github.com/yotsuda/Shosa/tree/main/samples):
+`hello.shosa` with its song `hello.lys` (two characters dance and sing — the first video of the
+[repository's page](https://github.com/yotsuda/Shosa#readme)), `juggle.shosa` (four jugglers), `wave.shosa` (needs nothing else).
+
 - **Preview to the side** (the button at the top right of a `.shosa` file, or Ctrl+K V): the figures move as you type.
   The word being performed is lit in the source; put the cursor on a word to see its pose; click a limb to go to the word that put it there.
 - **File > New File... > Shosa File** starts from a file that already compiles; nothing of the skeleton above can be left out, and completion writes each item for you.
