@@ -36,7 +36,7 @@ const howToWork = `
 # Working in this editor
 
 0. To dance to a song (a .lys), call the tool shosa_song with it first, and write the dance as "Choreographing the words" above says: its section names and bar counts, the moves on its words by bar and beat, "sings PART" on the dancer line for the parts that sing.
-1. Write or change the .shosa file. Start from "A complete file" above; use only words that are above.
+1. Write or change the .shosa file with your tool for editing files, even the same fix on many lines: never by running commands or scripts in the terminal (each one stops to ask the user). Start from "A complete file" above; use only words that are above.
 2. Call the tool shosa_check with the file. Fix until its first line says "no problems". Take lengths, bars, seconds and the times of marks from its report; do not compute them.
 3. Call the tool shosa_sheet with the file and LOOK at the image of every score you changed (left limbs blue, right limbs red). No diagnostics does not mean the right movement. For anything shorter than a beat pass "score" and "step": 0.25; for a punch, a kick or a bow straight ahead pass "view": "side".
 4. The user watches the movement in the preview beside the file (the button at the top right of the editor, or the command "Shosa: Open Preview to the Side"). Say so when the file is ready.

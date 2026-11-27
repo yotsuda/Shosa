@@ -39,5 +39,9 @@ export function danceRequest(dance: string, songFile: string, score: string | un
     + `then read the song with the tool shosa_song (file: ${songFile}${score ? `, score: ${score}` : ''}). `
     + 'Write the dance as "Choreographing the words" in the grammar says: a section for each of the song\'s sections, '
     + 'the moves placed on the words by bar and beat. Check with shosa_check until it says no problems, and look at it with shosa_sheet.\n'
+    // A model that met the same error on many lines ran a script in the terminal to fix them all, and the chat
+    // stopped to ask the user ("Run in terminal: Fix @sharp/length ordering in shosa file", 2026-11-27).
+    + 'Make every change with your tool for editing files, even the same fix on many lines: '
+    + 'do not edit the file by running commands or scripts in the terminal (each one stops to ask the user).\n'
     + `The dance: ${wanted}`;
 }
