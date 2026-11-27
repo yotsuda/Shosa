@@ -65,6 +65,18 @@ These work, but are new and may still change.
   **Ctrl+Shift+Up / Ctrl+Shift+Down** put the model before or after it there, and the preview changes with it.
   A dancer's file is looked for in the dance's own folder first, then in that folder: the keys write the short name
   (`"girl.vrm"`), so a dance does not say where on your machine the models are.
+- **Where to get a character**: no model comes with Shosa (without one a dancer is drawn as sticks). Each model has
+  its own terms: read them where you download it.
+  - [The VRM specification's samples](https://github.com/vrm-c/vrm-specification/tree/master/samples) download with no account,
+    under the VRM Public License 1.0:
+    [VRM1_Constraint_Twist_Sample.vrm](https://github.com/vrm-c/vrm-specification/raw/master/samples/VRM1_Constraint_Twist_Sample/vrm/VRM1_Constraint_Twist_Sample.vrm)
+    (© 2022 pixiv Inc.) and
+    [Seed-san.vrm](https://github.com/vrm-c/vrm-specification/raw/master/samples/Seed-san/vrm/Seed-san.vrm) (by VirtualCast, Inc.).
+  - [The sample models of VRoid Studio's beta](https://hub.vroid.com/characters/4593660874193246717) on VRoid Hub, which their
+    page gives as CC0.
+  - [Zundamon and Tohoku Zunko](https://zunko.jp/con_illust.html) (© SSS LLC.), the characters of Shosa's videos: free for
+    non-commercial use, videos included, under the licence in each set.
+  - [VRoid Studio](https://vroid.com/en/studio) (free) makes a character of your own and exports it as VRM.
 - **Singing**: `dancer alice humanoid "girl.vrm" sings melody on lead` moves the character's mouth to the words
   that part of the Lily# song sings (the `.vrma` export carries it; it needs the Lily# extension 0.18.0 or later,
   which tells the syllables and their beats, as `shosa song` and Add a Dance… need too). `mic right` puts a mic in the hand: at the mouth
