@@ -5,6 +5,18 @@
 下のパスはリポジトリの根から。
 - ★ **開始時に `C:\MyProj\Bamen\docs\repro\REQUESTS.md` の `open` を見る** (2026-11-23〜)。Bamen (撮影の言語。`shosa clip` を読んでカメラを解く) からの依頼の 1 枚。使い方は Shosa → Lily# の `docs/repro/REQUESTS.md` と同じ (入れたら `fixed <commit>`、入れないなら `won't`、聞くなら `question`)。2026-11-25: 1 (座る) は `fixed f9ae160`、2 (曲がった道) は `question` (曲線は `@turn` の歩でもう書けた。「この点まで歩く」の語が要るかを Bamen に聞いている)。`open` は無い。2026-11-28: 1・2 とも Bamen が `done` にした (2 の答え: 行き先を言う語は要らない、行き先は部屋を持つ Bamen が数える)。`open` は無い。
 
+## 定番の振りの語彙: 型 `shosa:idol` (2026-11-28 の 3 つ目のセッション、DESIGN.md 133)
+
+ユーザーに残りの穴 2 つを聞き、**定番の振りの語彙**が選ばれた。入れた (`d490ff2`。試験 C# 731 件、拡張 38 件。**ユーザーの目はまだ**)。
+
+- **何か**: 内蔵の型の 6 つ目 `using "shosa:idol"` (`Shosa.Core\Library\idol.shosa`、29 個)。ポーズ 11 (`peaceEye` `heartHands` `cheekPoint` `catPaws` `saluteWink` `wish` `earListen` `handOnHeart` `callOut` `fistUp` `idolFinish`)、足 3 (`bunnyHop` `cuteBounce` `starJump`)、腕・手・頭・顔 12 (`blowKiss` `beckon` `twoHandWave` `twinkle` `pointAround` `rainbowArc` `clapUp` `cuteSway` `armSwing` `fistPump` `heartBeat` `idolBow`)、組み合わせ 3 (`idolTurn` `loveCombo` `callCombo`)。指と表情も型が書く。足の型は basics のまま (idol はその上に重ねる)。
+- **型を足すときに直す所** (今回の全部): `Library\NAME.shosa` を置く (csproj の glob が埋め込む) → `LibraryTests` の `Styles` と SH1039 の文言 → `ChoreographyDoc.cs` の STYLE → `GrammarDoc.cs` の「Files of parts」→ `shosa guide -o docs\CHOREOGRAPHY_FOR_LLM.md` と `shosa grammar -o docs\GRAMMAR_FOR_LLM.md` → `editors\vscode\package.json` の `shosa_guide` の説明 2 か所と `hosttest\index.cjs`。
+- **型を書くときの決まり (当たったもの、133)**: `fingers(…)` は前腕から 80 度以内に (頭の上の手に `fingers(up)` は、ひじを外へ出して前腕を上へ向ける)、続く形で手のひらを裏返さない (`palm(fwd)` → `palm(back)`): どちらも次の形への途中で手の骨が 1 コマで 100 度以上回る。遠い形からの `@sharp` は前の型しだいで SH2003: `then:1/2` で待って半拍で行く。手と顔は次の語まで残るので、ポーズはどれも顔を書く。
+- **見てほしい**: `samples\idol.shosa` (ずん子、16 小節 31 秒、basics の足に idol を重ねる) をプレビューで: ポーズが読めるか (`cheekPoint` の指は小さい、`callOut` の手は頬に近い)、動きの途中、ウインクの長さ。拡張は入れ直した (サーバー 2026-11-28 07:15。各ウィンドウで Reload Window)。
+- **撮り方** (git に入らない `out\idol\`): `all.shosa` (29 個を順に、続けて `@mirror`)、`looks.shosa` (ずん子で前半だけ)、`.\out\pv\run-shots.ps1 -Shosa out\idol\looks.shosa -Beats '0,1,2' -Out out\idol\shots-x -Cam '0,1.4,0.95' -At '0,1.33,0'` (顔と手の寄り。全身は `-Cam '0,1.2,2.1' -At '0,1.1,0'`)、並べるのは `out\mocap\venv\Scripts\python.exe out\face\tile.py DIR OUT.png` (`py` には PIL が無い)。
+- **まだ**: Add a Dance… で AI がこの型を選んで言葉に置くか (書き手の試験をしていない)。ずん子以外の体格。絵は止め絵だけで、動きは見ていない。
+- **次の一手**: 残りの穴は**手をつなぐ** (横並びで内側の手)。その前に、ユーザーが `samples\idol.shosa`・`formation.shosa`・`face.shosa` を見た結果で直す。
+
 ## 隊形の移動: `formation` と `go` (2026-11-28 の 2 つ目のセッション、DESIGN.md 132)
 
 ユーザーに残りの穴 3 つを聞き、**隊形の移動**が選ばれた。入れた (試験 C# 720 件。**ユーザーの目はまだ**)。
@@ -17,7 +29,7 @@
 - **測る道具** (git に入らない `out\formation\`): `where.ps1 FILE 0,8,16` (拍ごとの腰と足首の場所、踊り手どうしの最短距離)、`leg.cs` (1 本の脚の関節をコマごとに)。骨の反転は `dotnet run tools\flips.cs -- FILE`。
 - **書いて分かった (前からのソルバーの限界、132.2)**: テンポ 120 の半拍の歩は、前へ 0.5 m はきれいだが、**後ろ 0.5 m・横のグレープバイン・前 0.7 m は手書きの譜でも脚が跳ねる** (体が先へ行き、残った足が引ったくられる)。`go` は向き直る歩でこれを避けている。直していない。
 - **まだ** (132.5): 正面を向いたまま遠くへ・走る・回りながら移る、着いた所で別の向き (`turn` を後ろに書く)、座標を直接書く `go`、3 人以上が真ん中で交わるときのよけ方は局所的 (腰どうし 0.5 m まで近づく)。
-- **次の一手**: 残りの穴 (手をつなぐ、定番の振りの語彙) のどちらからかをユーザーに聞く。CHANGELOG は Unreleased の節に書いた。
+- **次の一手**: → 定番の振りの語彙は済み (上の節)。CHANGELOG は Unreleased の節に書いた。
 
 ## 表情: `face` の段と自動のまばたき (2026-11-28、DESIGN.md 131)
 
