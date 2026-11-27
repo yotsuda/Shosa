@@ -7989,3 +7989,21 @@ section Verse {
 - 3 人以上が同時に真ん中を通るとき、よけ方は局所的な最良 (0.5 m まで近づく)。時刻をずらす提案はしない。
 - Bamen: `cast … at` で置き直すので、隊形の座標は Shosa の舞台のもの。Bamen 側が `shosa clip` を読むぶんには変わらない。
 
+
+## 133. 定番の振りの語彙: 型 `shosa:idol` (2026-11-28)
+
+アイドルの振付の穴 (ROADMAP 2 節の頭) の 3 つ目。ユーザーが残りの 2 つ (手をつなぐ、定番の語彙) から選んだ。中身と名前は私が決めた。
+
+- **何か**: 内蔵の型の 6 つ目 `using "shosa:idol"` (`Shosa.Core\Library\idol.shosa`、29 個)。客席が一目で読める身ぶりを名前で: 歌詞の言葉 (「好き」「君」「聞いて」、コール)、フレーズの最後の拍、伸ばす音に置く。実在の曲の振付は写していない (どのグループもやる一般的な身ぶりだけ)。
+  - ポーズ 11: `peaceEye` (目の横のピースとウインク)、`heartHands`、`cheekPoint`、`catPaws`、`saluteWink`、`wish` (合わせた手、閉じた目)、`earListen`、`handOnHeart`、`callOut` (口元のメガホン)、`fistUp`、`idolFinish` (最後のポーズ。これだけ足を置く)。
+  - 足 3: `bunnyHop` (うさぎの耳と小さな跳躍)、`cuteBounce` (内股のバウンス)、`starJump`。
+  - 腕・手・頭・顔 12: `blowKiss`、`beckon`、`twoHandWave`、`twinkle` (きらきら)、`pointAround` (客席の左・中・右を指す)、`rainbowArc`、`clapUp` (頭上の手拍子)、`cuteSway`、`armSwing`、`fistPump` (コール)、`heartBeat` (どきどき)、`idolBow`。
+  - 組み合わせ 3: `idolTurn` (1 回転して `peaceEye`)、`loveCombo`、`callCombo`。
+- **basics との分担**: 足の型 (stepTouch・bounce・vine …) は basics のまま。idol は腕・手・頭・顔がほとんどで、どの足にも重なる。型どうしは取り込み合わない (どれも単独で使え、名前は 6 つで重ならない)。ガイドの STYLE は「アイドルや可愛い曲は、言葉の身ぶりとポーズを `idol`、足を `basics`」。
+- **指と表情を型が書く** (126・131 の後なので初めてできた)。**手と顔は次の語まで続く**ので、型の後に残る (閉じたこぶし、`wish` の閉じた目): どのポーズも顔を書いて前の顔を引き継がないようにし、ファイルの頭に「`hands { relaxed }` や `face { smile(50) }` で放す」「長く保つポーズのウインクは顔の段を横に書く」と書いた。
+- **作りながら当たったもの**:
+  - 手を頭の上に置き `fingers(up)` を書くと、前腕が下を向くので手首の 80 度の限界を越え、次の形への途中で手の骨が 1 コマで 117〜133 度回った (129 の残りの種類 (5))。`bunnyHop` はひじを外へ出して前腕を上へ向け (`side.fwd(15).up(58).bent(125)`)、反転は消えた。`palm(fwd)` から `palm(back)` へ移る (`catPaws` → `cheekPoint`) のも同じ反転: `cheekPoint` は `palm` を書かない。**型を書くときの決まり: `fingers(…)` は前腕から 80 度以内、続く形で手のひらを裏返さない。**
+  - `@sharp` で遠い形から V 字へ (starJump の腕) は、前の型によって SH2003。`then:1/2` で待ってから半拍で上げる形にした (どの型の後でも通る)。
+  - `chest` に置いた `open` の手は指先があごへ向く: `open.fingers(across.up(20)).palm(back)` で胸に寝かせた。
+- **確かめたこと**: 29 個を順に、続けて全部 `@mirror` でつないで診断なし・骨の反転なし (`LibraryTests`、`out\idol\all.shosa`)。ずん子に着せてポーズ 11 と move の要所を撮って見た (`out\idol\poses.png`・`close.png`・`moves.png`)。見本 `samples\idol.shosa` (4 セクション 16 小節、basics の足に重ねる。`check` は no problems、反転なし、`out\idol\sample.png`)。
+- **まだ**: ユーザーの目。動き (絵は止め絵だけ)。`cheekPoint` の指は頬の横で小さく、`callOut` の手は頬に近い。ずん子以外の体格。Add a Dance… で AI が実際にこの型を選んで言葉に置くか (書き手の試験)。手をつなぐ (残りの穴)。

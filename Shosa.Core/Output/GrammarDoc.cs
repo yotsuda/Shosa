@@ -593,7 +593,7 @@ public static class GrammarDoc
             - A move counts its bars in the time of the file that uses it, and its seconds in that
               file's tempo, wherever it is written.
             - **Shosa has files of parts of its own**, a style's poses and moves each: `using "shosa:basics"`,
-              `"shosa:pop"`, `"shosa:jazz"` (and, experimental, `"shosa:ballet"` and `"shosa:break"`) bring them in as any file of parts, from any
+              `"shosa:idol"`, `"shosa:pop"`, `"shosa:jazz"` (and, experimental, `"shosa:ballet"` and `"shosa:break"`) bring them in as any file of parts, from any
               folder. What each holds, with a line on every pose and move, is in the choreography guide
               (`shosa guide`; in the editor, the tool `shosa_guide`).
 

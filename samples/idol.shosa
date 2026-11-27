@@ -1,0 +1,43 @@
+// The staple gestures of an idol song, by name: shosa:idol (a wave, a peace sign at the eye, cat paws, a heart, a blown kiss,
+// a call with the audience, the last pose) over the feet of shosa:basics. Each `body` row is two rows at once: the feet, and
+// the gestures over them. The hands and the face need a character: models/README.md says where one comes from.
+title "Idol"
+tempo 124
+time 4/4
+using "shosa:idol"
+using "shosa:basics"
+
+role idol
+dancer idol humanoid "models/zunko.vrm" on idol
+
+// Hello to the hall: a wave, the chorus's side step, "you, and you, and you", and the pose.
+section Hello {
+  idol {
+    body { { bounce:4 stepTouch:4 stepTouch:4 bounce:4 } & { twoHandWave:4 armSwing:4 pointAround:4 then:1/2 peaceEye:7/2 } }
+    face { smile(50):12 skip:4 }
+  }
+}
+
+// The cute bars: fists under the chin, cat paws, a finger at the cheek, rabbit's ears, a heart and a kiss.
+section Cute {
+  idol {
+    body { { cuteBounce:4 cuteBounce:4 then:4 sway:4 } & { cuteSway:4 catPaws:2 cheekPoint:2 bunnyHop:4 then:1/2 heartHands:3/2 blowKiss:2 } }
+  }
+}
+
+// A call: "everybody!", a hand at the ear, four fists with the hall, a rainbow, and the jump.
+section Call {
+  idol {
+    body { { bounce:4 march:4 sway:4 then:4 } & { callOut:2 earListen:2 fistPump:2 fistPump:2 rainbowArc:4 starJump:4 } }
+  }
+}
+
+// The last line ends on "love": the heart beats and is held, a turn into the peace sign, and the last pose.
+section Love {
+  idol {
+    body { loveCombo:8 idolTurn:4 then:1/2 idolFinish:7/2 }
+  }
+}
+
+form { Hello Cute Call Love }
+score { dancer idol }

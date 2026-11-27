@@ -1,0 +1,280 @@
+// shosa:idol — the staple gestures of an idol song: a peace sign at the eye, a heart, a wink, cat paws, a blown kiss, waves and points to the audience, fist pumps and jumps. A dance brings it in with: using "shosa:idol"
+// These are the words an audience reads at once: put one on a word of the lyric ("love", "you", "listen", a call), on the last beat
+// of a phrase, on a held note. Between them dance the feet of shosa:basics (stepTouch, bounce, vine …): most of these are arms,
+// hands, head and face only, and lie over any feet (`body { stepTouch:4 }` with `arms { armSwing:4 }`, or both in one `body` row with `&`).
+// They write the hands and the face too, and those are kept until a word changes them: a `hands { relaxed }` or a `face { smile(50) }`
+// after one lets it go. A pose that winks holds the wink as long as it is the face's word: over a long hold write the face beside it
+// (`face { smile(60).winkLeft:1/2 smile(60) }`). The figure of sticks has no fingers and no face: look at these on a character.
+// Not in Shosa (yet), so not here: a heart of two fingers, a cheek puffed out, the eyes looking another way than the head, holding hands in a line.
+
+// ---- Poses: a shape to hit on its beat and hold. Arms, hands, head and face; only idolFinish places the feet. ----
+// Hit one from a shape near it, or give the way a short `then` (`then:1/2 peaceEye:3/2`): `@sharp` from hanging arms is too fast (SH2003).
+
+// peaceEye — pose; arms, hands, head, face. A peace sign beside the right eye, the palm to the front, the left hand on the hip, the head
+// tilted to the hand, the other eye winking: THE idol pose, the last beat of a chorus line, a photo. @mirror for the left hand.
+pose peaceEye {
+  rightArm  { side.fwd(35).up(40).bent(125) }
+  leftArm   { hip }
+  rightHand { peace.fingers(up.across(25)).palm(fwd) }
+  leftHand  { fist }
+  head      { fwd.tilt(right(12)) }
+  face      { smile(60).winkLeft }
+}
+
+// heartHands — pose; arms, hands, head, face. The two hands make a heart in front of the chest, the head tilted: on "love", "heart",
+// "suki", the last word of a sweet line. heartBeat is the same heart, beating.
+pose heartHands {
+  arms  { chest }
+  hands { heart }
+  head  { fwd.tilt(left(10)) }
+  face  { smile(60) }
+}
+
+// cheekPoint — pose; arms, hands, head, face. The right first finger at the cheek, the head tilted onto it, the left hand on the hip:
+// "hmm?", "me?", a cute thinking face between two lines. @mirror for the left hand.
+pose cheekPoint {
+  rightArm  { side.fwd(30).up(15).bent(130) }
+  leftArm   { hip }
+  rightHand { point.fingers(up.across(30)) }
+  leftHand  { fist }
+  head      { fwd.tilt(right(15)) }
+  face      { smile(50) }
+}
+
+// catPaws — pose; arms, hands, head, face. Both hands up beside the cheeks as a cat's paws, the head tilted: "nyan", a playful
+// accent, a cute song's hook. cuteSway rocks from side to side in a shape near it.
+pose catPaws {
+  arms  { side.fwd(30).up(30).bent(125) }
+  hands { claw.fingers(up).palm(fwd) }
+  head  { fwd.tilt(left(12)) }
+  face  { smile(60) }
+}
+
+// saluteWink — pose; arms, hands, head, face. A salute with the right hand at the forehead, the left on the hip, a wink:
+// "roger!", "leave it to me", the first beat of a bright chorus. @mirror for the left hand.
+pose saluteWink {
+  rightArm  { forehead }
+  leftArm   { hip }
+  rightHand { open }
+  leftHand  { fist }
+  head      { fwd.tilt(right(8)) }
+  face      { smile(50).winkLeft }
+}
+
+// wish — pose; arms, hands, head, face. The palms together in front of the chest, the head bowed and the eyes shut: a prayer,
+// a wish, "please", the quiet bar of a ballad or a bridge.
+pose wish {
+  arms  { clap }
+  hands { open.fingers(up).palm(across) }
+  head  { fwd.down(20) }
+  face  { relaxed.closed }
+}
+
+// earListen — pose; arms, hands, torso, head, face.The right hand cupped behind the ear, the body leaning that way, the face to the
+// audience: "let me hear you", before a call the audience answers. @mirror for the left ear.
+pose earListen {
+  rightArm  { side.fwd(10).up(35).bent(140) }
+  leftArm   { hip }
+  rightHand { open.fingers(up).palm(fwd) }
+  leftHand  { fist }
+  torso     { up.right(10) }
+  head      { fwd.left(15).tilt(right(10)) }
+  face      { smile(50) }
+}
+
+// handOnHeart — pose; arms, hands, head, face. The right hand flat on the chest, the left arm hanging, the head a little down:
+// "I", "my heart", a promise; the still moment of a verse. @mirror for the left hand.
+pose handOnHeart {
+  rightArm  { chest }
+  leftArm   { down }
+  rightHand { open.fingers(across.up(20)).palm(back) }
+  leftHand  { relaxed }
+  head      { fwd.down(10) }
+  face      { smile(30) }
+}
+
+// callOut — pose; arms, hands, torso, head, face. Both hands round the mouth as a megaphone, the body leaning out to the audience:
+// a shout ("se-no!", "everybody!"), the bar before the audience's call.
+pose callOut {
+  arms  { fwd.across(10).up(30).bent(128) }
+  hands { open.fingers(up).palm(across) }
+  torso { up.fwd(10) }
+  head  { fwd.up(8) }
+  face  { surprised(40) }
+}
+
+// fistUp — pose; arms, hands, head, face. The right fist straight up over the shoulder, the left on the hip, the chin up, a big smile:
+// "yes!", "let's go", a win; the top of a build. @mirror for the left fist. fistPump punches it on the beats.
+pose fistUp {
+  rightArm  { side.fwd(20).up(70).bent(20) }
+  leftArm   { hip }
+  hands     { fist }
+  head      { fwd.up(10) }
+  face      { smile }
+}
+
+// idolFinish — pose; feet (a stance 0.35 m wide), arms, hands, hips, head, face. A peace sign thrown up and out to the right, the left
+// hand on the hip, the hips turned, the chin up, the whole smile: the last pose of the song. @mirror for the left hand.
+pose idolFinish {
+  steps     { leftFoot.side(0.35m) }
+  rightArm  { side.up(55) }
+  leftArm   { hip }
+  rightHand { peace.fingers(up).palm(fwd) }
+  leftHand  { fist }
+  hips      { left(12) }
+  head      { fwd.right(10).up(10).tilt(right(8)) }
+  face      { smile }
+}
+
+// ---- Feet: steps, height, turnout. They leave the arms to another row. ----
+
+// bunnyHop — 4 beats; steps, arms, hands, head. The hands on the head as a rabbit's ears, two little jumps on beats 1 and 3, the head
+// tilting each way: a cute hook, "pyon pyon". Ends with the feet together. Take the feet alone with `steps { bunnyHop }`.
+move bunnyHop {
+  steps { together:1 jump:1 then:1 jump:1 }
+  arms  { side.fwd(15).up(58).bent(125):4 }
+  hands { open.fingers(up).palm(fwd):4 }
+  head  { fwd.tilt(left(10)):2 fwd.tilt(right(10)):2 }
+}
+
+// cuteBounce — 4 beats; height, turnout. A bounce on every beat with the knees turned in: the groove under a cute pose or cuteSway.
+// The knees are parallel again at the end.
+move cuteBounce {
+  height  { { low(6cm):1/2 mid:1/2 } q q q }
+  turnout { in(15):3 then:1/2 parallel:1/2 }
+}
+
+// starJump — 4 beats; steps, arms, hands, face. The fists drawn in, a jump that lands on beat 1 with the feet apart and the arms thrown
+// up in a V, the fingers spread, held, and a jump back to standing on beat 3: the first beat of the last chorus, a "yay!".
+move starJump {
+  steps { stand:1 jump.apart:1 then:1 jump.stand:1 }
+  arms  { fwd.down(40).bent(100):1/2 then:1/2 side.up(50):1 then:1 down:1 }
+  hands { fist:1 spread:2 relaxed:1 }
+  face  { smile(50):1 smile:2 smile(50):1 }
+}
+
+// ---- Arms, hands, head, face. They leave the feet to another row. ----
+
+// blowKiss — 2 beats; rightArm, rightHand, head, face. The right hand at the lips with the eyes shut, then thrown out to the audience on
+// beat 1, the palm up: "chu", the end of a sweet line, a goodbye. @mirror for the left hand.
+move blowKiss {
+  rightArm  { chin:1 fwd.side(15).up(10).bent(20):1 }
+  rightHand { open.palm(back):1 open.palm(up):1 }
+  head      { fwd.down(5):1 fwd.up(8):1 }
+  face      { smile(40).closed:1 smile(60):1 }
+}
+
+// beckon — 2 beats; arms, hands. Both hands held out palms up and drawn in to the chest, once a beat: "come on", "one more time",
+// calling the audience in before a chorus.
+move beckon {
+  arms  { { fwd.down(10).bent(30):1/2 fwd.down(15).bent(120):1/2 } q }
+  hands { open.palm(up):2 }
+}
+
+// twoHandWave — 4 beats; arms, hands, head. Both open hands up at the shoulders, waving to the right and the left together once a beat,
+// the head tilting with them: hello and goodbye to the whole hall, the intro, the outro. @mirror waves left first.
+move twoHandWave {
+  rightArm { { side.fwd(10).up(40).bent(90):1/2 side.fwd(35).up(35).bent(110):1/2 } q q q }
+  leftArm  { { side.fwd(35).up(35).bent(110):1/2 side.fwd(10).up(40).bent(90):1/2 } q q q }
+  hands    { spread.fingers(up).palm(fwd):4 }
+  head     { fwd.tilt(right(8)) fwd.tilt(left(8)) fwd.tilt(right(8)) fwd.tilt(left(8)) }
+}
+
+// twinkle — 4 beats; arms, hands. The arms come down from a high V through the sides while the fingers open and close fast:
+// sparkles falling, "kira kira", stars, a held note that fades. Ends with the arms low at the sides.
+move twinkle {
+  arms  { side.up(60):1 side.up(20):1@through side.down(30):1@through side.down(60):1 }
+  hands { { spread:1/4 claw:1/4 } q q q q q q q }
+}
+
+// pointAround — 4 beats; rightArm, leftArm, hands, head. The right hand at the chest, then pointing to the audience's one side on
+// beat 1, the middle on 2, the other side on 3, the eyes after the finger, the left hand on the hip: "you, and you, and you",
+// eye contact with the whole hall. @mirror points with the left.
+move pointAround {
+  rightArm  { chest:1 fwd.across(30).up(10):1@sharp fwd.up(10):1@sharp fwd.side(40).up(10):1@sharp }
+  leftArm   { hip:4 }
+  rightHand { point:4 }
+  leftHand  { fist:4 }
+  head      { fwd:1 fwd.left(25):1@sharp fwd:1@sharp fwd.right(30):1@sharp }
+}
+
+// rainbowArc — 4 beats; rightArm, leftArm, rightHand, head. The right hand draws a big arc over the head from the left to the right,
+// the eyes after it, the left hand on the hip: "rainbow", "sky", "the whole world", a long word. @mirror draws it the other way.
+move rainbowArc {
+  rightArm  { fwd.across(40).down(15):1 up.across(25):1@through up.side(25):1@through side.up(10):1 }
+  leftArm   { hip:4 }
+  rightHand { open:4 }
+  head      { fwd.left(25).down(10):1 fwd.left(10).up(25):1@through fwd.right(15).up(25):1@through fwd.right(30):1 }
+}
+
+// clapUp — 2 beats; arms. The arms up and open on the beat, a clap over the head on the next: two in a bar clap on 2 and 4 with the
+// audience, the last chorus, an instrumental the hall claps along to.
+move clapUp {
+  arms  { up.side(25).bent(30):1 up.across(13).bent(30):1@sharp!clap }
+  hands { open:2 }
+}
+
+// cuteSway — 4 beats; arms, hands, shoulders, head, face. Both fists under the chin, the shoulders turning right and left and the head
+// tilting against them, one beat each: a coy, sweet bar, the verse of a cute song. @mirror turns left first.
+move cuteSway {
+  arms      { fwd.across(12).up(20).bent(140):4 }
+  hands     { fist:4 }
+  shoulders { right(15) left(15) right(15) center }
+  head      { fwd.tilt(left(12)) fwd.tilt(right(12)) fwd.tilt(left(12)) fwd }
+  face      { smile(60):4 }
+}
+
+// armSwing — 4 beats; rightArm, leftArm, hands. Both bent arms swing together to the right, the left, the right, the left, fists
+// closed, one beat each: the arms of the chorus's side step (over stepTouch they go the way the step goes). @mirror swings left first.
+move armSwing {
+  rightArm { fwd.side(50).down(10).bent(90) fwd.across(30).down(10).bent(90) fwd.side(50).down(10).bent(90) fwd.across(30).down(10).bent(90) }
+  leftArm  { fwd.across(30).down(10).bent(90) fwd.side(50).down(10).bent(90) fwd.across(30).down(10).bent(90) fwd.side(50).down(10).bent(90) }
+  hands    { fist:4 }
+}
+
+// fistPump — 2 beats; rightArm, leftArm, hands. The right fist punches up on each beat and comes back to the shoulder between, the
+// left hand on the hip: "oi! oi!", "hey! hey!", a call with the audience. @mirror for the left fist.
+move fistPump {
+  rightArm { { side.fwd(30).up(70).bent(10):1/2@sharp side.fwd(30).up(40).bent(120):1/2 } q }
+  leftArm  { hip:2 }
+  hands    { fist:2 }
+}
+
+// heartBeat — 2 beats; arms, hands. The heart of two hands at the chest pushed out to the audience on each beat and drawn back:
+// "doki doki", a heart that beats, "I love you" given away.
+move heartBeat {
+  arms  { { fwd.across(22).down(5).bent(60):1/2@sharp chest:1/2 } q }
+  hands { heart:2 }
+}
+
+// idolBow — 4 beats; torso, arms, face. The hands together in front, a deep bow on beat 1 with the eyes shut, held, and up again on
+// beat 3: "thank you", after the last pose, the end of an MC.
+move idolBow {
+  torso { up:1 up.fwd(40):1 then:1 up:1 }
+  arms  { belly:4 }
+  face  { smile(50):1 smile(40).closed:2 smile(50):1 }
+}
+
+// ---- Combos: whole body. ----
+
+// idolTurn — 4 beats; steps, arms, hands, head, face. The arms drawn in, a whole turn to the right on beat 1 to 2, and out of it
+// into peaceEye, held: the end of a chorus. @mirror turns left, with the left hand's peace sign.
+move idolTurn {
+  steps { together:1 then:1 turn.right(360):2 }
+  arms  { fwd.down(30).bent(100):2 skip:2 }
+  body  { skip:2 peaceEye:2 }
+}
+
+// loveCombo — 8 beats; whole body. A side step right and left with armSwing, then standing: the heart beats twice and is held:
+// a chorus line that ends on "love". @mirror starts to the left.
+move loveCombo {
+  steps  { rightFoot.side(0.4m) together leftFoot.side(0.4m) together then:4 }
+  height { { low(6cm):1/2 mid:1/2 } q q q then:4 }
+  body   { armSwing:4 heartBeat:2 heartHands:2 }
+}
+
+// callCombo — 8 beats; whole body. Two bars of a call: fistPump twice (four punches), then the starJump: the bars where the
+// audience shouts along, the way into the last chorus. @mirror for the left fist.
+move callCombo {
+  body { fistPump:2 fistPump:2 starJump:4 }
+}

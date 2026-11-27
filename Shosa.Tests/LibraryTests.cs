@@ -13,7 +13,7 @@ namespace Shosa.Tests;
 /// </summary>
 public class LibraryTests
 {
-    private static readonly string[] Styles = ["ballet", "basics", "break", "jazz", "pop"];
+    private static readonly string[] Styles = ["ballet", "basics", "break", "idol", "jazz", "pop"];
 
     private static string DocPath([CallerFilePath] string here = "") =>
         Path.Combine(Path.GetDirectoryName(here)!, "..", "docs", "CHOREOGRAPHY_FOR_LLM.md");
@@ -22,7 +22,7 @@ public class LibraryTests
         Regex.Matches(Library.Read(style)!, @"^(?:pose|move) (\w+)", RegexOptions.Multiline).Select(m => m.Groups[1].Value);
 
     [Fact]
-    public void There_are_four_styles()
+    public void There_are_six_styles()
     {
         Assert.Equal(Styles, Library.Names);
     }
@@ -79,7 +79,7 @@ public class LibraryTests
     {
         var compiled = ShosaCompilation.Compile("using \"shosa:salsa\"\n", null, null, new UsingSource(Path.Combine(Path.GetTempPath(), "x.shosa")));
         var said = Assert.Single(compiled.Diagnostics, d => d.Code == "SH1039");
-        Assert.Contains("no file of parts 'shosa:salsa': there are shosa:ballet, shosa:basics, shosa:break, shosa:jazz, shosa:pop", said.Message);
+        Assert.Contains("no file of parts 'shosa:salsa': there are shosa:ballet, shosa:basics, shosa:break, shosa:idol, shosa:jazz, shosa:pop", said.Message);
     }
 
     [Fact]

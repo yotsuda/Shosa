@@ -61,7 +61,8 @@ public static class ChoreographyDoc
         ## The plan
 
         - **STYLE** — the dancer (who, what energy) and the vocabulary files: an idol or a cute pop song
-          `basics` (with a little `jazz`); "like Michael Jackson", 80s pop, funk, sharp and cool `pop` (with
+          `idol` for the gestures on the words and the poses (a peace sign at the eye, a heart, a wink, a wave, a
+          call) over the feet of `basics` (with a little `jazz`); "like Michael Jackson", 80s pop, funk, sharp and cool `pop` (with
           `basics`); Broadway, theatre, lyrical, sassy `jazz`. Mixing is fine: a dance is one dancer, not one file.
           **What Shosa dances well is choreography of poses hit on the beat** — an idol's dance, gestures on the
           words, a group in unison and in mirror. `ballet` and `break` are EXPERIMENTAL: a pirouette, a backspin

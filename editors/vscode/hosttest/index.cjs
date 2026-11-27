@@ -81,7 +81,7 @@ exports.run = async function run() {
     // The choreography guide, ending with the vocabulary files (using "shosa:pop" …).
     const guide = (await invoke('shosa_guide', {})).map(p => p.value ?? '').join('');
     check('shosa_guide returns the guide and every vocabulary file',
-      guide.startsWith('# Choreographing in Shosa') && ['basics', 'pop', 'jazz', 'ballet'].every(s => guide.includes(`// shosa:${s} — `)),
+      guide.startsWith('# Choreographing in Shosa') && ['basics', 'idol', 'pop', 'jazz', 'ballet'].every(s => guide.includes(`// shosa:${s} — `)),
       { characters: guide.length });
 
     // The check, by full path and by the path from the workspace folder.
