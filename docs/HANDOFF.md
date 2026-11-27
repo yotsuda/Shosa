@@ -5,6 +5,20 @@
 下のパスはリポジトリの根から。
 - ★ **開始時に `C:\MyProj\Bamen\docs\repro\REQUESTS.md` の `open` を見る** (2026-11-23〜)。Bamen (撮影の言語。`shosa clip` を読んでカメラを解く) からの依頼の 1 枚。使い方は Shosa → Lily# の `docs/repro/REQUESTS.md` と同じ (入れたら `fixed <commit>`、入れないなら `won't`、聞くなら `question`)。2026-11-25: 1 (座る) は `fixed f9ae160`、2 (曲がった道) は `question` (曲線は `@turn` の歩でもう書けた。「この点まで歩く」の語が要るかを Bamen に聞いている)。`open` は無い。
 
+## 新しい動作で書いた 4 つのダンス (2026-11-27 の 4 つ目のセッション)
+
+ユーザー: 「最近に追加した動作を使って、一連のダンスのシーケンスをいくつか .shosa で書いて」。`samples\dances\` に 4 本 (ずん子、曲なし、どれも `check` は no problems)。**ユーザーの目はまだ**。
+
+- `break-set.shosa` (104、20 小節 46 秒、`shosa:break`): トップロック → ニードロップ → フットワーク → 腕立て → バックスピン → ヘッドスピン → 側転の往復 → 片手フリーズ → 左ひざで客を指す。手は `fist` / `spread` / `point`。
+- `ballet-variation.shosa` (108、23 小節 51 秒、`shosa:ballet`): アダージョ (プリエ、ポワント、すね・ひざ・腿を上がって `pointed` で開く `unfold`、`flexed` と `pointed` の `flexPoint`、アラベスク、ピルエット)、アレグロ (シャンジュマン、アントルシャ、ロワイヤル、エシャペ、グリッサード、アッサンブレ、シェネ)、コーダ (ポワント、アティチュード、アラベスク、レヴェランス)。`hands { soft }`。
+- `finger-pop.shosa` (120、16 小節 32 秒、`shosa:basics`): 指で数える 1・2・3・パー、シャカ、頭の横のピース、胸のハートと頭上の大きなハート、指差し、指鉄砲、サムズアップ、ロック、最後は開いた指。キャラクターで 6 コマ撮って見た (`out\dances\shots-finger*`)。**書いて分かった**: 手を `head` に置くピースは顔を隠して読めない → `side.fwd(20).up(55).bent(100)` で頭の横、`peace.fingers(up.across(25)).palm(fwd)`。腕を前へ出した指鉄砲は正面から縮んで見えない → 斜め上へ。
+- `floor-lyric.shosa` (84、18 小節 51 秒、型なし): 1 つのセクションでゆっくり: ひざ立ち → かかとへ座って床に手 → 片ひざ → 座って脚を上げる → 前屈 → 仰向け → 肩で立って脚を空へ → 開脚 → 座る → ひざ → 立つ。横からの連続写真で見た (`out\dances\lyric.png`)。
+- ★ **`samples\` の直下に置くと全試験が 13 件落ちた** (それで `samples\dances\` へ。`Samples.Names` は直下だけを見る)。**新しい動作の未修正の不具合の候補**で、次に調べる:
+  1. `A_reader_of_the_bvh_file_finds_the_same_joints`・`A_reader_of_the_glb_file_finds_the_same_joints` (4 本とも): 手の段のある譜は指の骨が入り 20 → 50 個。試験が指のない骨格を前提にしている (試験側を直す見込み)。
+  2. `No_bone_flips_between_two_frames`: ballet-variation は leftFoot が 142 コマ目で 80 度 (8 拍半ごろ: `relevePointe` の前後)、break-set は leftFoot が 286 コマ目で 121 度 (16 拍半ごろ: `floorSteps` で手へ下りる所)、floor-lyric は leftHand が 243 コマ目で 48 度、finger-pop は leftHand が 282 コマ目で 46 度 (ピースの `fingers(…)`・`palm(…)` の前後)。原因は見ていない。
+  3. `Rotations_put_every_joint_back_where_the_solver_had_it`: break-set の leftUpperArm が 884 コマ目で 2.6 mm ずれる。
+  再現は 4 本を `samples\` の直下へ写して `dotnet test Shosa.slnx -c Release`。
+
 ## 指・バレエの残り・床の動き (2026-11-27 の 3 つ目のセッション、DESIGN.md 126〜128)
 
 ユーザー: 「バレエの未実装の動作や、指先の動作を指定する動作、ブレイクダンスなどの動作ができるように拡張して」。3 つとも入れた。**ユーザーの目はどれもまだ** (拡張は入れ直した。各ウィンドウで Reload Window)。

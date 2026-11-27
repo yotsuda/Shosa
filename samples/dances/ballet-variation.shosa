@@ -1,0 +1,50 @@
+// A short classical variation with shosa:ballet: an adage (plié, pointe, a développé with the foot pointed,
+// an arabesque, a pirouette), an allegro of small jumps (changement, entrechat, royale, échappé, glissade,
+// assemblé) and chaînés, and a coda that ends in the révérence. The hands are a ballet dancer's throughout.
+title "Ballet variation"
+tempo 108
+using "shosa:ballet"
+
+role solo
+dancer solo humanoid "../models/zunko.vrm" on solo
+
+// The toe climbs the standing leg (shin, knee, thigh), the leg unfolds to the side with the foot pointed, and closes.
+move unfold {
+  rightLeg { down:1/2 otherShin:1/2 otherKnee:1/2@through otherThigh:1/2 side.up(5).pointed:1 then:1/2 down:1/2 }
+}
+
+// A tendu to the front that flexes and points again before it closes: the foot's own little solo.
+move flexPoint {
+  rightLeg { down:1/2 fwd.down(60).pointed:1/2 fwd.down(60).flexed:1 fwd.down(60).pointed:1 then:1/2 down:1/2 }
+}
+
+section Adage {
+  solo {
+    body  { fifth:4 | plie:4 | relevePointe:4 | unfold:4 | flexPoint:4 | arabesque:4~ | :4 | pirouette:4 | }
+    arms  { preparation:4 | portDeBras:4~ | :4 | aLaSeconde:4 | then:2 enAvant:2 | skip:3bar | }
+    hands { soft:4 | then:4 | then:4 | then:4 | then:4 | then:4 | then:4 | then:4 | }
+    head  { fwd:4 | fwd.down(15):2 fwd:2 | fwd.up(15):2 then:1 fwd:1 | fwd.right(30):2 then:1 fwd:1 | fwd.down(20):2 then:1 fwd:1 | skip:3bar | }
+  }
+}
+
+// Small jumps on the spot, out and in, a glide each way, the assemblé, and chaînés across.
+section Allegro {
+  solo {
+    body { fifth:4 | changement:2 changement:2 | entrechat:2 royale:2 | echappe:4 | echappe:4@mirror |
+           glissade:2 glissade:2@mirror | assemble:4 | chaine:4 | }
+    arms { brasBas:4 | then:2 aLaSeconde:2 | then:2 enHaut:2 | aLaSeconde:2 enAvant:2 | aLaSeconde:2 brasBas:2 |
+           aLaSeconde:4 | enAvant:2 enHaut:2 | skip:1bar | }
+    head { fwd:4 | then:4 | then:2 fwd.up(15):2 | fwd:4 | then:4 | fwd.right(30):2 fwd.left(30):2 | fwd:2 fwd.up(15):2 | fwd:4 | }
+  }
+}
+
+// Up on pointe with the arms overhead, an attitude, a last arabesque held, and the bow.
+section Coda {
+  solo {
+    body { first:4 | relevePointe:4 | attitude:4 | arabesque:4~@mirror | :4 | reverence:4~ | :4 | }
+    arms { brasBas:4 | enAvant:1 enHaut:1 then:1 aLaSeconde:1 | skip:5bar | }
+  }
+}
+
+form { Adage Allegro Coda }
+score { dancer solo }

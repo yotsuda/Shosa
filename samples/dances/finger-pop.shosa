@@ -1,0 +1,60 @@
+// An idol number told with the fingers (hands, leftHand, rightHand) over the steps of shosa:basics:
+// counting one-two-three-go, a shaka wave, a peace sign at each eye, a heart at the chest and a big one overhead,
+// pointing, finger guns, thumbs up, horns, and jazz hands to finish. Watch it on a character: the stick figure has no fingers.
+title "Finger pop"
+tempo 120
+using "shosa:basics"
+
+role solo
+dancer solo humanoid "../models/zunko.vrm" on solo
+
+// The right hand counts on every other beat, the left on the hip; then both wave a shaka along a grapevine.
+section Count {
+  solo {
+    body      { stepTouch:4 | stepTouch:4 | vine:4 | vine:4@mirror | }
+    rightArm  { side.up(40).bent(80):4 | then:4 | skip:2bar | }
+    leftArm   { hip:4 | then:4 | skip:2bar | }
+    arms      { skip:2bar | waveOverhead:4 | waveOverhead:4 | }
+    rightHand { count(1).fingers(up).palm(fwd):1 then:1 count(2).fingers(up).palm(fwd):1 then:1 |
+                count(3).fingers(up).palm(fwd):1 then:1 spread.fingers(up).palm(fwd):1 then:1 | skip:2bar | }
+    hands     { fist:4 | then:4 | shaka.fingers(up).palm(fwd):4 | then:4 | }
+    head      { fwd.right(15):4 | then:2 fwd:2 | fwd.tilt(left(10)):2 fwd.tilt(right(10)):2 | fwd.tilt(left(10)):2 fwd:2 | }
+  }
+}
+
+// A peace sign beside the head, right and then left; the two hands make a heart at the chest, and the arms a big one overhead.
+section Peace {
+  solo {
+    body      { bounce:4 | bounce:4 | sway:4 | sway:4@mirror | }
+    rightArm  { side.fwd(20).up(55).bent(100):2 then:2 | hip:4 | skip:2bar | }
+    leftArm   { hip:2 then:2 | side.fwd(20).up(55).bent(100):2 then:2 | skip:2bar | }
+    arms      { skip:2bar | chest:2 then:1 fwd.down(10).bent(70):1 | bigHeart:2 then:2 | }
+    rightHand { peace.fingers(up.across(25)).palm(fwd):2 then:2 | fist:4 | skip:2bar | }
+    leftHand  { fist:2 then:2 | peace.fingers(up.across(25)).palm(fwd):2 then:2 | skip:2bar | }
+    hands     { skip:2bar | heart:2 then:1 open.palm(up):1 | heart:2 then:2 | }
+    head      { fwd.tilt(right(12)):2 then:1 fwd:1 | fwd.tilt(left(12)):2 then:1 fwd:1 | fwd.down(15):2 fwd:2 | fwd.tilt(left(10)):4 | }
+  }
+}
+
+// You, and you: a point each way; both finger guns go off; two thumbs up.
+section Point {
+  solo {
+    body      { pointOut:4 | pointOut:4@mirror | stepTouch:4 | stepTouch:4 | }
+    arms      { skip:2bar | fwd.down(30).bent(80):1 then:1/2 fwd.side(15):1/2 fwd.side(25).up(40).bent(40):1@sharp then:1 |
+                fwd.side(35).up(10).bent(70):2 then:2 | }
+    rightHand { fist:1 point:2@sharp then:1 | fist:4 | skip:2bar | }
+    leftHand  { fist:4 | fist:1 point:2@sharp then:1 | skip:2bar | }
+    hands     { skip:2bar | gun.palm(across):4 | thumbUp.palm(across):2 then:2 | }
+  }
+}
+
+// Claps, horns in the air, and the last pose with the fingers spread wide.
+section Finish {
+  solo {
+    body  { touchClap:4 | touchClap:4@mirror | highV:2 handsOnHips:2 | then:1 bigFinish:3 | }
+    hands { open:4 | then:4 | rock.fingers(up).palm(fwd):2 fist:2 | then:1 spread.fingers(up).palm(fwd):3 | }
+  }
+}
+
+form { Count Peace Point Finish }
+score { dancer solo }

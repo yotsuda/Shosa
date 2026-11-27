@@ -1,0 +1,57 @@
+// A breaker's set with the moves of shosa:break: toprock, down to footwork, a backspin and a headspin,
+// cartwheels, a one-hand freeze, and a knee drop that points at the crowd. The hands close and spread with it.
+title "Break set"
+tempo 104
+using "shosa:break"
+
+role solo
+dancer solo humanoid "../models/zunko.vrm" on solo
+
+// On the feet: the groove, fists closed; the knee drop opens the hands for a beat.
+section Toprock {
+  solo {
+    body  { toprock:4 | toprock:4@mirror | sideRock:4 | kneeDrop:4 | }
+    hands { fist:4 | then:4 | then:4 | then:1 spread:1 then:1 fist:1 | }
+    head  { fwd:4 | fwd.left(20):2 fwd:2 | fwd.right(20):2 fwd:2 | fwd.down(15):2 fwd:2 | }
+  }
+}
+
+// Down onto the hands: the legs step round under the body, then a plank and two push-ups.
+section Footwork {
+  solo {
+    body  { floorSteps:4~ | :4 | pushUps:4~ | :4 | }
+    hands { then:1 spread:3 | then:4 | then:4 | then:4 | }
+  }
+}
+
+// The power moves: twice round on the back, twice round on the head.
+section Spins {
+  solo {
+    body  { backspin:4~ | :4 | headspin:4~ | :4 | }
+    hands { then:2 fist:2 | then:2 spread:2 | then:4 | then:4 | }
+  }
+}
+
+// Across the floor and back on the hands, and the freeze on one hand.
+section Freeze {
+  solo {
+    body  { cartwheel:4~ | :4 | cartwheel:4~@mirror | :4 | oneHandFreeze:4~ | :4 | }
+    hands { spread:4 | then:4 | then:4 | then:4 | then:4 | then:4 | }
+  }
+}
+
+// Down on the left knee, the right hand out of the chest to point at the crowd; held.
+section Out {
+  solo {
+    steps     { then:1 leftKnee:1 then:2 | then:4 | }
+    torso     { up:1 up.fwd(8):1 then:2 | then:4 | }
+    rightArm  { chest:1 fwd.up(15):1@sharp then:2 | then:4 | }
+    rightHand { fist:1 point:1@sharp then:2 | then:4 | }
+    leftArm   { down:1 hip:1 then:2 | then:4 | }
+    leftHand  { fist:4 | then:4 | }
+    head      { fwd:1 fwd.up(8):1 then:2 | then:4 | }
+  }
+}
+
+form { Toprock Footwork Spins Freeze Out }
+score { dancer solo }
