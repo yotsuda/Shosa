@@ -4,9 +4,10 @@
 // barre moves (plie … grandBattement) are a height or a leg only; the jumps and glissade / pasDeBourree / balance
 // are steps (and height) only: put any arms over any of them. arabesque, attitude, pirouette, chaine and reverence
 // are whole-body (an arms row beside them wins over their arms). The working leg is the right one; @mirror for the left.
-// Not in Shosa (yet), so not here: pointe work and a foot pointed or flexed by choice (it points by itself only on the
-// floor, at the knee or ankle and in the air of a jump), spotting in a turn, beats (entrechat, cabriole), a jump that
-// closes into fifth from second, rond de jambe en l'air, the arm's curve of a port de bras (it goes point to point).
+// Hands: `hands { soft }` once is a ballet hand for the whole dance. A lifted foot is pointed with `pointed` in a leg's row of
+// your own (`rightLeg { back.up(10).pointed }`), and `height { pointe }` stands on the tips of the toes (relevePointe).
+// Not in Shosa (yet), so not here: spotting in a turn, a cabriole and the beats that land on one foot, rond de jambe en l'air,
+// the arm's curve of a port de bras (it goes point to point).
 
 // ---- Positions of the feet: poses, turned out 80 on straight legs, the weight on both feet.
 
@@ -120,7 +121,7 @@ move pirouette {
 // chaine — 4 beats; steps, height, arms. Chaînés: two turns to the right on the toes in four half-turn steps,
 // travelling right, the arms in first; down and the feet together at the end. In a row across the floor.
 move chaine {
-  steps  { then:1/2 rightFoot.side(0.15m):3/4@turn(right(180)) leftFoot.side(0.15m):3/4@turn(right(180)) rightFoot.side(0.15m):3/4@turn(right(180)) leftFoot.side(0.15m):3/4@turn(right(180)) together:1/2 }
+  steps  { then:1/2 rightFoot.side(0.08m):3/4@turn(right(180)) leftFoot.side(0.08m):3/4@turn(right(180)) rightFoot.side(0.08m):3/4@turn(right(180)) leftFoot.side(0.08m):3/4@turn(right(180)) together:1/2 }
   height { straight:1/2 high:5/2 then:1/2 straight:1/2 }
   arms   { aLaSeconde:1/2 enAvant:5/2 then:1/2 aLaSeconde:1/2 }
 }
@@ -133,8 +134,16 @@ move saute      { steps { then:1 jump.up(10cm):1 } }
 // changement — 2 beats; steps. From fifth: a jump that lands in fifth with the other foot in front.
 move changement { steps { then:1 jump.change.up(10cm):1 } }
 // echappe — 4 beats; steps. Échappé sauté: from fifth, a jump out to second (beat 1), and a jump in again
-// (beat 3), landing with the heels together (first: a jump cannot close into fifth from second).
-move echappe    { steps { then:1 jump.apart(0.5m).up(8cm):1 then:1 jump.together.up(8cm):1 } }
+// (beat 3), closing into fifth with the left foot in front (echappe@mirror: the right).
+move echappe    { steps { then:1 jump.apart(0.5m).up(8cm):1 then:1 jump.leftFoot.fwd(0.08m).across(0.13m).up(8cm):1 } }
+// entrechat — 2 beats; steps. Entrechat quatre from fifth: a jump whose legs beat in the air (they close the other
+// way round and open again) and land as they stood. Small and brilliant: in a row on quick music.
+move entrechat  { steps { then:1 jump.beat.up(12cm):1 } }
+// royale — 2 beats; steps. From fifth: a jump that beats as it stands and lands with the other foot in front (a
+// changement with a beat). After entrechat, or instead of changement on an accent.
+move royale     { steps { then:1 jump.change.beat.up(12cm):1 } }
+// relevePointe — 4 beats; height. Up onto the tips of the toes on 1, held, down on 3: the relevé of pointe work.
+move relevePointe { height { then:1/2 pointe:1/2 then:3/2 then:1/2 straight:1 } }
 // assemble — 4 beats; steps, left leg. Assemblé from fifth with the right foot in front: the back (left) leg brushes
 // out to the side, the jump brings the feet together in the air and lands in fifth with the left in front (beat 2).
 // assemble@mirror from fifth@mirror.

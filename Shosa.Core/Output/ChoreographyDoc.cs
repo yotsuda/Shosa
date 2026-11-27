@@ -62,8 +62,9 @@ public static class ChoreographyDoc
 
         - **STYLE** — the dancer (who, what energy) and the vocabulary files: an idol or a cute pop song
           `basics` (with a little `jazz`); "like Michael Jackson", 80s pop, funk, sharp and cool `pop` (with
-          `basics`); Broadway, theatre, lyrical, sassy `jazz`; classical, elegant, a waltz `ballet`. Mixing
-          is fine: a dance is one dancer, not one file.
+          `basics`); Broadway, theatre, lyrical, sassy `jazz`; classical, elegant, a waltz `ballet`; hip-hop,
+          a breakbeat, a dance battle, anything that goes down to the floor `break` (a set: toprock, down,
+          footwork or a spin, a freeze on the accent, up). Mixing is fine: a dance is one dancer, not one file.
         - **MAP** — every section the song plays: its bars, an energy from 1 to 5, and its ROLE: intro,
           verse, pre-chorus, chorus, bridge, instrumental, outro. **Sections with other names that are the
           same music are one role** (a transcribed song may call them A, A2 … A8 and C, C2, C3): find them
@@ -92,6 +93,10 @@ public static class ChoreographyDoc
 
         ## Variety — what keeps a dance from being one pattern
 
+        - **The hands are a layer too** (`hands`, `leftHand`, `rightHand`): a fist on a hit, `spread` fingers
+          on an open pose (`spread.fingers(up).palm(fwd)`: jazz hands), `point` with a pointing arm, `peace` at
+          the face, `count(3)` on a counted lyric, `open.palm(up)` offered to the audience, `soft` for ballet.
+          One row for the whole dance (`hands { fist }`) already reads better than none; change it on accents.
         - **Layers**: a dance is feet × arms × head × height × facing. Change one layer every two bars,
           two every four, all of them where a section changes. The same steps under new arms is a new
           figure; the same arms on new steps too. Most vocabulary moves are feet only or arms only so that

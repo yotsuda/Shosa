@@ -457,7 +457,7 @@ public class MotionTests
         Assert.Equal(0.02, Joint(7, toe).Y, 2);
         Assert.True(Math.Abs(Joint(7, toe).X - Joint(7, hip).X) > Math.Abs(Joint(2, toe).Z - Joint(2, hip).Z) + 0.05, "a tendu from a plié reaches farther");
 
-        Assert.Contains(Compile(Samples.Solo("    arms { side.floor }")).Diagnostics, d => d.Code == "SH1012");
+        Assert.Contains(Compile(Samples.Solo("    torso { fwd.floor }")).Diagnostics, d => d.Code == "SH1012");   // (an arm's is a hand on the floor: FloorTests)
         Assert.Contains(Compile(Samples.Solo("    rightLeg { side.floor.pointed }")).Diagnostics, d => d.Code == "SH1012");
         Assert.Contains(Compile(Samples.Solo("    rightLeg { side.down.floor }")).Diagnostics, d => d.Code == "SH1012");
     }

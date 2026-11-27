@@ -1,7 +1,7 @@
 // shosa:pop — 80s pop dance: sharp hits that freeze, snapped kicks, fast spins into a freeze, toe rises, robot moves. A dance brings it in with: using "shosa:pop"
 // Poses are upper-body shapes to hit on an accent and hold (arms, torso, head, hips, shoulders, height; only wideHit and toeStand place the feet):
 // put them over any steps. Feet moves (steps, height, a leg) and upper-body moves (arms, head, shoulders, hips) are apart: lay any of one over any of the other.
-// Not in Shosa (yet), so not here: the backward glide (a flat foot sliding back under the weight, the other heel up), a hip thrust to the side, a shrug, hands and fingers (the pointing finger, a hat), a lean past the toes, sliding feet.
+// Not in Shosa (yet), so not here: the backward glide (a flat foot sliding back under the weight, the other heel up), a hip thrust to the side, a shrug, a hat in the hand, a lean past the toes, sliding feet. The pointing finger and the fist are a hand's row over these: `rightHand { point }`, `hands { fist }`.
 
 // ---- poses: a shape to hit on an accent and hold ----
 // To hit one from a shape far from it, give the way a short `then`: `skyPoint:7/2 then:1/2 | robotHit:4 |` arrives on the bar line.

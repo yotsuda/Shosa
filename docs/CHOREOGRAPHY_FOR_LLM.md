@@ -31,8 +31,9 @@ short ones) a step.
 
 - **STYLE** — the dancer (who, what energy) and the vocabulary files: an idol or a cute pop song
   `basics` (with a little `jazz`); "like Michael Jackson", 80s pop, funk, sharp and cool `pop` (with
-  `basics`); Broadway, theatre, lyrical, sassy `jazz`; classical, elegant, a waltz `ballet`. Mixing
-  is fine: a dance is one dancer, not one file.
+  `basics`); Broadway, theatre, lyrical, sassy `jazz`; classical, elegant, a waltz `ballet`; hip-hop,
+  a breakbeat, a dance battle, anything that goes down to the floor `break` (a set: toprock, down,
+  footwork or a spin, a freeze on the accent, up). Mixing is fine: a dance is one dancer, not one file.
 - **MAP** — every section the song plays: its bars, an energy from 1 to 5, and its ROLE: intro,
   verse, pre-chorus, chorus, bridge, instrumental, outro. **Sections with other names that are the
   same music are one role** (a transcribed song may call them A, A2 … A8 and C, C2, C3): find them
@@ -61,6 +62,10 @@ short ones) a step.
 
 ## Variety — what keeps a dance from being one pattern
 
+- **The hands are a layer too** (`hands`, `leftHand`, `rightHand`): a fist on a hit, `spread` fingers
+  on an open pose (`spread.fingers(up).palm(fwd)`: jazz hands), `point` with a pointing arm, `peace` at
+  the face, `count(3)` on a counted lyric, `open.palm(up)` offered to the audience, `soft` for ballet.
+  One row for the whole dance (`hands { fist }`) already reads better than none; change it on accents.
 - **Layers**: a dance is feet × arms × head × height × facing. Change one layer every two bars,
   two every four, all of them where a section changes. The same steps under new arms is a new
   figure; the same arms on new steps too. Most vocabulary moves are feet only or arms only so that
@@ -127,9 +132,10 @@ What trips a dance written with them (each met while they were made):
 // barre moves (plie … grandBattement) are a height or a leg only; the jumps and glissade / pasDeBourree / balance
 // are steps (and height) only: put any arms over any of them. arabesque, attitude, pirouette, chaine and reverence
 // are whole-body (an arms row beside them wins over their arms). The working leg is the right one; @mirror for the left.
-// Not in Shosa (yet), so not here: pointe work and a foot pointed or flexed by choice (it points by itself only on the
-// floor, at the knee or ankle and in the air of a jump), spotting in a turn, beats (entrechat, cabriole), a jump that
-// closes into fifth from second, rond de jambe en l'air, the arm's curve of a port de bras (it goes point to point).
+// Hands: `hands { soft }` once is a ballet hand for the whole dance. A lifted foot is pointed with `pointed` in a leg's row of
+// your own (`rightLeg { back.up(10).pointed }`), and `height { pointe }` stands on the tips of the toes (relevePointe).
+// Not in Shosa (yet), so not here: spotting in a turn, a cabriole and the beats that land on one foot, rond de jambe en l'air,
+// the arm's curve of a port de bras (it goes point to point).
 
 // ---- Positions of the feet: poses, turned out 80 on straight legs, the weight on both feet.
 
@@ -243,7 +249,7 @@ move pirouette {
 // chaine — 4 beats; steps, height, arms. Chaînés: two turns to the right on the toes in four half-turn steps,
 // travelling right, the arms in first; down and the feet together at the end. In a row across the floor.
 move chaine {
-  steps  { then:1/2 rightFoot.side(0.15m):3/4@turn(right(180)) leftFoot.side(0.15m):3/4@turn(right(180)) rightFoot.side(0.15m):3/4@turn(right(180)) leftFoot.side(0.15m):3/4@turn(right(180)) together:1/2 }
+  steps  { then:1/2 rightFoot.side(0.08m):3/4@turn(right(180)) leftFoot.side(0.08m):3/4@turn(right(180)) rightFoot.side(0.08m):3/4@turn(right(180)) leftFoot.side(0.08m):3/4@turn(right(180)) together:1/2 }
   height { straight:1/2 high:5/2 then:1/2 straight:1/2 }
   arms   { aLaSeconde:1/2 enAvant:5/2 then:1/2 aLaSeconde:1/2 }
 }
@@ -256,8 +262,16 @@ move saute      { steps { then:1 jump.up(10cm):1 } }
 // changement — 2 beats; steps. From fifth: a jump that lands in fifth with the other foot in front.
 move changement { steps { then:1 jump.change.up(10cm):1 } }
 // echappe — 4 beats; steps. Échappé sauté: from fifth, a jump out to second (beat 1), and a jump in again
-// (beat 3), landing with the heels together (first: a jump cannot close into fifth from second).
-move echappe    { steps { then:1 jump.apart(0.5m).up(8cm):1 then:1 jump.together.up(8cm):1 } }
+// (beat 3), closing into fifth with the left foot in front (echappe@mirror: the right).
+move echappe    { steps { then:1 jump.apart(0.5m).up(8cm):1 then:1 jump.leftFoot.fwd(0.08m).across(0.13m).up(8cm):1 } }
+// entrechat — 2 beats; steps. Entrechat quatre from fifth: a jump whose legs beat in the air (they close the other
+// way round and open again) and land as they stood. Small and brilliant: in a row on quick music.
+move entrechat  { steps { then:1 jump.beat.up(12cm):1 } }
+// royale — 2 beats; steps. From fifth: a jump that beats as it stands and lands with the other foot in front (a
+// changement with a beat). After entrechat, or instead of changement on an accent.
+move royale     { steps { then:1 jump.change.beat.up(12cm):1 } }
+// relevePointe — 4 beats; height. Up onto the tips of the toes on 1, held, down on 3: the relevé of pointe work.
+move relevePointe { height { then:1/2 pointe:1/2 then:3/2 then:1/2 straight:1 } }
 // assemble — 4 beats; steps, left leg. Assemblé from fifth with the right foot in front: the back (left) leg brushes
 // out to the side, the jump brings the feet together in the air and lands in fifth with the left in front (beat 2).
 // assemble@mirror from fifth@mirror.
@@ -311,7 +325,8 @@ move reverence {
 // (Not `steps { stepTouch }`: that keeps only the steps, and march/kick/hopKnee are legs.) Poses and combos are whole-body.
 // A height row that begins with a dip sinks to it through the word before: after a long `then`, slowly. Hit a pose `@sharp` only
 // from a shape near it (from hanging arms to highV is too fast, SH2003).
-// Not in Shosa (yet), so not here: hands and fingers (a peace sign, a finger heart, jazz hands), a shoulder shrug, kneeling or floor work.
+// Hands are a row of their own over any of these: `hands { fist }`, `rightHand { peace.fingers(up).palm(fwd) }`, `hands { spread }`. Kneeling and the floor are in shosa:break.
+// Not in Shosa (yet), so not here: a shoulder shrug, a heart made of two fingers.
 
 // ---- Feet: steps, height, legs. They leave the arms and the head to another row. ----
 
@@ -495,6 +510,139 @@ move stepPointV {
 }
 ```
 
+### `using "shosa:break"`
+
+```shosa
+// shosa:break — breaking and floor work: toprock on the feet, getting down, footwork on the hands, freezes, spins on the head and the back, and getting up. A dance brings it in with: using "shosa:break"
+// Every move is the whole body (steps, torso, arms, legs, height): write it in `body`. Each starts standing on both feet and ends standing where it says,
+// so any follows any; a set is toprock, a way down, footwork or a spin, a freeze on an accent, a way up. They take room: 1.5 m around the dancer.
+// Hands for them: `hands { fist }` in toprock, `hands { spread }` on the floor. Slower is safer: stretch a move (`headspin:12`) before it warns of speed (SH2003).
+// Not in Shosa (yet), so not here: weight on an elbow or a forearm (a baby freeze's elbow in the hip, an elbow freeze), a windmill's and a flare's
+// travelling roll (windmillRoll turns on the spot), walking on the hands, threading a leg through an arm.
+
+// ---- toprock: on the feet, before going down ----
+
+// toprock — 4 beats; steps, arms, torso. The basic toprock: step forward across on 1, back on 2, the other side on 3 and 4, the arms opening as
+// the foot comes back. The groove of a whole verse; @mirror starts with the left foot.
+move toprock {
+  steps { then:1/2 rightFoot.fwd(0.3m).across(0.1m):1/2 rightFoot.place:1 leftFoot.fwd(0.3m).across(0.1m):1 leftFoot.place:1/2 stand:1/2 }
+  arms  { fwd.across(20).down(20).bent(80):1 side.down(30).bent(40):1 fwd.across(20).down(20).bent(80):1 side.down(30).bent(40):1/2 down:1/2 }
+  torso { up.fwd(8):1 up.back(5):1 up.fwd(8):1 up:1 }
+}
+
+// sideRock — 4 beats; steps, arms, height. The side-to-side toprock: a wide step right with a bounce, together, left, together, the arms swinging
+// across the body. Under a chorus, facing the crowd.
+move sideRock {
+  steps  { then:1/2 rightFoot.side(0.5m):1/2 leftFoot.place:1 leftFoot.side(0.5m):1 rightFoot.place:1/2 stand:1/2 }
+  height { mid:1/2 low(8cm):1/2 mid:1/2 low(8cm):1/2 mid:1/2 low(8cm):1/2 mid:1/2 mid:1/2 }
+  arms   { down:1/2 fwd.across(30).bent(90):1 side.bent(70):1 fwd.across(30).bent(90):1 down:1/2 }
+}
+
+// ---- down, on the floor, and up ----
+
+// kneeDrop — 4 beats; whole body. Down onto the right knee on 1 (the left foot in front), a beat held, up on 3. An accent that goes down and comes
+// straight back; @mirror the left knee.
+move kneeDrop {
+  steps { then:1 rightKnee:1 then:1 feet:1 }
+  torso { up:1 up.fwd(10):1 then:1 up:1 }
+  arms  { down:1 side.down(30):1 then:1 down:1 }
+}
+
+// floorSit — 8 beats; whole body. Sits down on the floor behind the feet, the knees up and the hands behind (beat 2), leans back with one leg
+// kicked up (beat 4), and stands up again where it stood. A cool break in the middle of a set.
+move floorSit {
+  steps    { then:1 seat.back(0.3m):1 then:4 feet.fwd(0.3m):2 }
+  torso    { up:2 back.up(35):2 then:1 up:1 up:2 }
+  arms     { down:1 back.floor:1 then:3 down:1 down:2 }
+  leftLeg  { down:1 fwd.floor.bent(90):1 then:3 down:1 down:2 }
+  rightLeg { down:1 fwd.floor.bent(90):1 fwd.up(40):2 fwd.floor.bent(90):1 down:1 down:2 }
+}
+
+// floorSteps — 8 beats; whole body. Footwork: down onto the hands in a crouch, the legs stepping round in turn under the body (left out to the
+// front and round, then the right), and up. The busy middle of a set; best at 100 to 120.
+move floorSteps {
+  steps    { then:1 hands.fwd(0.45m):1 then:4 feet.back(0.45m):2 }
+  torso    { up.fwd(40):1 fwd.up(25):1 then:4 fwd.up(50):1 up:1 }
+  height   { low(40cm):1 then:5 low(40cm):1 mid:1 }
+  leftLeg  { down:1 back.side(40).floor.bent(70):1 fwd.side(60).floor.bent(40):1 side.floor.bent(80):1 back.side(40).floor.bent(70):1 then:1 down:1 down:1 }
+  rightLeg { down:1 back.side(40).floor.bent(70):1 then:2 fwd.side(60).floor.bent(40):1 back.side(40).floor.bent(70):1 down:1 down:1 }
+}
+
+// pushUps — 8 beats; whole body. Down into a plank on the hands, two push-ups (down on 3 and 5), and back up to standing. Strength as a joke, or
+// the way into footwork.
+move pushUps {
+  steps { then:1 hands.fwd(0.7m):1 then:4 feet.back(0.7m):2 }
+  torso { up.fwd(60):1 fwd.up(15):1 then:4 fwd.up(60):1 up:1 }
+  legs  { down:1 back.floor:1 then:3 down:1 down:2 }
+  arms  { down:2 down.bent(90):1 down:1 down.bent(90):1 down:1 down:2 }
+}
+
+// ---- freezes: a shape held on an accent ----
+
+// handstandFreeze — 8 beats; whole body. Kicks up to a handstand 0.6 m ahead (there on beat 3), the legs bent apart in the air, holds two beats and
+// comes down where it stood. The end of a phrase; give the hold more with a longer word (handstandFreeze:12).
+move handstandFreeze {
+  steps { then:1 hands.fwd(0.6m):2 then:3 feet.back(0.6m):2 }
+  torso { up.fwd(50):1 fwd.down(30):1 down:1 then:3 fwd.down(30):1 up:1 }
+  legs  { down:2 side.up(55).bent(70):1 then:2 down:1 down:2 }
+}
+
+// oneHandFreeze — 8 beats; whole body. Up onto the hands, then onto the right hand alone, the body tipped over it and the left arm out (beats 4 to 5),
+// back onto both and down. The harder freeze, for the biggest accent; @mirror the left hand.
+move oneHandFreeze {
+  steps   { then:1 hands.fwd(0.6m):2 rightHand:1 then:1 hands:1 feet.back(0.6m):2 }
+  torso   { up.fwd(50):1 fwd.down(30):1 down:1 down.left(25):1 then:1 down:1 fwd.down(30):1 up:1 }
+  legs    { down:2 side.up(50).bent(60):1 then:3 down:1 down:1 }
+  leftArm { down:3 side.up(30):1 then:1 down:1 down:2 }
+}
+
+// headstandFreeze — 8 beats; whole body. Down onto the head and the hands (beat 3), the legs in a V, held, and down again. Steadier than the
+// handstand and a way into headspin.
+move headstandFreeze {
+  steps { then:1 head.fwd(0.4m):2 then:3 feet.back(0.4m):2 }
+  torso { up.fwd(60):1 fwd.down(40):1 down:1 then:3 fwd.down(40):1 up:1 }
+  arms  { down:2 side.floor:1 then:3 down:1 down:1 }
+  legs  { down:2 side.up(40):1 then:2 down:1 down:2 }
+}
+
+// ---- power: turning on what carries the weight ----
+
+// headspin — 8 beats; whole body. Onto the head, two turns to the left with the legs in a V and the hands off the floor (beats 3 to 5), the hands
+// down again and out. The peak of a set: once.
+move headspin {
+  steps { then:1 head.fwd(0.4m):2 turn.left(720):2 then:1 feet.back(0.4m):2 }
+  torso { up.fwd(60):1 fwd.down(40):1 down:1 then:3 fwd.down(40):1 up:1 }
+  arms  { down:2 side.floor:1 side.down(20):1 then:1 side.floor:1 down:1 down:1 }
+  legs  { down:2 side.up(40):1 then:2 down:1 down:2 }
+}
+
+// backspin — 8 beats; whole body. Sits, rolls onto the upper back with the knees tucked (beat 3), spins twice (beats 3 to 5), sits up and stands.
+// The classic spin, easier on the eye than the headspin: after footwork.
+move backspin {
+  steps { then:1 seat.back(0.3m):1 back.back(0.4m):1 turn.left(720):2 seat.fwd(0.4m):1 feet.fwd(0.3m):2 }
+  torso { up:2 back.down(25):1 then:2 up:1 up:2 }
+  legs  { down:1 fwd.floor.bent(90):1 fwd.up(20).bent(120):1 then:2 fwd.floor.bent(90):1 down:1 down:1 }
+  arms  { down:1 back.floor:1 chest:1 then:2 back.floor:1 down:1 down:1 }
+}
+
+// windmillRoll — 8 beats; whole body. On the back, the legs wide: the body rolls over the shoulders onto its front and round onto its back again
+// while it turns once (beats 3 to 6): a windmill on the spot. Then up. For the loudest bars; it needs the tempo under 120.
+move windmillRoll {
+  steps { then:1 seat.back(0.3m):1 back.back(0.4m):1 turn.left(360):3 seat.fwd(0.4m):1 feet.fwd(0.3m):1 }
+  torso { up:2 back.down(15).facing(up):1 back.down(10).facing(left):1@through back.down(10).facing(down):1@through back.down(15).facing(up):1 up:1 up:1 }
+  legs  { down:1 fwd.floor.bent(90):1 side.up(45):1 then:3 fwd.floor.bent(90):1 down:1 }
+  arms  { down:1 back.floor:1 side.up(20):1 then:3 back.floor:1 down:1 }
+}
+
+// cartwheel — 8 beats; whole body. A cartwheel to the left: the hands down 0.6 m to the left, the body over them sideways with the legs apart
+// (on the hands on beat 2, upside down on 3), and onto the feet 0.6 m further on (beat 5). Travels 1.2 m; @mirror goes right.
+move cartwheel {
+  steps { then:2 hands.left(0.6m):1 then:2 feet.left(0.6m):3 }
+  torso { up:2 left:1@through down.facing(fwd):1@through right:1@through up:3 }
+  legs  { down:2 side.up(30):1 then:1 then:1 down:3 }
+}
+```
+
 ### `using "shosa:jazz"`
 
 ```shosa
@@ -503,9 +651,10 @@ move stepPointV {
 // arm moves (jazzSecond … punchUp) over them in an `arms` row. Isolations are one row each; the
 // finishing poses and the combinations are whole-body. `ready` takes any pose back to neutral.
 // A move's first step or kick lands ON the beat it is written at (it is made in the word before).
-// Not in Shosa (yet), so not here: jazz hands (no fingers), a hip pushed out to the side or a head
-// slide (the hips and the head turn, they do not move sideways), a back arched back (it only leans),
-// a pointed or flexed foot by choice, knee slides and floor work.
+// Jazz hands are `hands { spread.fingers(up).palm(fwd) }` over any arms here; a kicking foot is pointed or flexed in a
+// leg's row of your own (`rightLeg { fwd.up(20).pointed }`).
+// Not in Shosa (yet), so not here: a hip pushed out to the side or a head slide (the hips and the head turn, they do
+// not move sideways), a back arched back (it only leans), knee slides (floor work is in shosa:break).
 
 // ---- Steps: feet, height and legs ----
 
@@ -712,7 +861,7 @@ move turnCombo {
 // shosa:pop — 80s pop dance: sharp hits that freeze, snapped kicks, fast spins into a freeze, toe rises, robot moves. A dance brings it in with: using "shosa:pop"
 // Poses are upper-body shapes to hit on an accent and hold (arms, torso, head, hips, shoulders, height; only wideHit and toeStand place the feet):
 // put them over any steps. Feet moves (steps, height, a leg) and upper-body moves (arms, head, shoulders, hips) are apart: lay any of one over any of the other.
-// Not in Shosa (yet), so not here: the backward glide (a flat foot sliding back under the weight, the other heel up), a hip thrust to the side, a shrug, hands and fingers (the pointing finger, a hat), a lean past the toes, sliding feet.
+// Not in Shosa (yet), so not here: the backward glide (a flat foot sliding back under the weight, the other heel up), a hip thrust to the side, a shrug, a hat in the hand, a lean past the toes, sliding feet. The pointing finger and the fist are a hand's row over these: `rightHand { point }`, `hands { fist }`.
 
 // ---- poses: a shape to hit on an accent and hold ----
 // To hit one from a shape far from it, give the way a short `then`: `skyPoint:7/2 then:1/2 | robotHit:4 |` arrives on the bar line.

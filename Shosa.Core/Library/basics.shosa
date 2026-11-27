@@ -4,7 +4,8 @@
 // (Not `steps { stepTouch }`: that keeps only the steps, and march/kick/hopKnee are legs.) Poses and combos are whole-body.
 // A height row that begins with a dip sinks to it through the word before: after a long `then`, slowly. Hit a pose `@sharp` only
 // from a shape near it (from hanging arms to highV is too fast, SH2003).
-// Not in Shosa (yet), so not here: hands and fingers (a peace sign, a finger heart, jazz hands), a shoulder shrug, kneeling or floor work.
+// Hands are a row of their own over any of these: `hands { fist }`, `rightHand { peace.fingers(up).palm(fwd) }`, `hands { spread }`. Kneeling and the floor are in shosa:break.
+// Not in Shosa (yet), so not here: a shoulder shrug, a heart made of two fingers.
 
 // ---- Feet: steps, height, legs. They leave the arms and the head to another row. ----
 

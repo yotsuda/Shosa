@@ -3,9 +3,10 @@
 // arm moves (jazzSecond … punchUp) over them in an `arms` row. Isolations are one row each; the
 // finishing poses and the combinations are whole-body. `ready` takes any pose back to neutral.
 // A move's first step or kick lands ON the beat it is written at (it is made in the word before).
-// Not in Shosa (yet), so not here: jazz hands (no fingers), a hip pushed out to the side or a head
-// slide (the hips and the head turn, they do not move sideways), a back arched back (it only leans),
-// a pointed or flexed foot by choice, knee slides and floor work.
+// Jazz hands are `hands { spread.fingers(up).palm(fwd) }` over any arms here; a kicking foot is pointed or flexed in a
+// leg's row of your own (`rightLeg { fwd.up(20).pointed }`).
+// Not in Shosa (yet), so not here: a hip pushed out to the side or a head slide (the hips and the head turn, they do
+// not move sideways), a back arched back (it only leans), knee slides (floor work is in shosa:break).
 
 // ---- Steps: feet, height and legs ----
 

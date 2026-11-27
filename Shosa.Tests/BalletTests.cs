@@ -100,7 +100,7 @@ public class BalletTests
         }
         Assert.InRange(Ankle(1), 15, 80);     // as it stood: level, the leg sloping down to it
         Assert.InRange(Ankle(2), 0, 3);       // pointed
-        Assert.InRange(Ankle(3), 100, 110);   // flexed: 15 degrees past square
+        Assert.InRange(Ankle(3), 78, 82);     // flexed: as far as an ankle goes, 100 degrees between the shin and the foot
         Assert.Equal("SH1010", Assert.Single(Compile("    arms { fwd.pointed:4 }").Diagnostics).Code);
         Assert.Equal("SH1012", Assert.Single(Compile("    rightLeg { down:1 fwd.pointed.flexed:3 }").Diagnostics).Code);
         Assert.Equal("SH1010", Assert.Single(Compile("    rightLeg { down:1 otherKnee.pointed:3 }").Diagnostics).Code);

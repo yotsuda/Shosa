@@ -169,7 +169,7 @@ internal static class Words
     private static IEnumerable<string> DancerNames(SyntaxTree tree) =>
         tree.Root.ChildNodes(SyntaxKind.DancerDecl).Select(d => d.Token(SyntaxKind.Identifier, 1)?.Text).OfType<string>();
 
-    private static bool IsLimb(string track) => track is "arms" or "leftArm" or "rightArm" or "leftLeg" or "rightLeg";
+    private static bool IsLimb(string track) => track is "arms" or "leftArm" or "rightArm" or "leftLeg" or "rightLeg" or "legs";
     private static bool IsArm(string track) => track is "arms" or "leftArm" or "rightArm";
 
     /// <summary>The poses and moves a file defines, as words: they can be written in any track that shares a part with them.</summary>
@@ -268,7 +268,7 @@ internal static class Words
         if (track == "steps")
         {
             if (before.Count == 0)
-                return [.. Vocabulary.Feet, .. Vocabulary.SupportActions, .. definitions, Hold, Skip, Again];
+                return [.. Vocabulary.Feet, .. Vocabulary.SupportActions, .. Vocabulary.Bases, .. definitions, Hold, Skip, Again];
             var jumpWays = Vocabulary.JumpWords.Where(w => w.Name is "place" or "fwd" or "back" or "left" or "right");
             return before[0] switch
             {
@@ -281,6 +281,8 @@ internal static class Words
                 "hop" or "leap" => Except(jumpWays, before.Skip(1)),
                 "shift" => before.Count == 1 ? Vocabulary.ShiftWords : [],
                 "lift" or "land" => Except(jumpWays.Where(w => w.Name != "place"), before.Skip(1)),
+                // What carries the weight off the feet (DESIGN.md 128): where it is put from where the weight was.
+                var onto when Vocabulary.Has(Vocabulary.Bases, onto) => Except(jumpWays, before.Skip(1)),
                 _ => [],
             };
         }
@@ -316,7 +318,7 @@ internal static class Words
             "bent" => IsLimb(track),
             "elbow" => IsArm(track),
             "knee" or "pointed" or "flexed" => IsLimb(track) && !IsArm(track),
-            "round" => track == "torso",
+            "round" or "facing" => track == "torso",
             "tilt" => track == "head",
             _ => IsLimb(track) || track == "head",
         }).ToList();
@@ -347,20 +349,20 @@ internal static class Words
         // (A toe on the floor is pointed there: after `floor` only how the knee bends and points.)
         if (lastShape >= 0)
             return shapes.Where(s => Vocabulary.ShapeOrder(s.Name) > lastShape && !(s.Name == "knee" && before.Contains("elbow"))
-                && !(s.Name == "flexed" && before.Contains("pointed")) && !(before.Contains(Vocabulary.Floor) && s.Name is not ("bent" or "knee")));
+                && !(s.Name == "flexed" && before.Contains("pointed")) && !(before.Contains(Vocabulary.Floor) && s.Name is not ("bent" or "knee" or "elbow")));
         int horizontal = before.Count(w => directions.Any(d => d.Name == w));
         bool vertical = before.Any(w => w is "up" or "down");
         // A leg to the floor is pointed, its toe there: only a bent knee follows (`back.floor.bent(60)`).
         if (before.Contains(Vocabulary.Floor))
-            return shapes.Where(s => s.Name is "bent" or "knee");
+            return shapes.Where(s => s.Name is "bent" or "knee" or "elbow");
         // up.fwd(10): from straight up toward one way.
         if (before is ["up" or "down"])
             return [.. directions, .. shapes];
         if (vertical)
             return shapes;
         IEnumerable<Vocabulary.Word> next = horizontal == 1 ? Except(directions, before) : [];
-        bool leg = IsLimb(track) && !IsArm(track);
-        return [.. next, .. Vocabulary.Poles.Where(w => leg || w.Name != Vocabulary.Floor), .. shapes];
+        // (A leg and an arm go to the floor: a toe, a hand.)
+        return [.. next, .. Vocabulary.Poles.Where(w => IsLimb(track) || w.Name != Vocabulary.Floor), .. shapes];
     }
 
     public static IEnumerable<Vocabulary.Word> ForAnnotation(string track) => Vocabulary.Annotations.Where(w => w.Name switch

@@ -1,0 +1,128 @@
+// shosa:break — breaking and floor work: toprock on the feet, getting down, footwork on the hands, freezes, spins on the head and the back, and getting up. A dance brings it in with: using "shosa:break"
+// Every move is the whole body (steps, torso, arms, legs, height): write it in `body`. Each starts standing on both feet and ends standing where it says,
+// so any follows any; a set is toprock, a way down, footwork or a spin, a freeze on an accent, a way up. They take room: 1.5 m around the dancer.
+// Hands for them: `hands { fist }` in toprock, `hands { spread }` on the floor. Slower is safer: stretch a move (`headspin:12`) before it warns of speed (SH2003).
+// Not in Shosa (yet), so not here: weight on an elbow or a forearm (a baby freeze's elbow in the hip, an elbow freeze), a windmill's and a flare's
+// travelling roll (windmillRoll turns on the spot), walking on the hands, threading a leg through an arm.
+
+// ---- toprock: on the feet, before going down ----
+
+// toprock — 4 beats; steps, arms, torso. The basic toprock: step forward across on 1, back on 2, the other side on 3 and 4, the arms opening as
+// the foot comes back. The groove of a whole verse; @mirror starts with the left foot.
+move toprock {
+  steps { then:1/2 rightFoot.fwd(0.3m).across(0.1m):1/2 rightFoot.place:1 leftFoot.fwd(0.3m).across(0.1m):1 leftFoot.place:1/2 stand:1/2 }
+  arms  { fwd.across(20).down(20).bent(80):1 side.down(30).bent(40):1 fwd.across(20).down(20).bent(80):1 side.down(30).bent(40):1/2 down:1/2 }
+  torso { up.fwd(8):1 up.back(5):1 up.fwd(8):1 up:1 }
+}
+
+// sideRock — 4 beats; steps, arms, height. The side-to-side toprock: a wide step right with a bounce, together, left, together, the arms swinging
+// across the body. Under a chorus, facing the crowd.
+move sideRock {
+  steps  { then:1/2 rightFoot.side(0.5m):1/2 leftFoot.place:1 leftFoot.side(0.5m):1 rightFoot.place:1/2 stand:1/2 }
+  height { mid:1/2 low(8cm):1/2 mid:1/2 low(8cm):1/2 mid:1/2 low(8cm):1/2 mid:1/2 mid:1/2 }
+  arms   { down:1/2 fwd.across(30).bent(90):1 side.bent(70):1 fwd.across(30).bent(90):1 down:1/2 }
+}
+
+// ---- down, on the floor, and up ----
+
+// kneeDrop — 4 beats; whole body. Down onto the right knee on 1 (the left foot in front), a beat held, up on 3. An accent that goes down and comes
+// straight back; @mirror the left knee.
+move kneeDrop {
+  steps { then:1 rightKnee:1 then:1 feet:1 }
+  torso { up:1 up.fwd(10):1 then:1 up:1 }
+  arms  { down:1 side.down(30):1 then:1 down:1 }
+}
+
+// floorSit — 8 beats; whole body. Sits down on the floor behind the feet, the knees up and the hands behind (beat 2), leans back with one leg
+// kicked up (beat 4), and stands up again where it stood. A cool break in the middle of a set.
+move floorSit {
+  steps    { then:1 seat.back(0.3m):1 then:4 feet.fwd(0.3m):2 }
+  torso    { up:2 back.up(35):2 then:1 up:1 up:2 }
+  arms     { down:1 back.floor:1 then:3 down:1 down:2 }
+  leftLeg  { down:1 fwd.floor.bent(90):1 then:3 down:1 down:2 }
+  rightLeg { down:1 fwd.floor.bent(90):1 fwd.up(40):2 fwd.floor.bent(90):1 down:1 down:2 }
+}
+
+// floorSteps — 8 beats; whole body. Footwork: down onto the hands in a crouch, the legs stepping round in turn under the body (left out to the
+// front and round, then the right), and up. The busy middle of a set; best at 100 to 120.
+move floorSteps {
+  steps    { then:1 hands.fwd(0.45m):1 then:4 feet.back(0.45m):2 }
+  torso    { up.fwd(40):1 fwd.up(25):1 then:4 fwd.up(50):1 up:1 }
+  height   { low(40cm):1 then:5 low(40cm):1 mid:1 }
+  leftLeg  { down:1 back.side(40).floor.bent(70):1 fwd.side(60).floor.bent(40):1 side.floor.bent(80):1 back.side(40).floor.bent(70):1 then:1 down:1 down:1 }
+  rightLeg { down:1 back.side(40).floor.bent(70):1 then:2 fwd.side(60).floor.bent(40):1 back.side(40).floor.bent(70):1 down:1 down:1 }
+}
+
+// pushUps — 8 beats; whole body. Down into a plank on the hands, two push-ups (down on 3 and 5), and back up to standing. Strength as a joke, or
+// the way into footwork.
+move pushUps {
+  steps { then:1 hands.fwd(0.7m):1 then:4 feet.back(0.7m):2 }
+  torso { up.fwd(60):1 fwd.up(15):1 then:4 fwd.up(60):1 up:1 }
+  legs  { down:1 back.floor:1 then:3 down:1 down:2 }
+  arms  { down:2 down.bent(90):1 down:1 down.bent(90):1 down:1 down:2 }
+}
+
+// ---- freezes: a shape held on an accent ----
+
+// handstandFreeze — 8 beats; whole body. Kicks up to a handstand 0.6 m ahead (there on beat 3), the legs bent apart in the air, holds two beats and
+// comes down where it stood. The end of a phrase; give the hold more with a longer word (handstandFreeze:12).
+move handstandFreeze {
+  steps { then:1 hands.fwd(0.6m):2 then:3 feet.back(0.6m):2 }
+  torso { up.fwd(50):1 fwd.down(30):1 down:1 then:3 fwd.down(30):1 up:1 }
+  legs  { down:2 side.up(55).bent(70):1 then:2 down:1 down:2 }
+}
+
+// oneHandFreeze — 8 beats; whole body. Up onto the hands, then onto the right hand alone, the body tipped over it and the left arm out (beats 4 to 5),
+// back onto both and down. The harder freeze, for the biggest accent; @mirror the left hand.
+move oneHandFreeze {
+  steps   { then:1 hands.fwd(0.6m):2 rightHand:1 then:1 hands:1 feet.back(0.6m):2 }
+  torso   { up.fwd(50):1 fwd.down(30):1 down:1 down.left(25):1 then:1 down:1 fwd.down(30):1 up:1 }
+  legs    { down:2 side.up(50).bent(60):1 then:3 down:1 down:1 }
+  leftArm { down:3 side.up(30):1 then:1 down:1 down:2 }
+}
+
+// headstandFreeze — 8 beats; whole body. Down onto the head and the hands (beat 3), the legs in a V, held, and down again. Steadier than the
+// handstand and a way into headspin.
+move headstandFreeze {
+  steps { then:1 head.fwd(0.4m):2 then:3 feet.back(0.4m):2 }
+  torso { up.fwd(60):1 fwd.down(40):1 down:1 then:3 fwd.down(40):1 up:1 }
+  arms  { down:2 side.floor:1 then:3 down:1 down:1 }
+  legs  { down:2 side.up(40):1 then:2 down:1 down:2 }
+}
+
+// ---- power: turning on what carries the weight ----
+
+// headspin — 8 beats; whole body. Onto the head, two turns to the left with the legs in a V and the hands off the floor (beats 3 to 5), the hands
+// down again and out. The peak of a set: once.
+move headspin {
+  steps { then:1 head.fwd(0.4m):2 turn.left(720):2 then:1 feet.back(0.4m):2 }
+  torso { up.fwd(60):1 fwd.down(40):1 down:1 then:3 fwd.down(40):1 up:1 }
+  arms  { down:2 side.floor:1 side.down(20):1 then:1 side.floor:1 down:1 down:1 }
+  legs  { down:2 side.up(40):1 then:2 down:1 down:2 }
+}
+
+// backspin — 8 beats; whole body. Sits, rolls onto the upper back with the knees tucked (beat 3), spins twice (beats 3 to 5), sits up and stands.
+// The classic spin, easier on the eye than the headspin: after footwork.
+move backspin {
+  steps { then:1 seat.back(0.3m):1 back.back(0.4m):1 turn.left(720):2 seat.fwd(0.4m):1 feet.fwd(0.3m):2 }
+  torso { up:2 back.down(25):1 then:2 up:1 up:2 }
+  legs  { down:1 fwd.floor.bent(90):1 fwd.up(20).bent(120):1 then:2 fwd.floor.bent(90):1 down:1 down:1 }
+  arms  { down:1 back.floor:1 chest:1 then:2 back.floor:1 down:1 down:1 }
+}
+
+// windmillRoll — 8 beats; whole body. On the back, the legs wide: the body rolls over the shoulders onto its front and round onto its back again
+// while it turns once (beats 3 to 6): a windmill on the spot. Then up. For the loudest bars; it needs the tempo under 120.
+move windmillRoll {
+  steps { then:1 seat.back(0.3m):1 back.back(0.4m):1 turn.left(360):3 seat.fwd(0.4m):1 feet.fwd(0.3m):1 }
+  torso { up:2 back.down(15).facing(up):1 back.down(10).facing(left):1@through back.down(10).facing(down):1@through back.down(15).facing(up):1 up:1 up:1 }
+  legs  { down:1 fwd.floor.bent(90):1 side.up(45):1 then:3 fwd.floor.bent(90):1 down:1 }
+  arms  { down:1 back.floor:1 side.up(20):1 then:3 back.floor:1 down:1 }
+}
+
+// cartwheel — 8 beats; whole body. A cartwheel to the left: the hands down 0.6 m to the left, the body over them sideways with the legs apart
+// (on the hands on beat 2, upside down on 3), and onto the feet 0.6 m further on (beat 5). Travels 1.2 m; @mirror goes right.
+move cartwheel {
+  steps { then:2 hands.left(0.6m):1 then:2 feet.left(0.6m):3 }
+  torso { up:2 left:1@through down.facing(fwd):1@through right:1@through up:3 }
+  legs  { down:2 side.up(30):1 then:1 then:1 down:3 }
+}

@@ -21,6 +21,23 @@ public readonly record struct Quat(double X, double Y, double Z, double W)
         return v + t * W + q.Cross(t);
     }
 
+    /// <summary>From one rotation to another the shorter way round, <paramref name="t"/> of the way.</summary>
+    public static Quat Slerp(Quat a, Quat b, double t)
+    {
+        double dot = a.X * b.X + a.Y * b.Y + a.Z * b.Z + a.W * b.W;
+        if (dot < 0)
+            (b, dot) = (new Quat(-b.X, -b.Y, -b.Z, -b.W), -dot);
+        double wa = 1 - t, wb = t;
+        if (dot < 0.9995)
+        {
+            double angle = Math.Acos(dot), sin = Math.Sin(angle);
+            (wa, wb) = (Math.Sin((1 - t) * angle) / sin, Math.Sin(t * angle) / sin);
+        }
+        var q = new Quat(a.X * wa + b.X * wb, a.Y * wa + b.Y * wb, a.Z * wa + b.Z * wb, a.W * wa + b.W * wb);
+        double length = Math.Sqrt(q.X * q.X + q.Y * q.Y + q.Z * q.Z + q.W * q.W);
+        return length < 1e-12 ? a : new Quat(q.X / length, q.Y / length, q.Z / length, q.W / length);
+    }
+
     /// <summary>The rotation that takes the x, y and z axes to three orthonormal, right-handed vectors.</summary>
     public static Quat FromBasis(Vec3 x, Vec3 y, Vec3 z)
     {

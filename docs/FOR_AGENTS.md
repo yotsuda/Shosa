@@ -261,8 +261,8 @@ file's JSON at import, or export `--score NAME` with `vrma`/`bvh` for the `.even
 ## What to expect of the movement
 
 - The solver is fast and exact about WHEN and WHERE (a mark is at its beat, a foot is
-  where the step put it) and plain about HOW: no arm swing unless written, no fingers,
-  no face. The grammar's "What the language cannot say (yet)" is the list; tell the user
+  where the step put it) and plain about HOW: fingers only where a hand's row writes them, no
+  face but a singer's mouth, no physics off the feet (a handstand goes up as fast as it is written). The grammar's "What the language cannot say (yet)" is the list; tell the user
   when a request falls in it instead of approximating in silence.
 - The same text always gives the same movement, on every machine.
 - A diff of a `.shosa` file reads as the change in the movement. Commit the `.shosa`;

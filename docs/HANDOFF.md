@@ -5,6 +5,18 @@
 下のパスはリポジトリの根から。
 - ★ **開始時に `C:\MyProj\Bamen\docs\repro\REQUESTS.md` の `open` を見る** (2026-11-23〜)。Bamen (撮影の言語。`shosa clip` を読んでカメラを解く) からの依頼の 1 枚。使い方は Shosa → Lily# の `docs/repro/REQUESTS.md` と同じ (入れたら `fixed <commit>`、入れないなら `won't`、聞くなら `question`)。2026-11-25: 1 (座る) は `fixed f9ae160`、2 (曲がった道) は `question` (曲線は `@turn` の歩でもう書けた。「この点まで歩く」の語が要るかを Bamen に聞いている)。`open` は無い。
 
+## 指・バレエの残り・床の動き (2026-11-27 の 3 つ目のセッション、DESIGN.md 126〜128)
+
+ユーザー: 「バレエの未実装の動作や、指先の動作を指定する動作、ブレイクダンスなどの動作ができるように拡張して」。3 つとも入れた。**ユーザーの目はどれもまだ** (拡張は入れ直した。各ウィンドウで Reload Window)。
+
+- **指 (126)**: `hands { fist }`、`rightHand { open.fingers(up).palm(fwd) }`、`fist.index(0)`、`count(3)`。手の語は予約語でない (`move point` はそのまま使える)。手の段を書いた踊りだけ書き出しに指の骨が入る。プレビューは手の段が無ければ relaxed (前は開いた指)。見本 `out\hands\shapes.shosa` (`run-shots.ps1` で 16 の形)。
+- **バレエ (127)**: `jump.rightFoot.fwd(0.08m).across(0.13m)` (跳んで五番に閉じる)、`jump.beat` / `jump.change.beat(2)`、`pointed` / `flexed`、`height { pointe }`、`otherShin` / `otherThigh`、`back.floor.bent(40)`、`arms { thigh }` / `{ knee }`。ポーズの足 (`fifth` ↔ `fifth@mirror`) は同じ所で入れ替わる。125.1 の 3 つは済み。見本 `out\ballet\new.shosa`。
+- **床 (128)**: `steps { hands.fwd(0.6m) }`・`head`・`back`・`front`・`seat`・`knees`・`leftKnee`・`feet.back(0.6m)`。体ごと倒れる部位では `torso` の向きが全身の向き (`down` が逆立ち)、`facing(…)` で胸の向き。`legs` の段、腕の `side.floor`。`turn` は載っている所で回る。型 `using "shosa:break"` (13 個)。見本 `samples\floor.shosa`、`out\floor\break.shosa`・`lib.shosa`・`cart.shosa`。
+- **見てほしい所**: (1) VRM で床の動き (`out\floor\floor-vrm.shosa`): 手が床に付くか、プランクの高さ、髪。(2) 移り変わり (立つ→逆立ち) の自然さ: 力学は無く、2 つの姿勢を混ぜている。(3) 指の形、とくに親指 (`ok`・`pinch` は輪が閉じきらない)。(4) ビートの見え方 (棒人形では分かりにくい)。
+- **限界**: DESIGN.md 128 の末尾 (肘で支える形・移動する転がり・めり込み・体格の違い)。文法書の「言えないこと」も直してある。
+- **書くときのつまずき (私が何度もやった)**: 語は**その拍に着く**ので、`X:1 down:3` は 1 拍目から下り始める (保つなら `then`)。足以外から `feet` へ戻る拍までに脚の段を `down` にしておく (残っていると SH2004)。`.body` は形の語の最後。
+- 試験 C# 623 件、拡張 38 件。既存 189 譜の出力は同じ (`out\pv\corpus-pre126` と `--compare`。型を使う `snag\*` は IR の定義の一覧だけ違う)。次にソルバーを速くする前に `--dump` し直す。
+
 ## 振り付けのガイドと Shosa の型 (2026-11-27、DESIGN.md 125、44.2)
 
 - **Copilot が確認なしで書く**: 道具 `shosa_edit` (Lily# の `lilysharp_proposeScore` に倣う。`edits` か `text`、保存、検査を返す)。Add a Dance… で「Run in terminal」の確認が出た件の対策 (44.2)。

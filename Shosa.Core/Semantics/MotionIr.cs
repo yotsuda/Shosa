@@ -319,6 +319,7 @@ public static class SegKinds
     public const string Land = "land";          // support, free: back to the floor
     public const string Juggle = "juggle";      // juggle: throw Pattern from T0 to T1, a throw every Every beats
     public const string Hand = "hand";          // hand: the fingers in Shape, turned to Fingers and Palm
+    public const string Base = "base";          // support: the weight goes onto Base (hands, head, back, seat, knees … feet), put Dx and Dz from where it was
 }
 
 /// <summary>
@@ -409,6 +410,12 @@ public sealed class Seg
     /// moves, and the weight goes back between them from this beat (DESIGN.md 88).</summary>
     public double? Kept { get; set; }
 
+    /// <summary>Base (`hands`, `head`, `back`, `front`, `seat`, `knees`, `leftKnee` … `feet`, DESIGN.md 128): what carries the weight from this word on.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public string? Base { get; set; }
+    /// <summary>Dir, torso (`facing(fwd)`): which way the chest faces off the feet, a unit vector in the dancer's frame; null: as the shortest tip from upright leaves it.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public double[]? Facing { get; set; }
     /// <summary>Hand: how far the thumb, the first, the middle, the ring and the little finger are closed (0 straight, 90 into the fist), and the degrees between two fingers.</summary>
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public double[]? Shape { get; set; }

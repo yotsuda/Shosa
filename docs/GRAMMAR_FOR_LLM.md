@@ -182,6 +182,7 @@ the tracks alone; in a file each of them stands inside a role's block.
 | `rightArm` | The right arm. |
 | `leftLeg` | The left leg when it carries no weight: where it points from the hip. |
 | `rightLeg` | The right leg when it carries no weight. |
+| `legs` | Both legs at once, mirrored, when neither carries the weight: in the air of a jump, and off the feet (`steps { hands }`, `{ seat }` …): `legs { side.up(30) }` is a straddle. |
 | `turnout` | Both legs turned in their hip sockets: `out(80)` (degrees each), `in(20)`, `parallel`. The feet and the knees point that way; the hips do not turn. |
 | `hips` | The hips turned over feet that stay where they stand: `left(30)` (degrees), `right(20)`, `center`. The shoulders and the head do not go round with them. |
 | `torso` | The spine: `up` is upright, `up.fwd(10)` leans 10 degrees forward, `fwd` is folded level. |
@@ -603,7 +604,7 @@ one, the shape it arrives in (see "Shapes" below).
 |---|---|
 | `up` | Straight up. After a direction, toward up: `fwd.up(30)` is 30 degrees above `fwd` (`fwd.up` 45). Before one, from straight up: `up.fwd(10)` is 10 degrees forward of upright (a torso's slight lean). |
 | `down` | Straight down; for an arm, hanging as an arm nobody wrote does (the hand by the thigh, a little forward); for a free leg, back on the floor. After a direction, toward down: `side.down(20)`; `fwd.down` 45. |
-| `floor` | For a leg, after its direction instead of up or down: the leg straight that way, the foot pointed and its toe on the floor (a tendu): `rightLeg { side.floor }`, `fwd.floor`, `back.floor`. How far down follows from how high the hip is (deeper in a plié). Out from the floor and back to it, the toe slides along the floor; a brush up (a dégagé) passes through it: `side.floor:1/2 side.down(45):1/2`. |
+| `floor` | For an arm, after its direction: the hand on the floor that way, as far out as the straight arm reaches from the shoulder (`side.floor`, `fwd.floor`; `down.floor` under the shoulder; `back.floor.bent(60)` nearer). For a leg, after its direction instead of up or down: the leg straight that way, the foot pointed and its toe on the floor (a tendu): `rightLeg { side.floor }`, `fwd.floor`, `back.floor`. How far down follows from how high the hip is (deeper in a plié). Out from the floor and back to it, the toe slides along the floor; a brush up (a dégagé) passes through it: `side.floor:1/2 side.down(45):1/2`. |
 
 - One word is one of the four ways, level: `fwd`, `side`, `back`.
 - **A number in brackets belongs to the word before it: how far toward that word.** Two
@@ -830,6 +831,7 @@ own joined on by dots, **each once and in this order** (SH1012 otherwise):
 | `knee` | For a leg in the air: which way the knee points, as a leg's direction: `back.up(20).bent.knee(side.up)` (an attitude, the knee above the foot). Without it the knee points where its foot does (`turnout`). |
 | `pointed` | For a leg in the air: the foot stretched on along the shin, the toes pointed: `rightLeg { fwd.down(45).pointed }` (a dégagé, a battement, an arabesque's back foot). Without it (and without `flexed`) a lifted foot lies square, as it stood. |
 | `flexed` | For a leg in the air: the foot pulled up, the toes toward the shin and the heel pushed out: `rightLeg { fwd.flexed }` (a flexed-foot kick, a heel dig, a character step). |
+| `facing` | For the torso, off the feet: which way the chest faces, as a direction: `torso { down.facing(fwd) }` (a handstand facing the front; a cartwheel's upside-down). Without it the chest faces as the shortest tip from upright leaves it: `fwd` face down, `back` face up, `down` (tipped over forward) looking back. |
 | `round` | For the torso: the back is rounded. The direction still says where the chest is from the hips; the spine bows back from that line, and the chest, the shoulders and the head lean further forward (`torso { up.fwd(10).round }` is a fighter's guard, `up.round` a slouch). Without it the back is straight, as in a bow from the hips. |
 | `tilt` | For the head: the line of the eyes tilted from level, an ear toward its shoulder: `fwd.tilt(left(15))` (up to 45; `tilt(left(0))` holds the eyes level on a leaning torso). Without it the head sits square on the neck and leans with the torso. |
 | `body` | For an arm: the direction is measured against the torso instead of the room, so the arm leans when the torso leans: `up.body`. |
@@ -921,6 +923,92 @@ turnout { parallel:4 out(45):4 }       // parallel, turned out 45° by beat 4
   In a pose it is the pose's own (`pose first { turnout { out(80) }  steps { together } }`),
   and a pose's name in the row is that pose's turnout.
 
+## Off the feet: `hands`, `head`, `back`, `seat`, `knees` … `feet`
+
+The `steps` row says where the weight is, and it need not be on the feet. A word of the row puts it on
+another part of the body, on the floor, and `feet` stands up again:
+
+| Carries the weight | Meaning |
+|---|---|
+| `hands` | The weight on both hands, a shoulder's width apart on the floor, the shoulders over them: a handstand (`torso { down }`), a plank (`torso { fwd.up(15) }`), a freeze, the hands of floor footwork. `hands.fwd(0.5m)` puts them half a metre ahead of where the weight was. The arms are straight, or bent as their row says (`arms { down.bent(90) }`). |
+| `leftHand` | The weight on the left hand alone, the left shoulder over it; the right arm is its row's. |
+| `rightHand` | The weight on the right hand alone. |
+| `head` | The weight on the top of the head (a headstand, a headspin: `torso { down }`); the hands may help (`arms { side.floor }`). |
+| `back` | Lying on the upper back: `torso { back }` flat on the back, `torso { back.down(25) }` rolled up onto the shoulders, the hips in the air (a backspin). |
+| `front` | Lying on the chest, face down: `torso { fwd }` flat (the worm's low point), `torso { fwd.down(20) }` the hips up. |
+| `seat` | Sitting on the floor: the hips on it, the torso upright or as its row says (`torso { back }` lies down), the legs out in front unless their rows say (`legs { fwd.floor.bent(90) }`: the knees up). |
+| `knees` | Kneeling on both knees, the shins on the floor behind, the hips over the knees; the `height` row sits back toward the heels (`low(30cm)`). |
+| `leftKnee` | Kneeling on the left knee, the right foot on the floor in front (a knee drop, a proposal). |
+| `rightKnee` | Kneeling on the right knee, the left foot on the floor in front. |
+| `feet` | Back on the feet, standing where the weight was (`feet.back(0.5m)`: half a metre behind it), at standing width. |
+
+```shosa
+// A handstand: fold, the hands down 0.6 m ahead, the body over them; and down again where it stood.
+steps { stand:2 then:2 | hands.fwd(0.6m):4 | then:2 feet.back(0.6m):2 | }
+torso { up:2 fwd.down(30):2 | down:4 | then:2 fwd.down(30):1 up:1 | }
+
+// Sitting on the floor, the knees up and the hands behind; then lying back.
+steps { stand:2 seat.back(0.3m):2 | then:4 | }
+torso { up:4 | up:2 back:2 | }
+legs  { down:4 | fwd.floor.bent(90):4 | }
+arms  { down:4 | back.floor:2 down:2 | }
+
+// A headstand that spins once, the legs in a V, the hands on the floor beside the head.
+steps { stand:2 head.fwd(0.4m):2 | then:2 turn.left(360):2 | }
+torso { up:1 fwd.down(40):1 down:2 | then:4 | }
+arms  { down:2 side.floor:2 | then:4 | }
+legs  { down:4 | side.up(40):4 | }
+```
+
+- **It is timed as a `shift` is: the body goes there through ALL of the word before**, and is there on its
+  beat. `stand:2 then:2 hands:4` stands for two beats and goes onto the hands over the next two (the `then`).
+  Give it time: a second down to the floor or up from it reads as a person; a handstand in half a second does not.
+- **Where it is put: from where the weight was**, as a jump says where it lands: `hands.fwd(0.6m)` puts the
+  hands 0.6 m ahead of the middle of the feet, `seat.back(0.3m)` sits down 0.3 m behind them,
+  `feet.back(0.6m)` stands up 0.6 m behind where the hands were (`left`, `right` too; nothing: on the same
+  spot). `shosa check` says where the dancer ends. The feet come back at standing width, facing as the body does.
+- **`hands`, `head`, `back`, `front`: the whole body is tipped as the `torso` row says**, hips and all.
+  The torso's word is where the spine points, from the hips to the chest, in the room as always: `down` is
+  upside down (a handstand, a headstand), `fwd.up(15)` a plank (on `hands`), `back` flat on the back,
+  `back.down(25)` rolled up onto the shoulders with the hips in the air, `fwd` flat on the front. An
+  unwritten torso is `up`: on `hands` that is sitting between the arms. **Which way the chest faces** is
+  what the shortest tip from upright leaves: face down for `fwd`, face up for `back`, looking back for
+  `down` (tipped over forward). To say it, `facing(…)` after the direction: `down.facing(fwd)` (a handstand
+  seen from the front; the upside-down of a cartwheel, `up left:1@through down.facing(fwd):1@through right:1@through up:1`),
+  `back.facing(down)` (rolled over onto the front, the head still pointing back: half of a windmill's roll).
+  Never straight from `up` to `down` (which way round?): through `fwd`, `back`, `left` or `right` (SH2001).
+- **`seat` and `knees` (and `leftKnee`, `rightKnee`) stand on level hips**, as the feet do: the torso's row
+  leans the body from them as it does standing (`torso { back }` lies down from sitting), and `shoulders`
+  and `hips` turn it. On the knees the `height` row sits the hips back toward the heels (`low(30cm)`; `mid` kneels up).
+- **The legs are free off the feet, and their rows say where they point, in the room as always**
+  (`legs` writes both alike, mirrored; `leftLeg` / `rightLeg` one): upside down on the hands,
+  `legs { side.up(40) }` is a straddle and `leftLeg { fwd.up(20) }` with `rightLeg { back.up(20) }` a split.
+  A leg nobody wrote, or sent `down`, lies as the body does: on along the trunk (straight up in a handstand,
+  out behind in a plank), out in front of a seat. `DIR.floor` puts a toe on the floor (`legs { back.floor }`
+  under a plank, `fwd.floor.bent(90)` the knees up before a seat, `side.floor.bent(60)` a foot of floor
+  footwork), and `.body` measures from the trunk (`legs { fwd.bent(120).body }`: tucked to the chest,
+  however the body lies). Kneeling, a leg is the floor's.
+- **The arms: a hand that carries the weight is on the floor at its place**, both a shoulder's width apart
+  (`hands`), and its arm's row says only how far the elbow bends (`arms { down.bent(90) }`: a push-up's low
+  point; the body comes that much lower) and where it points (`elbow(side)`). `leftHand` / `rightHand`
+  carry on one hand, the other arm free. Any other arm is its row's: `DIR.floor` puts a hand on the floor
+  that way (`arms { side.floor }` beside a headstand, `back.floor` behind a seat; on the feet too, when
+  the shoulder is low enough: a crouch), and an arm nobody wrote lies along the body.
+- **`turn.left(720)` turns the body on what carries it**: a headspin, a backspin (`back` with
+  `torso { back.down(25) }` and the legs tucked), a turn on the hands. Nothing else of `steps` is done off the
+  feet: a step, a jump, a shift, `stand` want the feet under the body (error SH2025: write `feet` first).
+- **On the way from one to another the old one holds until the body has set off, and the new one is there
+  before the body arrives**: the feet stay on the floor through the first part of the way onto the hands,
+  and the hands reach the floor in the first half. So fold first (`torso { fwd.down(30) }` in the word
+  before `hands`), as a person does: the hands are then near the floor they go to.
+- The floor stops a hand and a foot (a limb sent below it rests on it), and the body lies as high as its
+  lowest part of the trunk allows. Elbows and knees are not kept out of the floor or of the body: read the
+  sheet. A character (`"girl.vrm"`) is posed by the same angles on its own proportions, so its hands may not
+  be exactly on the floor.
+- Not said (yet): the weight shared between two parts by a number (a tripod's three points are the head and
+  two hands on the floor, the weight written on the `head`); walking on the hands (put them again:
+  `hands.fwd(0.2m)`, both at once); a roll that travels; lifting or leaning on another dancer.
+
 ## The hands: `hands`, `leftHand`, `rightHand`
 
 An arm's row says where the wrist is. What the hand does there is a row of its own:
@@ -989,8 +1077,8 @@ hands     { fist.index(0).middle(0) }             // a finger of its own after t
   `open`. In a hand's row the hand's own word is meant.
 - A pose may hold the hands (`pose guard { arms { fwd.up(25).bent }  hands { fist } }`), and so may a move;
   `body { guard }` then closes the fists with the rest.
-- Two hands make one shape by where the arms put them: a heart is `arms { fwd.up(20).across(20).bent(100) }`
-  (read the hands' places in `shosa clip`) with `hands { heart.fingers(across.down(30)).palm(down) }`.
+- Two hands make one shape by where the arms put them (a heart of two `heart` hands, fingertips together):
+  bring the wrists near with the arms' row, read their places in `shosa clip`, and look at a character.
   `shosa check --at` reads a hand back: how far each finger is closed, where the fingers point and the palm faces.
 - The figure of sticks has no fingers; a character (`dancer … "girl.vrm"`) shows them, and a file written
   from a dance with a hand's row (`.glb`, `.vrma`, `.bvh`) has the fifteen bones of each hand
@@ -1732,9 +1820,9 @@ Do not try to express these; mention them as a limitation instead.
 - Holding an object, but a mic (`mic` on the dancer line). Contact other than a hand reaching a place.
 - Walking to a place by naming it ("to the door", "up to b"): the steps are written and counted
   (a curve is steps that turn, see "The feet"; `check` says where they end).
-- Kneeling, lying down, sitting on the floor, or anything else where a part other than the feet
-  carries weight — but sitting on a seat, which is `height { sit(0.45m) }` (leaning on its back, crossed
-  legs: not). Standing on one leg is possible (a leg gesture).
+- Weight on an elbow, a forearm, a shoulder alone or a hip (the body lies on its `back`, its `front`, a
+  `seat`, the `knees`, the `head` or the `hands`: see "Off the feet"); leaning on the back of a chair
+  (`height { sit(0.45m) }` sits on one), crossed legs.
 - A change of tempo or of time in the middle of a section (a section says them where it begins; a dance to a song follows its song).
 - A toe at a place on the other leg but its ankle, its shin, its knee and its thigh; a hand on the other side's leg, or on a foot.
 - A foot that points or flexes while it stands on the floor; a jump landing on one foot from a beat (an entrechat trois, cinq), a beat of one leg against the other held out (a cabriole); a foot that slides while it carries the weight (a moonwalk).

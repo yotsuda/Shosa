@@ -1,0 +1,43 @@
+// Off the feet (DESIGN.md 128): kneeling, sitting, lying, a plank, a headstand that spins, a backspin.
+title "Floor"
+tempo 120
+
+role solo
+dancer solo humanoid on solo
+
+section Kneel {
+  solo {
+    steps  { stand:2 knees:2 | then:4 | rightKnee:2 then:2 | feet:2 then:2 | }
+    height { mid:4 | then:1 low(25cm):1 mid:2 | mid:4 | mid:4 | }
+  }
+}
+
+section Sit {
+  solo {
+    steps { stand:2 seat.back(0.3m):2 | then:4 | then:4 | feet.fwd(0.3m):2 then:2 | }
+    torso { up:4 | up:2 back.up(30):2 | back:2 up:2 | up:4 | }
+    legs  { down:4 | fwd.floor.bent(90):2 down:2 | fwd.up(30):1 down:1 down:2 | down:4 | }
+    arms  { down:4 | back.floor:2 then:2 | side.floor:2 down:2 | down:4 | }
+  }
+}
+
+section Plank {
+  solo {
+    steps { stand:2 hands.fwd(0.7m):2 | then:4 | then:4 | feet.back(0.7m):2 then:2 | }
+    torso { up:1 fwd:1 fwd.up(15):2 | then:4 | then:4 | fwd:1 up:1 up:2 | }
+    legs  { down:2 back.floor:2 | then:4 | then:2 down:2 | down:4 | }
+    arms  { down:4 | down.bent(90):2 down:2 | then:4 | down:4 | }
+  }
+}
+
+section Spin {
+  solo {
+    steps { stand:2 head.fwd(0.4m):2 | then:2 turn.left(720):2 | then:2 back:2 | turn.right(720):2 then:2 | seat:2 feet:2 | }
+    torso { up:1 fwd.down(40):1 down:2 | then:4 | then:2 back.down(25):2 | then:4 | up:2 up:2 | }
+    arms  { down:2 side.floor:2 | then:4 | then:2 chest:2 | then:4 | down:4 | }
+    legs  { down:4 | side.up(40):2 then:2 | then:2 fwd.up(20).bent(120):2 | then:4 | down:2 down:2 | }
+  }
+}
+
+form { Kneel Sit Plank Spin }
+score { dancer solo }

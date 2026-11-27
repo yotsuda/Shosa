@@ -1187,6 +1187,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         "height" => [Channels.Height],
         "arms" => [Channels.LeftArm, Channels.RightArm],
         "hands" => [Channels.LeftHand, Channels.RightHand],
+        "legs" => [Channels.LeftLeg, Channels.RightLeg],
         Channels.LeftArm or Channels.RightArm or Channels.LeftLeg or Channels.RightLeg or Channels.Turnout or Channels.Hips or Channels.Torso or Channels.Shoulders or Channels.Head
             or Channels.LeftHand or Channels.RightHand => [trackName],
         Channels.Juggle => [Channels.Juggle],
@@ -2610,7 +2611,8 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                 // The weight moves over all of the word before, as the body and the arms do: a step is the foot's
                 // own move, but a shift is the body's (DESIGN.md 87.4). A turn on the spot too: it is the body that
                 // turns over the foot, and "two beats to face right" is written so (DESIGN.md 89).
-                : steps && seg.Kind is SegKinds.Shift or SegKinds.Turn ? room
+                // (And the weight going onto the hands, the back, a knee: the whole body's way, DESIGN.md 128.)
+                : steps && seg.Kind is SegKinds.Shift or SegKinds.Turn or SegKinds.Base ? room
                 // A step straight after a step is walking: the foot leaves the floor soon after the other lands
                 // and swings through most of the word, and the body goes on over the feet without stopping
                 // (DESIGN.md 90: both feet flat for half of every step, the body stopping and going, was a robot's walk).
@@ -2944,7 +2946,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         }
 
         double? bend = null, tilt = null, point = null;
-        double[]? jointPole = null;
+        double[]? jointPole = null, facing = null;
         TextSpan poleSpan = default;
         Part? bentPart = null;
         bool body = false, round = false;
@@ -2959,7 +2961,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
             }
             if (order <= last)
             {
-                Error("SH1012", shape.Word.Span, "The shape words come each once, in this order: bent, elbow or knee, pointed or flexed, round, tilt, body. fwd.down(15).bent(40).elbow(side)");
+                Error("SH1012", shape.Word.Span, "The shape words come each once, in this order: bent, elbow or knee, pointed or flexed, facing, round, tilt, body. fwd.down(15).bent(40).elbow(side)");
                 return null;
             }
             last = order;
@@ -3016,6 +3018,24 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                     }
                     point = shape.Text == "pointed" ? 1 : -1;
                     break;
+                case "facing":
+                {
+                    if (channel != Channels.Torso)
+                    {
+                        Error("SH1010", shape.Word.Span, "'facing' is for the torso off the feet: torso { down.facing(fwd) } (which way the chest faces). A hand's palm is its own row's: hands { open.palm(fwd) }.");
+                        return null;
+                    }
+                    if (shape.Inner is not { Count: > 0 } toward)
+                    {
+                        Error("SH1013", shape.Bracket?.Span ?? shape.Word.Span, "'facing' says which way the chest faces, as a direction in brackets: down.facing(fwd), fwd.facing(up), left.facing(fwd).");
+                        return null;
+                    }
+                    if (LimbDirection(channel, 0, toward, mirror, inBrackets: true) is not { } faces)
+                        return null;
+                    facing = [faces.X, faces.Y, faces.Z];
+                    poleSpan = shape.Bracket!.Span;
+                    break;
+                }
                 case "round":
                     if (channel != Channels.Torso)
                     {
@@ -3113,10 +3133,14 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         if (head.Any(p => p.Text == Vocabulary.Floor))
         {
             var word = head.First(p => p.Text == Vocabulary.Floor);
-            string? wrong = !isLeg ? "'floor' is for a leg: rightLeg { side.floor } (out to the side, the toe on the floor: a tendu). A hand to the floor is a direction: arms { fwd.down(60) }."
-                : !floor ? "'floor' closes a leg's direction, where up or down would be: side.floor, fwd.floor, back.floor, fwd.side(30).floor."
-                : word.Bracket is not null ? "'floor' takes no brackets: how far down the leg goes follows from how high the hip is."
+            // (An arm's hand on the floor, DESIGN.md 128: `down.floor` under the shoulder is said too.)
+            string? wrong = !isLimb ? "'floor' is for a leg (rightLeg { side.floor }: out to the side, the toe on the floor, a tendu) or an arm (arms { side.floor }: the hand on the floor out to the side)."
+                : !floor ? "'floor' closes a direction, where up or down would be: side.floor, fwd.floor, back.floor, fwd.side(30).floor."
+                : word.Bracket is not null ? "'floor' takes no brackets: how far down the limb goes follows from how high it hangs."
+                : isArm && head is [{ Text: "down" }, _] ? null
                 : head.Any(p => p.Text is "up" or "down") ? "'floor' is instead of up or down: side.floor, not side.down.floor."
+                : isArm && (body || point is not null) ? "A hand on the floor takes bent and elbow only: side.floor.bent(40)."
+                : isArm ? null
                 : body || point is not null ? "A leg to the floor has its toe on the floor, the foot pointed along the shin: side.floor takes no body, pointed or flexed. (Its knee may bend: back.floor.bent(60), the toe resting behind.)"
                 : null;
             if (wrong is not null)
@@ -3157,6 +3181,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
             Tilt = tilt,
             Floor = floor,
             Point = point,
+            Facing = facing,
         };
     }
 
@@ -3510,6 +3535,50 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                 return seg;
             }
 
+            case "hands" or "leftHand" or "rightHand" or "head" or "back" or "front" or "seat" or "knees" or "leftKnee" or "rightKnee" or "feet":
+            {
+                // What carries the weight when the feet do not (DESIGN.md 128), put on the floor from where the weight was.
+                if (parts[0].Bracket is not null)
+                {
+                    Error("SH1012", parts[0].Bracket!.Span, $"How far goes on the way it goes: {head.Text}.fwd(0.5m).");
+                    return null;
+                }
+                string onto = head.Text switch
+                {
+                    "leftHand" => Side("left") + "Hand",
+                    "rightHand" => Side("right") + "Hand",
+                    "leftKnee" => Side("left") + "Knee",
+                    "rightKnee" => Side("right") + "Knee",
+                    _ => head.Text,
+                };
+                var seg = new Seg { Kind = SegKinds.Base, Base = onto };
+                foreach (var part in rest)
+                {
+                    string example = $"{head.Text}.{part.Text}(0.5m)";
+                    switch (part.Text)
+                    {
+                        case "place":
+                            if (part.Bracket is not null && !BracketsOnly())
+                                return null;
+                            break;
+                        case "fwd" or "back":
+                            if (Distance(part, 0.5, example) is not { } along)
+                                return null;
+                            seg.Dz = part.Text == "fwd" ? along : -along;
+                            break;
+                        case "left" or "right":
+                            if (Distance(part, 0.5, example) is not { } aside)
+                                return null;
+                            seg.Dx = Side(part.Text) == "left" ? aside : -aside;
+                            break;
+                        default:
+                            Error("SH1012", part.Word.Span, $"'{head.Text}' is put place (where the weight is), fwd, back, left or right of it: {head.Text}.fwd(0.5m).{Hint(part.Text, ["place", "fwd", "back", "left", "right"])}");
+                            return null;
+                    }
+                }
+                return seg;
+            }
+
             case "shift":
                 if (!BracketsOnly())
                     return null;
@@ -3589,7 +3658,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                 return null;
         }
 
-        var heads = Vocabulary.Feet.Concat(Vocabulary.SupportActions).Select(w => w.Name).Append(Vocabulary.Hold).Append(Vocabulary.Skip).Concat(_defs.Keys);
+        var heads = Vocabulary.Feet.Concat(Vocabulary.SupportActions).Concat(Vocabulary.Bases).Select(w => w.Name).Append(Vocabulary.Hold).Append(Vocabulary.Skip).Concat(_defs.Keys);
         string hintText = Vocabulary.Has(Vocabulary.Directions, head.Text) || Vocabulary.Has(Vocabulary.Poles, head.Text)
             ? $" A step names its foot first: leftFoot.{head.Text}, rightFoot.{head.Text}."
             : Hint(head.Text, heads);

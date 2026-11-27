@@ -20,6 +20,7 @@ public static class Vocabulary
         new("rightArm", "The right arm."),
         new("leftLeg", "The left leg when it carries no weight: where it points from the hip."),
         new("rightLeg", "The right leg when it carries no weight."),
+        new("legs", "Both legs at once, mirrored, when neither carries the weight: in the air of a jump, and off the feet (`steps { hands }`, `{ seat }` …): `legs { side.up(30) }` is a straddle."),
         new("turnout", "Both legs turned in their hip sockets: `out(80)` (degrees each), `in(20)`, `parallel`. The feet and the knees point that way; the hips do not turn."),
         new("hips", "The hips turned over feet that stay where they stand: `left(30)` (degrees), `right(20)`, `center`. The shoulders and the head do not go round with them."),
         new("torso", "The spine: `up` is upright, `up.fwd(10)` leans 10 degrees forward, `fwd` is folded level."),
@@ -88,7 +89,7 @@ public static class Vocabulary
     [
         new("up", "Straight up. After a direction, toward up: `fwd.up(30)` is 30 degrees above `fwd` (`fwd.up` 45). Before one, from straight up: `up.fwd(10)` is 10 degrees forward of upright (a torso's slight lean)."),
         new("down", "Straight down; for an arm, hanging as an arm nobody wrote does (the hand by the thigh, a little forward); for a free leg, back on the floor. After a direction, toward down: `side.down(20)`; `fwd.down` 45."),
-        new(Floor, "For a leg, after its direction instead of up or down: the leg straight that way, the foot pointed and its toe on the floor (a tendu): `rightLeg { side.floor }`, `fwd.floor`, `back.floor`. How far down follows from how high the hip is (deeper in a plié). Out from the floor and back to it, the toe slides along the floor; a brush up (a dégagé) passes through it: `side.floor:1/2 side.down(45):1/2`."),
+        new(Floor, "For an arm, after its direction: the hand on the floor that way, as far out as the straight arm reaches from the shoulder (`side.floor`, `fwd.floor`; `down.floor` under the shoulder; `back.floor.bent(60)` nearer). For a leg, after its direction instead of up or down: the leg straight that way, the foot pointed and its toe on the floor (a tendu): `rightLeg { side.floor }`, `fwd.floor`, `back.floor`. How far down follows from how high the hip is (deeper in a plié). Out from the floor and back to it, the toe slides along the floor; a brush up (a dégagé) passes through it: `side.floor:1/2 side.down(45):1/2`."),
     ];
 
     /// <summary>The leg's direction closed by the floor: `side.floor`, a tendu.</summary>
@@ -102,6 +103,7 @@ public static class Vocabulary
         new("knee", "For a leg in the air: which way the knee points, as a leg's direction: `back.up(20).bent.knee(side.up)` (an attitude, the knee above the foot). Without it the knee points where its foot does (`turnout`)."),
         new("pointed", "For a leg in the air: the foot stretched on along the shin, the toes pointed: `rightLeg { fwd.down(45).pointed }` (a dégagé, a battement, an arabesque's back foot). Without it (and without `flexed`) a lifted foot lies square, as it stood."),
         new("flexed", "For a leg in the air: the foot pulled up, the toes toward the shin and the heel pushed out: `rightLeg { fwd.flexed }` (a flexed-foot kick, a heel dig, a character step)."),
+        new("facing", "For the torso, off the feet: which way the chest faces, as a direction: `torso { down.facing(fwd) }` (a handstand facing the front; a cartwheel's upside-down). Without it the chest faces as the shortest tip from upright leaves it: `fwd` face down, `back` face up, `down` (tipped over forward) looking back."),
         new("round", "For the torso: the back is rounded. The direction still says where the chest is from the hips; the spine bows back from that line, and the chest, the shoulders and the head lean further forward (`torso { up.fwd(10).round }` is a fighter's guard, `up.round` a slouch). Without it the back is straight, as in a bow from the hips."),
         new("tilt", "For the head: the line of the eyes tilted from level, an ear toward its shoulder: `fwd.tilt(left(15))` (up to 45; `tilt(left(0))` holds the eyes level on a leaning torso). Without it the head sits square on the neck and leans with the torso."),
         new("body", "For an arm: the direction is measured against the torso instead of the room, so the arm leans when the torso leans: `up.body`."),
@@ -261,6 +263,26 @@ public static class Vocabulary
         new("land", "Only for a free body: back down to the floor."),
     ];
 
+    /// <summary>
+    /// What carries the weight when the feet do not (DESIGN.md 128): words of the `steps` row, each put on the floor from
+    /// where the weight was (`hands.fwd(0.5m)`), and `feet` to stand again. A part of the body is on the floor there, and
+    /// the torso's row says how the body lies from it.
+    /// </summary>
+    public static readonly Word[] Bases =
+    [
+        new("hands", "The weight on both hands, a shoulder's width apart on the floor, the shoulders over them: a handstand (`torso { down }`), a plank (`torso { fwd.up(15) }`), a freeze, the hands of floor footwork. `hands.fwd(0.5m)` puts them half a metre ahead of where the weight was. The arms are straight, or bent as their row says (`arms { down.bent(90) }`)."),
+        new("leftHand", "The weight on the left hand alone, the left shoulder over it; the right arm is its row's."),
+        new("rightHand", "The weight on the right hand alone."),
+        new("head", "The weight on the top of the head (a headstand, a headspin: `torso { down }`); the hands may help (`arms { side.floor }`)."),
+        new("back", "Lying on the upper back: `torso { back }` flat on the back, `torso { back.down(25) }` rolled up onto the shoulders, the hips in the air (a backspin)."),
+        new("front", "Lying on the chest, face down: `torso { fwd }` flat (the worm's low point), `torso { fwd.down(20) }` the hips up."),
+        new("seat", "Sitting on the floor: the hips on it, the torso upright or as its row says (`torso { back }` lies down), the legs out in front unless their rows say (`legs { fwd.floor.bent(90) }`: the knees up)."),
+        new("knees", "Kneeling on both knees, the shins on the floor behind, the hips over the knees; the `height` row sits back toward the heels (`low(30cm)`)."),
+        new("leftKnee", "Kneeling on the left knee, the right foot on the floor in front (a knee drop, a proposal)."),
+        new("rightKnee", "Kneeling on the right knee, the left foot on the floor in front."),
+        new("feet", "Back on the feet, standing where the weight was (`feet.back(0.5m)`: half a metre behind it), at standing width."),
+    ];
+
     public static readonly Word[] ShiftWords =
     [
         new("left", "The weight over the left foot."),
@@ -329,7 +351,7 @@ public static class Vocabulary
 
     /// <summary>Every word that means something on its own, so that a definition cannot take its name.</summary>
     public static IEnumerable<string> Reserved =>
-        new[] { Tracks, Directions, Levels, Poles, Anchors, LegAnchors, Shapes, Feet, StepDirections, SupportActions, JumpWords, ShouldersWords, HipsWords, TurnoutWords }
+        new[] { Tracks, Directions, Levels, Poles, Anchors, LegAnchors, Shapes, Feet, StepDirections, SupportActions, JumpWords, ShouldersWords, HipsWords, TurnoutWords, Bases }
             .SelectMany(words => words).Select(w => w.Name).Append(Hold).Append(Stay).Append(Skip).Append(Again);
 
     public static bool Has(Word[] words, string name) => words.Any(w => w.Name == name);

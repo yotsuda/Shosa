@@ -179,14 +179,29 @@ public static class Skeleton
     public static void Rotations(Vec3[] joints, Span<Quat> local) => Rotations(joints, local, default, default);
 
     /// <summary>The same, the hands turned on their wrists as their rows say (DESIGN.md 126).</summary>
-    public static void Rotations(Vec3[] joints, Span<Quat> local, HandTurn leftHand, HandTurn rightHand)
+    /// <param name="hipsUp">Off the feet (DESIGN.md 128), which way is up for the hips: tipped with the body on the hands, the head, the back. Null: level, as on the feet.</param>
+    public static void Rotations(Vec3[] joints, Span<Quat> local, HandTurn leftHand, HandTurn rightHand, Vec3? hipsUp = null)
     {
         Span<Quat> world = stackalloc Quat[Bones.Length];
 
         // Hips: level, facing square to the line between the hip sockets.
         var fwd = (joints[Rig.LHip] - joints[Rig.RHip]).Cross(Vec3.Up).Normalized();
         var left = Vec3.Up.Cross(fwd);
-        world[Hips] = Quat.FromBasis(left, Vec3.Up, fwd);
+        // What is up for the legs: the room's, or a tipped body's own.
+        var bodyUp = Vec3.Up;
+        if (hipsUp is { } tipped && (joints[Rig.LHip] - joints[Rig.RHip]) is var hipLine && hipLine.Length > 1e-6)
+        {
+            left = hipLine.Normalized();
+            var up = tipped - left * tipped.Dot(left);
+            if (up.Length > 1e-6)
+            {
+                bodyUp = up.Normalized();
+                fwd = left.Cross(bodyUp);
+            }
+            else
+                left = Vec3.Up.Cross(fwd);
+        }
+        world[Hips] = Quat.FromBasis(left, bodyUp, fwd);
 
         // The torso is two pieces, the spine below the waist and the chest above it; the neck and
         // the shoulders follow the chest. With a straight back the two are one.
@@ -322,14 +337,33 @@ public static class Skeleton
             var toes = joints[hip + 3] - joints[hip + 2];
             var footFwd = new Vec3(toes.X, 0, toes.Z);
             footFwd = footFwd.Length < 1e-6 ? fwd : footFwd.Normalized();
-            (upper, lower) = Limb(joints[hip], joints[hip + 1], joints[hip + 2], -Vec3.Up, X, Rig.KneePole(Vec3.Up.Cross(footFwd), footFwd, side));
+            // (A tipped body's straight leg would bend the way its hips face: its feet do not stand on the floor to say.)
+            (upper, lower) = Limb(joints[hip], joints[hip + 1], joints[hip + 2], -Vec3.Up, X,
+                hipsUp is null ? Rig.KneePole(Vec3.Up.Cross(footFwd), footFwd, side) : fwd + left * (0.15 * side));
             world[leg] = upper;
             world[leg + 1] = lower;
 
-            // The foot points at the toe and lies flat from side to side.
+            // The foot points at the toe and lies flat from side to side (off the feet: along the line of the hips).
             var along = (joints[hip + 3] - joints[hip + 2]).Normalized();
             var footLeft = Vec3.Up.Cross(along);
+            if (hipsUp is not null)
+            {
+                // Off the feet a foot may point anywhere (up, on along a leg held overhead): flat to the line of the
+                // hips, which is where a foot standing square lies too; pointing along that line, to the knee's own hinge.
+                // (The hinge alone turned over from one frame to the next as a leg went straight: 104 degrees.)
+                footLeft = left - along * left.Dot(along);
+                if (footLeft.Length < 0.3)
+                {
+                    var hinge = lower.Rotate(X);
+                    footLeft = hinge - along * hinge.Dot(along);
+                }
+            }
             footLeft = footLeft.Length < 1e-6 ? left : footLeft.Normalized();
+            if (hipsUp is not null && Math.Abs(footLeft.Dot(along)) > 1e-6)
+            {
+                // (The fallback is not square to the foot: any way that is.)
+                footLeft = (Math.Abs(along.Y) < 0.9 ? Vec3.Up : Z).Cross(along).Normalized();
+            }
             world[leg + 2] = Quat.Between(FootRest.Normalized(), X, along, footLeft);
         }
 
