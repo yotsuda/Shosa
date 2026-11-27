@@ -51,9 +51,13 @@ public class SongReportTests
     [Fact]
     public void Words_in_letters_are_quoted_with_spaces_between_them_and_kana_run_on()
     {
-        // As Orecchiante 0.18.0 writes We're An American Band: `sung` has no hyphen, so Lit and tle stay apart.
+        // As Orecchiante 0.18.0 writes We're An American Band. A Lily# older than 0.18.0 does not say
+        // that Lit goes on with tle's word, so they stay apart.
         var english = Syllables((5, 0.5, "Last"), (5.5, 0.5, "night,"), (6, 0.5, "in"), (6.5, 0.5, "Lit"), (7, 0.75, "tle‿Rock"));
         Assert.Contains(@"""Last night, in Lit tle‿Rock""", Report(Song([new("vocal", null, english)])));
+        // Lily# 0.18.0: a fourth element true (request 8).
+        english[3] = JsonSerializer.Deserialize<JsonElement[]>("[6.5, 0.5, \"Lit\", true]")!;
+        Assert.Contains(@"""Last night, in Little‿Rock""", Report(Song([new("vocal", null, english)])));
         var mixed = Syllables((5, 0.5, "Oh"), (5.5, 0.5, "あ"), (6, 0.5, "い"), (6.5, 0.5, "yeah"));
         Assert.Contains(@"""Ohあいyeah""", Report(Song([new("vocal", null, mixed)])));
     }

@@ -140,10 +140,11 @@ public static class SongReport
         var barLines = new Dictionary<(int, int), double>();
         foreach (var part in song.Sung)
         {
-            var syllables = part.Read().OrderBy(s => s.Beat).ToList();
+            var syllables = part.ReadWords().OrderBy(s => s.Beat).ToList();
+            bool joined = false;   // the syllable before goes on with this one's word (`Lit- tle`)
             var tokens = new Dictionary<(int, int), (StringBuilder Tokens, StringBuilder Words)>();
             double lastEnd = double.NegativeInfinity;
-            foreach (var (beat, beats, word) in syllables)
+            foreach (var (beat, beats, word, joins) in syllables)
             {
                 int section = sections.FindLastIndex(s => s.T0 <= beat + 1e-9);
                 if (section < 0)
@@ -161,11 +162,13 @@ public static class SongReport
                 built.Tokens.Append(N(into + 1)).Append(word);
                 if (beats >= Held - 1e-9)
                     built.Tokens.Append('~').Append(N(beats));
-                // Kana run on; between syllables in letters a space (English: "Last night in", not
-                // "Lastnightin"). `sung` drops Lily#'s hyphen, so a word of two syllables reads "Lit tle".
-                if (built.Words.Length > 0 && word.Length > 0 && IsLetterSpaced(built.Words[^1]) && word[0] < '　' && char.IsLetterOrDigit(word[0]))
+                // Kana run on; between words in letters a space (English: "Last night in Little", not
+                // "LastnightinLittle"). Lily# 0.18.0 says which syllable goes on with the next one's word;
+                // an older one does not, and a word of two syllables reads "Lit tle".
+                if (!joined && built.Words.Length > 0 && word.Length > 0 && IsLetterSpaced(built.Words[^1]) && word[0] < '　' && char.IsLetterOrDigit(word[0]))
                     built.Words.Append(' ');
                 built.Words.Append(word);
+                joined = joins;
                 lastEnd = beat + beats;
             }
             foreach (var (key, built) in tokens)

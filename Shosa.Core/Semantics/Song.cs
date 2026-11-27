@@ -58,13 +58,18 @@ public sealed class SongInfo
 public sealed record SongSung(string Part, string? Singer, List<System.Text.Json.JsonElement[]> Syllables)
 {
     /// <summary>The syllables as (beat, beats, text); a malformed one is left out.</summary>
-    public IEnumerable<(double Beat, double Beats, string Text)> Read()
+    public IEnumerable<(double Beat, double Beats, string Text)> Read() =>
+        ReadWords().Select(s => (s.Beat, s.Beats, s.Text));
+
+    /// <summary>The syllables with whether the next one goes on the same word (`Lit- tle`: a fourth element
+    /// true, Lily# 0.18.0, Shosa's request 8); false where Lily# does not say.</summary>
+    public IEnumerable<(double Beat, double Beats, string Text, bool Joins)> ReadWords()
     {
         foreach (var s in Syllables ?? [])
         {
             if (s is [{ ValueKind: System.Text.Json.JsonValueKind.Number } beat, { ValueKind: System.Text.Json.JsonValueKind.Number } beats, { ValueKind: System.Text.Json.JsonValueKind.String } text, ..]
                 && beats.GetDouble() > 0)
-                yield return (beat.GetDouble(), beats.GetDouble(), text.GetString()!);
+                yield return (beat.GetDouble(), beats.GetDouble(), text.GetString()!, s.Length > 3 && s[3].ValueKind == System.Text.Json.JsonValueKind.True);
         }
     }
 }
