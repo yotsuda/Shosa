@@ -277,6 +277,14 @@ public sealed class ClipFigure
     public List<ClipTouch>? Touch { get; set; }
 
     /// <summary>
+    /// The hands a word sends to another dancer's hand (`b.hand`, `b.rightHand`, `neighbor.hand`): which hand, whose and
+    /// which of theirs, and at each frame how much the hand is there (0..1). The preview brings the two characters'
+    /// hands together, whose arms are not the figures'. Null when no word does (DESIGN.md 134).
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public List<ClipJoin>? Join { get; set; }
+
+    /// <summary>
     /// For a figure that juggles (`juggles balls`): what it throws, how many, and each one at each frame
     /// (x y z, the hand it left and the one it goes to, how far through the flight, a club's turn). Null for none (DESIGN.md 118).
     /// </summary>
@@ -321,6 +329,9 @@ public sealed record ClipMic(string Hand, List<float> Up);
 
 /// <summary>A hand ("right" or "left") at a place of the dancer's own body (a word of the language: "head", "chin" …), and how much it is there at each frame, 0..1.</summary>
 public sealed record ClipTouch(string Hand, string Place, List<float> Weight);
+
+/// <summary>A hand ("right" or "left") at the hand <paramref name="Their"/> ("right" or "left") of the figure whose id is <paramref name="With"/>, and how much it is there at each frame, 0..1.</summary>
+public sealed record ClipJoin(string Hand, string With, string Their, List<float> Weight);
 
 /// <summary>
 /// The balls (clubs, rings) a figure juggles: <paramref name="Prop"/> balls | clubs | rings, <paramref name="Count"/> of

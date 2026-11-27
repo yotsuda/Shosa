@@ -376,8 +376,11 @@ public sealed class Seg
     public string? Anchor { get; set; }
     /// <summary>Reach and Turn: the id of the other dancer.</summary>
     public string? Target { get; set; }
-    /// <summary>Reach: hand | shoulder | head | chest.</summary>
+    /// <summary>Reach: hand | leftHand | rightHand | shoulder | head | chest.</summary>
     public string? Part { get; set; }
+    /// <summary>Reach: the other dancer is whoever stands next to this one on the arm's side when the word arrives (`neighbor.hand`); Target is null.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+    public bool Neighbor { get; set; }
 
     /// <summary>Step: left | right. Shift: left | right | center.</summary>
     public string? Foot { get; set; }

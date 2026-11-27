@@ -85,6 +85,12 @@ short ones) a step.
   beats for a place up to 2 m away, eight for one across the stage (`check` says SH2026 when it is
   too far for the time). Dancers whose ways cross go round each other by themselves. A pose ON the
   arrival beat (the arms' word on the same beat as the `go`) makes the new picture land.
+- **Hand in hand** (two dancers or more, side by side, 0.6 to 1 m apart): `arms { neighbor.hand:2 then:6 }`
+  takes the hands of whoever stands on each side, beside the hips, and holds them while the line
+  sways or walks; `neighbor.hand.high` lifts the joined hands (the end of a last chorus, a curtain
+  call with a bow: `torso { up.fwd(40) }` under it). The ends of the line hold their free hand the
+  same way. One arm (`leftArm { neighbor.hand }`) leaves the other for a wave or a mic. A moment
+  for a bridge, a last chorus, the bow — let go again (`down`) before the next figure.
 - **Layers**: a dance is feet × arms × head × height × facing. Change one layer every two bars,
   two every four, all of them where a section changes. The same steps under new arms is a new
   figure; the same arms on new steps too. Most vocabulary moves are feet only or arms only so that
@@ -674,7 +680,7 @@ move cartwheel {
 // They write the hands and the face too, and those are kept until a word changes them: a `hands { relaxed }` or a `face { smile(50) }`
 // after one lets it go. A pose that winks holds the wink as long as it is the face's word: over a long hold write the face beside it
 // (`face { smile(60).winkLeft:1/2 smile(60) }`). The figure of sticks has no fingers and no face: look at these on a character.
-// Not in Shosa (yet), so not here: a heart of two fingers, a cheek puffed out, the eyes looking another way than the head, holding hands in a line.
+// Not in Shosa (yet), so not here: a heart of two fingers, a cheek puffed out, the eyes looking another way than the head.
 
 // ---- Poses: a shape to hit on its beat and hold. Arms, hands, head and face; only idolFinish places the feet. ----
 // Hit one from a shape near it, or give the way a short `then` (`then:1/2 peaceEye:3/2`): `@sharp` from hanging arms is too fast (SH2003).
@@ -922,6 +928,16 @@ move idolBow {
   torso { up:1 up.fwd(40):1 then:1 up:1 }
   arms  { belly:4 }
   face  { smile(50):1 smile(40).closed:2 smile(50):1 }
+}
+
+// curtainCall — 8 beats; arms, torso, face. Hand in hand with whoever stands on each side (`neighbor.hand`): the hands taken beside
+// the hips on beat 1, lifted above the heads on beat 3, a deep bow under them on beat 4, up again on beat 6 and the hands let go:
+// the whole line's thank-you after the last song. For dancers side by side, 0.6 to 1 m apart; an end of the line (or a dancer
+// alone) holds its free hand the same way.
+move curtainCall {
+  arms  { down:1 neighbor.hand:1 then:1 neighbor.hand.high:3 then:1 down:1 }
+  torso { up:3 then:1 up.fwd(40):1 then:1 up:2 }
+  face  { smile(60):4 smile(40).closed:2 smile(60):2 }
 }
 
 // ---- Combos: whole body. ----

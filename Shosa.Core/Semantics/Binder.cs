@@ -3214,7 +3214,9 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         }
 
         string joined = string.Join('.', head.Select(p => p.Text));
-        bool toFigure = head[0].Word.Kind == SyntaxKind.Identifier && _figures.ContainsKey(head[0].Text);
+        // `neighbor.hand`: whoever stands next to this dancer on the arm's side (a role of that name is that role).
+        bool toNeighbor = head[0].Word.Kind == SyntaxKind.Identifier && head[0].Text == Vocabulary.Neighbor && !_figures.ContainsKey(head[0].Text);
+        bool toFigure = toNeighbor || (head[0].Word.Kind == SyntaxKind.Identifier && _figures.ContainsKey(head[0].Text));
         bool isPlace = isArm ? Vocabulary.Has(Vocabulary.Anchors, joined) : isLeg && Vocabulary.Has(Vocabulary.LegAnchors, joined);
         if ((toFigure || isPlace) && head.FirstOrDefault(p => p.Bracket is not null) is { Bracket: { } number })
         {
@@ -3238,30 +3240,42 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
             // b.hand.high: the height at which two hands that reach for each other meet.
             if (head.Count is not (2 or 3))
             {
-                Error("SH1012", head[0].Word.Span, "A place on another dancer is its role and the place: b.hand, b.head.");
+                Error("SH1012", head[0].Word.Span, toNeighbor
+                    ? "A place on the neighbour is `neighbor` and the place: neighbor.hand, neighbor.hand.high, neighbor.shoulder."
+                    : "A place on another dancer is its role and the place: b.hand, b.head.");
                 return null;
             }
             double? meet = null;
             if (head.Count == 3)
             {
                 meet = head[2].Text switch { "low" => -1, "mid" => 0, "high" => 1, _ => null };
-                if (meet is null || head[1].Text != "hand" || !isArm)
+                if (meet is null || Vocabulary.HandSide(head[1].Text, 1) == 0 || !isArm)
                 {
                     Error("SH1012", head[2].Word.Span, "Only an arm reaching for a hand takes a height, for where two hands meet: b.hand.high (a high five), b.hand.mid, b.hand.low.");
                     return null;
                 }
+            }
+            if (toNeighbor && !isArm)
+            {
+                Error("SH1012", head[0].Word.Span, "'neighbor' is for an arm: whoever stands next to the dancer on that arm's side (leftArm { neighbor.hand }). The head looks at a dancer by its role (head { b.head }), or a way (head { fwd.left(60) }).");
+                return null;
             }
             if (!isArm && channel != Channels.Head)
             {
                 Error("SH1012", head[0].Word.Span, "A place on another dancer is for an arm (reach it) or the head (look at it).");
                 return null;
             }
-            if (!Vocabulary.Has(Vocabulary.Parts, head[1].Text))
+            var places = toNeighbor ? Vocabulary.NeighborParts : Vocabulary.Parts;
+            if (!Vocabulary.Has(places, head[1].Text))
             {
-                Error("SH1012", head[1].Word.Span, $"'{head[1].Text}' is not a place on a dancer.{Hint(head[1].Text, Vocabulary.Parts.Select(w => w.Name))}");
+                Error("SH1012", head[1].Word.Span, $"'{head[1].Text}' is not a place on {(toNeighbor ? "the neighbour" : "a dancer")}.{Hint(head[1].Text, places.Select(w => w.Name))}");
                 return null;
             }
-            return OtherDancer(head[0].Word, ctx) is { } other ? new Seg { Kind = SegKinds.Reach, Target = other, Part = head[1].Text, Level = meet, Pole = jointPole, Tilt = tilt } : null;
+            if (toNeighbor)
+                return new Seg { Kind = SegKinds.Reach, Neighbor = true, Part = head[1].Text, Level = meet, Pole = jointPole };
+            // Mirrored, the arm is the other one, and so is the hand it was sent to.
+            string part = mirror ? head[1].Text switch { "leftHand" => "rightHand", "rightHand" => "leftHand", var same => same } : head[1].Text;
+            return OtherDancer(head[0].Word, ctx) is { } other ? new Seg { Kind = SegKinds.Reach, Target = other, Part = part, Level = meet, Pole = jointPole, Tilt = tilt } : null;
         }
 
         if (isPlace)

@@ -287,6 +287,10 @@ public class LanguageServerTests
         Assert.DoesNotContain("verse", session.Complete("move jab { leftArm { "));   // a move is not played a second time
         Assert.DoesNotContain("verse", session.Complete("rightArm { b."));
         Assert.Contains("hand", session.Complete("rightArm { b."));
+        // Hand in hand (DESIGN.md 134): the other's hand by its side, and whoever stands next to the dancer.
+        Assert.Contains("leftHand", session.Complete("rightArm { b."));
+        Assert.Contains("neighbor", session.Complete("move jab { leftArm { "));
+        Assert.DoesNotContain("neighbor", session.Complete("a { body { "));
         Assert.Contains("pose", session.Complete("\n\n"));
         Assert.Contains("Move of this file", session.Hover("jab }"));
 

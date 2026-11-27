@@ -5,7 +5,7 @@
 // They write the hands and the face too, and those are kept until a word changes them: a `hands { relaxed }` or a `face { smile(50) }`
 // after one lets it go. A pose that winks holds the wink as long as it is the face's word: over a long hold write the face beside it
 // (`face { smile(60).winkLeft:1/2 smile(60) }`). The figure of sticks has no fingers and no face: look at these on a character.
-// Not in Shosa (yet), so not here: a heart of two fingers, a cheek puffed out, the eyes looking another way than the head, holding hands in a line.
+// Not in Shosa (yet), so not here: a heart of two fingers, a cheek puffed out, the eyes looking another way than the head.
 
 // ---- Poses: a shape to hit on its beat and hold. Arms, hands, head and face; only idolFinish places the feet. ----
 // Hit one from a shape near it, or give the way a short `then` (`then:1/2 peaceEye:3/2`): `@sharp` from hanging arms is too fast (SH2003).
@@ -253,6 +253,16 @@ move idolBow {
   torso { up:1 up.fwd(40):1 then:1 up:1 }
   arms  { belly:4 }
   face  { smile(50):1 smile(40).closed:2 smile(50):1 }
+}
+
+// curtainCall — 8 beats; arms, torso, face. Hand in hand with whoever stands on each side (`neighbor.hand`): the hands taken beside
+// the hips on beat 1, lifted above the heads on beat 3, a deep bow under them on beat 4, up again on beat 6 and the hands let go:
+// the whole line's thank-you after the last song. For dancers side by side, 0.6 to 1 m apart; an end of the line (or a dancer
+// alone) holds its free hand the same way.
+move curtainCall {
+  arms  { down:1 neighbor.hand:1 then:1 neighbor.hand.high:3 then:1 down:1 }
+  torso { up:3 then:1 up.fwd(40):1 then:1 up:2 }
+  face  { smile(60):4 smile(40).closed:2 smile(60):2 }
 }
 
 // ---- Combos: whole body. ----

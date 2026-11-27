@@ -273,8 +273,11 @@ internal static class Words
         definitions ??= [];
         figures ??= [];
         formations ??= [];
-        if (before.Count > 0 && figures.Any(f => f.Name == before[0]))
-            return before.Count == 1 ? Vocabulary.Parts : before.Count == 2 && before[1] == "hand" ? [.. Vocabulary.Levels.Where(w => w.Name != "sit")] : [];
+        // A place on another dancer (`b.hand.high`), or on whoever stands next to this one (`neighbor.hand`, an arm's).
+        bool toNeighbor = before.Count > 0 && before[0] == Vocabulary.Neighbor && IsArm(track) && !figures.Any(f => f.Name == before[0]);
+        if (before.Count > 0 && (toNeighbor || figures.Any(f => f.Name == before[0])))
+            return before.Count == 1 ? toNeighbor ? Vocabulary.NeighborParts : Vocabulary.Parts
+                : before.Count == 2 && Vocabulary.HandSide(before[1], 1) != 0 ? [.. Vocabulary.Levels.Where(w => w.Name != "sit")] : [];
 
         if (track == "body")
             return before.Count == 0 ? [.. definitions, Hold, Skip, Again] : [];
@@ -359,7 +362,7 @@ internal static class Words
             if (IsArm(track) || track == "head")
                 first = first.Concat(figures);
             if (IsArm(track))
-                first = first.Append(Vocabulary.StayWord);
+                first = first.Append(Vocabulary.NeighborWord).Append(Vocabulary.StayWord);
             return [.. first, .. definitions, Hold, Skip, Again];
         }
         if (before[0] is "then" or "skip" or Vocabulary.Stay)

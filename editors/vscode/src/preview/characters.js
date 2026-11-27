@@ -13,6 +13,7 @@ import { elbowSwings, keepArmsOut, measureBody, refresh } from './clearance.js';
 import { createMicHands } from './mic.js';
 import { poseFingers } from './hands.js';
 import { headTouch, touchHead } from './touch.js';
+import { joinHands } from './join.js';
 import { FACE, measureLids, setFace } from './face.js';
 import { clubCatching, gripHands, heldBy, palmAlong, palmsUp, penguinShares, styleShares } from './juggle.js';
 
@@ -630,6 +631,9 @@ export function createCharacters(scene, changed) {
       const dt = lastFrame === null ? 0 : (frame - lastFrame) / clip.fps;
       const jumped = lastFrame === null || dt < 0 || dt > 0.25;
       lastFrame = frame;
+      // Each character's bones first; then the hands two of them join (join.js: it needs both posed); then the rest
+      // of each (the face, the eyes, the springs), which `after` keeps.
+      const after = [];
       dressed.forEach((entry, i) => {
         if (!entry || !entry.vrm) return;
         const data = figures[i];
@@ -683,6 +687,7 @@ export function createCharacters(scene, changed) {
             }, weights);
           }
         }
+        after.push(() => {
         // A figure that sings (`sings melody`): the weights of the five mouth expressions, between two frames
         // blended (DESIGN.md 99). vrm.update below applies them.
         const mouth = data.mouth;
@@ -741,7 +746,12 @@ export function createCharacters(scene, changed) {
           entry.palms = null;
           entry.forearms = null;
         }
+        });
       });
+      // A hand in another dancer's hand (`b.rightHand`, `neighbor.hand`; DESIGN.md 134): the two characters' own hands
+      // brought together. (A test page turns it off with globalThis.shosaNoJoin, to compare.)
+      if (!globalThis.shosaArmsAsSolved && !globalThis.shosaNoJoin) joinHands(dressed, figures, frame);
+      for (const rest of after) rest();
     },
 
     /**

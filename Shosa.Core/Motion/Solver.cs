@@ -101,7 +101,7 @@ public static class Solver
     {
         var solvers = new Dictionary<string, FigureSolver>();
         foreach (var dancer in ir.Dancers)
-            solvers[dancer.Id] = new FigureSolver(dancer, ir, beatsPerFrame, id => solvers.GetValueOrDefault(id));
+            solvers[dancer.Id] = new FigureSolver(dancer, ir, beatsPerFrame, id => solvers.GetValueOrDefault(id), () => solvers.Values);
         foreach (var dancer in ir.Dancers)
             solvers[dancer.Id].Build();
         // Dancers who walk to their places (`go`, DESIGN.md 132) and would walk into someone go round: known only
@@ -109,7 +109,7 @@ public static class Solver
         if (Passing(solvers) is { Count: > 0 } bows)
         {
             foreach (var dancer in ir.Dancers)
-                solvers[dancer.Id] = new FigureSolver(dancer, ir, beatsPerFrame, id => solvers.GetValueOrDefault(id)) { Bows = bows };
+                solvers[dancer.Id] = new FigureSolver(dancer, ir, beatsPerFrame, id => solvers.GetValueOrDefault(id), () => solvers.Values) { Bows = bows };
             foreach (var dancer in ir.Dancers)
                 solvers[dancer.Id].Build();
         }
@@ -424,6 +424,8 @@ public static class Solver
                 clipFigure.Mic = new ClipMic(micHand, beatOfFrame.Select(b => (float)Math.Round(solver.MicUp(b), 3)).ToList());
             // The hands at places of the dancer's own body (DESIGN.md 122), for the preview to put a character's there.
             clipFigure.Touch = solver.Touches(beatOfFrame);
+            // The hands in another dancer's (DESIGN.md 134), for the preview to bring two characters' together.
+            clipFigure.Join = solver.Joins(beatOfFrame);
             // A word of a move is told of at that word, once, with the beats it comes at (DESIGN.md 123.5).
             var moves = new InMoves(ir.Dancers.Count > 1 ? dancer.Id : null);
             foreach (var (seg, channel) in solver.MicHidden())
@@ -449,7 +451,7 @@ public static class Solver
                     double shortfall = solver.ReachShortfall(seg, side);
                     if (shortfall > 0.03 && unreached.Add(seg.Src))
                         moves.Say(diagnostics, "SH2006", DiagnosticSeverity.Warning, seg, FormattableString.Invariant(
-                            $"The hand does not get there: {seg.Target}'s {seg.Part} is about {shortfall:0.00} m farther than the arm reaches. Start the two closer together (`at`), step toward it first, or lean (`torso`)."));
+                            $"The hand does not get there: {(seg.Neighbor ? $"the neighbour's ({solver.Aim(seg, side).Other?.DancerId})" : seg.Target + "'s")} {seg.Part} is about {shortfall:0.00} m farther than the arm reaches. {(seg.Neighbor ? "Stand the two closer together (`at`, a `formation`: hand in hand is up to about a metre apart), or step toward it first." : "Start the two closer together (`at`), step toward it first, or lean (`torso`).")}"));
                 }
             }
 
@@ -1106,7 +1108,11 @@ internal sealed class FigureSolver
     private const double OverTheFoot = 0.8;
 
     private readonly DancerIr _dancer;
+    public string DancerId => _dancer.Id;
     private readonly Func<string, FigureSolver?> _others;
+    private readonly Func<IEnumerable<FigureSolver>> _everybody;
+    /// <summary>Who each `neighbor` word found beside the dancer (null: nobody), found once, when the word arrives.</summary>
+    private readonly Dictionary<Seg, FigureSolver?> _neighbors = [];
     private readonly IReadOnlyList<TempoIr> _tempos;
     private readonly double _dt, _length;
     private readonly bool _loop;
@@ -1193,10 +1199,11 @@ internal sealed class FigureSolver
             _ => (0.5, 0.5),
         }, (a, b, e) => (a.Item1 + (b.Item1 - a.Item1) * e, a.Item2 + (b.Item2 - a.Item2) * e));
 
-    public FigureSolver(DancerIr dancer, MotionIr ir, double beatsPerFrame, Func<string, FigureSolver?> others)
+    public FigureSolver(DancerIr dancer, MotionIr ir, double beatsPerFrame, Func<string, FigureSolver?> others, Func<IEnumerable<FigureSolver>>? everybody = null)
     {
         _dancer = dancer;
         _others = others;
+        _everybody = everybody ?? (() => []);
         _tempos = TempoMap.Of(ir.Tempos, ir.Tempo);
         _dt = beatsPerFrame;
         _length = ir.TotalBeats;
@@ -3940,7 +3947,10 @@ internal sealed class FigureSolver
     }
 
     /// <summary>A place on this body, for another dancer to reach or look at. Heights include a lift.</summary>
-    private Vec3 PlaceAt(string part, int side, double t, FigureSolver asker, double? level = null)
+    /// <param name="side">The side of this body the place is on (a hand, a shoulder).</param>
+    /// <param name="asking">The side of the asker's arm that reaches.</param>
+    /// <param name="beside">The asker is this body's neighbour (`neighbor.hand`): unwritten, two hands meet beside the hips.</param>
+    private Vec3 PlaceAt(string part, int side, double t, FigureSolver asker, double? level = null, int asking = 0, bool beside = false)
     {
         var trunk = TrunkAt(t);
         var lifted = Vec3.Up * trunk.C.Float;
@@ -3950,42 +3960,144 @@ internal sealed class FigureSolver
             case "chest": return trunk.Chest + trunk.Fwd * 0.10 + lifted;
             case "shoulder": return trunk.Shoulder(side) + lifted;
         }
+        if (asking == 0)
+            asking = side;
 
         // A hand. If this arm is reaching for the asker's hand at the same moment, neither hand
         // is anywhere yet: the two meet half-way between the shoulders, at the height of a handshake.
-        var arm = side == 1 ? _leftArm : _rightArm;
-        // The segment that is arriving at t, not one that starts there: at the instant the hands meet they are still reaching.
-        var current = arm.LastOrDefault(s => s.T0 < t - 1e-9 && s.Kind != SegKinds.Hold) ?? arm.FirstOrDefault(s => s.T0 <= t && s.Kind != SegKinds.Hold);
-        bool mutual = current is { Kind: SegKinds.Reach, Part: "hand" } && current.Target == asker._dancer.Id;
-        if (mutual || _posing > 0)
+        // (Its hand of that side, whichever way each names the other's: `hand`, `leftHand`, the neighbour's.)
+        var current = Arriving(side, t);
+        var held = HandFor(current, side, asker, asking) ? current : null;
+        // Two that let go of each other at once: each arm leaves the place where they met, not the other's hand
+        // on its way down (leaving that, the arm's way began anew at every moment, and from hands held high the
+        // upper arm turned 131° in a frame).
+        if (held is null && current is not null && !asker.HandFor(asker.Arriving(asking, t), asking, this, side)
+            && ArmRow(side).Take(ArmRow(side).IndexOf(current)).LastOrDefault(s => s.Kind != SegKinds.Hold) is { } before && HandFor(before, side, asker, asking))
+            held = before;
+        if (held is not null || _posing > 0)
         {
             var mine = trunk.Shoulder(side) + lifted;
-            var theirs = asker.TrunkAt(t) is var other ? other.Shoulder(side) + Vec3.Up * other.C.Float : mine;
-            var middle = (mine + theirs) * 0.5;
-            // With a level (b.hand.high) the hands meet above the heads, at the shoulders or by the hips.
-            double y = level switch
-            {
-                > 0 => Math.Max(mine.Y, theirs.Y) + 0.40,
-                0 => middle.Y,
-                < 0 => Math.Min(mine.Y, theirs.Y) - 0.45,
-                _ => Math.Min(mine.Y, theirs.Y) - 0.25,
-            };
-            return new Vec3(middle.X, y, middle.Z);
+            var theirs = asker.TrunkAt(t) is var other ? other.Shoulder(asking) + Vec3.Up * other.C.Float : mine;
+            return Meeting(mine, theirs, level ?? (beside || held is { Neighbor: true } ? -1 : null));
         }
         return Pose(t, out _)[side == 1 ? Rig.LHand : Rig.RHand];
+    }
+
+    private List<Seg> ArmRow(int side) => side == 1 ? _leftArm : _rightArm;
+
+    /// <summary>The word of an arm's row that is arriving at t (or there, and held), not one that starts there: at the instant two hands meet they are still reaching.</summary>
+    private Seg? Arriving(int side, double t)
+    {
+        var arm = ArmRow(side);
+        return arm.LastOrDefault(s => s.T0 < t - 1e-9 && s.Kind != SegKinds.Hold) ?? arm.FirstOrDefault(s => s.T0 <= t && s.Kind != SegKinds.Hold);
+    }
+
+    /// <summary>Whether a word of this arm's row sends its hand to <paramref name="other"/>'s hand of the side <paramref name="theirs"/>.</summary>
+    private bool HandFor(Seg? seg, int side, FigureSolver other, int theirs) =>
+        seg is { Kind: SegKinds.Reach } && Vocabulary.HandSide(seg.Part, side, seg.Neighbor) == theirs && Aim(seg, side).Other == other;
+
+    /// <summary>Where two hands that reach for each other meet: half-way between the two shoulders; with a level (b.hand.high) above the heads, at the shoulders or by the hips, and unwritten at the height of a handshake.</summary>
+    private static Vec3 Meeting(Vec3 mine, Vec3 theirs, double? level)
+    {
+        var middle = (mine + theirs) * 0.5;
+        double y = level switch
+        {
+            > 0 => Math.Max(mine.Y, theirs.Y) + 0.40,
+            0 => middle.Y,
+            < 0 => Math.Min(mine.Y, theirs.Y) - 0.45,
+            _ => Math.Min(mine.Y, theirs.Y) - 0.25,
+        };
+        return new Vec3(middle.X, y, middle.Z);
+    }
+
+    /// <summary>How far apart two who hold hands side by side are taken to stand, for the free hand of one with nobody on that side, metres.</summary>
+    private const double BesideApart = 0.8;
+    /// <summary>A neighbour is within this of the dancer, metres, and no further before or behind than this many times as far to the side (60° off the side).</summary>
+    private const double NeighborWithin = 2.5, NeighborOff = 1.75, NeighborAside = 0.25;
+
+    /// <summary>The other dancer a reach is sent to, and the side of its body the place is on (null: `neighbor`, and nobody stands on that side).</summary>
+    public (FigureSolver? Other, int Side) Aim(Seg seg, int side)
+    {
+        int theirs = Vocabulary.HandSide(seg.Part, side, seg.Neighbor);
+        if (theirs == 0)
+            theirs = seg.Neighbor ? -side : side;
+        if (!seg.Neighbor)
+            return (seg.Target is null ? null : _others(seg.Target), theirs);
+        if (!_neighbors.TryGetValue(seg, out var found))
+            _neighbors[seg] = found = NeighborAt(seg.T1, side);
+        return (found, theirs);
+    }
+
+    /// <summary>Whoever stands nearest on a side of the dancer (1 left, -1 right) at beat t, of any role; null for nobody.</summary>
+    private FigureSolver? NeighborAt(double t, int side)
+    {
+        t = Clamp(t);
+        var here = WeightAt(t);
+        double yaw = YawAt(t);
+        Vec3 left = Vec3.Left(yaw), fwd = Vec3.Forward(yaw);
+        FigureSolver? nearest = null;
+        double least = NeighborWithin;
+        foreach (var other in _everybody())
+        {
+            if (other == this)
+                continue;
+            var off = other.WeightAt(t) - here;
+            double aside = off.Dot(left) * side, ahead = Math.Abs(off.Dot(fwd)), far = off.Length;
+            // (Two the same way off: the one whose name comes first, whatever order they are asked in.)
+            if (aside < NeighborAside || ahead > aside * NeighborOff || far > least
+                || (far == least && nearest is not null && string.CompareOrdinal(other._dancer.Id, nearest._dancer.Id) > 0))
+                continue;
+            (nearest, least) = (other, far);
+        }
+        return nearest;
+    }
+
+    /// <summary>
+    /// The hands a word sends to another dancer's hand (DESIGN.md 134): for each, whose hand and which, and how much the
+    /// hand is there at each frame (1 at the word and while it holds, the eased share on the way). The preview brings
+    /// two characters' hands together by it, whose arms are not the figure's. Null when no row does.
+    /// </summary>
+    public List<ClipJoin>? Joins(double[] beatOfFrame)
+    {
+        List<ClipJoin>? joins = null;
+        foreach (var (hand, side, segs) in new[] { ("right", -1, _rightArm), ("left", 1, _leftArm) })
+        {
+            var aims = segs.Where(s => s.Kind == SegKinds.Reach && Vocabulary.HandSide(s.Part, side, s.Neighbor) != 0)
+                .Select(s => (Seg: s, Aim: Aim(s, side))).Where(a => a.Aim.Other is not null).ToList();
+            foreach (var (other, theirs) in aims.Select(a => a.Aim).Distinct())
+            {
+                var with = aims.Where(a => a.Aim == (other, theirs)).Select(a => a.Seg).ToHashSet();
+                bool micHand = _dancer.Mic is { } mic && (mic == "both" || (mic == "left") == (side == 1));
+                var weight = new List<float>(beatOfFrame.Length);
+                bool any = false;
+                foreach (double t in beatOfFrame)
+                {
+                    double w = Chain<double>(segs, t, seg => seg is not null && with.Contains(seg) ? 1 : 0, (a, b, e) => a + (b - a) * e);
+                    if (w > 0 && micHand && _micPhrases.Count > 0)
+                        w *= 1 - MicUp(t);
+                    if (w > 0 && Juggling is { } juggling)
+                        w *= 1 - juggling.Weight(Seconds(t));
+                    weight.Add((float)Math.Round(Math.Clamp(w, 0, 1), 3));
+                    any |= weight[^1] > 0;
+                }
+                if (any)
+                    (joins ??= []).Add(new ClipJoin(hand, other!._dancer.Id, theirs == 1 ? "left" : "right", weight));
+            }
+        }
+        return joins;
     }
 
     /// <summary>How far beyond the arm's length the place a reach is sent to lies when it arrives (negative: within reach).</summary>
     public double ReachShortfall(Seg seg, int side)
     {
-        if (seg.Target is null || _others(seg.Target) is not { } other)
+        if (Aim(seg, side) is not ({ } other, var theirs))
             return 0;
         _posing++;
         try
         {
             var trunk = TrunkAt(seg.T1);
             var shoulder = trunk.Shoulder(side) + Vec3.Up * trunk.C.Float;
-            return (other.PlaceAt(seg.Part!, side, seg.T1, this, seg.Level) - shoulder).Length - Rig.Arm;
+            return (other.PlaceAt(seg.Part!, theirs, seg.T1, this, seg.Level, side, seg.Neighbor) - shoulder).Length - Rig.Arm;
         }
         finally
         {
@@ -4074,7 +4186,7 @@ internal sealed class FigureSolver
         public Vec3 Target(Seg? seg)
         {
             if (seg?.Kind == SegKinds.Reach && solver._others(seg.Target!) is { } other)
-                return (other.PlaceAt(seg.Part!, 1, t, solver) - (head + lifted)).Normalized();
+                return (other.PlaceAt(seg.Part!, seg.Part == "rightHand" ? -1 : 1, t, solver) - (head + lifted)).Normalized();
             if (seg?.Dir is { } d)
             {
                 // A tipped body (on the hands, the head, the back: DESIGN.md 128) has no level of its own to look along:
@@ -4157,7 +4269,15 @@ internal sealed class FigureSolver
                 return tipped > 0 ? Vec3.Lerp(hangs, Hang(torsoLeft, torsoUp, torsoFwd), tipped) : hangs;
             }
             if (seg.Kind == SegKinds.Reach)
-                return solver._others(seg.Target!) is { } other ? other.PlaceAt(seg.Part!, side, t, solver, seg.Level) - (shoulder + lifted) : Offset(null);
+            {
+                if (solver.Aim(seg, side) is ({ } other, var theirs))
+                    return other.PlaceAt(seg.Part!, theirs, t, solver, seg.Level, side, seg.Neighbor) - (shoulder + lifted);
+                // `neighbor.hand` with nobody on that side (the ends of a line): the hand where a neighbour's would
+                // meet it, so the whole line's arms are one shape.
+                if (seg.Neighbor && seg.Part == "hand")
+                    return Meeting(shoulder + lifted, shoulder + lifted + c.Left * (side * (BesideApart - 2 * Rig.ShoulderHalf)), seg.Level ?? -1) - (shoulder + lifted);
+                return Offset(null);
+            }
             if (seg.Kind == SegKinds.Anchor)
             {
                 var place = seg.Anchor switch

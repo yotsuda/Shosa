@@ -1,0 +1,33 @@
+// Three dancers hand in hand (DESIGN.md 134).
+// `neighbor.hand` in an arm's row is the hand of whoever stands next to the dancer on that arm's side, so one
+// role danced by the whole line says it: everybody takes both neighbours' hands, beside the hips. The hands
+// stay joined through the `then`s — while the line sways and walks, they go with the bodies — until the row's
+// next word takes the arms away. The two ends of the line hold their free hand as if a neighbour held it.
+// (Two dancers of different roles can name the hand instead: `a { leftArm { b.rightHand.low } }`.)
+// The last two bars are `curtainCall` of shosa:idol: hands taken, lifted above the heads, a bow under them.
+title "Hand in Hand"
+tempo 108
+using "shosa:idol"
+
+role line
+dancer shino humanoid "models/shino.vrm"  on line at -0.8 0
+dancer zunko humanoid "models/zunko.vrm"  on line at 0 0
+dancer sara  humanoid "models/sample.vrm" on line at 0.8 0
+
+section Sway {
+  line {
+    //      take hands             | sway                         | walk forward together                             | and back, and let go                                    |
+    arms  { down:2 neighbor.hand:2 | then:4                       | then:4                                            | then:2 then:1 down:1                                    | }
+    steps { stand:4                | shift.right:2 shift.left:2   | leftFoot.fwd rightFoot.fwd leftFoot.fwd together  | rightFoot.back leftFoot.back rightFoot.back together    | }
+    torso { up:4                   | up.right(8):2 up.left(8):2   | up:4                                              | up:4                                                    | }
+    head  { fwd:4                  | fwd.right(30):2 fwd.left(30):2 | fwd:4                                           | fwd:4                                                   | }
+    face  { smile(50):4            | smile:4                      | smile(50):4                                       | smile(50):4                                             | }
+  }
+}
+
+section Call {
+  line { body { curtainCall:8 } }
+}
+
+form { Sway Call }
+score { dancer shino  dancer zunko  dancer sara }

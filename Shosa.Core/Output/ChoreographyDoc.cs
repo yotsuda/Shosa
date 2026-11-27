@@ -116,6 +116,12 @@ public static class ChoreographyDoc
           beats for a place up to 2 m away, eight for one across the stage (`check` says SH2026 when it is
           too far for the time). Dancers whose ways cross go round each other by themselves. A pose ON the
           arrival beat (the arms' word on the same beat as the `go`) makes the new picture land.
+        - **Hand in hand** (two dancers or more, side by side, 0.6 to 1 m apart): `arms { neighbor.hand:2 then:6 }`
+          takes the hands of whoever stands on each side, beside the hips, and holds them while the line
+          sways or walks; `neighbor.hand.high` lifts the joined hands (the end of a last chorus, a curtain
+          call with a bow: `torso { up.fwd(40) }` under it). The ends of the line hold their free hand the
+          same way. One arm (`leftArm { neighbor.hand }`) leaves the other for a wave or a mic. A moment
+          for a bridge, a last chorus, the bow — let go again (`down`) before the next figure.
         - **Layers**: a dance is feet × arms × head × height × facing. Change one layer every two bars,
           two every four, all of them where a section changes. The same steps under new arms is a new
           figure; the same arms on new steps too. Most vocabulary moves are feet only or arms only so that

@@ -260,10 +260,36 @@ public static class Vocabulary
     public static readonly Word[] Parts =
     [
         new("hand", "The other dancer's hand of the same side. If it reaches back, the two hands meet half-way, at the height of a handshake."),
+        new("leftHand", "The other dancer's left hand, whichever arm reaches: `leftArm { b.rightHand.low }` beside b is hand in hand. If that hand reaches back for this one, the two meet half-way."),
+        new("rightHand", "The other dancer's right hand."),
         new("shoulder", "The other dancer's shoulder of the same side."),
         new("head", "The other dancer's head."),
         new("chest", "The other dancer's chest."),
     ];
+
+    /// <summary>
+    /// In place of a role, in an arm's row: whoever stands next to this dancer on that arm's side, of any role
+    /// (`leftArm { neighbor.hand }`). A role many dance can say it (DESIGN.md 134).
+    /// </summary>
+    public const string Neighbor = "neighbor";
+
+    public static readonly Word NeighborWord = new(Neighbor, "Whoever stands next to the dancer on this arm's side, of any role: `neighbor.hand` (hand in hand, beside the hips; `.mid`, `.high`), `neighbor.shoulder`. With nobody on that side, the hand goes where a neighbour's would meet it.");
+
+    /// <summary>Places on the neighbour: `neighbor.hand`, `neighbor.shoulder`.</summary>
+    public static readonly Word[] NeighborParts =
+    [
+        new("hand", "The neighbour's hand on this side (the inner hands of two side by side). If it reaches back (`neighbor.hand` too, or this dancer's hand by its role), the two meet half-way, beside the hips; `.mid` at the shoulders, `.high` above the heads."),
+        new("shoulder", "The neighbour's shoulder on this side: a hand on it."),
+    ];
+
+    /// <summary>The side of the other dancer's hand a reach names, for an arm of <paramref name="side"/> (1 left, -1 right); 0 when the part is not a hand.</summary>
+    public static int HandSide(string? part, int side, bool neighbor = false) => part switch
+    {
+        "hand" => neighbor ? -side : side,
+        "leftHand" => 1,
+        "rightHand" => -1,
+        _ => 0,
+    };
 
     public static readonly Word[] Feet =
     [

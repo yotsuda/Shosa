@@ -743,6 +743,41 @@ public static class GrammarDoc
             level: `a { rightArm { b.hand.high } }` with `b { rightArm { a.hand.high } }` is a high
             five above the heads; `.mid` meets at shoulder height, `.low` beside the hips.
 
+            **Hand in hand.** `hand` is the hand of the SAME side (a handshake: right to right). Two who
+            stand side by side hold their INNER hands, a left in a right: name the hand, `leftHand` or
+            `rightHand`, whichever arm reaches. `a { leftArm { b.rightHand.low:2 then:6 } }` with
+            `b { rightArm { a.leftHand.low:2 then:6 } }`: the hands meet beside the hips on beat 2 and stay
+            joined through the `then` — while the two walk, sway or bow, the hands go with them (a hand that
+            holds another's follows it at every moment, until the row's next word takes the arm away).
+            Two who face take both hands straight across the same way: `leftArm { b.rightHand }` and
+            `rightArm { b.leftHand }` for each. Under `@mirror` and for a mirrored dancer the hand named is
+            the other one, as the arm is.
+
+            **`neighbor`: whoever stands next to the dancer.** In an arm's row, `neighbor` in place of a role is
+            the dancer nearest on THAT ARM'S side when the word arrives, of any role (within 2.5 m, and more
+            beside than before or behind). So one role danced by a whole line can say it:
+            `line { arms { neighbor.hand:2 then:2 neighbor.hand.high:2 then:2 down:2 } }` — everybody takes the
+            hands of both neighbours beside the hips, the line lifts them above the heads, and lets go.
+
+
+            """.ReplaceLineEndings("\n"));
+
+        Table("Place", Vocabulary.NeighborParts);
+
+        sb.Append("""
+            - Unwritten, the neighbours' hands meet beside the hips (`.low`); `.mid` and `.high` as above.
+              The hand meets a neighbour's that reaches back by `neighbor.hand` too, or by this dancer's role
+              and hand (`a.leftHand`): either way of naming it is the same hand.
+            - **With nobody on that side (the two ends of a line) the hand goes where a neighbour's would
+              meet it**, so the line's arms are one shape from end to end and nothing is said. One arm only
+              (`leftArm { neighbor.hand }`) when only that side is meant.
+            - Who the neighbour is is found once, when the word arrives, and kept while it holds: walk to
+              the formation first (`go.line`), then take hands.
+            - Hand in hand, two stand 0.6 to 1.1 m apart (the middles of their feet; at 1.1 m the arms are
+              straight); farther is SH2006.
+            - A character's own arms are brought together in the preview (a child beside a grown-up still
+              holds hands); the fingers are as the `hands` row says, or relaxed.
+
             ### Legs
 
             `leftLeg` / `rightLeg` are for a leg that carries NO weight. Make the gesture, then put
@@ -1867,7 +1902,7 @@ public static class GrammarDoc
 
             - Where the eyes look, and the brows or the mouth on their own (the `face` row has whole looks; the mouth of a dancer who sings is the song's); the shoulders on their own (a shrug). A finger's joints one by one, or a finger bent sideways: a hand's row closes a whole finger.
             - "As far as it goes" (write the limit: 45 for the hips; the shoulders say when they do not get there, SH2010), a place on the other dancer's face (`b.chin`), the way an elbow travels in a hook.
-            - Holding an object, but a mic (`mic` on the dancer line). Contact other than a hand reaching a place.
+            - Holding an object, but a mic (`mic` on the dancer line). Contact other than a hand reaching a place (hand in hand is `b.rightHand`, `neighbor.hand`; an arm round a waist or linked elbows are not there: put the hand on the `shoulder`).
             - Walking up to another dancer, or to a thing ("up to b", "to the door"): a dancer walks by name
               only to its own place in a formation (`go.vee`, see "Formations"); other ways are steps written
               and counted (a curve is steps that turn, see "The feet"; `check` says where they end). Turning
