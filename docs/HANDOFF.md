@@ -5,6 +5,14 @@
 下のパスはリポジトリの根から。
 - ★ **開始時に `C:\MyProj\Bamen\docs\repro\REQUESTS.md` の `open` を見る** (2026-11-23〜)。Bamen (撮影の言語。`shosa clip` を読んでカメラを解く) からの依頼の 1 枚。使い方は Shosa → Lily# の `docs/repro/REQUESTS.md` と同じ (入れたら `fixed <commit>`、入れないなら `won't`、聞くなら `question`)。2026-11-25: 1 (座る) は `fixed f9ae160`、2 (曲がった道) は `question` (曲線は `@turn` の歩でもう書けた。「この点まで歩く」の語が要るかを Bamen に聞いている)。`open` は無い。
 
+## 0.3.0 を出す直前 (2026-11-27 の 8 つ目のセッション)
+
+- **下の節で「未コミット」と書いてあるものは全部コミットした**: `058a480` (mocap の道具 3 つ)、`8c7225a` (`quality`、曲線の `@through`、得意分野を絞る決定、`break-set` の移動、`floor-lyric` の削除)。試験 659 件、拡張 38 件、`tools\pack-extension.ps1` (36.2 MB) まで通した。main は origin より 9 つ先 (push はユーザー)。
+- **Lily# 0.18.0 は出ている** (GitHub のリリース 2026-11-27 06:55Z、Release の run は緑)。出す順の前提は満たした。この PC の Lily# の拡張はまだ 0.17.1 (フォルダー名 0.16.0): 歌詞まわりをユーザーが試すなら先に更新。
+- **README に募集の節の案を書いた (未コミット、文面はユーザーが見てから)**: 「What it is for」の末尾に得意分野 (拍にポーズを決める踊り、ballet・break は実験的)、Status の後ろに「Help wanted, most of all from people who dance」(型の直し・見本の踊り・`quality` の残りの質・mocap との比べ、issue も歓迎)。Trying it の拡張の名前を **Shosa 3D Choreographer** に。
+- **残り (ユーザーの手)**: README の文面を決める → コミット → `git push` → `git tag v0.3.0` → `git push origin v0.3.0` (Release が試験・pack・GitHub のリリース・Marketplace)。CHANGELOG の日付は 2026-11-27: 出す日が変われば直す (Release は版と CHANGELOG の頭の節を確かめる)。
+- **出した後の次の一手**: アイドルの振付の穴 (ROADMAP 2 節の頭): 横並びで内側の手をつなぐ、曲線・隊形の移動、定番の振りの語彙、表情。どれからかはユーザーに聞く。
+
 ## 実際のダンスを学ぶ教材: CMU のモーションキャプチャ (2026-11-27 の 6 つ目のセッション)
 
 ユーザーが `samples\dances\` の 4 本を見た: 「finger-pop だけは使えそう。break-set も ballet-variation もまったく実際のダンスに似ていない。floor-lyric はどういう場合に使うのか分からない、ちょっと卑猥。ブレイクダンスとバレエは、あなたが実際のダンスを学ぶ必要がある。方法を探して」。
