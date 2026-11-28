@@ -298,7 +298,7 @@ internal static class Words
                 "hop" or "leap" => Except(jumpWays, before.Skip(1)),
                 "shift" => before.Count == 1 ? Vocabulary.ShiftWords : [],
                 // To its place in a formation (DESIGN.md 132): the formation, then how the way there goes.
-                "go" => before.Count == 1 ? [.. formations, Home] : Except(Vocabulary.GoWords, before.Skip(2).Any(w => w is "front" or "back") ? [.. before.Skip(2), "front", "back"] : before.Skip(2)),
+                "go" => before.Count == 1 ? [.. formations, Home] : Except(Vocabulary.GoWords, before.Skip(2).Any(w => w is "front" or "back" or "right" or "left") ? [.. before.Skip(2), "front", "back", "right", "left"] : before.Skip(2)),
                 "lift" or "land" => Except(jumpWays.Where(w => w.Name != "place"), before.Skip(1)),
                 // What carries the weight off the feet (DESIGN.md 128): where it is put from where the weight was.
                 var onto when Vocabulary.Has(Vocabulary.Bases, onto) => Except(jumpWays, before.Skip(1)),

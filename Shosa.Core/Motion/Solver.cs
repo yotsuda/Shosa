@@ -150,7 +150,7 @@ public static class Solver
         const int Samples = 32;
         var aside = new Vec3[walks.Count];
         for (int i = 0; i < walks.Count; i++)
-            aside[i] = new Vec3(0, 0, walks[i].Go.Bow ?? 0);
+            aside[i] = FigureSolver.GoWritten(walks[i].Go, walks[i].Along);
 
         // Where a dancer's middle is at a beat: on its walk as it is bowed now, or where it was solved to be.
         Vec3 Where(FigureSolver who, double t)
@@ -210,7 +210,7 @@ public static class Solver
         for (int i = 0; i < walks.Count; i++)
         {
             var w = walks[i];
-            if (w.Go.Bow is not null || w.Along.Length < 0.3)
+            if (w.Go.Bow is not null || w.Go.BowAside is not null || w.Along.Length < 0.3)
                 continue;
             foreach (var other in solvers.Values)
             {
@@ -1790,6 +1790,10 @@ internal sealed class FigureSolver
     /// straight line, and is all the way aside in the middle. (As a parabola it arrived steeply: bowed 0.9 m over 2 m,
     /// the last step was 0.64 m backward, and the foot closing from there was snatched up.)
     /// </summary>
+    /// <summary>The bow a `go` is written with: toward the audience or upstage (`front`, `back`), or to the walker's own right or left of the way (`right`, `left`); none: zero.</summary>
+    internal static Vec3 GoWritten(Seg go, Vec3 along) =>
+        go.BowAside is { } aside && along.Length > 1e-6 ? -Vec3.Left(Math.Atan2(along.X, along.Z)) * aside : new Vec3(0, 0, go.Bow ?? 0);
+
     internal static double GoBow(double u) => Math.Pow(Math.Sin(Math.PI * Math.Clamp(u, 0, 1)), 2);
 
     private void Play(Stand s, List<Seg> support, double offset, bool record)
@@ -1939,7 +1943,7 @@ internal sealed class FigureSolver
             Vec3 fwd = Vec3.Forward(s.Yaw), leftward = Vec3.Left(s.Yaw);
             var from = (s.Left + s.Right) * 0.5;
             var travel = to - from;
-            var bow = Bows is not null && Bows.TryGetValue(go, out var round) ? round : new Vec3(0, 0, go.Bow ?? 0);
+            var bow = Bows is not null && Bows.TryGetValue(go, out var round) ? round : GoWritten(go, travel);
             Vec3 At(double u) => from + travel * u + bow * GoBow(u);
             bool stands = Math.Abs((s.Left - s.Right).Dot(leftward) - Rig.Stance) < 0.02 && Math.Abs((s.Left - s.Right).Dot(fwd)) < 0.02;
             // Already made (the first word of a score: the formation it starts in), off the feet (the switch says so), or there.
@@ -1962,7 +1966,7 @@ internal sealed class FigureSolver
                 double step = room / slots, lands = go.T0 + slot * step;
                 double lead = first ? Math.Min(step / 2, BinderRun.StepSeconds * perSecond) : Math.Min(step * BinderRun.WalkSwing, BinderRun.WalkSeconds * perSecond);
                 var sub = go.Clone();
-                (sub.ToX, sub.ToZ, sub.Bow, sub.Steps) = (null, null, null, null);
+                (sub.ToX, sub.ToZ, sub.Bow, sub.BowAside, sub.Steps) = (null, null, null, null, null);
                 (sub.T0, sub.T1, sub.At, sub.Until) = (lands - lead, lands, lands, lands + step);
                 (sub.Kind, sub.Foot, sub.Dx, sub.Dz, sub.TurnDeg, sub.Stance) = (SegKinds.Step, isLeft ? "left" : "right", dx, dz, turn * 180 / Math.PI, false);
                 return sub;
@@ -1973,7 +1977,7 @@ internal sealed class FigureSolver
             {
                 double step = room / slots;
                 var sub = go.Clone();
-                (sub.ToX, sub.ToZ, sub.Bow, sub.Steps) = (null, null, null, null);
+                (sub.ToX, sub.ToZ, sub.Bow, sub.BowAside, sub.Steps) = (null, null, null, null, null);
                 (sub.T0, sub.T1, sub.At, sub.Until) = (go.T1 - Math.Min(step * BinderRun.WalkSwing, BinderRun.WalkSeconds * perSecond), go.T1, go.T1, go.Until);
                 (sub.Kind, sub.Spread) = (SegKinds.Together, Rig.Stance);
                 return sub;

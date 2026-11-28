@@ -1773,7 +1773,13 @@ section Verse {
   two dancers' middles where there is room for it). To say it yourself, bow the way:
   `go.swap.front` passes on the audience's side, `go.swap.back` upstage (0.5 m aside at the
   middle of the way, or `front(0.8m)`): "alice passes in front, bob behind". A way written so
-  is left as written, and the others go round it. A bowed way is a longer one: it needs the
+  is left as written, and the others go round it. **`go.NAME.right` and `.left` bow the way
+  to the walker's own side** (its right or left as it walks there, not the stage's;
+  `right(0.8m)`): when every dancer of a formation walks on to the next one's place with
+  the same word, they all go round ONE circle — three on a triangle, each to the next
+  corner, `go.turned.right(0.8m)` — where straight ways would cut across it as a small
+  triangle. The wider the ring and the bow, the rounder: give it 8 beats.
+  A bowed way is a longer one: it needs the
   time. Where two still meet, `check` says so (SH2007): bow one of them, or let them go at
   different times.
 - As the FIRST word of its row (`steps { go.vee:4 … }`) it is already made, as any first
@@ -1783,6 +1789,8 @@ section Verse {
 |---|---|
 | `front` | The way there bows toward the audience, to pass in front of someone: 0.5 m at its middle, or `front(0.8m)`. |
 | `back` | The way there bows upstage, to pass behind someone: `back(0.8m)`. |
+| `right` | The way there bows to the walker's own right as it walks (not the stage's): 0.5 m at its middle, or `right(0.8m)`. Everybody of a formation walking to the next place with the same word goes round one circle. |
+| `left` | The way there bows to the walker's own left: `left(0.8m)`; the circle the other way round. |
 | `steps` | How many steps it takes, the last one closing the feet: `go.vee.steps(8)` (2 to 64). Not written: one a beat, or two a beat to a place far away. |
 
 ## Juggling: `juggle`

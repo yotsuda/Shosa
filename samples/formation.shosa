@@ -1,32 +1,36 @@
-// Three dancers change formation (DESIGN.md 132): a line, a vee with the lead in front, the wings
-// changed over with the lead behind, and home again.
+// Three dancers change formation (DESIGN.md 132, 140): a line, a wide vee with the lead in front,
+// then round the ring twice — each walks on to the next one's place — and home again.
 // A formation says where each dancer stands; `go.NAME` in a steps row walks each dancer of the
 // role to its OWN place. Like every word it arrives on its beat: `then:4 | go.vee:4 |` walks
 // through the `then` and stands in the vee on the first beat of the next bar.
-// Nobody writes how they pass: dancers whose ways cross keep to their right and go round each other.
+// Round the ring every way bows to the walker's own left (`go.turned.left(0.65m)`), so the three
+// go round one wide circle, with eight beats for it: straight ways would cut across the middle.
+// The arms hang through a walk and go up in its last beat (`then:3 then:1 | side.up:2`).
+// Where nobody writes how they pass (the walk home), dancers whose ways cross go round each other.
 title "Formation"
 tempo 120
 
 role lead
 role wing
 dancer zunko humanoid "models/zunko.vrm" on lead at 0 0
-dancer shino humanoid "models/shino.vrm" on wing at -0.9 0
-dancer sara  humanoid "models/sample.vrm" on wing at 0.9 0 mirror
+dancer shino humanoid "models/shino.vrm" on wing at -1.3 0
+dancer sara  humanoid "models/sample.vrm" on wing at 1.3 0 mirror
 
-formation vee  { zunko at 0 0.8    shino at -0.9 -0.4   sara at 0.9 -0.4 }
-formation swap { zunko at 0 -0.8   shino at 0.9 0     sara at -0.9 0 }
+formation vee   { zunko at 0 1.3       shino at -1.13 -0.65   sara at 1.13 -0.65 }
+formation turned { zunko at -1.13 -0.65   shino at 1.13 -0.65    sara at 0 1.3 }
+formation again { zunko at 1.13 -0.65    shino at 0 1.3       sara at -1.13 -0.65 }
 
 section Dance {
   lead {
-    //       the line  | walking   | in the vee | walking  | changed over | walking | home again        |
-    steps { stand:4    | then:4    | go.vee:4   | then:4   | go.swap:4    | then:4  | go.home:2 then:2  | then:4 | }
-    arms  { down:4     | then:4    | side.up:2 down:2 | then:4 | fwd.up(20):2 down:2 | then:4 | side.up:2 side:2 | down:4 | }
-    face  { smile(40):4 | then:4    | smile:4    | smile(40):4 | smile:4   | smile(40):4 | smile.winkRight:2 smile:2 | smile(40):4 | }
+    //       the line   | walking | in the vee       | round the ring | a third round    | round again | two thirds round | walking | home again         |
+    steps { stand:4     | then:4  | go.vee:4         | then:4~ | :4   | go.turned.left(0.65m):4 | then:4~ | :4 | go.again.left(0.65m):4 | then:4 | go.home:2 then:2   | then:4 | }
+    arms  { down:4      | then:3 then:1 | side.up:2 down:2 | then:4 | then:3 then:1 | fwd.up(20):2 down:2 | then:4 | then:3 then:1 | side.up:2 down:2 | then:3 then:1 | side.up:2 side:2 | down:4 | }
+    face  { smile(40):4 | then:4  | smile:4          | smile(40):4~ | :4 | smile:4             | smile(40):4~ | :4 | smile:4           | smile(40):4 | smile.winkRight:2 smile:2 | smile(40):4 | }
   }
   wing {
-    steps { stand:4    | then:4    | go.vee:4   | then:4   | go.swap:4    | then:4  | go.home:2 then:2  | then:4 | }
-    arms  { down:4     | then:4    | side:2 down:2 | then:4 | side.up:2 down:2 | then:4 | side.up:2 side:2 | down:4 | }
-    face  { smile(40):4 | then:4    | smile:4    | smile(40):4 | smile:4   | smile(40):4 | smile:4       | smile(40):4 | }
+    steps { stand:4     | then:4  | go.vee:4         | then:4~ | :4   | go.turned.left(0.65m):4 | then:4~ | :4 | go.again.left(0.65m):4 | then:4 | go.home:2 then:2   | then:4 | }
+    arms  { down:4      | then:3 then:1 | side:2 down:2    | then:4 | then:3 then:1 | side.up:2 down:2    | then:4 | then:3 then:1 | side:2 down:2    | then:3 then:1 | side.up:2 side:2 | down:4 | }
+    face  { smile(40):4 | then:4  | smile:4          | smile(40):4~ | :4 | smile:4             | smile(40):4~ | :4 | smile:4           | smile(40):4 | smile:4            | smile(40):4 | }
   }
 }
 

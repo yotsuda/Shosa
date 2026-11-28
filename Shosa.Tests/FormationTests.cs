@@ -119,6 +119,35 @@ public class FormationTests
     }
 
     [Fact]
+    public void Ways_bowed_to_the_walkers_own_side_take_everybody_round_one_ring()
+    {
+        // Three on a ring, each to the next one's place by the same word: straight ways are a small triangle across the
+        // middle; bowed to each walker's own left they are one circle (DESIGN.md 140).
+        const string ring = "formation ring { alice at 0 1.3  bob at -1.13 -0.65  carol at 1.13 -0.65 }  formation next { alice at -1.13 -0.65  bob at 1.13 -0.65  carol at 0 1.3 }";
+        const string row = "go.ring:4 | then:4 | then:4 | go.next.left(0.65m):4 |";
+        var compilation = Trio(ring, row, row);
+        Assert.Empty(compilation.Diagnostics);
+        foreach (string dancer in new[] { "alice", "bob", "carol" })
+        {
+            for (double beat = 4; beat <= 12; beat += 0.5)
+            {
+                var (x, z) = Stands(compilation, dancer, beat);
+                Assert.InRange(Math.Sqrt(x * x + z * z), 0.95, 1.5);   // straight, the middle of the way is 0.65 m from the centre
+            }
+        }
+        Near((-1.13, -0.65), Stands(compilation, "alice", 12));
+        Assert.True(Nearest(compilation, "alice", "bob") > 1.5 && Nearest(compilation, "bob", "carol") > 1.5 && Nearest(compilation, "alice", "carol") > 1.5);
+
+        // The walker's own side, not the stage's: whichever way bob walks, his left and his right are opposite sides of it.
+        string over = "formation over { alice at 0 0  bob at 1.2 0  carol at 1.2 0.01 }";
+        var left = Trio(over, "stand:4 | then:4 |", "stand:4 | go.over.left(0.6m).steps(8):4 |");
+        var right = Trio(over, "stand:4 | then:4 |", "stand:4 | go.over.right(0.6m).steps(8):4 |");
+        Assert.InRange(Stands(left, "bob", 2).Z * Stands(right, "bob", 2).Z, -0.75 * 0.75, -0.4 * 0.4);
+        // One bow to a way.
+        Assert.Contains(Trio(over, "stand:4 | then:4 |", "stand:4 | go.over.left.front:4 |").Diagnostics, d => d.Code == "SH1012");
+    }
+
+    [Fact]
     public void One_who_walks_goes_round_one_who_stands()
     {
         // Alice stands on the line bob walks: he goes round her, and still ends on his place.

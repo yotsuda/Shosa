@@ -345,6 +345,8 @@ public static class Vocabulary
     [
         new("front", "The way there bows toward the audience, to pass in front of someone: 0.5 m at its middle, or `front(0.8m)`."),
         new("back", "The way there bows upstage, to pass behind someone: `back(0.8m)`."),
+        new("right", "The way there bows to the walker's own right as it walks (not the stage's): 0.5 m at its middle, or `right(0.8m)`. Everybody of a formation walking to the next place with the same word goes round one circle."),
+        new("left", "The way there bows to the walker's own left: `left(0.8m)`; the circle the other way round."),
         new("steps", "How many steps it takes, the last one closing the feet: `go.vee.steps(8)` (2 to 64). Not written: one a beat, or two a beat to a place far away."),
     ];
 

@@ -1679,7 +1679,13 @@ public static class GrammarDoc
               two dancers' middles where there is room for it). To say it yourself, bow the way:
               `go.swap.front` passes on the audience's side, `go.swap.back` upstage (0.5 m aside at the
               middle of the way, or `front(0.8m)`): "alice passes in front, bob behind". A way written so
-              is left as written, and the others go round it. A bowed way is a longer one: it needs the
+              is left as written, and the others go round it. **`go.NAME.right` and `.left` bow the way
+              to the walker's own side** (its right or left as it walks there, not the stage's;
+              `right(0.8m)`): when every dancer of a formation walks on to the next one's place with
+              the same word, they all go round ONE circle — three on a triangle, each to the next
+              corner, `go.turned.right(0.8m)` — where straight ways would cut across it as a small
+              triangle. The wider the ring and the bow, the rounder: give it 8 beats.
+              A bowed way is a longer one: it needs the
               time. Where two still meet, `check` says so (SH2007): bow one of them, or let them go at
               different times.
             - As the FIRST word of its row (`steps { go.vee:4 … }`) it is already made, as any first

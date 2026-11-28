@@ -3768,7 +3768,12 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                 {
                     switch (part.Text)
                     {
-                        case "front" or "back" when seg.Bow is null:
+                        case "right" or "left" when seg.Bow is null && seg.BowAside is null:
+                            if (Distance(part, 0.5, $"go.{named.Text}.{part.Text}(0.5m)") is not { } aside)
+                                return null;
+                            seg.BowAside = part.Text == "right" ? aside : -aside;
+                            break;
+                        case "front" or "back" when seg.Bow is null && seg.BowAside is null:
                             if (Distance(part, 0.5, $"go.{named.Text}.{part.Text}(0.5m)") is not { } bow)
                                 return null;
                             seg.Bow = part.Text == "front" ? bow : -bow;
@@ -3792,7 +3797,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                             break;
                         }
                         default:
-                            Error("SH1012", part.Word.Span, $"After the formation's name a 'go' takes front or back (the way there bows toward the audience or upstage, to pass someone: go.{named.Text}.front(0.5m)) and steps(N) (how many steps), each once.{Hint(part.Text, Vocabulary.GoWords.Select(w => w.Name))}");
+                            Error("SH1012", part.Word.Span, $"After the formation's name a 'go' takes front or back (the way there bows toward the audience or upstage, to pass someone: go.{named.Text}.front(0.5m)), or right or left (it bows to the walker's own right or left: go.{named.Text}.right(0.7m)), and steps(N) (how many steps), each once.{Hint(part.Text, Vocabulary.GoWords.Select(w => w.Name))}");
                             return null;
                     }
                 }

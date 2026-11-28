@@ -435,6 +435,9 @@ public sealed class Seg
     /// <summary>Go (`go.vee.front(0.5m)`): metres the way there bows toward the audience at its middle (negative: upstage), to pass someone; null: straight.</summary>
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public double? Bow { get; set; }
+    /// <summary>Go (`go.ring.right(0.7m)`): metres the way there bows to the walker's own right at its middle (negative: its left); null: not said. Not with <see cref="Bow"/>.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public double? BowAside { get; set; }
     /// <summary>Go (`go.vee.steps(8)`): how many steps it takes, the last one closing; null: one a beat.</summary>
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public int? Steps { get; set; }

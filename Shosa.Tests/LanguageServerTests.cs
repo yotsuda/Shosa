@@ -248,8 +248,8 @@ public class LanguageServerTests
         Assert.Empty(session.Complete("formation vee { ann at "));
         Assert.Contains("go", session.Complete("steps { "));
         Assert.Equal(new[] { "vee", "line", "home" }, session.Complete("stand:4 go."));
-        Assert.Equal(new[] { "front", "back", "steps" }, session.Complete("4 go.vee."));
-        Assert.Equal(new[] { "steps" }, session.Complete("go.vee.front.").Where(w => w is "front" or "back" or "steps"));
+        Assert.Equal(new[] { "front", "back", "right", "left", "steps" }, session.Complete("4 go.vee."));
+        Assert.Equal(new[] { "steps" }, session.Complete("go.vee.front."));
         Assert.Contains("ann at 0 1", session.Hover("vee:4"));
         Assert.Contains("toward the audience", session.Hover("front.steps"));
         Assert.StartsWith("formation ${1:line} {\n  ${2:ann} at", Snippet("formation"));
