@@ -210,7 +210,7 @@ move rainbowArc {
 // clapUp — 2 beats; arms. The arms up and open on the beat, a clap over the head on the next: two in a bar clap on 2 and 4 with the
 // audience, the last chorus, an instrumental the hall claps along to.
 move clapUp {
-  arms  { up.side(25).bent(30):1 up.across(13).bent(30):1@sharp!clap }
+  arms  { up.side(25).bent(30):1 up.across(16.5).bent(30):1@sharp!clap }
   hands { open:2 }
 }
 

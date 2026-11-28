@@ -393,7 +393,7 @@ move march {
 }
 
 // bounce — 4 beats; height only. Down on every beat, up on every "and": the groove under a held pose, a clap or a sway.
-// Stretch it to 8 for a long intro; it works under any `steps` row.
+// Stretch it to 8 for a long intro; it works under any `steps` row. Not squeezed: `bounce:2` is down on every half beat, and the knees shake (for two beats of it write the row: `height { { low(7cm):1/2 mid:1/2 } q }`).
 move bounce {
   height { { low(7cm):1/2 mid:1/2 } q q q }
 }
@@ -892,7 +892,7 @@ move rainbowArc {
 // clapUp — 2 beats; arms. The arms up and open on the beat, a clap over the head on the next: two in a bar clap on 2 and 4 with the
 // audience, the last chorus, an instrumental the hall claps along to.
 move clapUp {
-  arms  { up.side(25).bent(30):1 up.across(13).bent(30):1@sharp!clap }
+  arms  { up.side(25).bent(30):1 up.across(16.5).bent(30):1@sharp!clap }
   hands { open:2 }
 }
 

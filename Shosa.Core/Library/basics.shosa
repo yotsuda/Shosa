@@ -39,7 +39,7 @@ move march {
 }
 
 // bounce — 4 beats; height only. Down on every beat, up on every "and": the groove under a held pose, a clap or a sway.
-// Stretch it to 8 for a long intro; it works under any `steps` row.
+// Stretch it to 8 for a long intro; it works under any `steps` row. Not squeezed: `bounce:2` is down on every half beat, and the knees shake (for two beats of it write the row: `height { { low(7cm):1/2 mid:1/2 } q }`).
 move bounce {
   height { { low(7cm):1/2 mid:1/2 } q q q }
 }

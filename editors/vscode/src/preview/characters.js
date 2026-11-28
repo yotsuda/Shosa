@@ -13,7 +13,7 @@ import { elbowSwings, keepArmsOut, measureBody, refresh } from './clearance.js';
 import { createMicHands } from './mic.js';
 import { poseFingers } from './hands.js';
 import { headTouch, touchHead } from './touch.js';
-import { joinHands } from './join.js';
+import { joinHands, meetOwnHands } from './join.js';
 import { FACE, measureLids, setFace } from './face.js';
 import { clubCatching, gripHands, heldBy, palmAlong, palmsUp, penguinShares, styleShares } from './juggle.js';
 
@@ -781,7 +781,11 @@ export function createCharacters(scene, changed) {
       });
       // A hand in another dancer's hand (`b.rightHand`, `neighbor.hand`; DESIGN.md 134): the two characters' own hands
       // brought together. (A test page turns it off with globalThis.shosaNoJoin, to compare.)
-      if (!globalThis.shosaArmsAsSolved && !globalThis.shosaNoJoin) joinHands(dressed, figures, frame);
+      if (!globalThis.shosaArmsAsSolved && !globalThis.shosaNoJoin) {
+        joinHands(dressed, figures, frame);
+        // A dancer's own hands together where the figure's are (a clap, a heart): as close on the character.
+        meetOwnHands(dressed, figures, clip, frame);
+      }
       for (const rest of after) rest();
     },
 
