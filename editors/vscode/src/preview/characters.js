@@ -28,6 +28,31 @@ const CLUB_TOWARD_THUMB = 0.025;
 /** Takeouts' gripped ball: how much further toward the fingertips than before, metres (the user: 2 cm). */
 const GRIP_FURTHER = 0.02;
 
+/** Over how long, either side of a moment, where a figure "is standing" is taken, seconds: a step out and back within it is in one place. */
+const STANDING = 1.0;
+const standing = new WeakMap();   // a figure's data -> [x, z] per frame
+
+/**
+ * Where a figure is standing at each frame: the mean of its pelvis on the floor over STANDING seconds either side
+ * (the ends of the clip held on), so a step-touch or a sway is about one place and a walk carries the place along.
+ */
+function standingAt(data, clip, pelvis) {
+  let stands = standing.get(data);
+  if (stands && stands.length === data.frames.length) return stands;
+  const frames = data.frames, n = frames.length, half = Math.max(1, Math.round(STANDING * (clip.fps || 30)));
+  const sum = [[0, 0]];
+  for (let i = 0; i < n; i++) sum.push([sum[i][0] + frames[i][pelvis * 3], sum[i][1] + frames[i][pelvis * 3 + 2]]);
+  const first = frames[0], last = frames[n - 1];
+  stands = [];
+  for (let i = 0; i < n; i++) {
+    const from = i - half, to = i + half, a = Math.max(0, from), b = Math.min(n - 1, to), before = a - from, after = to - b;
+    stands.push([0, 1].map(j =>
+      (sum[b + 1][j] - sum[a][j] + before * first[pelvis * 3 + j * 2] + after * last[pelvis * 3 + j * 2]) / (2 * half + 1)));
+  }
+  standing.set(data, stands);
+  return stands;
+}
+
 export function createCharacters(scene, changed) {
   const loader = new GLTFLoader();
   loader.register(parser => new VRMLoaderPlugin(parser));
@@ -131,12 +156,18 @@ export function createCharacters(scene, changed) {
     if (hips && pelvis >= 0) {
       const p = frames[f0], q = frames[Math.min(frames.length - 1, f0 + 1)];
       // The pelvis's way is scaled to the character's legs (its steps are its own length, the feet do not slide),
-      // but from where the figure stands at the start of the clip: the dancer is where `at` puts it, in metres,
-      // whatever the character's size. The scene is scaled by `size`: the bone's position is in its units.
+      // but about where the figure is standing around that moment (standingAt), not about where it stood at the
+      // start of the clip: the dancer is where the dance puts it, in metres, whatever the character's size. Scaled
+      // about the start, a character with short legs walked 1.55 m to its place in a formation and stopped 0.22 m
+      // short of it, and its hand did not reach the hand it was to hold (DESIGN.md 137). On the way from one
+      // place to another its feet slide by what its steps are short; in one place they do not.
+      // The scene is scaled by `size`: the bone's position is in its units.
       const legs = entry.restHips * size / (clip.hipsHeight || 1);
-      const first = frames[0];
+      const stands = standingAt(data, clip, pelvis);
+      const g0 = stands[f0], g1 = stands[Math.min(stands.length - 1, f0 + 1)];
       const at = j => p[pelvis * 3 + j] + (q[pelvis * 3 + j] - p[pelvis * 3 + j]) * k;
-      const ground = j => first[pelvis * 3 + j] + (at(j) - first[pelvis * 3 + j]) * legs;
+      const stood = j => g0[j >> 1] + (g1[j >> 1] - g0[j >> 1]) * k;
+      const ground = j => stood(j) + (at(j) - stood(j)) * legs;
       hips.position.set(s * ground(0) / size, at(1) * legs / size, s * ground(2) / size);
     }
     // The arms out of the character's own body, which is not the figure's the turns were solved on (DESIGN.md 116).

@@ -178,6 +178,11 @@ public static class ChoreographyDoc
           from a shape near it, or give the way a short `then`: `skyPoint:7/2 then:1/2` arrives on the beat.
         - **A shape held needs `then`**: an arm or the height sets off for the next word as soon as it
           arrives, so `skyPoint:4 down` drifts down for four beats; `skyPoint:1 then:3 down` holds it.
+        - **Do not hold a shape that only prepares the next one.** Hands gathered before the chest, held a beat,
+          then thrown open (`arms { gathered:1 then:1/2 open:3/2 }`) reads as a freeze before the gesture. A
+          gesture that opens, offers or bows sets off at once and takes the time it has
+          (`arms { gathered:3/2 open:3/2 then:1 }`: opening from the first beat, open on beat 1.5, and held
+          THERE). The hold belongs after the picture, not before it; a wait before is for a hit (`@sharp`).
         - A pose that writes `height`, laid over a feet move in the same `body` row, wins over the move's
           height: put the pose's arms in an `arms` row instead (`arms { skyPoint:4 }`).
 
