@@ -38,6 +38,26 @@ function bring(arm, place, share) {
   arm.hand.updateMatrixWorld(true);
 }
 
+/** How far from its shoulder an arm's shared place may be, as a share of the arm: nearly straight, and the wrist SHORT of the place. */
+const REACH = 0.97 + SHORT;
+
+/** The place nearest `place` that both arms reach (each within REACH of its shoulder); if they cannot both, between the nearest each gets. */
+function within(place, a, b) {
+  const pull = (p, arm) => {
+    const from = p.clone().sub(arm.s), most = arm.length * REACH;
+    return from.length() > most ? arm.s.clone().addScaledVector(from.normalize(), most) : p;
+  };
+  let p = place;
+  for (let i = 0; i < 12; i++) {
+    const next = pull(pull(p, a), b);
+    if (next.distanceToSquared(p) < 1e-8) break;
+    p = next;
+  }
+  // (After the last pull it is within b's reach; if a's is still short of it, the two do not reach one place.)
+  const back = pull(p, a);
+  return back === p ? p : p.clone().lerp(back, 0.5);
+}
+
 /**
  * Brings together the hands the clip's figures join at a frame. `entries[i]` is figure i's character ({ vrm }), null
  * or without a vrm when it is drawn as sticks. Call when every character's bones are posed (and the arms kept out of
@@ -62,8 +82,11 @@ export function joinHands(entries, figures, frame) {
     const mine = armOf(entries[want.i].vrm, want.side), theirs = armOf(entries[want.j].vrm, want.their);
     if (!mine || !theirs) continue;
     if (back) {
-      // Both reach: half-way between the two wrists as the turns left them.
-      const place = mine.w.clone().lerp(theirs.w, 0.5);
+      // Both reach: half-way between the two wrists as the turns left them — or, where one of the two arms does not
+      // get there (a small character beside a tall one, their hands lifted above the heads: the small one's arm
+      // ended 0.17 m under the place, DESIGN.md 138), the nearest place both arms reach: the tall one's hand
+      // comes down to the small one's, as a grown-up's does to a child's.
+      const place = within(mine.w.clone().lerp(theirs.w, 0.5), mine, theirs);
       bring(mine, place, want.w);
       bring(theirs, place, back.w);
     } else {

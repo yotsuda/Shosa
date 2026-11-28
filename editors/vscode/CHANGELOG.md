@@ -12,7 +12,7 @@
 
 - **Fixed**: an arm sent between two places nearly opposite from the shoulder (from the belly of a bow to a hand held high, while the body rises) could jump from one way round to the other in a single frame, and `check` said "too fast" (SH2003) of a word that had time enough. The arm now goes one way.
 
-- **Fixed**: a character whose legs are shorter or longer than the figure's stood somewhere else than the dance put it once it had walked — short of its place in a formation, and too far from the hand it was to hold. A character now stands where the figure stands; its steps are still its own length where it dances in one place.
+- **Fixed**: a character whose legs are shorter or longer than the figure's stood somewhere else than the dance put it once it had walked — short of its place in a formation, and too far from the hand it was to hold. A character now stands where the figure stands; its steps are still its own length where it dances in one place. And two characters of different heights who lift their joined hands meet where both arms reach: the taller one's hand comes down to the smaller one's.
 
 ## 0.3.0 — 2026-11-27
 
