@@ -90,8 +90,8 @@ short ones) a step.
 - **Hand in hand** (two dancers or more, side by side, 0.6 to 1 m apart): `arms { neighbor.hand:2 then:6 }`
   takes the hands of whoever stands on each side, beside the hips, and holds them while the line
   sways or walks; `neighbor.hand.high` lifts the joined hands (the end of a last chorus, a curtain
-  call with a bow: `torso { up.fwd(40) }` under it). The ends of the line hold their free hand the
-  same way. One arm (`leftArm { neighbor.hand }`) leaves the other for a wave or a mic. A moment
+  call with a bow: `torso { up.fwd(40) }  head { fwd.down(40) }` under it). An end of the line has nobody on its outer
+  side: that arm hangs, and goes up open with the lifted hands. One arm (`leftArm { neighbor.hand }`) leaves the other for a wave or a mic. A moment
   for a bridge, a last chorus, the bow — let go again (`down`) before the next figure.
 - **Layers**: a dance is feet × arms × head × height × facing. Change one layer every two bars,
   two every four, all of them where a section changes. The same steps under new arms is a new
@@ -147,6 +147,9 @@ What trips a dance written with them (each met while they were made):
   from a shape near it, or give the way a short `then`: `skyPoint:7/2 then:1/2` arrives on the beat.
 - **A shape held needs `then`**: an arm or the height sets off for the next word as soon as it
   arrives, so `skyPoint:4 down` drifts down for four beats; `skyPoint:1 then:3 down` holds it.
+- **A bow takes the head with it.** `torso { up.fwd(40) }` alone leaves the head upright over a bowed
+  back, the neck bent back: write the head down by the same angle beside it
+  (`torso { up.fwd(40):1 then:1 up:2 }  head { fwd.down(40):1 then:1 fwd:2 }`).
 - **Do not hold a shape that only prepares the next one.** Hands gathered before the chest, held a beat,
   then thrown open (`arms { gathered:1 then:1/2 open:3/2 }`) reads as a freeze before the gesture. A
   gesture that opens, offers or bows sets off at once and takes the time it has
@@ -929,21 +932,23 @@ move heartBeat {
   hands { heart:2 }
 }
 
-// idolBow — 4 beats; torso, arms, face. The hands together in front, a deep bow on beat 1 with the eyes shut, held, and up again on
+// idolBow — 4 beats; torso, head, arms, face. The hands together in front, a deep bow on beat 1 with the eyes shut, held, and up again on
 // beat 3: "thank you", after the last pose, the end of an MC.
 move idolBow {
   torso { up:1 up.fwd(40):1 then:1 up:1 }
+  head  { fwd:1 fwd.down(40):1 then:1 fwd:1 }
   arms  { belly:4 }
   face  { smile(50):1 smile(40).closed:2 smile(50):1 }
 }
 
-// curtainCall — 8 beats; arms, torso, face. Hand in hand with whoever stands on each side (`neighbor.hand`): the hands taken beside
-// the hips on beat 1, lifted above the heads on beat 3 (palm to palm with the neighbour's, by themselves), a deep bow under them on beat 4, up again on beat 6 and the hands let go:
+// curtainCall — 8 beats; arms, torso, head, face. Hand in hand with whoever stands on each side (`neighbor.hand`): the hands taken beside
+// the hips on beat 1, lifted above the heads on beat 3 (palm to palm with the neighbour's, by themselves), a deep bow under them on beat 4 (the head goes down with the chest: a face kept up over a bowed back is a neck bent back), up again on beat 6 and the hands let go:
 // the whole line's thank-you after the last song. For dancers side by side, 0.6 to 1 m apart; an end of the line (or a dancer
-// alone) holds its free hand the same way.
+// alone) lets its free arm hang, and lifts it open with the others.
 move curtainCall {
   arms  { down:1 neighbor.hand:1 then:1 neighbor.hand.high:3 then:1 down:1 }
   torso { up:3 then:1 up.fwd(40):1 then:1 up:2 }
+  head  { fwd:3 then:1 fwd.down(40):1 then:1 fwd:2 }
   face  { smile(60):4 smile(40).closed:2 smile(60):2 }
 }
 

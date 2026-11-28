@@ -90,11 +90,12 @@ public class HoldingHandsTests
         // Beside the hips first, then above the heads; in the bow (beat 6) the hands are still joined (above).
         Assert.True(At(c, "bob", 2, Rig.LHand).Y < At(c, "bob", 2, Rig.Chest).Y - 0.2);
         Assert.True(At(c, "bob", 4, Rig.LHand).Y > At(c, "bob", 4, Rig.Head).Y);
-        // The ends of the line: the free hand where a neighbour's would meet it, as high as the joined ones and out to its side.
-        foreach (double beat in new[] { 2.0, 4 })
+        // The ends of the line have nobody to take on their outer side: that arm hangs (reaching where a hand would be, it held somebody invisible), and goes up with the lifted hands, open and out.
+        Assert.True(At(c, "alice", 2, Rig.RHand).Y < At(c, "alice", 2, Rig.Pelvis).Y && At(c, "alice", 2, Rig.RHand).X > At(c, "alice", 2, Rig.RShoulder).X - 0.12, "hangs");
+        foreach (double beat in new[] { 4.0 })
         {
             Vec3 free = At(c, "alice", beat, Rig.RHand), joined = At(c, "alice", beat, Rig.LHand), shoulder = At(c, "alice", beat, Rig.RShoulder);
-            Assert.Equal(joined.Y, free.Y, 2);
+            Assert.InRange(free.Y, joined.Y - 0.05, joined.Y + 0.2);
             Assert.True(free.X < shoulder.X - 0.1, "out to its own side");
         }
         Assert.True(Apart(c, "alice", Rig.LHand, "bob", Rig.RHand, 8) > 0.3, "let go");
@@ -232,8 +233,8 @@ public class HoldingHandsTests
         Assert.True(Palm(c, "bob", 3, 1).X > 0.9, $"bob's left palm {Palm(c, "bob", 3, 1)}");
         Assert.True(Palm(c, "carol", 3, -1).X < -0.9, $"carol's right palm {Palm(c, "carol", 3, -1)}");
         Assert.True(Palm(c, "bob", 3, -1).X < -0.9 && Palm(c, "alice", 3, 1).X > 0.9);
-        // The free hand of an end of the line is held the same way.
-        Assert.True(Palm(c, "alice", 3, -1).X < -0.9 && Palm(c, "carol", 3, 1).X > 0.9, $"the ends {Palm(c, "alice", 3, -1)} {Palm(c, "carol", 3, 1)}");
+        // The free hand of an end of the line has nobody to turn to (DESIGN.md 141): its arm is up and out, the palm as the arm has it.
+        Assert.True(At(c, "alice", 3, Rig.RHand).X < At(c, "alice", 3, Rig.RShoulder).X - 0.2 && At(c, "alice", 3, Rig.RHand).Y > At(c, "alice", 3, Rig.Head).Y, "the end's free arm");
         // Let go, the palm is the arm's again.
         Assert.True(Palm(c, "bob", 8, 1).X < 0, $"let go {Palm(c, "bob", 8, 1)}");
 

@@ -2,7 +2,7 @@
 // `neighbor.hand` in an arm's row is the hand of whoever stands next to the dancer on that arm's side, so one
 // role danced by the whole line says it: everybody takes both neighbours' hands, beside the hips. The hands
 // stay joined through the `then`s — while the line sways and walks, they go with the bodies — until the row's
-// next word takes the arms away. The two ends of the line hold their free hand as if a neighbour held it.
+// next word takes the arms away. The two ends of the line have nobody to take on their outer side: that arm hangs, and goes up, open, when the line lifts its hands.
 // (Two dancers of different roles can name the hand instead: `a { leftArm { b.rightHand.low } }`.)
 // The last two bars are `curtainCall` of shosa:idol: hands taken, lifted above the heads, a bow under them.
 title "Hand in Hand"

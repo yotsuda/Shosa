@@ -121,8 +121,8 @@ public static class ChoreographyDoc
         - **Hand in hand** (two dancers or more, side by side, 0.6 to 1 m apart): `arms { neighbor.hand:2 then:6 }`
           takes the hands of whoever stands on each side, beside the hips, and holds them while the line
           sways or walks; `neighbor.hand.high` lifts the joined hands (the end of a last chorus, a curtain
-          call with a bow: `torso { up.fwd(40) }` under it). The ends of the line hold their free hand the
-          same way. One arm (`leftArm { neighbor.hand }`) leaves the other for a wave or a mic. A moment
+          call with a bow: `torso { up.fwd(40) }  head { fwd.down(40) }` under it). An end of the line has nobody on its outer
+          side: that arm hangs, and goes up open with the lifted hands. One arm (`leftArm { neighbor.hand }`) leaves the other for a wave or a mic. A moment
           for a bridge, a last chorus, the bow — let go again (`down`) before the next figure.
         - **Layers**: a dance is feet × arms × head × height × facing. Change one layer every two bars,
           two every four, all of them where a section changes. The same steps under new arms is a new
@@ -178,6 +178,9 @@ public static class ChoreographyDoc
           from a shape near it, or give the way a short `then`: `skyPoint:7/2 then:1/2` arrives on the beat.
         - **A shape held needs `then`**: an arm or the height sets off for the next word as soon as it
           arrives, so `skyPoint:4 down` drifts down for four beats; `skyPoint:1 then:3 down` holds it.
+        - **A bow takes the head with it.** `torso { up.fwd(40) }` alone leaves the head upright over a bowed
+          back, the neck bent back: write the head down by the same angle beside it
+          (`torso { up.fwd(40):1 then:1 up:2 }  head { fwd.down(40):1 then:1 fwd:2 }`).
         - **Do not hold a shape that only prepares the next one.** Hands gathered before the chest, held a beat,
           then thrown open (`arms { gathered:1 then:1/2 open:3/2 }`) reads as a freeze before the gesture. A
           gesture that opens, offers or bows sets off at once and takes the time it has

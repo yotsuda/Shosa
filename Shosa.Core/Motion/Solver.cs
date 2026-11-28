@@ -1312,8 +1312,8 @@ internal sealed class FigureSolver
             Vec3 Room(Vec3 v) => left * v.X + Vec3.Up * v.Y + fwd * v.Z;
             return new Skeleton.HandTurn(Room(hand.Fingers), hand.FingersShare, Room(hand.Palm), hand.PalmShare, Meets(at == 0 ? 1 : -1));
         }
-        // The way to the dancer whose hand an arm's word holds, as long as the hand is there: an end of a line, with
-        // nobody on that side, as if somebody stood there.
+        // The way to the dancer whose hand an arm's word holds, as long as the hand is there (an end of a line, with
+        // nobody on that side: none).
         Vec3 Meets(int side)
         {
             var here = WeightAt(t);
@@ -1322,7 +1322,7 @@ internal sealed class FigureSolver
                 if (seg is not { Kind: SegKinds.Reach } || Vocabulary.HandSide(seg.Part, side, seg.Neighbor) == 0)
                     return default;
                 if (Aim(seg, side).Other is not { } other)
-                    return seg.Neighbor ? left * side : default;
+                    return default;   // nobody there: the palm as the arm has it
                 var to = other.WeightAt(t) - here;
                 to = new Vec3(to.X, 0, to.Z);
                 return to.Length < 1e-6 ? default : to.Normalized();
@@ -4051,8 +4051,8 @@ internal sealed class FigureSolver
         return new Vec3(middle.X, y, middle.Z);
     }
 
-    /// <summary>How far apart two who hold hands side by side are taken to stand, for the free hand of one with nobody on that side, metres.</summary>
-    private const double BesideApart = 0.8;
+    /// <summary>How far out from straight up the free arm of the end of a line is lifted with the joined hands (`neighbor.hand.high`, nobody on that side), radians.</summary>
+    private const double FreeHandOut = 35 * Math.PI / 180;
     /// <summary>A neighbour is within this of the dancer, metres, and no further before or behind than this many times as far to the side (60° off the side).</summary>
     private const double NeighborWithin = 2.5, NeighborOff = 1.75, NeighborAside = 0.25;
 
@@ -4313,10 +4313,13 @@ internal sealed class FigureSolver
             {
                 if (solver.Aim(seg, side) is ({ } other, var theirs))
                     return other.PlaceAt(seg.Part!, theirs, t, solver, seg.Level, side, seg.Neighbor) - (shoulder + lifted);
-                // `neighbor.hand` with nobody on that side (the ends of a line): the hand where a neighbour's would
-                // meet it, so the whole line's arms are one shape.
-                if (seg.Neighbor && seg.Part == "hand")
-                    return Meeting(shoulder + lifted, shoulder + lifted + c.Left * (side * (BesideApart - 2 * Rig.ShoulderHalf)), seg.Level ?? -1) - (shoulder + lifted);
+                // `neighbor.hand` with nobody on that side (the ends of a line): there is no hand to take, and the arm
+                // is as an arm nobody wrote (it hangs, and swings in a walk). Reaching where a neighbour's hand would be,
+                // it took the hand of somebody invisible (the user, DESIGN.md 141). Lifted above the heads with the
+                // line (`neighbor.hand.high`) the free arm goes up too, open and out: a line's ends do (and not to
+                // somebody who is not there).
+                if (seg.Neighbor && seg.Part == "hand" && seg.Level > 0)
+                    return (c.Left * (side * Math.Sin(FreeHandOut)) + Vec3.Up * Math.Cos(FreeHandOut)) * (Rig.Arm * 0.97);
                 return Offset(null);
             }
             if (seg.Kind == SegKinds.Anchor)

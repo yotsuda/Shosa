@@ -273,7 +273,7 @@ public static class Vocabulary
     /// </summary>
     public const string Neighbor = "neighbor";
 
-    public static readonly Word NeighborWord = new(Neighbor, "Whoever stands next to the dancer on this arm's side, of any role: `neighbor.hand` (hand in hand, beside the hips; `.mid`, `.high`), `neighbor.shoulder`. With nobody on that side, the hand goes where a neighbour's would meet it.");
+    public static readonly Word NeighborWord = new(Neighbor, "Whoever stands next to the dancer on this arm's side, of any role: `neighbor.hand` (hand in hand, beside the hips; `.mid`, `.high`), `neighbor.shoulder`. With nobody on that side the arm hangs (`.high`: it goes up, open).");
 
     /// <summary>Places on the neighbour: `neighbor.hand`, `neighbor.shoulder`.</summary>
     public static readonly Word[] NeighborParts =

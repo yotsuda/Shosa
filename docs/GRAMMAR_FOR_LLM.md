@@ -776,8 +776,8 @@ hands of both neighbours beside the hips, the line lifts them above the heads, a
 - Unwritten, the neighbours' hands meet beside the hips (`.low`); `.mid` and `.high` as above.
   The hand meets a neighbour's that reaches back by `neighbor.hand` too, or by this dancer's role
   and hand (`a.leftHand`): either way of naming it is the same hand.
-- **With nobody on that side (the two ends of a line) the hand goes where a neighbour's would
-  meet it**, so the line's arms are one shape from end to end and nothing is said. One arm only
+- **With nobody on that side (the two ends of a line) there is no hand to take**: the arm hangs as an
+  arm nobody wrote (and swings in a walk); with `.high` it goes up too, open and out, as the ends of a line lifting its hands do. Nothing is said. One arm only
   (`leftArm { neighbor.hand }`) when only that side is meant.
 - Who the neighbour is is found once, when the word arrives, and kept while it holds: walk to
   the formation first (`go.line`), then take hands.
