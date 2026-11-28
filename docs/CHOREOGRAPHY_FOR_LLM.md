@@ -930,13 +930,12 @@ move idolBow {
   face  { smile(50):1 smile(40).closed:2 smile(50):1 }
 }
 
-// curtainCall — 8 beats; arms, hands, torso, face. Hand in hand with whoever stands on each side (`neighbor.hand`): the hands taken beside
-// the hips on beat 1, lifted above the heads on beat 3 with the palms open to the front, a deep bow under them on beat 4, up again on beat 6 and the hands let go:
+// curtainCall — 8 beats; arms, torso, face. Hand in hand with whoever stands on each side (`neighbor.hand`): the hands taken beside
+// the hips on beat 1, lifted above the heads on beat 3 (palm to palm with the neighbour's, by themselves), a deep bow under them on beat 4, up again on beat 6 and the hands let go:
 // the whole line's thank-you after the last song. For dancers side by side, 0.6 to 1 m apart; an end of the line (or a dancer
 // alone) holds its free hand the same way.
 move curtainCall {
   arms  { down:1 neighbor.hand:1 then:1 neighbor.hand.high:3 then:1 down:1 }
-  hands { relaxed:2 then:1 open.fingers(up).palm(fwd):3 then:1 relaxed:1 }
   torso { up:3 then:1 up.fwd(40):1 then:1 up:2 }
   face  { smile(60):4 smile(40).closed:2 smile(60):2 }
 }

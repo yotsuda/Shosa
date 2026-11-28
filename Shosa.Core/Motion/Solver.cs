@@ -302,8 +302,12 @@ public static class Solver
         // The hands, where a row writes them (DESIGN.md 126): the fingers a row of the clip, the wrists in the rotations.
         Skeleton.HandTurn leftHand = default, rightHand = default;
         float[]? hands = null;
-        if (solver.WritesHands)
+        if (solver.WritesHands || solver.JoinsHands)
+        {
             (leftHand, rightHand, hands) = solver.HandsAt(t);
+            if (!solver.WritesHands)
+                hands = null;
+        }
         Skeleton.Rotations(pose, rotations, leftHand, rightHand, problems.HipsUp);
         var turns = new float[rotations.Length * 4];
         for (int b = 0; b < rotations.Length; b++)
@@ -1239,6 +1243,9 @@ internal sealed class FigureSolver
     /// <summary>Whether a row writes either hand: only then has the clip fingers.</summary>
     public bool WritesHands => _leftHand.Count > 0 || _rightHand.Count > 0;
 
+    /// <summary>Whether an arm's word takes another dancer's hand: such a hand turns to that dancer (<see cref="HandsAt"/>).</summary>
+    public bool JoinsHands => _leftArm.Concat(_rightArm).Any(s => s.Kind == SegKinds.Reach && s.Part is "hand" or "leftHand" or "rightHand");
+
     /// <summary>A hand at a moment: how far each finger is closed (degrees, 0..90) and spread, and where its row turns it (in the dancer's frame), each as much as it is said.</summary>
     private readonly record struct HandState(double Thumb, double Index, double Middle, double Ring, double Little, double Spread,
         Vec3 Fingers, double FingersShare, Vec3 Palm, double PalmShare);
@@ -1303,7 +1310,23 @@ internal sealed class FigureSolver
             fingers[at + 4] = (float)Math.Round(hand.Little / 90, 4);
             fingers[at + 5] = (float)Math.Round(hand.Spread, 3);
             Vec3 Room(Vec3 v) => left * v.X + Vec3.Up * v.Y + fwd * v.Z;
-            return new Skeleton.HandTurn(Room(hand.Fingers), hand.FingersShare, Room(hand.Palm), hand.PalmShare);
+            return new Skeleton.HandTurn(Room(hand.Fingers), hand.FingersShare, Room(hand.Palm), hand.PalmShare, Meets(at == 0 ? 1 : -1));
+        }
+        // The way to the dancer whose hand an arm's word holds, as long as the hand is there: an end of a line, with
+        // nobody on that side, as if somebody stood there.
+        Vec3 Meets(int side)
+        {
+            var here = WeightAt(t);
+            return Chain<Vec3>(side == 1 ? _leftArm : _rightArm, t, seg =>
+            {
+                if (seg is not { Kind: SegKinds.Reach } || Vocabulary.HandSide(seg.Part, side, seg.Neighbor) == 0)
+                    return default;
+                if (Aim(seg, side).Other is not { } other)
+                    return seg.Neighbor ? left * side : default;
+                var to = other.WeightAt(t) - here;
+                to = new Vec3(to.X, 0, to.Z);
+                return to.Length < 1e-6 ? default : to.Normalized();
+            }, (a, b, e) => a + (b - a) * e);
         }
         var leftTurn = One(_leftHand, 0);
         var rightTurn = One(_rightHand, 6);

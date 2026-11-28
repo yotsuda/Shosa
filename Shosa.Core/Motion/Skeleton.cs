@@ -160,9 +160,10 @@ public static class Skeleton
     /// How a hand's row turns the hand on its wrist (`fingers(up)`, `palm(fwd)`), in the room: where the fingers point
     /// and the palm faces, and how much each is said (0 not at all: as the arm has it; 1 wholly, between two words in between).
     /// </summary>
-    public readonly record struct HandTurn(Vec3 Fingers, double FingersShare, Vec3 Palm, double PalmShare)
+    /// <param name="Meet">The way to the dancer whose hand this hand is in (DESIGN.md 135), as long as the hand is there (0..1); zero for none.</param>
+    public readonly record struct HandTurn(Vec3 Fingers, double FingersShare, Vec3 Palm, double PalmShare, Vec3 Meet = default)
     {
-        public bool Says => FingersShare > 0 || PalmShare > 0;
+        public bool Says => FingersShare > 0 || PalmShare > 0 || Meet.Length > 1e-6;
     }
 
     /// <summary>
@@ -320,6 +321,22 @@ public static class Skeleton
                 var palm = hand.Rotate(-Vec3.Up);
                 palm -= fingers * palm.Dot(fingers);
                 palm = palm.Length < 1e-6 ? hand.Rotate(Z) : palm.Normalized();
+                // A hand in another dancer's hand faces that dancer, palm to palm (DESIGN.md 135), where its row does not
+                // say the palm: as far as it is there, and only as far as it already faces that way (hands lifted between
+                // two side by side: all the way; hands held beside the hips, the palms to the thighs: not at all). From a
+                // palm turned away either way round is as good, and the choice would flip from one frame to the next.
+                double meets = wrist.Meet.Length * (1 - wrist.PalmShare);
+                if (meets > 1e-6)
+                {
+                    var want = wrist.Meet - fingers * wrist.Meet.Dot(fingers);
+                    if (want.Length > 1e-6)
+                    {
+                        want = want.Normalized();
+                        double facing = Math.Max(0, palm.Dot(want));
+                        double angle = Math.Atan2(fingers.Dot(palm.Cross(want)), palm.Dot(want)) * Math.Min(1, meets) * Smooth(facing);
+                        palm = palm * Math.Cos(angle) + fingers.Cross(palm) * Math.Sin(angle);
+                    }
+                }
                 if (wrist.PalmShare > 0)
                 {
                     var want = wrist.Palm - fingers * wrist.Palm.Dot(fingers);

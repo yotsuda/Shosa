@@ -194,4 +194,39 @@ public class HoldingHandsTests
         Assert.NotNull(ShosaCompilation.Compile(Pair("rightArm { b.hand:2 }", "rightArm { a.hand:2 }", "at -0.5 0 facing stageLeft", "at 0.5 0 facing stageRight")).Clip.Figures[0].Join);
         Assert.Null(ShosaCompilation.Compile(Pair("rightArm { b.chest:2 }", "rightArm { down:2 }", "at -0.25 0 facing stageLeft", "at 0.25 0 facing stageRight")).Clip.Figures[0].Join);
     }
+
+    /// <summary>Where a hand's palm faces, in the room.</summary>
+    private static Vec3 Palm(ShosaCompilation compilation, string dancer, double beat, int side)
+    {
+        var figure = compilation.Clip.Figures.Single(f => f.Name == dancer);
+        int frame = compilation.Clip.FrameOfBeat(beat);
+        var world = new Quat[Skeleton.Bones.Length];
+        for (int b = 0; b < world.Length; b++)
+            world[b] = Skeleton.Bones[b].Parent < 0 ? figure.Rotation(frame, b) : world[Skeleton.Bones[b].Parent] * figure.Rotation(frame, b);
+        return world[side == 1 ? Skeleton.LHand : Skeleton.RHand].Rotate(-Vec3.Up);
+    }
+
+    [Fact]
+    public void Lifted_hands_face_the_neighbour_palm_to_palm_by_themselves()
+    {
+        // No `hands` row: the hand that is in a neighbour's turns to that neighbour (DESIGN.md 135).
+        var c = ShosaCompilation.Compile(Line("arms { down:2 neighbor.hand.high:2 then:2 down:2 }"));
+        Assert.Empty(c.Diagnostics);
+        // (A dancer's left is +x: bob's left hand is in carol's right.)
+        Assert.True(Palm(c, "bob", 3, 1).X > 0.9, $"bob's left palm {Palm(c, "bob", 3, 1)}");
+        Assert.True(Palm(c, "carol", 3, -1).X < -0.9, $"carol's right palm {Palm(c, "carol", 3, -1)}");
+        Assert.True(Palm(c, "bob", 3, -1).X < -0.9 && Palm(c, "alice", 3, 1).X > 0.9);
+        // The free hand of an end of the line is held the same way.
+        Assert.True(Palm(c, "alice", 3, -1).X < -0.9 && Palm(c, "carol", 3, 1).X > 0.9, $"the ends {Palm(c, "alice", 3, -1)} {Palm(c, "carol", 3, 1)}");
+        // Let go, the palm is the arm's again.
+        Assert.True(Palm(c, "bob", 8, 1).X < 0, $"let go {Palm(c, "bob", 8, 1)}");
+
+        // The row's own palm wins.
+        var said = ShosaCompilation.Compile(Line("arms { down:2 neighbor.hand.high:2 then:4 } hands { open.palm(fwd):4 then:4 }"));
+        Assert.True(Palm(said, "bob", 3, 1).Z > 0.9, $"said {Palm(said, "bob", 3, 1)}");
+
+        // Hands held beside the hips are not turned out: the palm stays as the arm has it, at every moment.
+        var low = ShosaCompilation.Compile(Line("arms { down:2 neighbor.hand:2 then:4 }"));
+        Assert.True(Palm(low, "bob", 3, 1).X < 0.3, $"low {Palm(low, "bob", 3, 1)}");
+    }
 }

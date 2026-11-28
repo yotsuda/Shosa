@@ -17,6 +17,7 @@
 - **測る・撮る道具** (git に入らない `out\hands\`): `show.ps1 FILE 2,4,6` (`check`、拍ごとの両手の場所、`join` の一覧)、撮るのは `.\out\pv\run-shots.ps1 -Shosa samples\holding-hands.shosa -Beats '3,6,10,19,20.5,23' -Out out\hands\shots-sample -Cam '0,1.3,3.6' -At '0,1.0,0.4'` (`-Query '&noJoin=1'` で寄せる前、`'&joinDebug=1'` で手首の場所が `server.log` に)。**ハーネスは `dist\preview.js` を読む: プレビューを直したら先に `editors\vscode` で `npm run build`。**
 - **書いて分かった**: 段の最初の語は「もう済んだ」なので、`leftArm { b.rightHand.low:2 … }` と書き出すと 0 拍目からつないでいる (取りに行くのを見せるなら `down:2` を前に)。`then` は前の語の長さだけ保ち、自分の長さで次へ移る。
 - **まだ** (134.5): 指は握らない、書き出し (`.vrma`・glTF・BVH) は寄せない (体格の違うキャラクターでは他のビューアーで手が離れる)、腰に手・ひじを組む・輪になる、は無い。
+- **ユーザーが見本を見て 2 つ (同じ日、DESIGN.md 135)**: (1) **つないだ手は相手へ向く**。「手を挙げるところは手のひらを隣の figure へ」「距離を合わせるだけで十分なのか」→ 手のひらの向きをソルバーに入れた (`Skeleton.HandTurn.Meet`、`HandsAt` の `Meets`、`JoinsHands`)。もう向いている分だけ回すので、上げた手は合い、腰の横の手は腕のまま。`hands` の行が言えば行が勝つ。型に `hands { …palm(side) }` を書く手は取らない (途中で手の骨が 1 コマ 100 度回る)。(2) `face` の段の名前の色付けが漏れていた → tmLanguage に足した。**「外側」を客席側と読み違えて 1 往復した: 向きの言葉は、誰から見てかを先に確かめる。**
 - **次の一手**: アイドルの振付の穴 4 つ (表情・隊形・定番の語彙・手をつなぐ) は全部入った。次は、**ユーザーが 4 つの見本 (`face`・`formation`・`idol`・`holding-hands`) を見た結果で直す**。その後の候補 (ユーザーに聞く): Add a Dance… で AI が新しい語 (型 `idol`・`formation`・`face`・`neighbor`) を実際に使うかの書き手の試験、0.4.0 のリリース (CHANGELOG の Unreleased に 4 つ)、曲 → 歌 → 踊り → 動画の導線を実機で通す (第 2〜4 段はユーザーの実機がまだ)。
 
 ## 定番の振りの語彙: 型 `shosa:idol` (2026-11-28 の 3 つ目のセッション、DESIGN.md 133)

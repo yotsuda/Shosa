@@ -775,6 +775,10 @@ public static class GrammarDoc
               the formation first (`go.line`), then take hands.
             - Hand in hand, two stand 0.6 to 1.1 m apart (the middles of their feet; at 1.1 m the arms are
               straight); farther is SH2006.
+            - **A hand in another's turns to it by itself, palm to palm**: lifted hands (`.mid`, `.high`, a
+              high five) face the other dancer; hands held beside the hips stay as the arm has them, the
+              palms to the thighs. No `hands` row is needed for it, and a row that says the palm
+              (`palm(fwd)`) wins.
             - A character's own arms are brought together in the preview (a child beside a grown-up still
               holds hands); the fingers are as the `hands` row says, or relaxed.
 
