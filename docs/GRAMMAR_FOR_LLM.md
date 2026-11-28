@@ -1169,6 +1169,11 @@ face { neutral:4 | relaxed.closed:4 | sad(40):4 }   // at rest, eyes shut in a s
 - The mouth of a dancer who sings (`sings PART`) goes on singing under any look.
 - The face's words are the face's row's only, and not reserved. A pose may hold a face
   (`pose cheer { arms { up } face { smile } }`), and so may a move.
+- **A `face` row beside `body` wins over the face a pose or a move brings**, as every narrower row does:
+  where the row has a word, the wink of `body { peaceEye }` is not seen. Leave the pose its face with
+  `skip`, and write the look again after it, for a pose's face stays as any face does (its wink too):
+  `body { bounce:4 | then:2 peaceEye:2 | bounce:4 | }  face { smile(50):4 | skip:4 | smile(50):4 | }`.
+  A row of looks written through every bar hides every face the vocabulary files wrote.
 - The figure of sticks has no face: the preview shows it on a character, and a `.vrma` keys VRM's
   expressions (`happy`, `angry`, `sad`, `relaxed`, `surprised`, `blinkLeft`, `blinkRight`). What a look
   is, exactly, is the character's own; `.glb` and `.bvh` have no face.

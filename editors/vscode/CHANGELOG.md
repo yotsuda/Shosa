@@ -10,6 +10,8 @@
 
 - **The face**: a `face` row gives a character a look and its eyes — `face { smile(50):4 | smile(60).winkRight:1 smile(50):3 | }` — with `smile`, `sad`, `angry`, `relaxed`, `surprised`, `neutral`, and `closed`, `winkLeft`, `winkRight`; a bracket is how much, in percent. It is there on its beat and changes in a moment. The eyes blink by themselves, written or not. The preview and its MP4 show it on a VRM character (a wink on top of a smile shuts the eye no further than the smile leaves of it, measured on each character), and the `.vrma` export keys VRM's expressions. The row's name is coloured as the other rows' are. `samples/face.shosa` shows it.
 
+- **Fixed**: an arm sent between two places nearly opposite from the shoulder (from the belly of a bow to a hand held high, while the body rises) could jump from one way round to the other in a single frame, and `check` said "too fast" (SH2003) of a word that had time enough. The arm now goes one way.
+
 ## 0.3.0 — 2026-11-27
 
 The first release, for Windows (x64): **Shosa 3D Choreographer** in the Extensions view and the Marketplace; its commands, settings and files are `shosa`. What a dance does with a song's words (the mouth, `shosa song`'s words, Add a Dance… placing moves on them) and a silent recording need the Lily# extension 0.18.0 or later.

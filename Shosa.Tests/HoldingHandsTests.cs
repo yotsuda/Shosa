@@ -101,6 +101,22 @@ public class HoldingHandsTests
     }
 
     [Fact]
+    public void A_hand_sent_from_the_belly_of_a_bow_to_hands_held_high_goes_one_way()
+    {
+        // The body rises from the bow while the arm is on its way, and the two ends of the way were nearly opposite:
+        // behind the back until they were 0.98 opposite, before the chest from the next frame (0.7 m in a frame, SH2003
+        // "21 m/s" on a word with a whole beat; a writer's test met it, DESIGN.md 136).
+        const string torso = " torso { up:1/2 then:1/2 up.fwd(35):1 then:1/2 up:3/2 }";
+        var c = ShosaCompilation.Compile(Pair(
+            "leftArm { belly:3/2 then:1 neighbor.hand.high:3/2 }" + torso, "rightArm { belly:3/2 then:1 neighbor.hand.high:3/2 }" + torso, "at -0.45 0", "at 0.45 0"));
+        Assert.Empty(c.Diagnostics);
+        var ann = c.Clip.Figures.Single(f => f.Name == "ann");
+        for (int frame = c.Clip.FrameOfBeat(1.5) + 1; frame <= c.Clip.FrameOfBeat(2.5); frame++)
+            Assert.True((ann.Joint(frame, Rig.LHand) - ann.Joint(frame - 1, Rig.LHand)).Length * c.Clip.Fps < 7, $"the hand at frame {frame}");
+        Assert.True(Apart(c, "ann", Rig.LHand, "ben", Rig.RHand, 2.5) < 0.01);
+    }
+
+    [Fact]
     public void A_neighbours_hand_and_a_hand_named_by_its_role_are_the_same_hand()
     {
         // Neither says a height: beside the hips, as neighbours' hands meet.

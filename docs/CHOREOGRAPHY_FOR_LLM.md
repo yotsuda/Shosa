@@ -75,7 +75,9 @@ short ones) a step.
   (`face { smile(50) }`) already reads better than a blank face. Then accents: a wink on a pose to the
   audience (`smile(50).winkRight:1/2`, the look again after it), `surprised` on a "eh?!", the full
   `smile` on the last pose, `sad(40)` or `relaxed.closed` in a quiet bridge. A few in a song, not every
-  bar. The eyes blink by themselves.
+  bar. The eyes blink by themselves. The poses of `shosa:idol` bring their own faces (the wink of
+  `peaceEye`): a `face` row hides them where it has a word, so write `skip` under such a pose and the
+  look again after it (`face { smile(50):4 | skip:4 | smile(50):4 | }`) — after it, or the wink stays.
 - **Formations** (two dancers or more): where everybody stands is a layer of its own, and a change of
   it is what an audience sees first. Write the pictures once (`formation line { … }`,
   `formation vee { … }`: each dancer `at X Z`) and walk into them with one word of `steps`, the same

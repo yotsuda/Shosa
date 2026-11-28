@@ -2722,6 +2722,9 @@ internal sealed class FigureSolver
         return ops.Blend(soFar, ops.Target(seg), e);
     }
 
+    /// <summary>Two directions whose cosine is under minus this begin to go round by the front (all of it at -0.98).</summary>
+    private const double OppositeFrom = 0.93;
+
     /// <summary>From one offset to another: the direction swings, the length changes evenly.</summary>
     private static Vec3 Blend(Vec3 a, Vec3 b, double e, Vec3 via)
     {
@@ -2731,10 +2734,21 @@ internal sealed class FigureSolver
             return b;
         double lengthA = a.Length, lengthB = b.Length;
         Vec3 from = a.Normalized(), to = b.Normalized(), direction;
-        if (from.Dot(to) < -0.98 && Math.Abs(from.Dot(via)) < 0.9)
+        // Two that are opposite go round by `via` (the front), not the shorter way, which is any way. The nearer to
+        // opposite, the more of that way: a line between the two ways was crossed while the ends themselves moved
+        // (the arm of a body rising from a bow, sent from the belly to a hand held high: the way behind the back until
+        // the ends were 0.98 opposite, and the way before the chest from the next frame, 0.7 m off; DESIGN.md 136).
+        double opposite = Math.Abs(from.Dot(via)) < 0.9 ? Math.Clamp((-OppositeFrom - from.Dot(to)) / (0.98 - OppositeFrom), 0, 1) : 0;
+        if (opposite >= 1)
             direction = e < 0.5 ? Vec3.Slerp(from, via, e * 2) : Vec3.Slerp(via, to, (e - 0.5) * 2);
-        else
+        else if (opposite <= 0)
             direction = Vec3.Slerp(from, to, e);
+        else
+        {
+            var round = e < 0.5 ? Vec3.Slerp(from, via, e * 2) : Vec3.Slerp(via, to, (e - 0.5) * 2);
+            var mixed = Vec3.Lerp(Vec3.Slerp(from, to, e), round, opposite * opposite * (3 - 2 * opposite));
+            direction = mixed.Length > 1e-6 ? mixed.Normalized() : round;
+        }
         return direction * (lengthA + (lengthB - lengthA) * e);
     }
 
