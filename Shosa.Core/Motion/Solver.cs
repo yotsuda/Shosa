@@ -4019,7 +4019,10 @@ internal sealed class FigureSolver
         {
             var mine = trunk.Shoulder(side) + lifted;
             var theirs = asker.TrunkAt(t) is var other ? other.Shoulder(asking) + Vec3.Up * other.C.Float : mine;
-            return Meeting(mine, theirs, level ?? (beside || held is { Neighbor: true } ? -1 : null));
+            // Lifted above the heads, the place leans as the two chests do: under a bow the joined hands go forward
+            // with the backs, the arms in one line with them (upright over a bowed back they were bent back at the shoulder).
+            var leans = asker.TrunkAt(t).C.TorsoUp + trunk.C.TorsoUp;
+            return Meeting(mine, theirs, level ?? (beside || held is { Neighbor: true } ? -1 : null), leans.Length > 1e-6 ? leans.Normalized() : null);
         }
         return Pose(t, out _)[side == 1 ? Rig.LHand : Rig.RHand];
     }
@@ -4038,7 +4041,7 @@ internal sealed class FigureSolver
         seg is { Kind: SegKinds.Reach } && Vocabulary.HandSide(seg.Part, side, seg.Neighbor) == theirs && Aim(seg, side).Other == other;
 
     /// <summary>Where two hands that reach for each other meet: half-way between the two shoulders; with a level (b.hand.high) above the heads, at the shoulders or by the hips, and unwritten at the height of a handshake.</summary>
-    private static Vec3 Meeting(Vec3 mine, Vec3 theirs, double? level)
+    private static Vec3 Meeting(Vec3 mine, Vec3 theirs, double? level, Vec3? lean = null)
     {
         var middle = (mine + theirs) * 0.5;
         double y = level switch
@@ -4048,6 +4051,12 @@ internal sealed class FigureSolver
             < 0 => Math.Min(mine.Y, theirs.Y) - 0.45,
             _ => Math.Min(mine.Y, theirs.Y) - 0.25,
         };
+        // (Above the heads: up along the chests, which is straight up when they stand.)
+        if (level > 0 && lean is { } up)
+        {
+            var from = new Vec3(middle.X, Math.Max(mine.Y, theirs.Y), middle.Z);
+            return from + up * 0.40;
+        }
         return new Vec3(middle.X, y, middle.Z);
     }
 
@@ -4319,7 +4328,7 @@ internal sealed class FigureSolver
                 // line (`neighbor.hand.high`) the free arm goes up too, open and out: a line's ends do (and not to
                 // somebody who is not there).
                 if (seg.Neighbor && seg.Part == "hand" && seg.Level > 0)
-                    return (c.Left * (side * Math.Sin(FreeHandOut)) + Vec3.Up * Math.Cos(FreeHandOut)) * (Rig.Arm * 0.97);
+                    return (c.Left * (side * Math.Sin(FreeHandOut)) + torsoUp * Math.Cos(FreeHandOut)) * (Rig.Arm * 0.97);   // with the chest: in a bow the lifted arm leans as the back does
                 return Offset(null);
             }
             if (seg.Kind == SegKinds.Anchor)
