@@ -461,6 +461,10 @@ public sealed class Seg
     /// <summary>Face (`smile(60).winkRight`): how much of each of <see cref="Vocabulary.FaceShapes"/> the face has, 0..1.</summary>
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public double[]? Face { get; set; }
+    /// <summary>Face (`smile(60).winkRight`, `blink`; DESIGN.md 142): the eyes that shut on the word's beat and open again by themselves, how far each (the dancer's left, its right), 0..1; null: none.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public double[]? Wink { get; set; }
+
 
     /// <summary>Juggle: the siteswap as written (`531`, `(4,2x)*`).</summary>
     public string? Pattern { get; set; }

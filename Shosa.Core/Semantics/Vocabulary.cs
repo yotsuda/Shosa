@@ -29,7 +29,7 @@ public static class Vocabulary
         new("hands", "Both hands at once, mirrored: the shape of the fingers (`fist`, `open`, `point`, `peace` …), and which way the fingers and the palm face (`open.fingers(up).palm(fwd)`)."),
         new("leftHand", "The left hand: the shape of its fingers, and which way they and the palm face."),
         new("rightHand", "The right hand."),
-        new("face", "The face of a character: its look (`smile`, `sad`, `angry`, `relaxed`, `surprised`, `neutral`), and the eyes (`closed`, `winkLeft`, `winkRight`): `face { smile:4 | smile.winkRight:1 smile:3 | }`. It changes in a moment just before its beat. The eyes blink by themselves, written or not."),
+        new("face", "The face of a character: its look (`smile`, `sad`, `angry`, `relaxed`, `surprised`, `neutral`), and the eyes (`closed` stays shut, `winkLeft` and `winkRight` shut and open again): `face { smile:4 | smile.winkRight:4 | }`. It changes in a moment just before its beat. The eyes blink by themselves, written or not."),
         new("quality", "How the parts go to their words from here on, for every word that does not say so itself: the names of the `@` marks, without the `@`. `quality { through }` passes every word without stopping, one flowing line (as `@through` on each); `quality { sharp }` hits every word at the last moment (as `@sharp` on each); `smooth` is the default again. Timed like any row (`quality { through:8 | sharp:4 smooth:4 | }`), and kept until the next word of the row. A word's own `@` wins. Not for `steps`."),
         new("juggle", "What the hands throw (`juggles balls` on the dancer line), in siteswap as jugglers write it: `juggle { every 1/2  3:4 | 531531 3 3 | }`. A word with no length is its throws as written, one throwing beat each (`531` once through); with a length, the pattern over and over for that long (`3:4`); `every` says how many beats from one throw to the next. While a pattern is thrown, the arms are the juggle row's."),
     ];
@@ -206,9 +206,13 @@ public static class Vocabulary
     /// <summary>The eyes of a face, after its look or alone (`smile.winkRight`, `closed`): how far shut, in percent in a bracket (`closed(50)`).</summary>
     public static readonly Word[] FaceEyes =
     [
-        new("closed", "Both eyes shut (`closed(50)`: half shut, sleepy). Alone or after a look: `relaxed.closed`."),
-        new("winkLeft", "The dancer's left eye shut, the right open: a wink. Alone or after a look: `smile(60).winkLeft`."),
-        new("winkRight", "The dancer's right eye shut: `smile(60).winkRight`."),
+        new("open", "Both eyes open, and they stay so: what a word that says no eyes is too (`smile(50).open` is `smile(50)`), written to say it."),
+        new("closed", "Both eyes shut, and they STAY shut until a word opens them (`closed(50)`: half shut, sleepy). Alone or after a look: `relaxed.closed`."),
+        new("closedLeft", "The dancer's left eye shut and staying shut, the right open: a wink held (a photo pose)."),
+        new("closedRight", "The dancer's right eye shut and staying shut."),
+        new("winkLeft", "A wink: the dancer's left eye shuts on the beat and opens again by itself, about a third of a second later; the look stays. Alone or after a look: `smile(60).winkLeft`."),
+        new("winkRight", "A wink of the dancer's right eye: `smile(60).winkRight`."),
+        new("blink", "Both eyes shut on the beat and open again at once: a blink on purpose (the eyes blink by themselves too)."),
     ];
 
     /// <summary>The weights a face's word gives, in this order: VRM's names for them (a frame of the clip's `face`, and the expressions a `.vrma` keys).</summary>

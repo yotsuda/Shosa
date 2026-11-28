@@ -192,7 +192,7 @@ the tracks alone; in a file each of them stands inside a role's block.
 | `hands` | Both hands at once, mirrored: the shape of the fingers (`fist`, `open`, `point`, `peace` …), and which way the fingers and the palm face (`open.fingers(up).palm(fwd)`). |
 | `leftHand` | The left hand: the shape of its fingers, and which way they and the palm face. |
 | `rightHand` | The right hand. |
-| `face` | The face of a character: its look (`smile`, `sad`, `angry`, `relaxed`, `surprised`, `neutral`), and the eyes (`closed`, `winkLeft`, `winkRight`): `face { smile:4 | smile.winkRight:1 smile:3 | }`. It changes in a moment just before its beat. The eyes blink by themselves, written or not. |
+| `face` | The face of a character: its look (`smile`, `sad`, `angry`, `relaxed`, `surprised`, `neutral`), and the eyes (`closed` stays shut, `winkLeft` and `winkRight` shut and open again): `face { smile:4 | smile.winkRight:4 | }`. It changes in a moment just before its beat. The eyes blink by themselves, written or not. |
 | `quality` | How the parts go to their words from here on, for every word that does not say so itself: the names of the `@` marks, without the `@`. `quality { through }` passes every word without stopping, one flowing line (as `@through` on each); `quality { sharp }` hits every word at the last moment (as `@sharp` on each); `smooth` is the default again. Timed like any row (`quality { through:8 | sharp:4 smooth:4 | }`), and kept until the next word of the row. A word's own `@` wins. Not for `steps`. |
 | `juggle` | What the hands throw (`juggles balls` on the dancer line), in siteswap as jugglers write it: `juggle { every 1/2  3:4 | 531531 3 3 | }`. A word with no length is its throws as written, one throwing beat each (`531` once through); with a length, the pattern over and over for that long (`3:4`); `every` says how many beats from one throw to the next. While a pattern is thrown, the arms are the juggle row's. |
 
@@ -1136,7 +1136,7 @@ A character (`dancer … "girl.vrm"`) has a face, and its row says **a look, the
 
 ```shosa
 face { smile(50) }                                  // a smile held through the whole dance
-face { smile(50):3 smile(60).winkRight:1/2 smile(50):1/2 | surprised:2 smile:2 | }
+face { smile(50):3 smile(60).winkRight:1 | surprised:2 smile:2 | }             // a wink on beat 3: the eye opens again by itself
 face { neutral:4 | relaxed.closed:4 | sad(40):4 }   // at rest, eyes shut in a soft smile, a little sad
 ```
 
@@ -1151,18 +1151,30 @@ face { neutral:4 | relaxed.closed:4 | sad(40):4 }   // at rest, eyes shut in a s
 
 | Eyes | Meaning |
 |---|---|
-| `closed` | Both eyes shut (`closed(50)`: half shut, sleepy). Alone or after a look: `relaxed.closed`. |
-| `winkLeft` | The dancer's left eye shut, the right open: a wink. Alone or after a look: `smile(60).winkLeft`. |
-| `winkRight` | The dancer's right eye shut: `smile(60).winkRight`. |
+| `open` | Both eyes open, and they stay so: what a word that says no eyes is too (`smile(50).open` is `smile(50)`), written to say it. |
+| `closed` | Both eyes shut, and they STAY shut until a word opens them (`closed(50)`: half shut, sleepy). Alone or after a look: `relaxed.closed`. |
+| `closedLeft` | The dancer's left eye shut and staying shut, the right open: a wink held (a photo pose). |
+| `closedRight` | The dancer's right eye shut and staying shut. |
+| `winkLeft` | A wink: the dancer's left eye shuts on the beat and opens again by itself, about a third of a second later; the look stays. Alone or after a look: `smile(60).winkLeft`. |
+| `winkRight` | A wink of the dancer's right eye: `smile(60).winkRight`. |
+| `blink` | Both eyes shut on the beat and open again at once: a blink on purpose (the eyes blink by themselves too). |
 
-- **A word is the whole face**: one look (or none: the face at rest), then `closed`, `winkLeft` or
-  `winkRight`. A bracket is how much, in percent: `smile(50)`, `closed(50)`. `smile` alone is all of the
+- **A word is the whole face**: one look (or none: the face at rest), then the eyes. A bracket is how
+  much, in percent: `smile(50)`, `closed(50)`.
+- **Eyes that stay, and eyes that shut and open again** — two kinds of word, as holding a key down is
+  not a keystroke. `closed`, `closedLeft`, `closedRight` shut the eyes and they STAY shut until a
+  word opens them (`open`, or any word that says no eyes). `winkLeft`, `winkRight` and `blink` are
+  the whole gesture: the eye shuts on the word's beat and opens again by itself (a wink a third
+  of a second, a blink at once), however long the word is and whatever comes after — the look
+  stays, nothing is written to end it. A wink is `smile(60).winkRight`; an eye held shut for a
+  photo pose is `smile(60).closedRight:2 smile(60):2`.
+- `smile` alone is all of the
   character's happy face, which on most characters narrows or shuts the eyes: **a smile to dance in is
   `smile(40)` to `smile(60)`**, the full `smile` for an accent (the last pose, a "yay").
 - **It is there on its beat, and changes in a moment**: a look takes the last 0.2 s before its beat, an
-  eye 0.08 s — not the whole of the word before, as a gesture does. A wink on beat 3 for half a beat is
-  `smile(50):3 smile(50).winkRight:1/2 smile(50)` (the look is written again to keep it: the word is the
-  whole face). It is kept until a word changes it, across sections too. No `@` but `@mirror`, which
+  eye 0.08 s — not the whole of the word before, as a gesture does. A wink on beat 3 is
+  `smile(50):3 smile(50).winkRight:1` (the look is written again to keep it: the word is the
+  whole face). A look is kept until a word changes it, across sections too. No `@` but `@mirror`, which
   winks the other eye (as a mirrored dancer does).
 - **The eyes blink by themselves**, every few seconds, each dancer at its own moments, with a `face` row
   or without; not while the row has an eye shut.
@@ -1171,7 +1183,7 @@ face { neutral:4 | relaxed.closed:4 | sad(40):4 }   // at rest, eyes shut in a s
   (`pose cheer { arms { up } face { smile } }`), and so may a move.
 - **A `face` row beside `body` wins over the face a pose or a move brings**, as every narrower row does:
   where the row has a word, the wink of `body { peaceEye }` is not seen. Leave the pose its face with
-  `skip`, and write the look again after it, for a pose's face stays as any face does (its wink too):
+  `skip`, and write the look again after it, for a pose's look stays as any look does (its wink is over by itself):
   `body { bounce:4 | then:2 peaceEye:2 | bounce:4 | }  face { smile(50):4 | skip:4 | smile(50):4 | }`.
   A row of looks written through every bar hides every face the vocabulary files wrote.
 - The figure of sticks has no face: the preview shows it on a character, and a `.vrma` keys VRM's

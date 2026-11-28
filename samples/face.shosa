@@ -16,8 +16,8 @@ section Hello {
     hands    { spread.fingers(up).palm(fwd):4 | point:4 | spread:4 | heart:4 | }
     head     { fwd.tilt(right(10)):4 | fwd:4 | fwd.up(10):4 | fwd.tilt(left(12)):4 | }
     // A smile to dance in is about half of the whole one; the word is the whole face, so the look
-    // is written again beside the wink.
-    face     { smile(50):4 | smile(50):2 smile(60).winkRight:1 smile(50):1 | then:2 surprised:2 | smile:4 | }
+    // is written again beside the wink. A wink is the whole gesture: the eye opens again by itself.
+    face     { smile(50):4 | smile(50):2 smile(60).winkRight:2 | then:2 surprised:2 | smile:4 | }
   }
 }
 

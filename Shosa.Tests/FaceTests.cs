@@ -34,6 +34,28 @@ public class FaceTests
     }
 
     [Fact]
+    public void A_wink_opens_again_by_itself_and_closed_eyes_stay_closed()
+    {
+        // Two kinds of word (DESIGN.md 142): `closedLeft` holds the eye shut until a word opens it; `winkLeft` is the whole
+        // gesture, shut on its beat and open again a third of a second later, however long the word is.
+        var compilation = Compile("    steps { stand:4 | then:4 | then:4 }\n    face { smile(50).winkLeft:4 | smile(50).closedLeft:2 smile(50).open:2 | blink:2 closed:1 neutral:1 }");
+        Assert.Empty(compilation.Diagnostics);
+        Assert.Equal((1f, 0f), (Face(compilation, 0)[LeftEye], Face(compilation, 0)[RightEye]));
+        Assert.Equal(1f, Face(compilation, 0.2)[LeftEye]);
+        Assert.Equal(0f, Face(compilation, 0.5)[LeftEye]);
+        Assert.Equal([0.5f, 0, 0, 0, 0, 0, 0], Face(compilation, 2));   // the look stays, the eye is open
+        // Held shut: all through the word, and open with the next.
+        Assert.Equal((1f, 0f), (Face(compilation, 4)[LeftEye], Face(compilation, 4)[RightEye]));
+        Assert.Equal(1f, Face(compilation, 5.5)[LeftEye]);
+        Assert.Equal(0f, Face(compilation, 6)[LeftEye]);
+        // A blink on purpose is both eyes, and over at once; `closed` stays.
+        Assert.Equal((1f, 1f), (Face(compilation, 8)[LeftEye], Face(compilation, 8)[RightEye]));
+        Assert.Equal((0f, 0f), (Face(compilation, 8.3)[LeftEye], Face(compilation, 8.3)[RightEye]));
+        Assert.Equal((1f, 1f), (Face(compilation, 10.5)[LeftEye], Face(compilation, 10.5)[RightEye]));
+        Assert.Equal(0f, Face(compilation, 11.5)[LeftEye]);
+    }
+
+    [Fact]
     public void It_changes_in_a_moment_before_its_beat_and_not_through_the_word_before()
     {
         var compilation = Compile("    steps { stand:8 }\n    face { neutral:4 smile.closed:4 }");
@@ -49,13 +71,14 @@ public class FaceTests
     [Fact]
     public void A_mirrored_dancer_and_a_mirrored_word_wink_the_other_eye()
     {
-        var word = Compile("    steps { stand:4 }\n    face { winkRight:2 winkRight:2@mirror }");
+        var word = Compile("    steps { stand:4 }\n    face { closedRight:2 closedRight:2@mirror }");
         Assert.Empty(word.Diagnostics);
         Assert.Equal((0f, 1f), (Face(word, 1)[LeftEye], Face(word, 1)[RightEye]));
         Assert.Equal((1f, 0f), (Face(word, 3)[LeftEye], Face(word, 3)[RightEye]));
-        var dancer = Compile("    steps { stand:4 }\n    face { winkRight:4 }", cast: "role solo\ndancer solo humanoid on solo mirror\n");
+        var dancer = Compile("    steps { stand:4 }\n    face { closedRight:2 winkRight:2 }", cast: "role solo\ndancer solo humanoid on solo mirror\n");
         Assert.Empty(dancer.Diagnostics);
         Assert.Equal((1f, 0f), (Face(dancer, 1)[LeftEye], Face(dancer, 1)[RightEye]));
+        Assert.Equal((1f, 0f), (Face(dancer, 2)[LeftEye], Face(dancer, 2)[RightEye]));   // and its wink
     }
 
     [Fact]
@@ -97,8 +120,8 @@ public class FaceTests
         Assert.Contains(Enumerable.Range(0, 900), f => anna[f][LeftEye] != bella[f][LeftEye]);
         Assert.Null(Shosa.Core.Motion.Face.Frames(null, seconds, beat => beat, "anna", blinks: false, 30, loop: false));
 
-        // A wink through the whole dance: the open eye does not blink beside it.
-        var wink = Compile("    steps { stand:4 | then:7bar }\n    face { winkLeft }").Clip.Figures[0].Face!;
+        // An eye held shut through the whole dance: the open eye does not blink beside it.
+        var wink = Compile("    steps { stand:4 | then:7bar }\n    face { closedLeft }").Clip.Figures[0].Face!;
         Assert.All(wink, row => Assert.Equal((1f, 0f), (row[LeftEye], row[RightEye])));
     }
 

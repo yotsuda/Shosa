@@ -1085,7 +1085,7 @@ public static class GrammarDoc
 
             ```shosa
             face { smile(50) }                                  // a smile held through the whole dance
-            face { smile(50):3 smile(60).winkRight:1/2 smile(50):1/2 | surprised:2 smile:2 | }
+            face { smile(50):3 smile(60).winkRight:1 | surprised:2 smile:2 | }             // a wink on beat 3: the eye opens again by itself
             face { neutral:4 | relaxed.closed:4 | sad(40):4 }   // at rest, eyes shut in a soft smile, a little sad
             ```
 
@@ -1096,14 +1096,22 @@ public static class GrammarDoc
         Table("Eyes", Vocabulary.FaceEyes);
 
         sb.Append("""
-            - **A word is the whole face**: one look (or none: the face at rest), then `closed`, `winkLeft` or
-              `winkRight`. A bracket is how much, in percent: `smile(50)`, `closed(50)`. `smile` alone is all of the
+            - **A word is the whole face**: one look (or none: the face at rest), then the eyes. A bracket is how
+              much, in percent: `smile(50)`, `closed(50)`.
+            - **Eyes that stay, and eyes that shut and open again** — two kinds of word, as holding a key down is
+              not a keystroke. `closed`, `closedLeft`, `closedRight` shut the eyes and they STAY shut until a
+              word opens them (`open`, or any word that says no eyes). `winkLeft`, `winkRight` and `blink` are
+              the whole gesture: the eye shuts on the word's beat and opens again by itself (a wink a third
+              of a second, a blink at once), however long the word is and whatever comes after — the look
+              stays, nothing is written to end it. A wink is `smile(60).winkRight`; an eye held shut for a
+              photo pose is `smile(60).closedRight:2 smile(60):2`.
+            - `smile` alone is all of the
               character's happy face, which on most characters narrows or shuts the eyes: **a smile to dance in is
               `smile(40)` to `smile(60)`**, the full `smile` for an accent (the last pose, a "yay").
             - **It is there on its beat, and changes in a moment**: a look takes the last 0.2 s before its beat, an
-              eye 0.08 s — not the whole of the word before, as a gesture does. A wink on beat 3 for half a beat is
-              `smile(50):3 smile(50).winkRight:1/2 smile(50)` (the look is written again to keep it: the word is the
-              whole face). It is kept until a word changes it, across sections too. No `@` but `@mirror`, which
+              eye 0.08 s — not the whole of the word before, as a gesture does. A wink on beat 3 is
+              `smile(50):3 smile(50).winkRight:1` (the look is written again to keep it: the word is the
+              whole face). A look is kept until a word changes it, across sections too. No `@` but `@mirror`, which
               winks the other eye (as a mirrored dancer does).
             - **The eyes blink by themselves**, every few seconds, each dancer at its own moments, with a `face` row
               or without; not while the row has an eye shut.
@@ -1112,7 +1120,7 @@ public static class GrammarDoc
               (`pose cheer { arms { up } face { smile } }`), and so may a move.
             - **A `face` row beside `body` wins over the face a pose or a move brings**, as every narrower row does:
               where the row has a word, the wink of `body { peaceEye }` is not seen. Leave the pose its face with
-              `skip`, and write the look again after it, for a pose's face stays as any face does (its wink too):
+              `skip`, and write the look again after it, for a pose's look stays as any look does (its wink is over by itself):
               `body { bounce:4 | then:2 peaceEye:2 | bounce:4 | }  face { smile(50):4 | skip:4 | smile(50):4 | }`.
               A row of looks written through every bar hides every face the vocabulary files wrote.
             - The figure of sticks has no face: the preview shows it on a character, and a `.vrma` keys VRM's

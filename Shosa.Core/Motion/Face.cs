@@ -18,12 +18,16 @@ public static class Face
 
     private const int Eyes = 5;   // the first of the two eyes among Vocabulary.FaceShapes
 
+    /// <summary>A wink (`winkLeft`, `winkRight`): seconds the eye stays shut from its beat, and takes to open. A blink on purpose (`blink`) stays shut as an eye's own blink does.</summary>
+    private const double WinkHeld = 0.25, WinkOpen = 0.12;
+
     /// <summary>
     /// The weights of <see cref="Vocabulary.FaceShapes"/> at every frame. A word's face is there on its beat: the look
     /// before it gives way to it over the last <see cref="LookSeconds"/> before (less, when the word before is
     /// shorter), the eyes over <see cref="EyeSeconds"/>. With <paramref name="blinks"/> the eyes blink every few
     /// seconds, at moments that depend on <paramref name="who"/> alone (two dancers do not blink together; the same
-    /// dance blinks the same every time), but not while the row has an eye shut. Null when there is nothing to
+    /// dance blinks the same every time), but not while the row has an eye shut. A word's wink (<see cref="Seg.Wink"/>)
+    /// shuts its eyes on the beat and opens them again by itself, over whatever the row says after it. Null when there is nothing to
     /// say: no row and no blinking.
     /// </summary>
     public static List<float[]>? Frames(IReadOnlyList<Seg>? row, IReadOnlyList<double> secondsOfFrame, Func<double, double> secondsAt,
@@ -35,6 +39,11 @@ public static class Face
             .ToList();
         if (words.Count == 0 && !blinks)
             return null;
+        // The eyes that shut on a word's beat and open again by themselves (a wink, a blink on purpose).
+        var winks = (row ?? []).Where(s => s.Kind == SegKinds.Face && s.Wink is { Length: >= 2 })
+            .Select(s => (At: secondsAt(s.At), Held: s.Wink![0] > 0 && s.Wink[1] > 0 ? BlinkHeld : WinkHeld, Eye: s.Wink!))
+            .OrderBy(w => w.At)
+            .ToList();
         // A loop follows itself: its first word is where its end goes.
         if (loop && words.Count > 0 && words[0].At <= 1e-6 && totalSeconds > 0)
             words.Add((totalSeconds, words[^1].At, words[0].Face));
@@ -61,6 +70,15 @@ public static class Face
                         value += (next.Face[k] - value) * Smooth((t - (next.At - lead)) / lead);
                 }
                 weights[k] = (float)Math.Round(value, 3);
+            }
+            foreach (var wink in winks)
+            {
+                double since = t - wink.At;
+                if (since < -EyeSeconds || since > wink.Held + WinkOpen)
+                    continue;
+                double shut = since < 0 ? Smooth((since + EyeSeconds) / EyeSeconds) : since < wink.Held ? 1 : 1 - Smooth((since - wink.Held) / WinkOpen);
+                for (int eye = 0; eye < 2; eye++)
+                    weights[Eyes + eye] = Math.Max(weights[Eyes + eye], (float)Math.Round(shut * wink.Eye[eye], 3));
             }
             if (blinkAt.Count > 0)
             {

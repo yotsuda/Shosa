@@ -2836,11 +2836,13 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
     }
 
 
-    private const string FaceForm = "A face's word is its look, then the eyes: smile, smile(50), sad(40), surprised, neutral; closed, winkRight, smile(60).winkLeft, relaxed.closed.";
+    private const string FaceForm = "A face's word is its look, then the eyes: smile, smile(50), sad(40), surprised, neutral; eyes that stay (open, closed, closedLeft, closedRight) or shut and open again (winkLeft, winkRight, blink): smile(60).winkLeft, relaxed.closed.";
 
     /// <summary>
     /// A word of the face's row (DESIGN.md 131): a look (`smile`, `smile(50)`: percent of VRM's expression), then the
-    /// eyes (`closed`, `winkLeft`, `winkRight`), or either alone. A word is the whole face: what it does not say is at rest.
+    /// eyes, or either alone: eyes that stay (`open`, `closed`, `closedLeft`, `closedRight`) in <see cref="Seg.Face"/>, or eyes that
+    /// shut on the beat and open again by themselves (`winkLeft`, `winkRight`, `blink`) in <see cref="Seg.Wink"/> (DESIGN.md 142).
+    /// A word is the whole face: what it does not say is at rest.
     /// </summary>
     private Seg? BindFace(List<Part> parts, List<SyntaxNode> annotations, bool mirror)
     {
@@ -2852,6 +2854,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         }
         var face = new double[Vocabulary.FaceShapes.Length];
         bool eyes = false;
+        double[]? wink = null;
         for (int i = 0; i < parts.Count; i++)
         {
             var part = parts[i];
@@ -2869,7 +2872,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
             }
             if (eye && eyes)
             {
-                Error("SH1012", part.Word.Span, $"The eyes are said once: closed (both), winkLeft or winkRight. {FaceForm}");
+                Error("SH1012", part.Word.Span, $"The eyes are said once: open, closed, closedLeft or closedRight (they stay so), or winkLeft, winkRight or blink (shut and open again). {FaceForm}");
                 return null;
             }
             double share = 1;
@@ -2891,15 +2894,23 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
                 continue;
             }
             eyes = true;
-            // (5 the dancer's left eye, 6 the right: a mirrored dancer winks the other.)
-            bool left = part.Text == "closed" || (part.Text == "winkLeft") != mirror;
-            bool right = part.Text == "closed" || (part.Text == "winkRight") != mirror;
+            // Eyes that stay (5 the dancer's left eye, 6 the right: a mirrored dancer shuts the other), or eyes that shut
+            // on the beat and open again by themselves (a wink, a blink: DESIGN.md 142).
+            bool brief = part.Text is "winkLeft" or "winkRight" or "blink";
+            bool left = part.Text is "closed" or "blink" || (part.Text is "winkLeft" or "closedLeft") != mirror && part.Text != "open";
+            bool right = part.Text is "closed" or "blink" || (part.Text is "winkRight" or "closedRight") != mirror && part.Text != "open";
+            if (brief)
+            {
+                wink = [left ? share : 0, right ? share : 0];
+                continue;
+            }
+
             if (left)
                 face[5] = share;
             if (right)
                 face[6] = share;
         }
-        return new Seg { Kind = SegKinds.Face, Face = face };
+        return new Seg { Kind = SegKinds.Face, Face = face, Wink = wink };
     }
 
     private static bool IsHandRow(string[] channels)
