@@ -2098,7 +2098,7 @@ internal sealed class FigureSolver
             }
             if (record && stride > reaches + 1e-6)
                 SupportProblems.Add((go, "SH2026", FormattableString.Invariant(
-                    $"This walk is {length:0.##} m in {walk.Count} steps, the last one closing: {stride:0.##} m a step, and a step this quick reaches {reaches:0.##} m. Give it more time (the word before it is the time it walks in){(go.Steps is null ? "" : ", or other steps (`steps(N)`: fewer are longer and slower, more are shorter and quicker)")}.")));
+                    $"This walk is {length:0.##} m in {room / perSecond:0.##} s ({length * perSecond / room:0.#} m/s; a brisk walk is 1.4) and {walk.Count} steps, the last one closing: {stride:0.##} m a step, and a step this quick reaches {reaches:0.##} m. Give it more time (the word before it is the time it walks in){(go.Steps is null ? "" : ", or other steps (`steps(N)`: fewer are longer and slower, more are shorter and quicker)")}.")));
             return walk;
         }
 

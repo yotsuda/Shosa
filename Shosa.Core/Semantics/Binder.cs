@@ -15,7 +15,8 @@ public static class Binder
 {
     /// <param name="score">The score to bind ("" is the unnamed one); null binds every score the file has, a clip each.</param>
     /// <param name="songs">Reads the song a `music` line names; null where there is nothing to read one with.</param>
-    public static (ScoreIr Score, List<Diagnostic> Diagnostics) Bind(SyntaxTree tree, string? score = null, SongSource? songs = null)
+    /// <param name="styles">With `using "shosa:…"` lines: where in the tree the text of Shosa's own files of parts is, start and end.</param>
+    public static (ScoreIr Score, List<Diagnostic> Diagnostics) Bind(SyntaxTree tree, string? score = null, SongSource? songs = null, IReadOnlyList<(int Start, int End)>? styles = null)
     {
         var names = tree.Root.ChildNodes(SyntaxKind.ScoreDecl).Select(s => s.Token(SyntaxKind.Identifier, 1)?.Text ?? "").Distinct().ToList();
         var result = new ScoreIr { Name = score ?? "" };
@@ -28,7 +29,7 @@ public static class Binder
         var seen = new HashSet<(string, int, int)>();
         foreach (string? name in runs)
         {
-            var (bound, found) = new BinderRun(tree, name, songs).Run();
+            var (bound, found) = new BinderRun(tree, name, songs) { Styles = styles ?? [] }.Run();
             result.Clips.AddRange(bound.Clips);
             foreach (var (move, length) in bound.MoveLengths)
                 result.MoveLengths.TryAdd(move, length);
@@ -44,6 +45,9 @@ public static class Binder
 internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? songs)
 {
     private const double Epsilon = 1e-6;
+
+    /// <summary>Where in the tree the text of Shosa's own files of parts is (`using "shosa:basics"`), start and end.</summary>
+    public IReadOnlyList<(int Start, int End)> Styles { get; init; } = [];
 
     private sealed class DancerSpec
     {
@@ -2194,7 +2198,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         double wrap = Wrap(ctx, t0);
         if (definition is not null)
         {
-            ExpandDefinition(definition, words[0], annotations, ctx with { Mirror = mirror, Free = free, Src = src }, t0, length, ease);
+            ExpandDefinition(definition, words[0], annotations, ctx with { Mirror = mirror, Free = free, Src = src }, t0, length, ease, scored: ctx.Src is null);
             if (mark is not null && ctx.Clip is not null && t0 + wrap > -Epsilon)
                 _marks.Add((new MarkIr(Math.Max(0, t0 + wrap), mark.Text, ctx.Dancer.Id, src.Start, src.Length, _playing, _verse), []));
             return;
@@ -2414,7 +2418,7 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
     /// A defined word in a track: the definition's tracks, each cut down to what the enclosing
     /// track covers, stretched to the length written here.
     /// </summary>
-    private void ExpandDefinition(SyntaxNode definition, SyntaxToken name, List<SyntaxNode> annotations, Ctx ctx, double t0, double length, string? ease)
+    private void ExpandDefinition(SyntaxNode definition, SyntaxToken name, List<SyntaxNode> annotations, Ctx ctx, double t0, double length, string? ease, bool scored = false)
     {
         bool isPose = definition.Kind == SyntaxKind.PoseDecl;
         foreach (var annotation in annotations)
@@ -2433,6 +2437,13 @@ internal sealed class BinderRun(SyntaxTree tree, string? scoreName, SongSource? 
         }
 
         double natural = isPose ? 1 : Natural(name.Text);
+        // A move of Shosa's own styles squeezed to half its length or less plays every word of it twice as fast or more:
+        // a bounce down on every beat shakes, down on every half beat (DESIGN.md 143). Said where the score writes it, not
+        // inside a move, and not of moves the writer wrote (here or in a file of parts): whoever wrote `jab` knows how long
+        // it is, and a quick jab is the point.
+        if (!isPose && scored && Styles.Any(s => definition.Span.Start >= s.Start && definition.Span.Start < s.End) && natural > 0 && length <= natural / 2 + Epsilon)
+            Report("SH1046", DiagnosticSeverity.Warning, name.Span, FormattableString.Invariant(
+                $"'{name.Text}' is {natural:0.##} beats; written in {length:0.##} it is squeezed, every word of it {natural / length:0.#} times as fast. If that is not the point, give it its own length ('{name.Text}:{natural:0.##}'), or write the shorter thing in the row's own words."));
         double lastWord = double.PositiveInfinity;   // where the last word of its rows begins, the earliest of them
         _expanding.Add(name.Text);
         bool any = false;

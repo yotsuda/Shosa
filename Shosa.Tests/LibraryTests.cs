@@ -94,6 +94,27 @@ public class LibraryTests
     }
 
     [Fact]
+    public void A_move_of_a_style_squeezed_to_half_its_length_is_told_and_one_of_the_files_own_is_not()
+    {
+        // DESIGN.md 143: `bounce:2` sank on every half beat and the knees shook; the writer did not know it was 4 beats.
+        string path = Path.Combine(Path.GetTempPath(), "squeeze-library.shosa");
+        string text = "using \"shosa:basics\"\nrole solo\ndancer solo humanoid on solo\n"
+            + "move hop { height { low:1/2 mid:1/2 low:1/2 mid:1/2 } }\n"
+            + "section A { solo { height { bounce:2 bounce:3 bounce:4 hop:1 } } }\nform { A }\nscore { dancer solo }\n";
+        var compiled = ShosaCompilation.Compile(text, null, null, new UsingSource(path));
+        var said = Assert.Single(compiled.Diagnostics, d => d.Code == "SH1046");
+        Assert.Equal(Shosa.Core.Syntax.DiagnosticSeverity.Warning, said.Severity);
+        Assert.Equal(text.IndexOf("bounce:2"), said.Span.Start);
+        Assert.Contains("'bounce' is 4 beats; written in 2 it is squeezed, every word of it 2 times as fast", said.Message);
+
+        // A file of parts of the writer's own is theirs: a quick jab is the point (samples/fighter.shosa).
+        string parts = Path.Combine(Path.GetTempPath(), "squeeze-parts.shosa");
+        var own = ShosaCompilation.Compile("using \"parts.shosa\"\nrole solo\ndancer solo humanoid on solo\nsection A { solo { height { hop:1 } } }\nform { A }\nscore { dancer solo }\n",
+            null, null, new UsingSource(parts, p => p.EndsWith("parts.shosa") && !p.EndsWith("squeeze-parts.shosa") ? "move hop { height { low:1/2 mid:1/2 low:1/2 mid:1/2 } }\n" : null));
+        Assert.DoesNotContain(own.Diagnostics, d => d.Code is "SH1046" or "SH1039");
+    }
+
+    [Fact]
     public void The_guide_in_docs_is_what_the_compiler_prints_and_ends_with_every_style()
     {
         // Regenerate with: shosa guide -o docs/CHOREOGRAPHY_FOR_LLM.md

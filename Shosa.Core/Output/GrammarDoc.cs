@@ -516,6 +516,9 @@ public static class GrammarDoc
             - A defined name is written in a track like any word. **Without a length it lasts as long
               as it was defined** (a pose: one beat; a move: its longest track — `kick` above is 4
               beats). **With a length the whole of it is stretched or squeezed to fit**: `kick:2`.
+              Squeezed, every word of it is faster: `kick:2` kicks twice as fast. A move of Shosa's styles
+              (`using "shosa:basics"`) written in half its length or less is the warning SH1046 (a `bounce:2`
+              sinks on every half beat, and the knees shake): for less of it, write the row's own words.
               When counting bars, write the length.
             - **Written in a track, a definition does only the part that track covers.**
               `body { guard }` is the whole guard; `leftArm { guard }` is the guard's left arm (this

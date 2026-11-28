@@ -8165,3 +8165,12 @@ line { arms { neighbor.hand:2 then:2 neighbor.hand.high:2 then:2 down:2 } }
 - 文法書の「The face」(2 種類の語の項)、ガイド、型 `idol` の頭の注、エラーの文言、補完 (FaceEyes から)。136.2 で足した「書き直さないとウインクが残る」は消した (顔つきは残るので「後で顔つきを書き直す」は残した)。
 - 試験 `A_wink_opens_again_by_itself_and_closed_eyes_stay_closed`、鏡の試験を `closedRight` に。
 - **まだ**: ウインクの長さを書く道は無い (0.25 秒固定)。ユーザーの目もまだ (数では、拍に閉じて 0.37 秒後に開ききる)。
+
+## 143. 縮めた型の警告 SH1046 と、`go` の歩数の見立ての訂正 (2026-11-28)
+
+- **`go` の歩数 (140.当たったこと (2) の訂正)**: 「8 拍の歩が 1 拍 1 歩のままで SH2026」は読み違いだった。見本の三角形を辺 3 m に戻して再現すると、SH2026 が出るのは 8 拍の輪の歩ではなく、**4 拍 (2 秒) で約 3 m を歩く `go.home`** (秒速 1.5 m)。8 拍の歩は長ければ 1 拍 2 歩を選んでいる (1 人で 3 m・8 拍は no problems)。警告は正しい。読み違えたのは文面の「8 steps」を 8 拍と読んだから: 文面に秒と速さを足した (「2.97 m in 2 s (1.5 m/s; a brisk walk is 1.4) and 8 steps …」)。
+- **縮めた型 (139 の残り)**: 型の長さより短く書くと、型の語が全部その倍だけ速くなる。書き手 (AI) は `bounce` が 4 拍とは知らずに `bounce:2` と書き、ひざが半拍ごとに沈んで震えた。**警告 SH1046**: 内蔵の型 (`using "shosa:…"`) の move を、本来の長さの**半分以下**で、**譜に直接**書いたとき (型や `{ } q` の中は言わない)。文面は「何拍の型を何拍で、何倍速、意図でなければ `bounce:4` か段の語で」。
+- **自分で書いた型は言わない**: 最初は全部の move で言ったら、`samples\fighter.shosa` (部品ファイル `parts/fighter.shosa` の `jab:1/2` など 5 か所) と `out\c85\tendus.shosa` に出た。速い突きは意図。型の長さを知っているのは書いた人なので、内蔵の型だけにした (`Binder.Bind` の `styles`: 結合した木の中の `shosa:` のファイルの範囲、`ShosaCompilation` が `IncludedFile` から渡す)。324 譜で出るのは `out\writer\b.shosa`・`h.shosa` の `bounce:2` (元の誤り) だけ。
+- 半分という線: 4 → 3 (0.75) のような少しの詰めは言わない。速さ (秒) で決めると、もともと速い型が縮めずに出たり、テンポで変わったりする。倍速は、書き手が気づかずにやる誤りの形そのもの。
+- 文法書の「A defined name … squeezed」、CHANGELOG。試験 `A_move_of_a_style_squeezed_to_half_its_length_is_told_and_one_of_the_files_own_is_not`。試験 762 件。
+

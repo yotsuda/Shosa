@@ -83,7 +83,7 @@ public sealed class ShosaCompilation
             (tree, included) = (combined.Tree, combined.Files);
             diagnostics.AddRange(combined.Diagnostics);
         }
-        var (bound, found) = Binder.Bind(tree, score, songs);
+        var (bound, found) = Binder.Bind(tree, score, songs, [.. included.Where(f => Library.IsLibrary(f.Path)).Select(f => (f.Start, f.End))]);
         diagnostics.AddRange(tree.Diagnostics.Concat(found));
         var seen = diagnostics.Select(d => (d.Code, d.Span)).ToHashSet();
         var clips = new List<MotionClip>();
